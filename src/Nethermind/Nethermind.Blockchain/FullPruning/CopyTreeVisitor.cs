@@ -35,6 +35,7 @@ namespace Nethermind.Blockchain.FullPruning
         private bool _finished = false;
         private readonly CancellationToken _cancellationToken;
         private const int Million = 1_000_000;
+        private readonly SemaphoreSlim _limit = new SemaphoreSlim(Environment.ProcessorCount / 2);
 
         public CopyTreeVisitor(
             IPruningContext pruningContext, 
@@ -48,7 +49,7 @@ namespace Nethermind.Blockchain.FullPruning
             _stopwatch = new Stopwatch();
         }
 
-        public int ParallelLevels => 1;
+        public int ParallelLevels => 5;
 
         public bool ShouldVisit(Keccak nextNode) => !_cancellationToken.IsCancellationRequested;
 
@@ -79,12 +80,20 @@ namespace Nethermind.Blockchain.FullPruning
         {
             if (node.Keccak is not null)
             {
-                _pruningContext[node.Keccak!.Bytes] = node.FullRlp;
-                Interlocked.Increment(ref _persistedNodes);
-                
-                if (_persistedNodes % Million == 0)
+                _limit.Wait(_cancellationToken);
+                try
                 {
-                    LogProgress("In Progress");
+                    _pruningContext[node.Keccak!.Bytes] = node.FullRlp;
+                    Interlocked.Increment(ref _persistedNodes);
+                
+                    if (_persistedNodes % Million == 0)
+                    {
+                        LogProgress("In Progress");
+                    }
+                }
+                finally
+                {
+                    _limit.Release();
                 }
             }
         }
