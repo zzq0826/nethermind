@@ -48,7 +48,7 @@ namespace Nethermind.Blockchain.FullPruning
             _stopwatch = new Stopwatch();
         }
 
-        public int ParallelLevels => 2;
+        public int ParallelLevels => 1;
 
         public bool ShouldVisit(Keccak nextNode) => !_cancellationToken.IsCancellationRequested;
 
