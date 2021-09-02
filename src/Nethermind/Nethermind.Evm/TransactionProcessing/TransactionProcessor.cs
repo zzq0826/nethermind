@@ -161,11 +161,12 @@ namespace Nethermind.Evm.TransactionProcessing
                 return;
             }
 
-            if (spec.IsEip3607Enabled && _stateProvider.HasCode(caller))
+            if (_stateProvider.HasCode(caller))
             {
-                TraceLogInvalidTx(transaction, "SENDER_IS_CONTRACT");
-                QuickFail(transaction, block, txTracer, eip658NotEnabled, "sender has deployed code");
-                return;
+                // TraceLogInvalidTx(transaction, "SENDER_IS_CONTRACT");
+                // QuickFail(transaction, block, txTracer, eip658NotEnabled, "sender has deployed code");
+                // return;
+                _logger.Warn($"Sender has code for {caller} on block {block.ToString(BlockHeader.Format.FullHashAndNumber)} with options {executionOptions}.");
             }
 
             long intrinsicGas = IntrinsicGasCalculator.Calculate(transaction, spec);
