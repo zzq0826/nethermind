@@ -33,9 +33,7 @@ namespace Nethermind.Trie
         void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[] value = null);
         
         void VisitCode(Keccak codeHash, TrieVisitContext trieVisitContext);
-
-        bool VisitAccounts => true;
-        
-        int ParallelLevels => -1;
+       
+        bool SupportsParallelVisits => false;
     }
 }

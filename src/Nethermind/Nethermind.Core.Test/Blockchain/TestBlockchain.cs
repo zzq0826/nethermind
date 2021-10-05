@@ -42,17 +42,18 @@ using Nethermind.Specs;
 using Nethermind.State;
 using Nethermind.State.Repositories;
 using Nethermind.Db.Blooms;
+using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
-using Nethermind.TxPool.Storages;
+using NUnit.Framework;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 
 namespace Nethermind.Core.Test.Blockchain
 {
     public class TestBlockchain : IDisposable
     {
-        public const int DefaultTimeout = 2000;
+        public const int DefaultTimeout = 4000;
         public IStateReader StateReader { get; private set; }
         public IEthereumEcdsa EthereumEcdsa { get; private set; }
         public TransactionProcessor TxProcessor { get; set; }
@@ -79,7 +80,7 @@ namespace Nethermind.Core.Test.Blockchain
         public IReadOnlyStateProvider ReadOnlyState { get; private set; }
         public IDb StateDb => DbProvider.StateDb;
         public TrieStore TrieStore { get; set; }
-        public ITestBlockProducer BlockProducer { get; private set; }
+        public IBlockProducer BlockProducer { get; private set; }
         public IDbProvider DbProvider { get; set; }
         public ISpecProvider SpecProvider { get; set; }
         
@@ -96,15 +97,19 @@ namespace Nethermind.Core.Test.Blockchain
         public static Address AccountC = TestItem.AddressC;
         public SemaphoreSlim _resetEvent;
         private ManualResetEvent _suggestedBlockResetEvent;
-        private AutoResetEvent _oneAtATime = new AutoResetEvent(true);
+        private AutoResetEvent _oneAtATime = new(true);
         private IBlockFinder _blockFinder;
 
         public static readonly UInt256 InitialValue = 1000.Ether();
-        private TrieStoreBoundaryWatcher _trieStoreWatcher;
+        private TrieStoreBoundaryWatcher _trieStoreWatcher;		
+        private BlockValidator _blockValidator;
+        public BuildBlocksWhenRequested BlockProductionTrigger { get; } = new();
 
         public IReadOnlyTrieStore ReadOnlyTrieStore { get; private set; }
 
-        public ManualTimestamper Timestamper { get; private set; }
+        public ManualTimestamper Timestamper { get; protected set; }
+        
+        public ProducedBlockSuggester Suggester { get; private set; }
 
         public static TransactionBuilder<Transaction> BuildSimpleTransaction => Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(AccountB);
 
@@ -114,7 +119,6 @@ namespace Nethermind.Core.Test.Blockchain
             JsonSerializer = new EthereumJsonSerializer();
             SpecProvider = specProvider ?? MainnetSpecProvider.Instance;
             EthereumEcdsa = new EthereumEcdsa(ChainId.Mainnet, LogManager);
-            ITxStorage txStorage = new InMemoryTxStorage();
             DbProvider = await CreateDbProvider();
             TrieStore = new TrieStore(StateDb.Innermost, LogManager);
             State = new StateProvider(TrieStore, DbProvider.CodeDb, LogManager);
@@ -142,32 +146,42 @@ namespace Nethermind.Core.Test.Blockchain
             BlockTree = new BlockTree(blockDb, headerDb, blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), SpecProvider, NullBloomStorage.Instance, LimboLogs.Instance);
             ReadOnlyState = new ChainHeadReadOnlyStateProvider(BlockTree, StateReader);
             TransactionComparerProvider = new TransactionComparerProvider(specProvider, BlockTree);
-            TxPool = CreateTxPool(txStorage);
+            TxPool = CreateTxPool();
 
             _trieStoreWatcher = new TrieStoreBoundaryWatcher(TrieStore, BlockTree, LogManager);
             
 
             ReceiptStorage = new InMemoryReceiptStorage();
-            VirtualMachine virtualMachine = new VirtualMachine(State, Storage, new BlockhashProvider(BlockTree, LogManager), SpecProvider, LogManager);
+            VirtualMachine virtualMachine = new(State, Storage, new BlockhashProvider(BlockTree, LogManager), SpecProvider, LogManager);
             TxProcessor = new TransactionProcessor(SpecProvider, State, Storage, virtualMachine, LogManager);
             BlockPreprocessorStep = new RecoverSignatures(EthereumEcdsa, TxPool, SpecProvider, LogManager);
+            HeaderValidator headerValidator = new(BlockTree, Always.Valid, SpecProvider, LogManager);
+                
+            _blockValidator = new BlockValidator(
+                new TxValidator(SpecProvider.ChainId),
+                headerValidator,
+                Always.Valid,
+                SpecProvider,
+                LogManager);
+            
             BlockProcessor = CreateBlockProcessor();
             
-            BlockchainProcessor chainProcessor = new BlockchainProcessor(BlockTree, BlockProcessor, BlockPreprocessorStep, LogManager, Nethermind.Blockchain.Processing.BlockchainProcessor.Options.Default);
+            BlockchainProcessor chainProcessor = new(BlockTree, BlockProcessor, BlockPreprocessorStep, LogManager, Nethermind.Blockchain.Processing.BlockchainProcessor.Options.Default);
             BlockchainProcessor = chainProcessor;
             BlockProcessingQueue = chainProcessor;
             chainProcessor.Start();
             
             TxPoolTxSource txPoolTxSource = CreateTxPoolTxSource();
             ISealer sealer = new NethDevSealEngine(TestItem.AddressD);
-            IStateProvider producerStateProvider = new StateProvider(ReadOnlyTrieStore, CodeDb, LogManager);
-            BlockProducer = CreateTestBlockProducer(txPoolTxSource, chainProcessor, producerStateProvider, sealer);
+            ITransactionComparerProvider transactionComparerProvider = new TransactionComparerProvider(SpecProvider, BlockFinder);
+            BlockProducer = CreateTestBlockProducer(txPoolTxSource, sealer, transactionComparerProvider);
+            Suggester = new ProducedBlockSuggester(BlockTree, BlockProducer);
             BlockProducer.Start();
 
             _resetEvent = new SemaphoreSlim(0);
             _suggestedBlockResetEvent = new ManualResetEvent(true);
             BlockTree.NewHeadBlock += OnNewHeadBlock;
-            BlockProducer.LastProducedBlockChanged += (s, e) =>
+            BlockProducer.BlockProduced += (s, e) =>
             {
                 _suggestedBlockResetEvent.Set();
             };
@@ -202,16 +216,32 @@ namespace Nethermind.Core.Test.Blockchain
             }
         }
 
-        protected virtual ITestBlockProducer CreateTestBlockProducer(TxPoolTxSource txPoolTxSource, BlockchainProcessor chainProcessor, IStateProvider producerStateProvider, ISealer sealer)
+        protected virtual IBlockProducer CreateTestBlockProducer(TxPoolTxSource txPoolTxSource, ISealer sealer, ITransactionComparerProvider transactionComparerProvider)
         {
-            return new TestBlockProducer(txPoolTxSource, chainProcessor, producerStateProvider, sealer, BlockTree, chainProcessor, Timestamper, SpecProvider, LogManager);
+            MiningConfig miningConfig = new();
+
+            BlockProducerEnvFactory blockProducerEnvFactory = new(
+                DbProvider, 
+                BlockTree, 
+                ReadOnlyTrieStore, 
+                SpecProvider, 
+                _blockValidator,
+                NoBlockRewards.Instance,
+                ReceiptStorage,
+                BlockPreprocessorStep,
+                TxPool,
+                transactionComparerProvider,
+                miningConfig,
+                LogManager);
+
+            BlockProducerEnv env = blockProducerEnvFactory.Create(txPoolTxSource);
+            return new TestBlockProducer(env.TxSource, env.ChainProcessor, env.ReadOnlyStateProvider, sealer, BlockTree, BlockProductionTrigger, Timestamper, SpecProvider, LogManager);
         }
 
         public virtual ILogManager LogManager { get; } = LimboLogs.Instance;
 
-        protected virtual TxPool.TxPool CreateTxPool(ITxStorage txStorage) =>
-            new TxPool.TxPool(
-                txStorage,
+        protected virtual TxPool.TxPool CreateTxPool() =>
+            new(
                 EthereumEcdsa,
                 new ChainHeadInfoProvider(new FixedBlockChainHeadSpecProvider(SpecProvider), BlockTree, ReadOnlyState),
                 new TxPoolConfig(),
@@ -223,7 +253,7 @@ namespace Nethermind.Core.Test.Blockchain
         {
             ITxFilterPipeline txFilterPipeline = TxFilterPipelineBuilder.CreateStandardFilteringPipeline(LimboLogs.Instance,
                 SpecProvider);
-            return new TxPoolTxSource(TxPool, StateReader, SpecProvider, TransactionComparerProvider, LogManager, txFilterPipeline);
+            return new TxPoolTxSource(TxPool, SpecProvider, TransactionComparerProvider, LogManager, txFilterPipeline);
         }
 
         public BlockBuilder GenesisBlockBuilder { get; set; }
@@ -253,15 +283,15 @@ namespace Nethermind.Core.Test.Blockchain
         }
 
         protected virtual BlockProcessor CreateBlockProcessor() =>
-            new BlockProcessor(
+            new(
                 SpecProvider,
-                Always.Valid,
-                new RewardCalculator(SpecProvider),
-                TxProcessor,
+                _blockValidator,
+                NoBlockRewards.Instance,
+                new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, State),
                 State,
                 Storage,
                 ReceiptStorage,
-                NullWitnessCollector.Instance, 
+                NullWitnessCollector.Instance,
                 LogManager);
 
         public async Task WaitForNewHead()
@@ -302,9 +332,9 @@ namespace Nethermind.Core.Test.Blockchain
             BlockTree.NewHeadBlock += OnNewHeadBlock;
             
             await WaitAsync(_oneAtATime, "Multiple block produced at once.");
-            AddTxResult[] txResults = transactions.Select(t => TxPool.AddTransaction(t, TxHandlingOptions.None)).ToArray();
+            AddTxResult[] txResults = transactions.Select(t => TxPool.SubmitTx(t, TxHandlingOptions.None)).ToArray();
             Timestamper.Add(TimeSpan.FromSeconds(1));
-            await BlockProducer.BuildNewBlock();
+            await BlockProductionTrigger.BuildBlock();
             return txResults;
         }
 
@@ -312,12 +342,13 @@ namespace Nethermind.Core.Test.Blockchain
         {
             for (int i = 0; i < txs.Length; i++)
             {
-                TxPool.AddTransaction(txs[i], TxHandlingOptions.None);
+                TxPool.SubmitTx(txs[i], TxHandlingOptions.None);
             }
         }
 
         public virtual void Dispose()
         {
+            TestContext.Out.WriteLine($"disposing {this.GetHashCode()}");
             BlockProducer?.StopAsync();
             CodeDb?.Dispose();
             StateDb?.Dispose();
@@ -338,9 +369,12 @@ namespace Nethermind.Core.Test.Blockchain
         public async Task AddFunds(params (Address address, UInt256 ether)[] funds) =>
             await AddBlock(funds.Select((f, i) => GetFundsTransaction(f.address, f.ether, (uint)i)).ToArray());
         
+        public async Task AddFundsAfterLondon(params (Address address, UInt256 ether)[] funds) =>
+            await AddBlock(funds.Select((f, i) => GetFunds1559Transaction(f.address, f.ether, (uint)i)).ToArray());
+        
         private Transaction GetFundsTransaction(Address address, UInt256 ether, uint index = 0)
         {
-            var nonce = StateReader.GetNonce(BlockTree.Head.StateRoot, TestItem.AddressA);
+            UInt256 nonce = StateReader.GetNonce(BlockTree.Head.StateRoot, TestItem.AddressA);
             Transaction tx = Builders.Build.A.Transaction
                 .SignedAndResolved(TestItem.PrivateKeyA)
                 .To(address)
@@ -350,6 +384,20 @@ namespace Nethermind.Core.Test.Blockchain
             return tx;
         }
         
-
+        private Transaction GetFunds1559Transaction(Address address, UInt256 ether, uint index = 0)
+        {
+            UInt256 nonce = StateReader.GetNonce(BlockTree.Head.StateRoot, TestItem.AddressA);
+            Transaction tx = Builders.Build.A.Transaction
+                .SignedAndResolved(TestItem.PrivateKeyA)
+                .To(address)
+                .WithNonce(nonce + index)
+                .WithMaxFeePerGas(20.GWei())
+                .WithMaxPriorityFeePerGas(5.GWei())
+                .WithType(TxType.EIP1559)
+                .WithValue(ether)
+                .WithChainId(MainnetSpecProvider.Instance.ChainId)
+                .TestObject;
+            return tx;
+        }
     }
 }

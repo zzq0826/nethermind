@@ -21,6 +21,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Specs;
 using Nethermind.Core.Test.Builders;
+using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.State;
 using Nethermind.Trie;
 using NUnit.Framework;
@@ -172,7 +173,7 @@ namespace Nethermind.Evm.Test
 
             Execute(code);
 
-            TestState.GetAccount(expectedAddress).Should().BeNull();
+            TestState.AccountExists(expectedAddress).Should().BeFalse();
         }
 
         /// <summary>
@@ -204,7 +205,7 @@ namespace Nethermind.Evm.Test
                 .Call(TestItem.AddressC, 50000)
                 .Done;
 
-            var trace = ExecuteAndTrace(code);
+            GethLikeTxTrace trace = ExecuteAndTrace(code);
 
             Address expectedAddress = new(resultHex);
             AssertEip1014(expectedAddress, deployedCode);
