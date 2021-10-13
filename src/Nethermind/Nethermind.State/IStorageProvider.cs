@@ -48,5 +48,10 @@ namespace Nethermind.State
         int IJournal<int>.TakeSnapshot() => TakeSnapshot();
 
         void ClearStorage(Address address);
+        
+        /// <summary>
+        /// Preloads <see cref="StorageCell"/> for faster access based on <see cref="Nethermind.Core.Eip2930.AccessList"/>
+        /// </summary>
+        void WarmUpCell(StorageCell storageCell);
     }
 }

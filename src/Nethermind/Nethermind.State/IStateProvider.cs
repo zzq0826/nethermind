@@ -69,5 +69,10 @@ namespace Nethermind.State
         /// pruning hack
         /// </summary>
         void CommitCode();
+
+        /// <summary>
+        /// Preloads address for faster access based on <see cref="Nethermind.Core.Eip2930.AccessList"/>
+        /// </summary>
+        void WarmUpAccount(Address address);
     }
 }

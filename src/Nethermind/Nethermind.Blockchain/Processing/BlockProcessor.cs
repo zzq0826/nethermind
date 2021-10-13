@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Rewards;
 using Nethermind.Blockchain.Validators;
@@ -248,11 +249,15 @@ namespace Nethermind.Blockchain.Processing
             ProcessingOptions options)
         {
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
+
+            using CancellationTokenSource warmUpCancellationTokenSource = new();
+            WarmUpAccessList(block, warmUpCancellationTokenSource.Token);
             
             _receiptsTracer.SetOtherTracer(blockTracer);
             _receiptsTracer.StartNewBlockTrace(block);
             TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
             _receiptsTracer.EndBlockTrace();
+            warmUpCancellationTokenSource.Cancel();
             
             block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
             ApplyMinerRewards(block, blockTracer, spec);

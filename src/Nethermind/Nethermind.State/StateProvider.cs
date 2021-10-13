@@ -70,6 +70,15 @@ namespace Nethermind.State
         {
         }
 
+        public void WarmUpAccount(Address address)
+        {
+            if (!_intraBlockCache.ContainsKey(address))
+            {
+                Metrics.StateTreeReads++;
+                _tree.GetRlp(address);
+            }
+        }
+
         private bool _needsStateRootUpdate;
 
         public void RecalculateStateRoot()

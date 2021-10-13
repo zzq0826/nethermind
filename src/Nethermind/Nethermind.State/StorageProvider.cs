@@ -453,6 +453,16 @@ namespace Nethermind.State
             _storages[address] = new StorageTree(_trieStore, Keccak.EmptyTreeHash, _logManager);
         }
 
+        public void WarmUpCell(StorageCell storageCell)
+        {
+            if (!_intraBlockCache.ContainsKey(storageCell))
+            {
+                StorageTree tree = GetOrCreateStorage(storageCell.Address);
+                Db.Metrics.StorageTreeReads++;
+                tree.GetRlp(storageCell.Index);
+            }
+        }
+
         private enum ChangeType
         {
             JustCache,
