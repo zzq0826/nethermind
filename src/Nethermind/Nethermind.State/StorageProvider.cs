@@ -97,8 +97,11 @@ namespace Nethermind.State
         private Keccak RecalculateRootHash(Address address)
         {
             StorageTree storageTree = GetOrCreateStorage(address);
-            storageTree.UpdateRootHash();
-            return storageTree.RootHash;
+            lock (storageTree)
+            {
+                storageTree.UpdateRootHash();
+                return storageTree.RootHash;
+            }
         }
 
         int IStorageProvider.TakeSnapshot(bool newTransactionStart)
@@ -278,9 +281,13 @@ namespace Nethermind.State
                         }
 
                         StorageTree tree = GetOrCreateStorage(change.StorageCell.Address);
-                        Db.Metrics.StorageTreeWrites++;
-                        toUpdateRoots.Add(change.StorageCell.Address);
-                        tree.Set(change.StorageCell.Index, change.Value);
+                        lock (tree)
+                        {
+                            Db.Metrics.StorageTreeWrites++;
+                            toUpdateRoots.Add(change.StorageCell.Address);
+                            tree.Set(change.StorageCell.Index, change.Value);
+                        }
+
                         if (isTracing)
                         {
                             trace![change.StorageCell] = new ChangeTrace(change.Value);
@@ -383,9 +390,12 @@ namespace Nethermind.State
         private byte[] LoadFromTree(StorageCell storageCell)
         {
             StorageTree tree = GetOrCreateStorage(storageCell.Address);
-
+            byte[] value;
+            lock (tree)
+            {
+                value = tree.Get(storageCell.Index);
+            }
             Db.Metrics.StorageTreeReads++;
-            byte[] value = tree.Get(storageCell.Index);
             PushToRegistryOnly(storageCell, value);
             return value;
         }
@@ -458,8 +468,11 @@ namespace Nethermind.State
             if (!_intraBlockCache.ContainsKey(storageCell))
             {
                 StorageTree tree = GetOrCreateStorage(storageCell.Address);
+                lock (tree)
+                {
+                    tree.GetRlp(storageCell.Index);
+                }
                 Db.Metrics.StorageTreeReads++;
-                tree.GetRlp(storageCell.Index);
             }
         }
 
