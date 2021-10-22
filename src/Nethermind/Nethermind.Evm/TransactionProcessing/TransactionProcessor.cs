@@ -143,6 +143,7 @@ namespace Nethermind.Evm.TransactionProcessing
             bool deleteCallerAccount = false;
 
             IReleaseSpec spec = _specProvider.GetSpec(block.Number);
+            IReleaseSpec vmSpec = spec; // aura chain in VM shouldn't override those EIP-158 ¯\_(ツ)_/¯
             if (!notSystemTransaction)
             {
                 spec = new SystemTransactionReleaseSpec(spec);
@@ -292,7 +293,7 @@ namespace Nethermind.Evm.TransactionProcessing
                 {
                     // if transaction is a contract creation then recipient address is the contract deployment address
                     Address contractAddress = recipient;
-                    PrepareAccountForContractDeployment(contractAddress!, spec);
+                    PrepareAccountForContractDeployment(contractAddress!, vmSpec);
                 }
 
                 if (recipient == null)
@@ -312,7 +313,7 @@ namespace Nethermind.Evm.TransactionProcessing
                 env.ExecutingAccount = recipient;
                 env.InputData = data ?? Array.Empty<byte>();
                 env.CodeInfo = machineCode == null
-                    ? _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec)
+                    ? _virtualMachine.GetCachedCodeInfo(_worldState, recipient, vmSpec)
                     : new CodeInfo(machineCode);
 
                 ExecutionType executionType =
@@ -331,7 +332,7 @@ namespace Nethermind.Evm.TransactionProcessing
                         state.WarmUp(recipient); // eip-2929
                     }
 
-                    substate = _virtualMachine.Run(state, _worldState, spec, txTracer);
+                    substate = _virtualMachine.Run(state, _worldState, vmSpec, txTracer);
                     unspentGas = state.GasAvailable;
 
                     if (txTracer.IsTracingAccess)
@@ -479,11 +480,11 @@ namespace Nethermind.Evm.TransactionProcessing
             }
         }
 
-        private void PrepareAccountForContractDeployment(Address contractAddress, IReleaseSpec spec)
+        private void PrepareAccountForContractDeployment(Address contractAddress, IReleaseSpec vmSpec)
         {
             if (_stateProvider.AccountExists(contractAddress))
             {
-                CodeInfo codeInfo = _virtualMachine.GetCachedCodeInfo(_worldState, contractAddress, spec);
+                CodeInfo codeInfo = _virtualMachine.GetCachedCodeInfo(_worldState, contractAddress, vmSpec);
                 bool codeIsNotEmpty = codeInfo.MachineCode.Length != 0;
                 bool accountNonceIsNotZero = _stateProvider.GetNonce(contractAddress) != 0;
 
