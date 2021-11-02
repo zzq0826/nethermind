@@ -13,26 +13,16 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
-// 
+//
 
-using Nethermind.JsonRpc.Modules;
+using System;
+using System.Collections.Generic;
 
 namespace Nethermind.JsonRpc
 {
-    public class JsonRpcContext
+    public interface IJsonRpcUrlCollection : IReadOnlyCollection<JsonRpcUrl>
     {
-        public static JsonRpcContext Http(JsonRpcUrl url) => new(RpcEndpoint.Http, url: url);
-        public static JsonRpcContext WebSocket(JsonRpcUrl url) => new(RpcEndpoint.WebSocket, url: url);
-
-        public JsonRpcContext(RpcEndpoint rpcEndpoint, IJsonRpcDuplexClient? duplexClient = null, JsonRpcUrl? url = null)
-        {
-            RpcEndpoint = rpcEndpoint;
-            DuplexClient = duplexClient;
-            Url = url;
-        }
-
-        public RpcEndpoint RpcEndpoint { get; }
-        public IJsonRpcDuplexClient? DuplexClient { get; }
-        public JsonRpcUrl? Url { get; }
+        IEnumerable<string> UrlValues { get; }
     }
 }
+
