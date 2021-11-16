@@ -61,5 +61,8 @@ namespace Nethermind.TxPool
         
         [Description("Number of transactions in pool.")]
         public static float TransactionCount { get; set; }
+        
+        [Description("Number of underpriced transactions.")]
+        public static long UnderpricedTransactions { get; set; }
     }
 }

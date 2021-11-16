@@ -798,15 +798,15 @@ namespace Nethermind.JsonRpc.Test.Modules.Eth
         }
 
         [Test]
-        public async Task Send_transaction_should_return_ErrorCode_if_tx_not_added()
+        public async Task Send_transaction_should_return_ErrorCode_if_tx_is_underpriced()
         {
             using Context ctx = await Context.Create();
-            Transaction tx = Build.A.Transaction.WithValue(10000).SignedAndResolved(new PrivateKey("0x0000000000000000000000000000000000000000000000000000000000000001")).WithNonce(0).TestObject;
+            Transaction tx = Build.A.Transaction.WithValue(10000).WithGasPrice(10000000).SignedAndResolved(new PrivateKey("0x0000000000000000000000000000000000000000000000000000000000000001")).WithNonce(0).TestObject;
             TransactionForRpc txForRpc = new(tx);
             
             string serialized = ctx._test.TestEthRpc("eth_sendTransaction", new EthereumJsonSerializer().Serialize(txForRpc));
 
-            Assert.AreEqual("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32010,\"message\":\"InsufficientFunds\"},\"id\":67}", serialized);
+            Assert.AreEqual("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"UnderpricedTransaction\"},\"id\":67}", serialized);
         }
 
         public enum AccessListProvided

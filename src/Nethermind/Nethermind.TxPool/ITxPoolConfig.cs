@@ -33,6 +33,10 @@ namespace Nethermind.TxPool
         
         [ConfigItem(DefaultValue = "null",
             Description = "Max transaction gas allowed.")]
-        long? GasLimit { get; set; }        
+        long? GasLimit { get; set; }       
+        
+        [ConfigItem(DefaultValue = "1000000000",
+            Description = "Minimum gas price that is allowed for sending a transaction.")]
+        long UnderpricedThreshold { get; set; }     
     }
 }

@@ -116,6 +116,7 @@ namespace Nethermind.TxPool
             _filterPipeline.Add(new DeployedCodeFilter(_specProvider, _accounts)); // has to be after UnknownSenderFilter as it uses sender
             _filterPipeline.Add(new LowNonceFilter(_accounts, _logger));
             _filterPipeline.Add(new GapNonceFilter(_accounts, _transactions, _logger));
+            _filterPipeline.Add(new UnderpricedTxFilter(_txPoolConfig, _logger));
             _filterPipeline.Add(new TooExpensiveTxFilter(_headInfo, _accounts, _transactions, _logger));
             _filterPipeline.Add(new FeeToLowFilter(_headInfo, _accounts, _transactions, _logger));
             _filterPipeline.Add(new ReusedOwnNonceTxFilter(_accounts, _nonces, _logger));

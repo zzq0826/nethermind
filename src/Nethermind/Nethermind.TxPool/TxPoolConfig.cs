@@ -22,5 +22,7 @@ namespace Nethermind.TxPool
         public int Size { get; set; } = 2048;
         public int HashCacheSize { get; set; } = 512 * 1024;
         public long? GasLimit { get; set; } = null;
+
+        public long UnderpricedThreshold { get; set; } = 1000000000;
     }
 }
