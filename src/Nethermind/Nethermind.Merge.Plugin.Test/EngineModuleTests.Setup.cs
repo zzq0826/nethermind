@@ -38,6 +38,7 @@ using Nethermind.Runner.Ethereum;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Nethermind.TxPool;
 
 namespace Nethermind.Merge.Plugin.Test
 {
@@ -133,7 +134,7 @@ namespace Nethermind.Merge.Plugin.Test
             public Address MinerAddress => TestItem.PrivateKeyA.Address;
             public IManualBlockFinalizationManager BlockFinalizationManager { get; } = new ManualBlockFinalizationManager();
 
-            protected override async Task<TestBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null)
+            protected override async Task<TestBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null, TxPoolConfig txPoolConfig = null)
             {
                 TestBlockchain chain = await base.Build(specProvider, initialValues);
                 await chain.BlockchainProcessor.StopAsync(true);

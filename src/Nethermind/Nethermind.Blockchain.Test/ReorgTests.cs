@@ -75,7 +75,7 @@ namespace Nethermind.Blockchain.Test
             TxPool.TxPool txPool = new (
                 ecdsa,
                 new ChainHeadInfoProvider(specProvider, _blockTree, stateProvider),
-                new TxPoolConfig(),
+                new TxPoolConfig(){UnderpricedThreshold = 0},
                 new TxValidator(specProvider.ChainId),
                 LimboLogs.Instance, 
                 transactionComparerProvider.GetDefaultComparer());

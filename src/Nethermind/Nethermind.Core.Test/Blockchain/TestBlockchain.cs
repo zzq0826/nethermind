@@ -113,7 +113,7 @@ namespace Nethermind.Core.Test.Blockchain
 
         public static TransactionBuilder<Transaction> BuildSimpleTransaction => Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(AccountB);
 
-        protected virtual async Task<TestBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null)
+        protected virtual async Task<TestBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null, TxPoolConfig txPoolConfig = null)
         {
             Timestamper = new ManualTimestamper(new DateTime(2020, 2, 15, 12, 50, 30, DateTimeKind.Utc));
             JsonSerializer = new EthereumJsonSerializer();
@@ -146,7 +146,7 @@ namespace Nethermind.Core.Test.Blockchain
             BlockTree = new BlockTree(blockDb, headerDb, blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), SpecProvider, NullBloomStorage.Instance, LimboLogs.Instance);
             ReadOnlyState = new ChainHeadReadOnlyStateProvider(BlockTree, StateReader);
             TransactionComparerProvider = new TransactionComparerProvider(specProvider, BlockTree);
-            TxPool = CreateTxPool();
+            TxPool = CreateTxPool(txPoolConfig);
 
             ReceiptStorage = new InMemoryReceiptStorage();
             VirtualMachine virtualMachine = new(new BlockhashProvider(BlockTree, LogManager), SpecProvider, LogManager);
@@ -240,14 +240,22 @@ namespace Nethermind.Core.Test.Blockchain
 
         public virtual ILogManager LogManager { get; } = LimboLogs.Instance;
 
-        protected virtual TxPool.TxPool CreateTxPool() =>
-            new(
+        protected virtual TxPool.TxPool CreateTxPool(TxPoolConfig txPoolConfig = null)
+        {
+            if (txPoolConfig == null)
+            {
+                txPoolConfig = new() {UnderpricedThreshold = 0};
+            }
+
+            return new(
                 EthereumEcdsa,
                 new ChainHeadInfoProvider(new FixedBlockChainHeadSpecProvider(SpecProvider), BlockTree, ReadOnlyState),
-                new TxPoolConfig(),
+                txPoolConfig,
                 new TxValidator(SpecProvider.ChainId),
                 LogManager,
-                TransactionComparerProvider.GetDefaultComparer());
+                TransactionComparerProvider.GetDefaultComparer()
+                );
+        }
 
         protected virtual TxPoolTxSource CreateTxPoolTxSource()
         {

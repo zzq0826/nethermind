@@ -48,7 +48,7 @@ namespace Nethermind.Runner.Test
             _dbConfig = new DbConfig();
             _syncConfig = new SyncConfig();
             _initConfig = new InitConfig();
-            _txPoolConfig = new TxPoolConfig();
+            _txPoolConfig = new TxPoolConfig(){UnderpricedThreshold = 0};
             _networkConfig = new NetworkConfig();
             _memoryHintMan = new MemoryHintMan(LimboLogs.Instance);
         }

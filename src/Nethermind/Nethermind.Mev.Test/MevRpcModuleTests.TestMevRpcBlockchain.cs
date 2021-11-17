@@ -47,6 +47,7 @@ using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Nethermind.TxPool;
 using NSubstitute;
 
 namespace Nethermind.Mev.Test
@@ -206,9 +207,9 @@ namespace Nethermind.Mev.Test
                 return blockProcessor;
             }
 
-            protected override async Task<TestBlockchain> Build(ISpecProvider specProvider = null, UInt256? initialValues = null)
+            protected override async Task<TestBlockchain> Build(ISpecProvider specProvider = null, UInt256? initialValues = null, TxPoolConfig txPoolConfig = null)
             {
-                TestBlockchain chain = await base.Build(specProvider, initialValues);
+                TestBlockchain chain = await base.Build(specProvider, initialValues, txPoolConfig);
                 MevRpcModule = new MevRpcModule(new JsonRpcConfig(),
                     BundlePool,
                     BlockFinder,
