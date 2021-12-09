@@ -76,7 +76,7 @@ namespace Nethermind.Init.Steps.Migrations
                     _api.SyncModeSelector.Changed += SynchronizerOnSyncModeChanged;
                 }
             }
-            else
+            else if (storage.NeedsMigration)
             {
                 if (_logger.IsInfo) _logger.Info($"BloomDb migration disabled. Finding logs in first {MinBlockNumber} blocks might be slow.");
             }
