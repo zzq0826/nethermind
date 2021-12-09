@@ -32,6 +32,10 @@ namespace Nethermind.Db.Blooms
         public long MinBlockNumber { get; } = long.MaxValue;
         public long MaxBlockNumber { get; } = 0;
         public long MigratedBlockNumber { get; } = -1;
+        public void ForceMigration()
+        {
+
+        }
 
         public void Store(long blockNumber, Core.Bloom bloom) { }
         public void Migrate(IEnumerable<BlockHeader> blockHeaders) { }

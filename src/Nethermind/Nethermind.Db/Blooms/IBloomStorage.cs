@@ -37,5 +37,6 @@ namespace Nethermind.Db.Blooms
         IEnumerable<Average> Averages { get; }
         
         long MigratedBlockNumber { get; }
+        void ForceMigration();
     }
 }

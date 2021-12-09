@@ -74,6 +74,12 @@ namespace Nethermind.Db.Blooms
             }
         }
 
+        public void ForceMigration()
+        {
+            MigratedBlockNumber = -1;
+            MinBlockNumber = long.MaxValue;
+        }
+
         public BloomStorage(IBloomConfig config, IDb bloomDb, IFileStoreFactory fileStoreFactory)
         {
             long Get(Keccak key, long defaultValue) => bloomDb.Get(key)?.ToLongFromBigEndianByteArrayWithoutLeadingZeros() ?? defaultValue;

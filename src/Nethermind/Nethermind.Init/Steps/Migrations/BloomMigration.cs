@@ -67,6 +67,13 @@ namespace Nethermind.Init.Steps.Migrations
 
             if (_bloomConfig.Migration)
             {
+                if (!storage.NeedsMigration)
+                {
+                    if (_logger.IsInfo) _logger.Info($"BloomDb migration not needed. Did you forgot to disable bloom migration?");
+                }
+
+                storage.ForceMigration();
+                
                 if (CanMigrate(_api.SyncModeSelector.Current))
                 {
                     RunBloomMigration();
