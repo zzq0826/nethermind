@@ -64,27 +64,21 @@ namespace Nethermind.Init.Steps.Migrations
             if (_api.SyncModeSelector == null) throw new StepDependencyException(nameof(_api.SyncModeSelector));
 
             IBloomStorage? storage = _api.BloomStorage;
-            if (storage.NeedsMigration)
+
+            if (_bloomConfig.Migration)
             {
-                if (_bloomConfig.Migration)
+                if (CanMigrate(_api.SyncModeSelector.Current))
                 {
-                    if (CanMigrate(_api.SyncModeSelector.Current))
-                    {
-                        RunBloomMigration();
-                    }
-                    else
-                    {
-                        _api.SyncModeSelector.Changed += SynchronizerOnSyncModeChanged;
-                    }
+                    RunBloomMigration();
                 }
                 else
                 {
-                    if (_logger.IsInfo) _logger.Info($"BloomDb migration disabled. Finding logs in first {MinBlockNumber} blocks might be slow.");
+                    _api.SyncModeSelector.Changed += SynchronizerOnSyncModeChanged;
                 }
             }
             else
             {
-                if (_logger.IsDebug) _logger.Debug("BloomDb migration not needed.");
+                if (_logger.IsInfo) _logger.Info($"BloomDb migration disabled. Finding logs in first {MinBlockNumber} blocks might be slow.");
             }
         }
         
@@ -106,21 +100,18 @@ namespace Nethermind.Init.Steps.Migrations
             if (_api.DisposeStack == null) throw new StepDependencyException(nameof(_api.DisposeStack));
             if (_api.BloomStorage == null) throw new StepDependencyException(nameof(_api.BloomStorage));
 
-            if (_api.BloomStorage.NeedsMigration)
-            {
-                _cancellationTokenSource = new CancellationTokenSource();
-                _api.DisposeStack.Push(this);
-                _stopwatch = Stopwatch.StartNew();
-                _migrationTask = Task.Run(() => RunBloomMigration(_cancellationTokenSource.Token))
-                    .ContinueWith(x =>
+            _cancellationTokenSource = new CancellationTokenSource();
+            _api.DisposeStack.Push(this);
+            _stopwatch = Stopwatch.StartNew();
+            _migrationTask = Task.Run(() => RunBloomMigration(_cancellationTokenSource.Token))
+                .ContinueWith(x =>
+                {
+                    if (x.IsFaulted && _logger.IsError)
                     {
-                        if (x.IsFaulted && _logger.IsError)
-                        {
-                            _stopwatch.Stop();
-                            _logger.Error(GetLogMessage("failed", $"Error: {x.Exception}"), x.Exception);
-                        }
-                    });
-            }
+                        _stopwatch.Stop();
+                        _logger.Error(GetLogMessage("failed", $"Error: {x.Exception}"), x.Exception);
+                    }
+                });
         }
 
         private long MinBlockNumber
