@@ -211,7 +211,9 @@ namespace Nethermind.State
 
             if (isSubtracting && account.Balance < balanceChange)
             {
-                throw new InsufficientBalanceException($"insufficient funds for transfer: address {address}, current balance {account.Balance}, transfer amount {balanceChange}{Environment.NewLine}{new StackTrace()}");
+                string message = $"insufficient funds for transfer: address {address}, current balance {account.Balance}, transfer amount {balanceChange}{Environment.NewLine}{new StackTrace()}";
+                if (_logger.IsInfo) _logger.Info(message);
+                throw new InsufficientBalanceException(message);
             }
 
             UInt256 newBalance = isSubtracting ? account.Balance - balanceChange : account.Balance + balanceChange;
