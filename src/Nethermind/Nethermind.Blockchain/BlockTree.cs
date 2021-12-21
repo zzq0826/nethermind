@@ -432,7 +432,7 @@ namespace Nethermind.Blockchain
             BlockInfo blockInfo = new(header.Hash, header.TotalDifficulty ?? 0);
             ChainLevelInfo chainLevel = new(true, blockInfo);
             _chainLevelInfoRepository.PersistLevel(header.Number, chainLevel);
-            _bloomStorage.Store(header.Number, header.Bloom);
+            // _bloomStorage.Store(header.Number, header.Bloom);
 
             if (header.Number < (LowestInsertedHeader?.Number ?? long.MaxValue))
             {
@@ -1110,7 +1110,7 @@ namespace Nethermind.Blockchain
 
             level.HasBlockOnMainChain = true;
             _chainLevelInfoRepository.PersistLevel(block.Number, level, batch);
-            _bloomStorage.Store(block.Number, block.Bloom);
+            // _bloomStorage.Store(block.Number, block.Bloom);
 
             Block previous = hashOfThePreviousMainBlock is not null && hashOfThePreviousMainBlock != block.Hash
                 ? FindBlock(hashOfThePreviousMainBlock, BlockTreeLookupOptions.TotalDifficultyNotNeeded)
