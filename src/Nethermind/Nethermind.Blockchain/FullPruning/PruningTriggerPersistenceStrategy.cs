@@ -18,6 +18,7 @@
 using System;
 using Nethermind.Core;
 using Nethermind.Logging;
+using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Blockchain.FullPruning;
@@ -29,17 +30,19 @@ namespace Nethermind.Blockchain.FullPruning;
 /// Used when both memory pruning and full pruning are enabled.
 /// We need to store state trie to DB to be able to copy this trie into new database in full pruning.
 /// </remarks>
-public class PruningTriggerPersistenceStrategy : IPersistenceStrategy, IDisposable
+public class PruningTriggerPersistenceStrategy : IPersistenceStrategy, IPruningStrategy, IDisposable
 {
     private readonly IPruningTrigger _pruningTrigger;
     private readonly IBlockTree _blockTree;
+    private readonly IKeyValueStore _keyValueStore;
     private long? _shouldPersistBlockNumber = null;
     private readonly ILogger _logger;
 
-    public PruningTriggerPersistenceStrategy(IPruningTrigger pruningTrigger, IBlockTree blockTree, ILogManager logManager)
+    public PruningTriggerPersistenceStrategy(IPruningTrigger pruningTrigger, IBlockTree blockTree, IKeyValueStore keyValueStore, ILogManager logManager)
     {
         _pruningTrigger = pruningTrigger;
         _blockTree = blockTree;
+        _keyValueStore = keyValueStore;
         _pruningTrigger.Prune += OnPrune;
         _logger = logManager.GetClassLogger();
     }
@@ -68,5 +71,16 @@ public class PruningTriggerPersistenceStrategy : IPersistenceStrategy, IDisposab
     public void Dispose()
     {
         _pruningTrigger.Prune -= OnPrune;
+    }
+
+    public bool PruningEnabled => true;
+    public bool ShouldPrune(in long currentMemory) => _shouldPersistBlockNumber is not null;
+
+    public void Prune(TrieNode node)
+    {
+        if (node.Keccak is not null)
+        {
+            _keyValueStore[node.Keccak.Bytes] = node.FullRlp;
+        }
     }
 }

@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -232,12 +233,13 @@ namespace Nethermind.Trie
                         }
 
                         FullRlp = tree.LoadRlp(Keccak);
-                        IsPersisted = true;
-
+                        
                         if (FullRlp is null)
                         {
                             throw new TrieException($"Trie returned a NULL RLP for node {Keccak}");
                         }
+                        
+                        IsPersisted = true;
                     }
                 }
                 else
@@ -645,7 +647,7 @@ namespace Nethermind.Trie
         /// Unresolved child can be resolved by calling ResolveChild(child_index).
         /// </summary>
         /// <param name="maxLevelsDeep">How many levels deep we will be pruning the child nodes.</param>
-        public void PrunePersistedRecursively(int maxLevelsDeep)
+        public IEnumerable<TrieNode> PrunePersistedRecursively(int maxLevelsDeep)
         {
             maxLevelsDeep--;
             if (!IsLeaf)
@@ -661,10 +663,14 @@ namespace Nethermind.Trie
                             {
                                 Pruning.Metrics.DeepPrunedPersistedNodesCount++;
                                 UnresolveChild(i);
+                                yield return child;
                             }
                             else if (maxLevelsDeep != 0)
                             {
-                                child.PrunePersistedRecursively(maxLevelsDeep);
+                                foreach (TrieNode trieNode in child.PrunePersistedRecursively(maxLevelsDeep))
+                                {
+                                    yield return trieNode;
+                                }
                             }
                         }
                     }

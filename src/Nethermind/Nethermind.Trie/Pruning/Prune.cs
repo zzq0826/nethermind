@@ -21,5 +21,21 @@ namespace Nethermind.Trie.Pruning
     {
         public static IPruningStrategy WhenCacheReaches(long sizeInBytes)
             => new MemoryLimit(sizeInBytes);
+        
+        public static IPruningStrategy Or(this IPruningStrategy strategy, IPruningStrategy otherStrategy)
+        {
+            if (strategy is CompositePruningStrategy compositeStrategy)
+            {
+                return compositeStrategy.AddStrategy(otherStrategy);
+            }
+            else if (otherStrategy is CompositePruningStrategy otherCompositeStrategy)
+            {
+                return otherCompositeStrategy.AddStrategy(strategy);
+            }
+            else
+            {
+                return new CompositePruningStrategy(strategy, otherStrategy);
+            }
+        }
     }
 }

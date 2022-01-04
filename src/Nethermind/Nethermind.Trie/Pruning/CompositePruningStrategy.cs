@@ -19,31 +19,55 @@ using System.Collections.Generic;
 
 namespace Nethermind.Trie.Pruning;
 
-public class CompositePersistenceStrategy : IPersistenceStrategy
+public class CompositePruningStrategy : IPruningStrategy
 {
-    private readonly List<IPersistenceStrategy> _strategies = new();
+    private readonly List<IPruningStrategy> _strategies = new();
 
-    public CompositePersistenceStrategy(params IPersistenceStrategy[] strategies)
+    public CompositePruningStrategy(params IPruningStrategy[] strategies)
     {
         _strategies.AddRange(strategies);
     }
 
-    public IPersistenceStrategy AddStrategy(IPersistenceStrategy strategy)
+    public IPruningStrategy AddStrategy(IPruningStrategy strategy)
     {
         _strategies.Add(strategy);
         return this;
     }
 
-    public bool ShouldPersist(long blockNumber)
+    public bool PruningEnabled
+    {
+        get
+        {
+            for (int index = 0; index < _strategies.Count; index++)
+            {
+                if (_strategies[index].PruningEnabled)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    public bool ShouldPrune(in long currentMemory)
     {
         for (int index = 0; index < _strategies.Count; index++)
         {
-            if (_strategies[index].ShouldPersist(blockNumber))
+            if (_strategies[index].ShouldPrune(currentMemory))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    public void Prune(TrieNode node)
+    {
+        for (int index = 0; index < _strategies.Count; index++)
+        {
+            _strategies[index].Prune(node);
+        }
     }
 }

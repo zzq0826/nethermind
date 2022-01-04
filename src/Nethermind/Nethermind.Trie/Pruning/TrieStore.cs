@@ -492,7 +492,11 @@ namespace Nethermind.Trie.Pruning
                 }
                 else
                 {
-                    node.PrunePersistedRecursively(1);
+                    foreach (TrieNode trieNode in node.PrunePersistedRecursively(1))
+                    {
+                        _pruningStrategy.Prune(trieNode);
+                    }
+                    
                     newMemory += node.GetMemorySize(false);
                 }
             }
@@ -505,6 +509,7 @@ namespace Nethermind.Trie.Pruning
                 }
 
                 _dirtyNodes.Remove(trieNode.Keccak!);
+                _pruningStrategy.Prune(trieNode);
             }
 
             MemoryUsedByDirtyCache = newMemory;
@@ -613,9 +618,9 @@ namespace Nethermind.Trie.Pruning
                 stopwatch.Stop();
                 Metrics.SnapshotPersistenceTime = stopwatch.ElapsedMilliseconds;
 
-                if (_logger.IsDebug)
-                    _logger.Debug(
-                        $"Persisted trie from {commitSet.Root} at {commitSet.BlockNumber} in {stopwatch.ElapsedMilliseconds}ms (cache memory {MemoryUsedByDirtyCache})");
+                // if (_logger.IsWarn)
+                //     _logger.Warn(
+                //         $"Persisted trie from {commitSet.Root} at {commitSet.BlockNumber} in {stopwatch.ElapsedMilliseconds}ms (cache memory {MemoryUsedByDirtyCache}) to {_keyValueStore.ToString()}");
 
                 LastPersistedBlockNumber = commitSet.BlockNumber;
             }
