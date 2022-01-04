@@ -33,32 +33,58 @@ namespace Nethermind.Blockchain.FullPruning;
 /// </remarks>
 public class PruningTriggerPersistenceStrategy : IPersistenceStrategy, IDisposable
 {
+    private readonly IPruningTrigger _pruningTrigger;
+    private readonly IBlockTree _blockTree;
+    private long? _shouldPersistBlockNumber = null;
+    private readonly ILogger _logger;
     private readonly IFullPruningDb _fullPruningDb;
-    private int _inPruning = 0;
 
-    public PruningTriggerPersistenceStrategy(IFullPruningDb fullPruningDb)
+    public PruningTriggerPersistenceStrategy(
+        IPruningTrigger pruningTrigger,
+        IBlockTree blockTree,
+        ILogManager logManager,
+        IFullPruningDb fullPruningDb)
     {
+        _pruningTrigger = pruningTrigger;
+        _blockTree = blockTree;
+        _pruningTrigger.Prune += OnPrune;
+        _logger = logManager.GetClassLogger();
         _fullPruningDb = fullPruningDb;
-        _fullPruningDb.PruningFinished += OnPruningFinished;
         _fullPruningDb.PruningStarted += OnPruningStarted;
     }
 
-    private void OnPruningFinished(object? sender, EventArgs e)
+    public TrieStore? TreeStore { get; set; }
+
+    private void OnPrune(object? sender, PruningEventArgs e)
     {
-        Interlocked.CompareExchange(ref _inPruning, 0, 1);
+        _shouldPersistBlockNumber = (_blockTree.Head?.Number ?? 0) + 1;
     }
 
-    private void OnPruningStarted(object? sender, EventArgs e)
+    public bool ShouldPersist(long blockNumber)
     {
-        Interlocked.CompareExchange(ref _inPruning, 1, 0);
+        bool shouldPersist = blockNumber > _shouldPersistBlockNumber;
+        if (shouldPersist)
+        {
+            if (_logger.IsInfo) _logger.Info($"Full Pruning Persisting state after block {_shouldPersistBlockNumber}.");
+            _shouldPersistBlockNumber = null;
+        }
+        else if (_shouldPersistBlockNumber is not null)
+        {
+            if (_logger.IsInfo) _logger.Info($"Full Pruning Scheduled persisting state after block {_shouldPersistBlockNumber}.");
+        }
+
+        return shouldPersist;
     }
 
-    public bool ShouldPersist(long blockNumber) => _inPruning != 0;
+    private void OnPruningStarted(object? sender, FullPruningEventArgs e)
+    {
+        TreeStore?.PersistCache(e.PruningContext);
+    }
 
     /// <inheritdoc/>
     public void Dispose()
     {
+        _pruningTrigger.Prune -= OnPrune;
         _fullPruningDb.PruningStarted -= OnPruningStarted;
-        _fullPruningDb.PruningFinished -= OnPruningFinished;
     }
 }

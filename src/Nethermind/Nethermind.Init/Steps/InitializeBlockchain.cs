@@ -121,18 +121,25 @@ namespace Nethermind.Init.Steps
             if (pruningConfig.Mode.IsMemory())
             {
                 IPersistenceStrategy persistenceStrategy = Persist.IfBlockOlderThan(pruningConfig.PersistenceInterval); // TODO: this should be based on time
+                IPruningStrategy pruningStrategy = Prune.WhenCacheReaches(pruningConfig.CacheMb.MB()); // TODO: memory hint should define this
+                PruningTriggerPersistenceStrategy? triggerPersistenceStrategy = null;
                 if (pruningConfig.Mode.IsFull())
                 {
-                    PruningTriggerPersistenceStrategy triggerPersistenceStrategy = new((IFullPruningDb)getApi.DbProvider!.StateDb);
+                    triggerPersistenceStrategy = new(_api.PruningTrigger, getApi.BlockTree!, getApi.LogManager, (IFullPruningDb)getApi.DbProvider!.StateDb);
                     getApi.DisposeStack.Push(triggerPersistenceStrategy);
                     persistenceStrategy = persistenceStrategy.Or(triggerPersistenceStrategy);
                 }
-                
+
                 setApi.TrieStore = trieStore = new TrieStore(
                     setApi.MainStateDbWithCache.WitnessedBy(witnessCollector),
-                    Prune.WhenCacheReaches(pruningConfig.CacheMb.MB()), // TODO: memory hint should define this
+                    pruningStrategy, 
                     persistenceStrategy, 
                     getApi.LogManager);
+
+                if (triggerPersistenceStrategy is not null)
+                {
+                    triggerPersistenceStrategy.TreeStore = trieStore;
+                }
             }
             else
             {

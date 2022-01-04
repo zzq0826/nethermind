@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -36,6 +37,10 @@ namespace Nethermind.Trie.Pruning
         private class DirtyNodesCache
         {
             private readonly TrieStore _trieStore;
+            private readonly ConcurrentDictionary<Keccak, TrieNode> _objectsCache = new();
+
+            public ConcurrentDictionary<Keccak, TrieNode> AllNodes => _objectsCache;
+            public int Count => _objectsCache.Count;
 
             public DirtyNodesCache(TrieStore trieStore)
             {
@@ -96,14 +101,7 @@ namespace Nethermind.Trie.Pruning
                 return trieNode;
             }
 
-            public bool 
-                IsNodeCached(Keccak hash) => _objectsCache.ContainsKey(hash);
-
-            public ConcurrentDictionary<Keccak, TrieNode> AllNodes => _objectsCache;
-
-            private readonly ConcurrentDictionary<Keccak, TrieNode> _objectsCache = new();
-
-            public int Count => _objectsCache.Count;
+            public bool IsNodeCached(Keccak hash) => _objectsCache.ContainsKey(hash);
 
             public void Remove(Keccak hash)
             {
@@ -134,6 +132,9 @@ namespace Nethermind.Trie.Pruning
         private IBatch? _currentBatch = null;
 
         private readonly DirtyNodesCache _dirtyNodes;
+        
+        private bool _lastPersistedReachedReorgBoundary;
+        private CancellationTokenSource? _persistCacheCancellationTokenSource;
 
         public TrieStore(IKeyValueStoreWithBatching? keyValueStore, ILogManager? logManager)
             : this(keyValueStore, No.Pruning, Pruning.Persist.EveryBlock, logManager)
@@ -525,6 +526,7 @@ namespace Nethermind.Trie.Pruning
         public void Dispose()
         {
             if (_logger.IsDebug) _logger.Debug("Disposing trie");
+            _persistCacheCancellationTokenSource?.Cancel();
             PersistOnShutdown();
         }
 
@@ -544,6 +546,76 @@ namespace Nethermind.Trie.Pruning
                     break;
                 }
             }
+        }
+
+        public void PersistCache(IKeyValueStore keyValueStore)
+        {
+            int i = 0;
+            
+            void PersistNode2(TrieNode trieNode)
+            {
+                if (trieNode.Keccak is not null)
+                {
+                    keyValueStore[trieNode.Keccak.Bytes] = trieNode.FullRlp;
+                    i++;
+                }
+            }
+            
+            void PersistNodes(ICollection<KeyValuePair<Keccak, TrieNode>> trieNodes, CancellationToken cancellationToken)
+            {
+                int lastReported = 0;
+                _logger.Info($"Persisting trie cache, found {trieNodes.Count} nodes in direct cache.");
+                foreach (KeyValuePair<Keccak, TrieNode> nodePair in trieNodes)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    nodePair.Value.CallRecursively(PersistNode2, this, true, _logger);
+                    int newReport = i / 1_000_000;
+                    if (newReport != lastReported)
+                    {
+                        lastReported = newReport;
+                        _logger.Info($"Persisting trie cache, {newReport:N} mln nodes persisted.");
+                    }
+                }
+
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    _persistCacheCancellationTokenSource = null;
+                    _logger.Info($"Persisting trie cache finished, persisted {i} nodes.");
+                }
+            }
+
+            void PersistNodes2(BlockCommitSet[] commitSets, CancellationToken cancellationToken)
+            {
+                int lastReported = 0;
+                _logger.Info($"Persisting trie cache, found {commitSets.Length} roots.");
+                foreach (BlockCommitSet commitSet in commitSets)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    if (commitSet.IsSealed && commitSet.Root is not null)
+                    {
+                        commitSet.Root.CallRecursively(PersistNode2, this, true, _logger);
+                    }
+
+                    int newReport = i / 1_000_000;
+                    if (newReport != lastReported)
+                    {
+                        lastReported = newReport;
+                        _logger.Info($"Persisting trie cache, {newReport:N} mln nodes persisted.");
+                    }
+                }
+                
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    _persistCacheCancellationTokenSource = null;
+                    _logger.Info($"Persisting trie cache finished, persisted {i} nodes.");
+                }
+            }
+
+            _persistCacheCancellationTokenSource = new CancellationTokenSource();
+            // KeyValuePair<Keccak, TrieNode>[] trieNodes = _dirtyNodes.AllNodes.ToArray();
+            // Task.Run(() => PersistNodes(trieNodes, _persistCacheCancellationTokenSource.Token));
+            // Task.Run(() => PersistNodes2(_commitSetQueue.ToArray(), _persistCacheCancellationTokenSource.Token));
+            PersistNodes(_dirtyNodes.AllNodes, _persistCacheCancellationTokenSource.Token);
         }
 
         #region Private
@@ -717,8 +789,6 @@ namespace Nethermind.Trie.Pruning
                 _lastPersistedReachedReorgBoundary = true;
             }
         }
-
-        private bool _lastPersistedReachedReorgBoundary;
 
         private void PersistOnShutdown()
         {

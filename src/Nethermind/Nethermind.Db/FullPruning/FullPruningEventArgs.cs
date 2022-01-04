@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -15,24 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System;
-using Nethermind.Core;
+namespace Nethermind.Db.FullPruning;
 
-namespace Nethermind.Db.FullPruning
+public class FullPruningEventArgs
 {
-    /// <summary>
-    /// Context of Full pruning.
-    /// </summary>
-    public interface IPruningContext : IKeyValueStore, IDisposable
+    public IPruningContext PruningContext { get; }
+
+    public FullPruningEventArgs(IPruningContext pruningContext)
     {
-        /// <summary>
-        /// Commits pruning, marking the end of cloning state to new DB.
-        /// </summary>
-        void Commit();
-        
-        /// <summary>
-        /// Marks that pruning is starting.
-        /// </summary>
-        void MarkStart();
+        PruningContext = pruningContext;
     }
 }

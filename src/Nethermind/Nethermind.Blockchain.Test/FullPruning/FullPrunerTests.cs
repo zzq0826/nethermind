@@ -259,6 +259,7 @@ namespace Nethermind.Blockchain.Test.FullPruning
 
                 public byte[] this[byte[] key]
                 {
+                    get => _context[key];
                     set => _context[key] = value;
                 }
 

@@ -48,7 +48,7 @@ namespace Nethermind.Db.FullPruning
         /// </summary>
         string InnerDbName { get; }
         
-        event EventHandler PruningStarted;
-        event EventHandler PruningFinished;
+        event EventHandler<FullPruningEventArgs> PruningStarted;
+        event EventHandler<FullPruningEventArgs> PruningFinished;
     }
 }

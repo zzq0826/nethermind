@@ -145,7 +145,7 @@ namespace Nethermind.Db.FullPruning
             context = pruningContext ?? newContext;
             if (pruningContext is null)
             {
-                PruningStarted?.Invoke(this, EventArgs.Empty);
+                PruningStarted?.Invoke(this, new FullPruningEventArgs(context));
                 return true;
             }
 
@@ -158,8 +158,8 @@ namespace Nethermind.Db.FullPruning
         /// <inheritdoc />
         public string InnerDbName => _currentDb.Name;
 
-        public event EventHandler? PruningStarted;
-        public event EventHandler? PruningFinished;
+        public event EventHandler<FullPruningEventArgs>? PruningStarted;
+        public event EventHandler<FullPruningEventArgs>? PruningFinished;
 
         private void FinishPruning()
         {
@@ -172,10 +172,10 @@ namespace Nethermind.Db.FullPruning
             oldDb.Clear();
         }
 
-        private void CancelPruning(PruningContext pruningContext)
+        private void CancelPruning(PruningContext context)
         {
-            PruningFinished?.Invoke(this, EventArgs.Empty);
-            Interlocked.CompareExchange(ref _pruningContext, null, pruningContext);
+            PruningFinished?.Invoke(this, new FullPruningEventArgs(context));
+            Interlocked.CompareExchange(ref _pruningContext, null, context);
         }
 
         private class PruningContext : IPruningContext
@@ -195,6 +195,7 @@ namespace Nethermind.Db.FullPruning
             /// <inheritdoc />
             public byte[]? this[byte[] key]
             {
+                get => CloningDb[key];
                 set
                 {
                     CloningDb[key] = value;

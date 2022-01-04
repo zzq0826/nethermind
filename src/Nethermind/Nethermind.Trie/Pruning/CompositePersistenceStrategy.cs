@@ -35,5 +35,16 @@ public class CompositePersistenceStrategy : IPersistenceStrategy
         return this;
     }
 
-    public bool ShouldPersist(long blockNumber) => _strategies.Any(strategy => strategy.ShouldPersist(blockNumber));
+    public bool ShouldPersist(long blockNumber)
+    {
+        for (int index = 0; index < _strategies.Count; index++)
+        {
+            if (_strategies[index].ShouldPersist(blockNumber))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
