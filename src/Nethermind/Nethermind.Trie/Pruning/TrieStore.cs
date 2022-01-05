@@ -556,7 +556,7 @@ namespace Nethermind.Trie.Pruning
             {
                 if (trieNode.Keccak is not null)
                 {
-                    keyValueStore[trieNode.Keccak.Bytes] = trieNode.FullRlp;
+                    _keyValueStore[trieNode.Keccak.Bytes] = trieNode.FullRlp;
                     i++;
                 }
             }
@@ -612,10 +612,10 @@ namespace Nethermind.Trie.Pruning
             }
 
             _persistCacheCancellationTokenSource = new CancellationTokenSource();
-            // KeyValuePair<Keccak, TrieNode>[] trieNodes = _dirtyNodes.AllNodes.ToArray();
-            // Task.Run(() => PersistNodes(trieNodes, _persistCacheCancellationTokenSource.Token));
+            KeyValuePair<Keccak, TrieNode>[] trieNodes = _dirtyNodes.AllNodes.ToArray();
+            Task.Run(() => PersistNodes(trieNodes, _persistCacheCancellationTokenSource.Token));
             // Task.Run(() => PersistNodes2(_commitSetQueue.ToArray(), _persistCacheCancellationTokenSource.Token));
-            PersistNodes(_dirtyNodes.AllNodes, _persistCacheCancellationTokenSource.Token);
+            // PersistNodes(_dirtyNodes.AllNodes, _persistCacheCancellationTokenSource.Token);
         }
 
         #region Private
