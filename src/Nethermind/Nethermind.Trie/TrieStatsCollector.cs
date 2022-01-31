@@ -60,7 +60,6 @@ namespace Nethermind.Trie
 
         public void VisitBranch(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            trieVisitContext.PathLevel++;
             if (trieVisitContext.IsStorage)
             {
                 Interlocked.Add(ref Stats._storageSize, node.FullRlp?.Length ?? 0);
@@ -73,14 +72,10 @@ namespace Nethermind.Trie
             }
             
             IncrementLevel(trieVisitContext);
-
-            trieVisitContext.PathLevel--;
         }
 
         public void VisitExtension(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            trieVisitContext.PathLevel += node.Path?.Length ?? 0;
-
             if (trieVisitContext.IsStorage)
             {
                 Interlocked.Add(ref Stats._storageSize, node.FullRlp?.Length ?? 0);
@@ -93,14 +88,10 @@ namespace Nethermind.Trie
             }
             
             IncrementLevel(trieVisitContext);
-
-            trieVisitContext.PathLevel -= node.Path?.Length ?? 0;
         }
 
         public void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[] value = null)
         {
-            trieVisitContext.PathLevel += node.Path?.Length ?? 0;
-
             if (Stats.NodesCount - _lastAccountNodeCount > 1_000_000)
             {
                 _lastAccountNodeCount = Stats.NodesCount;
@@ -119,8 +110,6 @@ namespace Nethermind.Trie
             }
             
             IncrementLevel(trieVisitContext);
-
-            trieVisitContext.PathLevel -= node.Path?.Length ?? 0;
         }
 
         public void VisitCode(Keccak codeHash, TrieVisitContext trieVisitContext)

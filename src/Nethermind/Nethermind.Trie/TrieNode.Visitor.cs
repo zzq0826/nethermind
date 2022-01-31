@@ -102,6 +102,7 @@ namespace Nethermind.Trie
                         });
                     }
 
+                    trieVisitContext.PathLevel++;
                     visitor.VisitBranch(this, trieVisitContext);
                     trieVisitContext.Level++;
                     
@@ -130,11 +131,13 @@ namespace Nethermind.Trie
 
                     trieVisitContext.Level--;
                     trieVisitContext.BranchChildIndex = null;
+                    trieVisitContext.PathLevel--;
                     break;
                 }
 
                 case NodeType.Extension:
                 {
+                    trieVisitContext.PathLevel += this.Path?.Length ?? 0;
                     visitor.VisitExtension(this, trieVisitContext);
                     TrieNode child = GetChild(nodeResolver, 0);
                     if (child == null)
@@ -151,11 +154,15 @@ namespace Nethermind.Trie
                         trieVisitContext.Level--;
                     }
 
+                    trieVisitContext.PathLevel -= this.Path?.Length ?? 0;
+
                     break;
                 }
 
                 case NodeType.Leaf:
                 {
+                    trieVisitContext.PathLevel += this.Path?.Length ?? 0;
+
                     visitor.VisitLeaf(this, trieVisitContext, Value);
                     if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
                     {
@@ -187,6 +194,8 @@ namespace Nethermind.Trie
                             trieVisitContext.IsStorage = false;
                         }
                     }
+
+                    trieVisitContext.PathLevel -= this.Path?.Length ?? 0;
 
                     break;
                 }
