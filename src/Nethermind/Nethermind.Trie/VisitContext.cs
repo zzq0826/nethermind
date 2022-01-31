@@ -24,7 +24,15 @@ namespace Nethermind.Trie
         private SemaphoreSlim? _semaphore;
         private readonly int _maxDegreeOfParallelism;
 
+        /// <summary>
+        /// Tree node depth.
+        /// </summary>
         public int Level { get; internal set; }
+
+        /// <summary>
+        /// Tree path depth. Value between 0 and 63
+        /// </summary>
+        public int PathLevel { get; internal set; }
         public bool IsStorage { get; internal set; }
         public int? BranchChildIndex { get; internal set; }
         public bool ExpectAccounts { get; init; }
