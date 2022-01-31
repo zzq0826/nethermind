@@ -135,18 +135,11 @@ namespace Nethermind.Trie
             {
                 Interlocked.Increment(ref Stats._missingCode);
             }
-            
-            IncrementLevel(trieVisitContext, Stats._codeLevels);
         }
         
         private void IncrementLevel(TrieVisitContext trieVisitContext)
         {
             int[] levels = trieVisitContext.IsStorage ? Stats._storageLevels : Stats._stateLevels;
-            IncrementLevel(trieVisitContext, levels);
-        }
-
-        private static void IncrementLevel(TrieVisitContext trieVisitContext, int[] levels)
-        {
             Interlocked.Increment(ref levels[trieVisitContext.PathLevel]);
         }
     }
