@@ -108,9 +108,9 @@ namespace Nethermind.Trie
             builder.AppendLine($"  STORAGE NODES {StorageCount} ({StorageBranchCount}|{StorageExtensionCount}|{StorageLeafCount})");
             builder.AppendLine($"  ACCOUNTS {AccountCount} OF WHICH ({CodeCount}) ARE CONTRACTS");
             builder.AppendLine($"  MISSING {MissingNodes} (STATE {MissingState}, CODE {MissingCode}, STORAGE {MissingStorage})");
-            builder.AppendLine($"  ALL LEVELS {string.Join(" | ", AllLevels.Select((x, i) => $"{i}:{x}"))}");
-            builder.AppendLine($"  STATE LEVELS {string.Join(" | ", StateLevels.Select((x, i) => $"{i}:{x}"))}");
-            builder.AppendLine($"  STORAGE LEVELS {string.Join(" | ", StorageLevels.Select((x, i) => $"{i}:{x}"))}");
+            builder.AppendLine($"  ALL LEVELS {string.Join(" | ", AllLevels.Select((x, i) => $"({i}):{x}"))}");
+            builder.AppendLine($"  STATE LEVELS {string.Join(" | ", StateLevels.Select((x, i) => $"({i}):{x}"))}");
+            builder.AppendLine($"  STORAGE LEVELS {string.Join(" | ", StorageLevels.Select((x, i) => $"({i}):{x}"))}");
 
             foreach (var item in list)
             {
