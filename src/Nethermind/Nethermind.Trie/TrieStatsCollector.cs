@@ -54,7 +54,7 @@ namespace Nethermind.Trie
             {
                 Interlocked.Increment(ref Stats._missingState);
             }
-            
+
             IncrementLevel(trieVisitContext);
         }
 
@@ -70,7 +70,7 @@ namespace Nethermind.Trie
                 Interlocked.Add(ref Stats._stateSize, node.FullRlp?.Length ?? 0);
                 Interlocked.Increment(ref Stats._stateBranchCount);
             }
-            
+
             IncrementLevel(trieVisitContext);
         }
 
@@ -86,7 +86,7 @@ namespace Nethermind.Trie
                 Interlocked.Add(ref Stats._stateSize, node.FullRlp?.Length ?? 0);
                 Interlocked.Increment(ref Stats._stateExtensionCount);
             }
-            
+
             IncrementLevel(trieVisitContext);
         }
 
@@ -98,17 +98,23 @@ namespace Nethermind.Trie
                 _logger.Warn($"Collected info from {Stats.NodesCount} nodes. Missing CODE {Stats.MissingCode} STATE {Stats.MissingState} STORAGE {Stats.MissingStorage}");
             }
 
+            long size = node.FullRlp?.Length ?? 0;
             if (trieVisitContext.IsStorage)
             {
-                Interlocked.Add(ref Stats._storageSize, node.FullRlp?.Length ?? 0);
+                Interlocked.Add(ref Stats._storageSize, size);
                 Interlocked.Increment(ref Stats._storageLeafCount);
+
+                Stats.StorageSizes.AddOrUpdate(trieVisitContext.ParentAccount, size, (key, oldValue) => oldValue + size);
             }
             else
             {
-                Interlocked.Add(ref Stats._stateSize, node.FullRlp?.Length ?? 0);
+                Interlocked.Add(ref Stats._stateSize, size);
                 Interlocked.Increment(ref Stats._accountCount);
+
+                
+                    trieVisitContext.ParentAccount = node.Keccak;
             }
-            
+
             IncrementLevel(trieVisitContext);
         }
 
@@ -125,11 +131,29 @@ namespace Nethermind.Trie
                 Interlocked.Increment(ref Stats._missingCode);
             }
         }
-        
+
         private void IncrementLevel(TrieVisitContext trieVisitContext)
         {
             int[] levels = trieVisitContext.IsStorage ? Stats._storageLevels : Stats._stateLevels;
-            Interlocked.Increment(ref levels[trieVisitContext.PathLevel - 1]);
+            int index = trieVisitContext.PathLevel % 64;
+            index = index == 0 ? 64 : index;
+            Interlocked.Increment(ref levels[index - 1]);
+        }
+
+        public void ExitLeaf(TrieNode node, TrieVisitContext context)
+        {
+            if (!context.IsStorage && context.ParentAccount is not null)
+            {
+                if(Stats.StorageSizes.TryGetValue(context.ParentAccount, out long size))
+                {
+                    int statsKey = (int)(size / (1024 * 1024));
+                    Stats.StorageStats.AddOrUpdate(statsKey, 1, (key, oldValue) => oldValue + 1);
+
+                    Stats.StorageSizes.TryRemove(context.ParentAccount, out var _);
+                }
+
+                context.ParentAccount = null;
+            }
         }
     }
 }

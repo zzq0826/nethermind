@@ -195,6 +195,8 @@ namespace Nethermind.Trie
                         }
                     }
 
+                    visitor.ExitLeaf(this, trieVisitContext);
+
                     trieVisitContext.PathLevel -= this.Path?.Length ?? 0;
 
                     break;

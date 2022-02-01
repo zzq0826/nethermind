@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading;
+using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie
 {
@@ -36,6 +37,8 @@ namespace Nethermind.Trie
         public bool IsStorage { get; internal set; }
         public int? BranchChildIndex { get; internal set; }
         public bool ExpectAccounts { get; init; }
+
+        public Keccak? ParentAccount { get; set; }
 
         public int MaxDegreeOfParallelism
         {

@@ -31,7 +31,8 @@ namespace Nethermind.Trie
         void VisitExtension(TrieNode node, TrieVisitContext trieVisitContext);
         
         void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[] value = null);
-        
+        void ExitLeaf(TrieNode node, TrieVisitContext trieVisitContext) { }
+
         void VisitCode(Keccak codeHash, TrieVisitContext trieVisitContext);
     }
 }

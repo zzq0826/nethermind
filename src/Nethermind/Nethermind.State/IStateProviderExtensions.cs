@@ -40,7 +40,7 @@ namespace Nethermind.State
         public static TrieStats CollectStats(this IStateProvider stateProvider, IKeyValueStore codeStorage, ILogManager logManager)
         {
             TrieStatsCollector collector = new(codeStorage, logManager);
-            stateProvider.Accept(collector, stateProvider.StateRoot);
+            stateProvider.Accept(collector, stateProvider.StateRoot, new VisitingOptions { MaxDegreeOfParallelism = Environment.ProcessorCount });
             return collector.Stats;
         }
     }

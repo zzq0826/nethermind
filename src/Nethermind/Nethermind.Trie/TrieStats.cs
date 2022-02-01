@@ -14,8 +14,11 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie
 {
@@ -74,8 +77,6 @@ namespace Nethermind.Trie
 
         public long Size => StateSize + StorageSize + CodeSize;
 
-//        public List<string> MissingNodes { get; set; } = new List<string>();
-
         public int[] StateLevels => _stateLevels;
         public int[] StorageLevels => _storageLevels;
         public int[] AllLevels
@@ -92,8 +93,13 @@ namespace Nethermind.Trie
             }
         }
 
+        public ConcurrentDictionary<Keccak, long> StorageSizes = new();
+        public ConcurrentDictionary<int, long> StorageStats = new();
+
         public override string ToString()
         {
+            SortedList<int, long> list = new(StorageStats);
+
             StringBuilder builder = new();
             builder.AppendLine("TRIE STATS");
             builder.AppendLine($"  SIZE {Size} (STATE {StateSize}, CODE {CodeSize}, STORAGE {StorageSize})");
@@ -102,9 +108,14 @@ namespace Nethermind.Trie
             builder.AppendLine($"  STORAGE NODES {StorageCount} ({StorageBranchCount}|{StorageExtensionCount}|{StorageLeafCount})");
             builder.AppendLine($"  ACCOUNTS {AccountCount} OF WHICH ({CodeCount}) ARE CONTRACTS");
             builder.AppendLine($"  MISSING {MissingNodes} (STATE {MissingState}, CODE {MissingCode}, STORAGE {MissingStorage})");
-            builder.AppendLine($"  ALL LEVELS {string.Join(" | ", AllLevels)}");
-            builder.AppendLine($"  STATE LEVELS {string.Join(" | ", StateLevels)}");
-            builder.AppendLine($"  STORAGE LEVELS {string.Join(" | ", StorageLevels)}");
+            builder.AppendLine($"  ALL LEVELS {string.Join(" | ", AllLevels.Select((x, i) => $"{i}:{x}"))}");
+            builder.AppendLine($"  STATE LEVELS {string.Join(" | ", StateLevels.Select((x, i) => $"{i}:{x}"))}");
+            builder.AppendLine($"  STORAGE LEVELS {string.Join(" | ", StorageLevels.Select((x, i) => $"{i}:{x}"))}");
+
+            foreach (var item in list)
+            {
+                builder.AppendLine($"STORAGES up to {item.Key} Mb: {item.Value}");
+            }
             return builder.ToString();
         }
     }
