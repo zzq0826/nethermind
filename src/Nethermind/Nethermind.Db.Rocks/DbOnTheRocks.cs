@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -38,7 +39,7 @@ namespace Nethermind.Db.Rocks
 
         private bool _isDisposed;
 
-        private readonly HashSet<IBatch> _currentBatches = new();
+        private readonly HashSet<RocksDbBatch> _currentBatches = new();
         
         internal readonly RocksDb _db;
         internal WriteOptions? WriteOptions { get; private set; }
@@ -406,7 +407,7 @@ namespace Nethermind.Db.Rocks
 
         public IBatch StartBatch()
         {
-            IBatch batch = new RocksDbBatch(this);
+            RocksDbBatch batch = new RocksDbBatch(this, _currentBatches.Count, _logger);
             _currentBatches.Add(batch);
             return batch;
         }
@@ -414,12 +415,19 @@ namespace Nethermind.Db.Rocks
         internal class RocksDbBatch : IBatch
         {
             private readonly DbOnTheRocks _dbOnTheRocks;
+            private readonly int _index;
+            private readonly ILogger _logger;
+            private readonly StackTrace _trace;
+            private bool _isDisposed = false;
 
             internal readonly WriteBatch _rocksBatch;
 
-            public RocksDbBatch(DbOnTheRocks dbOnTheRocks)
+            public RocksDbBatch(DbOnTheRocks dbOnTheRocks, int index, ILogger logger)
             {
+                _trace = new StackTrace();
                 _dbOnTheRocks = dbOnTheRocks;
+                _index = index;
+                _logger = logger;
 
                 if (_dbOnTheRocks._isDisposed)
                 {
@@ -428,25 +436,35 @@ namespace Nethermind.Db.Rocks
 
                 _rocksBatch = new WriteBatch();
             }
-
+            
             public void Dispose()
             {
-                if (_dbOnTheRocks._isDisposed)
+                if (_dbOnTheRocks._isDisposed || _isDisposed)
                 {
                     throw new ObjectDisposedException($"Attempted to commit a batch on a disposed database {_dbOnTheRocks.Name}");
                 }
 
+                _logger.Info($"Disposing batch {_index} from {_trace}");
                 _dbOnTheRocks._db.Write(_rocksBatch, _dbOnTheRocks.WriteOptions);
+                _logger.Info($"Written batch {_index}");
                 _dbOnTheRocks._currentBatches.Remove(this);
+                _isDisposed = true;
                 _rocksBatch.Dispose();
+                _logger.Info($"Disposed batch {_index}");
                 GC.SuppressFinalize(this);
             }
 
             public byte[]? this[byte[] key]
             {
-                get => _dbOnTheRocks[key];
+                get
+                {
+                    if (_isDisposed) return null;
+                    return _dbOnTheRocks[key];
+                }
                 set
                 {
+                    if (_isDisposed) return;
+                    
                     if (value == null)
                     {
                         _rocksBatch.Delete(key);
@@ -485,14 +503,18 @@ namespace Nethermind.Db.Rocks
                     // We want to keep the folder if it can have subfolders with copied databases from pruning
                     if (_settings.CanDeleteFolder)
                     {
+                        _logger.Info($"Deleting DB folder {Name}");
                         Directory.Delete(fullPath, true);
+                        _logger.Info($"Deleted DB folder {Name}");
                     }
                     else
                     {
+                        _logger.Info($"Deleting DB files {Name}");
                         foreach (string file in Directory.EnumerateFiles(fullPath))
                         {
                             File.Delete(file);
                         }
+                        _logger.Info($"Deleted DB files {Name}");
                     }
                 }
             }
@@ -529,7 +551,9 @@ namespace Nethermind.Db.Rocks
             // running in finalizer, potentially not fully constructed
             foreach (IBatch batch in _currentBatches)
             {
+                _logger?.Info($"Flushed DB {Name}");
                 batch.Dispose();
+                _logger?.Info($"Flushed DB {Name}");
             }
             
             _db?.Dispose();
@@ -545,15 +569,18 @@ namespace Nethermind.Db.Rocks
                 if (disposing)
                 {
                     Flush();
+                    _logger?.Info($"Flushed DB {Name}");
                 }
-
+                
                 _isDisposed = true;
 
                 ReleaseUnmanagedResources();
                 if (disposing)
                 {
                     _dbsByPath.Remove(_fullPath!, out _);
+                    _logger?.Info($"Removed path DB {Name}");
                 }
+                
             }
         }
 
