@@ -28,6 +28,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Blockchain;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
@@ -313,7 +314,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Eth
         {
             using Context ctx = await Context.Create();
             IBlockFinder bridge = Substitute.For<IBlockFinder>();
-            bridge.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(900).TestObject).TestObject);
+            bridge.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(900).TestObject).TestObject);
             bridge.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(1000L).TestObject);
 
             ctx._test = await TestRpcBlockchain.ForTest(SealEngineType.NethDev).WithBlockFinder(bridge).Build();
@@ -327,7 +328,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Eth
         {
             using Context ctx = await Context.Create();
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
-            blockFinder.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(900).TestObject).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(900).TestObject).TestObject);
             blockFinder.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(901).TestObject);
 
             ctx._test = await TestRpcBlockchain.ForTest(SealEngineType.NethDev).WithBlockFinder(blockFinder).Build();
@@ -645,7 +646,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Eth
             TxReceipt[] receipts = {receipt1, receipt2};
             
             blockFinder.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(blockNumber).TestObject);
-            blockFinder.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(blockNumber).TestObject).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(blockNumber).TestObject).TestObject);
             blockFinder.FindBlock(Arg.Any<BlockParameter>()).Returns(block);
             receiptFinder.Get(Arg.Any<Block>()).Returns(receipts);
             receiptFinder.Get(Arg.Any<Keccak>()).Returns(receipts);
@@ -738,7 +739,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Eth
             using Context ctx = await Context.Create();
             IBlockFinder bridge = Substitute.For<IBlockFinder>();
             bridge.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(6178000L).TestObject);
-            bridge.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6170000L).TestObject).TestObject);
+            bridge.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6170000L).TestObject).TestObject);
 
             ctx._test = await TestRpcBlockchain.ForTest(SealEngineType.NethDev).WithBlockFinder(bridge).Build();
             string serialized = ctx._test.TestEthRpc("eth_syncing");

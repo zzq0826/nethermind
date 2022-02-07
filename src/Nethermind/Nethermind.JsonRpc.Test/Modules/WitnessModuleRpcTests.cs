@@ -19,6 +19,7 @@ using FluentAssertions;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
 using Nethermind.Core;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Db;
@@ -54,6 +55,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                 .WithUncles(Build.A.BlockHeader.TestObject, Build.A.BlockHeader.TestObject).TestObject;
             
             _blockFinder = Substitute.For<IBlockTree>();
+            _blockFinder.ReturnsHead(_block);
             _witnessRepository = new WitnessCollector(new MemDb(), LimboLogs.Instance);
             _witnessRpcModule = new WitnessRpcModule(_witnessRepository, _blockFinder);
         }
@@ -62,8 +64,7 @@ namespace Nethermind.JsonRpc.Test.Modules
         public void GetOneWitnessHash()
         {
             _blockFinder.FindHeader((BlockParameter)null).ReturnsForAnyArgs(_block.Header);
-            _blockFinder.Head.Returns(_block);
-
+            
             _witnessRepository.Add(_block.Hash);
             _witnessRepository.Persist(_block.Hash);
 
@@ -84,8 +85,7 @@ namespace Nethermind.JsonRpc.Test.Modules
         public void WitnessNotFound()
         {
             _blockFinder.FindHeader((BlockParameter)null).ReturnsForAnyArgs(_block.Header);
-            _blockFinder.Head.Returns(_block);
-
+            
             string serialized =
                 RpcTest.TestSerializedRequest<IWitnessRpcModule>(_witnessRpcModule, "get_witnesses", "0x1");
             serialized.Should().Be(WitnessNotFoundResponse);

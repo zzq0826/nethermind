@@ -170,7 +170,7 @@ namespace Nethermind.Core.Test.Blockchain
             
             TxPoolTxSource txPoolTxSource = CreateTxPoolTxSource();
             ISealer sealer = new NethDevSealEngine(TestItem.AddressD);
-            ITransactionComparerProvider transactionComparerProvider = new TransactionComparerProvider(SpecProvider, BlockFinder);
+            ITransactionComparerProvider transactionComparerProvider = new TransactionComparerProvider(SpecProvider, BlockTree);
             BlockProducer = CreateTestBlockProducer(txPoolTxSource, sealer, transactionComparerProvider);
             Suggester = new ProducedBlockSuggester(BlockTree, BlockProducer);
             BlockProducer.Start();

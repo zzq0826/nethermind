@@ -27,27 +27,27 @@ namespace Nethermind.Merge.Plugin.Handlers
 {
     public class FinaliseBlockHandler : IHandler<Keccak, Result>
     {
-        private readonly IBlockFinder _blockFinder;
+        private readonly IBlockTree _blockTree;
         private readonly IManualBlockFinalizationManager _manualBlockFinalizationManager;
         private readonly ILogger _logger;
 
-        public FinaliseBlockHandler(IBlockFinder blockFinder, IManualBlockFinalizationManager manualBlockFinalizationManager, ILogManager logManager)
+        public FinaliseBlockHandler(IBlockTree blockTree, IManualBlockFinalizationManager manualBlockFinalizationManager, ILogManager logManager)
         {
-            _blockFinder = blockFinder;
+            _blockTree = blockTree;
             _manualBlockFinalizationManager = manualBlockFinalizationManager;
             _logger = logManager.GetClassLogger();
         }
 
         public ResultWrapper<Result> Handle(Keccak request)
         {
-            BlockHeader? blockHeader = _blockFinder.FindHeader(request, BlockTreeLookupOptions.None);
+            BlockHeader? blockHeader = _blockTree.FindHeader(request, BlockTreeLookupOptions.None);
             if (blockHeader is null)
             {
                 if (_logger.IsWarn) _logger.Warn($"Block {request} not found for finalization.");
                 return ResultWrapper<Result>.Success(Result.Fail);
             }
             
-            BlockHeader? headHeader = _blockFinder.Head?.Header;
+            BlockHeader? headHeader = _blockTree.Head?.Header;
 
             if (headHeader is null)
             {

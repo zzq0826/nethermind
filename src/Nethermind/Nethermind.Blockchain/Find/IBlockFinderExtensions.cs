@@ -91,7 +91,7 @@ namespace Nethermind.Blockchain.Find
 
         public static Block? RetrieveHeadBlock(this IBlockFinder finder)
         {
-            Keccak? headHash = finder.Head?.Hash;
+            Keccak? headHash = finder.HeadHash;
             return headHash is null ? null : finder.FindBlock(headHash, BlockTreeLookupOptions.None);
         }
     }

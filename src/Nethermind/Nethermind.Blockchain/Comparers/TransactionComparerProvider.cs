@@ -27,22 +27,22 @@ namespace Nethermind.Blockchain.Comparers
     public class TransactionComparerProvider : ITransactionComparerProvider
     {
         private readonly ISpecProvider _specProvider;
-        private readonly IBlockFinder _blockFinder;
+        private readonly IBlockTree _blockTree;
         
         // we're caching default comparer
         private IComparer<Transaction>? _defaultComparer = null;
 
-        public TransactionComparerProvider(ISpecProvider specProvider, IBlockFinder blockFinder)
+        public TransactionComparerProvider(ISpecProvider specProvider, IBlockTree blockTree)
         {
             _specProvider = specProvider;
-            _blockFinder = blockFinder;
+            _blockTree = blockTree;
         }
 
         public IComparer<Transaction> GetDefaultComparer()
         {
             if (_defaultComparer == null)
             {
-                IComparer<Transaction> gasPriceComparer = new GasPriceTxComparer(_blockFinder, _specProvider);
+                IComparer<Transaction> gasPriceComparer = new GasPriceTxComparer(_blockTree, _specProvider);
                 _defaultComparer = gasPriceComparer
                     .ThenBy(CompareTxByTimestamp.Instance)
                     .ThenBy(CompareTxByPoolIndex.Instance)

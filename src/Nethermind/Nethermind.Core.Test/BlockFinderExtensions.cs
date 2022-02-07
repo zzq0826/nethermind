@@ -1,4 +1,4 @@
-//  Copyright (c) 2021 Demerzel Solutions Limited
+﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -15,22 +15,25 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-using System;
+using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
-using Nethermind.Core.Crypto;
-using Nethermind.State;
+using NSubstitute;
 
-namespace Nethermind.Blockchain
+namespace Nethermind.Core.Test;
+
+public static class BlockFinderExtensions
 {
-    public class ChainHeadReadOnlyStateProvider : SpecificBlockReadOnlyStateProvider
+    public static void ReturnsHead(this IBlockFinder blockFinder, Block? head)
     {
-        private readonly IBlockTree _blockFinder;
-        
-        public ChainHeadReadOnlyStateProvider(IBlockTree blockFinder, IStateReader stateReader) : base(stateReader)
-        {
-            _blockFinder = blockFinder ?? throw new ArgumentNullException(nameof(blockFinder));
-        }
-
-        public override Keccak StateRoot => _blockFinder.Head?.StateRoot ?? Keccak.EmptyTreeHash;
+        blockFinder.FindLatestBlock().Returns(head);
+        blockFinder.FindLatestHeader().Returns(head?.Header);
+        blockFinder.HeadHash.Returns(head?.Hash);
+        blockFinder.HeadNumber.Returns(head?.Number ?? 0L);
+    }
+    
+    public static void ReturnsHead(this IBlockTree blockFinder, Block? head)
+    {
+        ((IBlockFinder)blockFinder).ReturnsHead(head);
+        blockFinder.Head.Returns(head);
     }
 }

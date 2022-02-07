@@ -26,6 +26,7 @@ using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Core;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Db.Blooms;
@@ -174,7 +175,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             _blockTree.FindBestSuggestedHeader().Returns(blockHeader);
 
             Block block = Build.A.Block.WithNumber(head).TestObject;
-            _blockTree.Head.Returns(block);
+            _blockTree.ReturnsHead(block);
 
             EthSyncingInfo ethSyncingInfo = new(_blockTree);
             
@@ -838,7 +839,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             _blockTree.FindBestSuggestedHeader().Returns(blockHeader);
 
             Block block = Build.A.Block.TestObject;
-            _blockTree.Head.Returns(block);
+            _blockTree.ReturnsHead(block);
 
             string serialized = RpcTest.TestSerializedRequest(_subscribeRpcModule, "eth_subscribe", "syncing");
             var expectedResult = string.Concat("{\"jsonrpc\":\"2.0\",\"result\":\"", serialized.Substring(serialized.Length - 44,34), "\",\"id\":67}");
@@ -852,7 +853,7 @@ namespace Nethermind.JsonRpc.Test.Modules
 
             Block blockChanged = Build.A.Block.WithNumber(10030).TestObject;
             BlockEventArgs blockEventArgs = new(blockChanged);
-            _blockTree.Head.Returns(blockChanged);
+            _blockTree.ReturnsHead(blockChanged);
             
             JsonRpcResult jsonRpcResult = GetSyncingSubscriptionResult(true, syncingSubscription, blockEventArgs);
             
@@ -881,7 +882,7 @@ namespace Nethermind.JsonRpc.Test.Modules
 
             Block blockChanged = Build.A.Block.WithNumber(10040).TestObject;
             BlockEventArgs blockEventArgs = new(blockChanged);
-            _blockTree.Head.Returns(blockChanged);
+            _blockTree.ReturnsHead(blockChanged);
             
             JsonRpcResult jsonRpcResult = GetSyncingSubscriptionResult(true, syncingSubscription, blockEventArgs);
             
@@ -916,7 +917,7 @@ namespace Nethermind.JsonRpc.Test.Modules
 
             Block blockChanged = Build.A.Block.WithNumber(10024).TestObject;
             BlockEventArgs blockEventArgs = new(blockChanged);
-            _blockTree.Head.Returns(blockChanged);
+            _blockTree.ReturnsHead(blockChanged);
             
             JsonRpcResult jsonRpcResult = GetSyncingSubscriptionResult(true, syncingSubscription, blockEventArgs);
             

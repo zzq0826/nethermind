@@ -54,7 +54,7 @@ namespace Nethermind.Core
             return new(Header, newBody);
         }
         
-        public BlockHeader Header { get; }
+        public BlockHeader Header { get; private set; }
 
         public BlockBody Body { get; }
 
@@ -154,6 +154,13 @@ namespace Nethermind.Core
             HashNumberAndTx,
             HashNumberDiffAndTx,
             Short
+        }
+
+        public Block Clone()
+        {
+            Block clone = (Block)MemberwiseClone();
+            clone.Header = Header.Clone();
+            return clone;
         }
     }
 }

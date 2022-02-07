@@ -79,6 +79,9 @@ namespace Nethermind.Blockchain
         public AddBlockResult SuggestHeader(BlockHeader header) => throw new InvalidOperationException($"{nameof(ReadOnlyBlockTree)} does not expect {nameof(SuggestHeader)} calls");
 
         public Keccak HeadHash => _wrapped.HeadHash;
+
+        public long HeadNumber => _wrapped.HeadNumber;
+
         public Keccak GenesisHash => _wrapped.GenesisHash;
         public Keccak PendingHash => _wrapped.PendingHash;
 
@@ -102,7 +105,10 @@ namespace Nethermind.Blockchain
         public void DeleteInvalidBlock(Block invalidBlock) => throw new InvalidOperationException($"{nameof(ReadOnlyBlockTree)} does not expect {nameof(DeleteInvalidBlock)} calls");
 
         public bool IsMainChain(Keccak blockHash) => _wrapped.IsMainChain(blockHash);
-        
+        public Block? FindHeadBlock() => _wrapped.FindHeadBlock();
+
+        public BlockHeader? FindLatestHeader() => _wrapped.FindLatestHeader();
+
         public BlockHeader FindBestSuggestedHeader() => _wrapped.FindBestSuggestedHeader();
 
         public bool IsKnownBlock(long number, Keccak blockHash) => _wrapped.IsKnownBlock(number, blockHash);

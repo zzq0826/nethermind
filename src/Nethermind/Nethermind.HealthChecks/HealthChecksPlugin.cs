@@ -20,7 +20,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
-using Nethermind.Blockchain;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
 using Nethermind.JsonRpc;
@@ -103,7 +102,7 @@ namespace Nethermind.HealthChecks
             if (_healthChecksConfig.Enabled)
             {
                 IInitConfig initConfig = _api.Config<IInitConfig>();
-                _nodeHealthService = new NodeHealthService(_api.SyncServer, new ReadOnlyBlockTree(_api.BlockTree), _api.BlockchainProcessor, _api.BlockProducer, _healthChecksConfig, _api.HealthHintService, _api.EthSyncingInfo, initConfig.IsMining);
+                _nodeHealthService = new NodeHealthService(_api.SyncServer, _api.BlockchainProcessor, _api.BlockProducer, _healthChecksConfig, _api.HealthHintService, _api.EthSyncingInfo, initConfig.IsMining);
                 HealthRpcModule healthRpcModule = new(_nodeHealthService);
                 _api.RpcModuleProvider!.Register(new SingletonModulePool<IHealthRpcModule>(healthRpcModule, true));
                 if (_logger.IsInfo) _logger.Info("Health RPC Module has been enabled");

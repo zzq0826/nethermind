@@ -22,13 +22,13 @@ namespace Nethermind.Blockchain.Find
 {
     public interface IBlockFinder
     {
-        Keccak HeadHash { get; }
+        Keccak? HeadHash { get; }
+        
+        long HeadNumber { get; }
 
         Keccak GenesisHash { get; }
 
         Keccak? PendingHash { get; }
-
-        Block? Head { get; }
 
         Block? FindBlock(Keccak blockHash, BlockTreeLookupOptions options);
 
@@ -60,7 +60,7 @@ namespace Nethermind.Blockchain.Find
 
         public Block? FindGenesisBlock() => FindBlock(GenesisHash, BlockTreeLookupOptions.RequireCanonical);
 
-        public Block? FindHeadBlock() => Head;
+        public Block? FindHeadBlock();
 
         public Block? FindEarliestBlock() => FindGenesisBlock();
 
@@ -80,7 +80,7 @@ namespace Nethermind.Blockchain.Find
 
         public BlockHeader FindEarliestHeader() => FindGenesisHeader();
 
-        public BlockHeader? FindLatestHeader() => Head?.Header;
+        public BlockHeader? FindLatestHeader();
 
         public BlockHeader? FindPendingHeader() =>
             PendingHash == null ? null : FindHeader(PendingHash, BlockTreeLookupOptions.None);
@@ -99,7 +99,7 @@ namespace Nethermind.Blockchain.Find
                 BlockParameterType.Pending => FindPendingBlock(),
                 BlockParameterType.Latest => FindLatestBlock(),
                 BlockParameterType.Earliest => FindEarliestBlock(),
-                BlockParameterType.BlockNumber => headLimit && blockParameter.BlockNumber!.Value >= Head.Number
+                BlockParameterType.BlockNumber => headLimit && blockParameter.BlockNumber!.Value >= HeadNumber
                     ? FindLatestBlock()
                     : FindBlock(blockParameter.BlockNumber!.Value,
                         blockParameter.RequireCanonical
@@ -125,7 +125,7 @@ namespace Nethermind.Blockchain.Find
                 BlockParameterType.Pending => FindPendingHeader(),
                 BlockParameterType.Latest => FindLatestHeader(),
                 BlockParameterType.Earliest => FindEarliestHeader(),
-                BlockParameterType.BlockNumber => headLimit && blockParameter.BlockNumber!.Value >= Head.Number
+                BlockParameterType.BlockNumber => headLimit && blockParameter.BlockNumber!.Value >= HeadNumber
                     ? FindLatestHeader()
                     : FindHeader(blockParameter.BlockNumber!.Value,
                         blockParameter.RequireCanonical

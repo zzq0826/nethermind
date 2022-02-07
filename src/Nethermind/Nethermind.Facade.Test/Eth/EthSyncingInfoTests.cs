@@ -15,7 +15,9 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Facade.Eth;
 using NSubstitute;
@@ -32,7 +34,7 @@ namespace Nethermind.Facade.Test.Eth
         {
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
             blockFinder.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(6178001L).TestObject);
-            blockFinder.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6178000L).TestObject).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6178000L).TestObject).TestObject);
             EthSyncingInfo ethSyncingInfo = new(blockFinder);
             SyncingResult syncingResult = ethSyncingInfo.GetFullInfo();
             Assert.AreEqual(false, syncingResult.IsSyncing);
@@ -46,7 +48,7 @@ namespace Nethermind.Facade.Test.Eth
         {
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
             blockFinder.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(6178010L).TestObject);
-            blockFinder.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6178000L).TestObject).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(6178000L).TestObject).TestObject);
             EthSyncingInfo ethSyncingInfo = new(blockFinder);
             SyncingResult syncingResult = ethSyncingInfo.GetFullInfo();
             Assert.AreEqual(true, syncingResult.IsSyncing);
@@ -61,7 +63,7 @@ namespace Nethermind.Facade.Test.Eth
         {
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
             blockFinder.FindBestSuggestedHeader().Returns(Build.A.BlockHeader.WithNumber(bestHeader).TestObject);
-            blockFinder.Head.Returns(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(currentHead).TestObject).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithHeader(Build.A.BlockHeader.WithNumber(currentHead).TestObject).TestObject);
             EthSyncingInfo ethSyncingInfo = new(blockFinder);
             SyncingResult syncingResult = ethSyncingInfo.GetFullInfo();
             Assert.AreEqual(expectedResult, syncingResult.IsSyncing);

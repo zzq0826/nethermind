@@ -17,7 +17,6 @@
 
 using System.Collections.Generic;
 using Nethermind.Blockchain;
-using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Consensus;
 using Nethermind.Facade.Eth;
@@ -44,7 +43,6 @@ namespace Nethermind.HealthChecks
 
         public NodeHealthService(
             ISyncServer syncServer,
-            IBlockFinder blockFinder,
             IBlockchainProcessor blockchainProcessor,
             IBlockProducer blockProducer,
             IHealthChecksConfig healthChecksConfig,

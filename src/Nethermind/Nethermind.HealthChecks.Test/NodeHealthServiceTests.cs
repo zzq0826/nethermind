@@ -22,13 +22,15 @@ using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Processing;
 using Nethermind.Consensus;
 using Nethermind.Core;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Facade.Eth;
+using Nethermind.HealthChecks;
 using Nethermind.Synchronization;
 using NSubstitute;
 using NUnit.Framework;
 
-namespace Nethermind.HealthChecks.Test
+namespace Nethermind.Monitoring.Tests
 {
     public class NodeHealthServiceTests
     {
@@ -45,7 +47,7 @@ namespace Nethermind.HealthChecks.Test
             syncServer.GetPeerCount().Returns(test.PeerCount);
             
             BlockHeaderBuilder GetBlockHeader(int blockNumber) => Build.A.BlockHeader.WithNumber(blockNumber);
-            blockFinder.Head.Returns(new Block(GetBlockHeader(4).TestObject));
+            blockFinder.ReturnsHead(new Block(GetBlockHeader(4).TestObject));
             if (test.IsSyncing)
             {
                 blockFinder.FindBestSuggestedHeader().Returns(GetBlockHeader(15).TestObject);
@@ -57,7 +59,7 @@ namespace Nethermind.HealthChecks.Test
 
             IEthSyncingInfo ethSyncingInfo = new EthSyncingInfo(blockFinder);
             NodeHealthService nodeHealthService =
-                new(syncServer, blockFinder, blockchainProcessor, blockProducer, new HealthChecksConfig(),  healthHintService, ethSyncingInfo, test.IsMining);
+                new(syncServer, blockchainProcessor, blockProducer, new HealthChecksConfig(),  healthHintService, ethSyncingInfo, test.IsMining);
             CheckHealthResult result = nodeHealthService.CheckHealth();
             Assert.AreEqual(test.ExpectedHealthy, result.Healthy);
             Assert.AreEqual(test.ExpectedMessage, FormatMessages(result.Messages.Select(x => x.Message)));

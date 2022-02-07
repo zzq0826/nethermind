@@ -50,7 +50,7 @@ namespace Nethermind.Merge.Plugin.Test
                 new AssembleBlockHandler(chain.BlockTree, chain.BlockProductionTrigger, chain.Timestamper, chain.LogManager),
                 new NewBlockHandler(chain.BlockTree, chain.BlockPreprocessorStep, chain.BlockchainProcessor, chain.State, new InitConfig(), chain.LogManager),
                 new SetHeadBlockHandler(chain.BlockTree, chain.State, chain.LogManager),
-                new FinaliseBlockHandler(chain.BlockFinder, chain.BlockFinalizationManager, chain.LogManager),
+                new FinaliseBlockHandler(chain.BlockTree, chain.BlockFinalizationManager, chain.LogManager),
                 chain.LogManager);
         }
 

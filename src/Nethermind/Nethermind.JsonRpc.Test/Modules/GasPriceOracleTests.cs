@@ -23,6 +23,7 @@ using Nethermind.Blockchain.Find;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Int256;
 using Nethermind.JsonRpc.Modules.Eth.GasPrice;
@@ -89,7 +90,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             Block headBlock = Build.A.Block.WithBaseFeePerGas(baseFeePerGas).TestObject;
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
             blockFinder.FindBlock(0).Returns(headBlock);
-            blockFinder.Head.Returns(headBlock);
+            blockFinder.ReturnsHead(headBlock);
             ISpecProvider specProvider = Substitute.For<ISpecProvider>();
             GasPriceOracle testGasPriceOracle = new(blockFinder, specProvider, gasPrice);
 
@@ -104,7 +105,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             Block headBlock = Build.A.Block.WithTransactions(tx).TestObject;
             IBlockFinder blockFinder = Substitute.For<IBlockFinder>();
             blockFinder.FindBlock(0).Returns(headBlock);
-            blockFinder.Head.Returns(headBlock);
+            blockFinder.ReturnsHead(headBlock);
             ISpecProvider specProvider = Substitute.For<ISpecProvider>();
             GasPriceOracle testGasPriceOracle = new(blockFinder, specProvider);
 
@@ -139,7 +140,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                 blockFinder.FindBlock(i).Returns(blockWithTwoTx);
             }
 
-            blockFinder.Head.Returns(Build.A.Block.WithNumber(maxBlock).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithNumber(maxBlock).TestObject);
 
             return blockFinder;
         }
@@ -179,7 +180,7 @@ namespace Nethermind.JsonRpc.Test.Modules
                 blockFinder.FindBlock(i).Returns(blockWithThreeTx);
             }
 
-            blockFinder.Head.Returns(Build.A.Block.WithNumber(8).TestObject);
+            blockFinder.ReturnsHead(Build.A.Block.WithNumber(8).TestObject);
 
             return blockFinder;
         }

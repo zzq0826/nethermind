@@ -26,7 +26,7 @@ namespace Nethermind.JsonRpc.Modules
     {
         public static SearchResult<BlockHeader> SearchForHeader(this IBlockFinder blockFinder, BlockParameter? blockParameter, bool allowNulls = false)
         {
-            if (blockFinder.Head == null)
+            if (blockFinder.HeadHash == null)
             {
                 return new SearchResult<BlockHeader>("Incorrect head block", ErrorCodes.InternalError);
             }

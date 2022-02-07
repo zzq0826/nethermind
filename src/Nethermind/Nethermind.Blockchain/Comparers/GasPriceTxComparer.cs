@@ -25,10 +25,10 @@ namespace Nethermind.Blockchain.Comparers
 {
     public class GasPriceTxComparer : IComparer<Transaction>
     {
-        private readonly IBlockFinder _blockFinder;
+        private readonly IBlockTree _blockFinder;
         private readonly ISpecProvider _specProvider;
 
-        public GasPriceTxComparer(IBlockFinder blockFinder, ISpecProvider specProvider)
+        public GasPriceTxComparer(IBlockTree blockFinder, ISpecProvider specProvider)
         {
             _blockFinder = blockFinder;
             _specProvider = specProvider;
@@ -42,7 +42,7 @@ namespace Nethermind.Blockchain.Comparers
             
             // if gas bottleneck was calculated, it's highest priority for sorting
             // if not, different method of sorting by gas price is needed
-            if (x.GasBottleneck !=null && y.GasBottleneck != null)
+            if (x.GasBottleneck != null && y.GasBottleneck != null)
             {
                 return y!.GasBottleneck.Value.CompareTo(x!.GasBottleneck);
             }

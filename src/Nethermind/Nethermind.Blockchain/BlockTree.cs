@@ -994,6 +994,10 @@ namespace Nethermind.Blockchain
             return IsMainChain(header);
         }
 
+        public Block? FindHeadBlock() => Head?.Clone();
+
+        public BlockHeader? FindLatestHeader() => Head?.Header.Clone();
+
         public BlockHeader? FindBestSuggestedHeader() => BestSuggestedHeader;
 
         public bool WasProcessed(long number, Keccak blockHash)
@@ -1353,6 +1357,9 @@ namespace Nethermind.Blockchain
         }
 
         public Keccak? HeadHash => Head?.Hash;
+
+        public long HeadNumber => Head?.Number ?? 0L;
+
         public Keccak? GenesisHash => Genesis?.Hash;
         public Keccak? PendingHash => Head?.Hash;
 

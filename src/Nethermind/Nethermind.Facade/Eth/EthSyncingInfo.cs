@@ -33,7 +33,7 @@ namespace Nethermind.Facade.Eth
             SyncingResult result;
             long bestSuggestedNumber = _blockFinder.FindBestSuggestedHeader().Number;
 
-            long headNumberOrZero = _blockFinder.Head?.Number ?? 0;
+            long headNumberOrZero = _blockFinder.HeadNumber;
             bool isSyncing = bestSuggestedNumber > headNumberOrZero + 8;
 
             if (isSyncing)
@@ -57,7 +57,7 @@ namespace Nethermind.Facade.Eth
         public bool IsSyncing()
         {
             long bestSuggestedNumber = _blockFinder.FindBestSuggestedHeader().Number;
-            long headNumberOrZero = _blockFinder.Head?.Number ?? 0;
+            long headNumberOrZero = _blockFinder.HeadNumber;
             bool isSyncing = bestSuggestedNumber > headNumberOrZero + 8;
             
             return isSyncing;

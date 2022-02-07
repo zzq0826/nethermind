@@ -16,29 +16,41 @@
 // 
 
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 namespace Nethermind.Core.Extensions
 {
     public static class ExpressionExtensions
     {
-        public static string GetName<T, TProperty>(this Expression<Func<T, TProperty>> action) => GetMemberInfo(action).Member.Name;
-
-        public static MemberExpression GetMemberInfo(this Expression method)
+        public static string GetName<T, TProperty>(this Expression<Func<T, TProperty>> action)
         {
-            LambdaExpression lambda = method as LambdaExpression ?? throw new ArgumentException($"Only {typeof(LambdaExpression)} are supported", nameof(method));
+            LambdaExpression lambda = action as LambdaExpression ?? throw new ArgumentException($"Only {typeof(LambdaExpression)} are supported", nameof(action));
+
+            return lambda.Body.NodeType switch
+            {
+                ExpressionType.Convert or ExpressionType.MemberAccess => GetMemberInfo(action).Member.Name,
+                ExpressionType.Call => ((MethodCallExpression)lambda.Body).Method.GetSignature(),
+                _ => throw new ArgumentException($"Only {typeof(LambdaExpression)} too complex", nameof(action))
+            };
+        }
+
+        public static MemberExpression GetMemberInfo(this Expression action)
+        {
+            LambdaExpression lambda = action as LambdaExpression ?? throw new ArgumentException($"Only {typeof(LambdaExpression)} are supported", nameof(action));
 
             MemberExpression? memberExpr = lambda.Body.NodeType switch
             {
                 ExpressionType.Convert => ((UnaryExpression)lambda.Body).Operand as MemberExpression,
                 ExpressionType.MemberAccess => lambda.Body as MemberExpression,
-                _ => throw new ArgumentException($"Only {typeof(LambdaExpression)} too complex", nameof(method))
+                _ => throw new ArgumentException($"Only {typeof(LambdaExpression)} too complex", nameof(action))
             };
             
             return memberExpr!;
         }
-        
+
         /// <summary>
         /// Convert a lambda expression for a getter into a setter
         /// </summary>
@@ -71,6 +83,37 @@ namespace Nethermind.Core.Extensions
                 // TODO: Add fields
                 throw new NotSupportedException($"Member {typeof(T).Name}{memberExpression.Member.Name} is not a property.");
             }
+        }
+        
+        /// <summary>A MethodInfo extension method that gets a declaration.</summary>
+        /// <param name="this">The @this to act on.</param>
+        /// <returns>The declaration.</returns>
+        public static string GetSignature(this MethodInfo @this)
+        {
+            // Example: [Visibility] [Modifier] [Type] [Name] [<GenericArguments] ([Parameters])
+            var sb = new StringBuilder();
+
+            // Name
+            sb.Append(@this.Name);
+
+            if (@this.IsGenericMethod)
+            {
+                sb.Append("<");
+
+                Type[] arguments = @this.GetGenericArguments();
+
+                sb.Append(string.Join(", ", arguments.Select(x => x.Name)));
+
+                sb.Append(">");
+            }
+
+            // Parameters
+            ParameterInfo[] parameters = @this.GetParameters();
+            sb.Append("(");
+            sb.Append(string.Join(", ", parameters.Select(x => x.Name)));
+            sb.Append(")");
+
+            return sb.ToString();
         }
     }
 }

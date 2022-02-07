@@ -53,7 +53,7 @@ namespace Nethermind.JsonRpc.Modules.Eth.GasPrice
 
         public UInt256 GetGasPriceEstimate()
         {
-            Block? headBlock = _blockFinder.Head;
+            BlockHeader? headBlock = _blockFinder.FindLatestHeader();
             if (headBlock is null)
             {
                 return FallbackGasPrice();
@@ -78,7 +78,7 @@ namespace Nethermind.JsonRpc.Modules.Eth.GasPrice
         
         public UInt256 GetMaxPriorityGasFeeEstimate()
         {
-            Block? headBlock = _blockFinder.Head;
+            BlockHeader? headBlock = _blockFinder.FindLatestHeader();
             if (headBlock is null)
             {
                 return EthGasPriceConstants.FallbackMaxPriorityFeePerGas;;

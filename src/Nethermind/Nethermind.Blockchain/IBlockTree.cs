@@ -31,7 +31,9 @@ namespace Nethermind.Blockchain
         /// Chain ID that identifies the chain among the public and private chains (different IDs for mainnet, ETH classic, etc.)
         /// </summary>
         ulong ChainId { get; }
-
+        
+        Block? Head { get; }
+        
         /// <summary>
         /// Genesis block or <value>null</value> if genesis has not been processed yet
         /// </summary>

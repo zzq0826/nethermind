@@ -174,7 +174,9 @@ namespace Nethermind.Core
             int shift = index % 8;
             Bytes[bytePosition].SetBit(shift);
         }
-        
+
+        public Bloom Clone() => new((byte[])Bytes.Clone());
+
         public bool Matches(Address address) => Matches(address.Bytes);
         
         public bool Matches(Keccak topic) => Matches(topic.Bytes);
@@ -284,7 +286,6 @@ namespace Nethermind.Core
         {
             return Nethermind.Core.Extensions.Bytes.AreEqual(Bytes, other.Bytes);
         }
-
 
         public override bool Equals(object? obj)
         {
