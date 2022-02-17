@@ -39,6 +39,10 @@ namespace Nethermind.Db
         }
 
         public string Name { get; } = "ReadOnlyDb";
+        
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetAll(bool ordered = false) => _memDb.GetAll();
+
+        public IEnumerable<byte[]> GetAllValues(bool ordered = false) => _memDb.GetAllValues();
 
         public byte[]? this[byte[] key]
         {
@@ -53,29 +57,6 @@ namespace Nethermind.Db
                 _memDb[key] = value;
             }
         }
-
-        public KeyValuePair<byte[], byte[]>[] this[byte[][] keys]
-        {
-            get
-            {
-                var result = _wrappedDb[keys];
-                var memResult = _memDb[keys];
-                for (int i = 0; i < memResult.Length; i++)
-                {
-                    var memValue = memResult[i];
-                    if (memValue.Value != null)
-                    {
-                        result[i] = memValue;
-                    }
-                }
-
-                return result;
-            }
-        }
-
-        public IEnumerable<KeyValuePair<byte[], byte[]>> GetAll(bool ordered = false) => _memDb.GetAll();
-
-        public IEnumerable<byte[]> GetAllValues(bool ordered = false) => _memDb.GetAllValues();
 
         public IBatch StartBatch()
         {

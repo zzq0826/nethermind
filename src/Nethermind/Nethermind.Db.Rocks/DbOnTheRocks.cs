@@ -134,7 +134,7 @@ namespace Nethermind.Db.Rocks
         protected internal void UpdateReadMetrics()
         {
             if (_settings.UpdateReadMetrics != null)
-                _settings.UpdateReadMetrics?.Invoke();
+                _settings.UpdateReadMetrics.Invoke();
             else
                 Metrics.OtherDbReads++;
         }
@@ -142,7 +142,7 @@ namespace Nethermind.Db.Rocks
         protected internal void UpdateWriteMetrics()
         {
             if (_settings.UpdateWriteMetrics != null)
-                _settings.UpdateWriteMetrics?.Invoke();
+                _settings.UpdateWriteMetrics.Invoke();
             else
                 Metrics.OtherDbWrites++;
         }
@@ -304,8 +304,6 @@ namespace Nethermind.Db.Rocks
             }
         }
 
-        public KeyValuePair<byte[], byte[]?>[] this[byte[][] keys] => _db.MultiGet(keys);
-
         public Span<byte> GetSpan(byte[] key)
         {
             if (_isDisposed)
@@ -401,8 +399,6 @@ namespace Nethermind.Db.Rocks
             return _db.Get(key) != null;
 //            return _db.Get(key, 32, _keyExistsBuffer, 0, 0, null, null) != -1;
         }
-
-        public IDb Innermost => this;
 
         public IBatch StartBatch()
         {

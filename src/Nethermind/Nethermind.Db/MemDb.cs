@@ -100,8 +100,6 @@ namespace Nethermind.Db
             return _db.ContainsKey(key);
         }
 
-        public IDb Innermost => this;
-
         public void Flush()
         {
         }

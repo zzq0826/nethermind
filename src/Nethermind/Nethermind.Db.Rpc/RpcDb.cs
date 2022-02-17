@@ -57,8 +57,6 @@ namespace Nethermind.Db.Rpc
             set => throw new InvalidOperationException("RPC DB does not support writes");
         }
 
-        public KeyValuePair<byte[], byte[]>[] this[byte[][] keys] => keys.Select(k => new KeyValuePair<byte[], byte[]>(k, GetThroughRpc(k))).ToArray();
-
         public void Remove(byte[] key)
         {
             throw new InvalidOperationException("RPC DB does not support writes");
@@ -69,7 +67,6 @@ namespace Nethermind.Db.Rpc
             return GetThroughRpc(key) != null;
         }
 
-        public IDb Innermost => this; // record db is just a helper DB here
         public void Flush() { }
         public void Clear() { }
 

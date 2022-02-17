@@ -86,8 +86,6 @@ namespace Nethermind.Network
         {
             return _cache.ContainsKey(key);
         }
-
-        public IDb Innermost => this;
         public void Flush() { }
         public void Clear()
         {

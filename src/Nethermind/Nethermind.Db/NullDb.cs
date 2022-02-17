@@ -40,8 +40,6 @@ namespace Nethermind.Db
             set => throw new NotSupportedException();
         }
 
-        public KeyValuePair<byte[], byte[]>[] this[byte[][] keys] => keys.Select(k => new KeyValuePair<byte[], byte[]>(k, null)).ToArray(); 
-
         public void Remove(byte[] key)
         {
             throw new NotSupportedException();
@@ -51,8 +49,6 @@ namespace Nethermind.Db
         {
             return false;
         }
-
-        public IDb Innermost => this;
         public void Flush() { }
         public void Clear() { }
 

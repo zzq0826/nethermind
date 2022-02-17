@@ -47,13 +47,7 @@ namespace Nethermind.Db
             
             return db[key.Bytes];
         }
-        
-        public static KeyValuePair<byte[], byte[]>[] MultiGet(this IDb db, IEnumerable<Keccak> keys)
-        {
-            var k = keys.Select(k => k.Bytes).ToArray();
-            return db[k];
-        }
-        
+
         /// <summary>
         /// 
         /// </summary>
