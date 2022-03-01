@@ -38,7 +38,7 @@ namespace Nethermind.Synchronization.FastSync
 {
     public partial class StateSyncFeed : SyncFeed<StateSyncBatch?>, IDisposable
     {
-        public const int AlreadySavedCapacity = 1024 * 1024;
+        public const int AlreadySavedCapacity = 1024 * 1024 * 4;
         public const int MaxRequestSize = 384;
 
         private const StateSyncBatch EmptyBatch = null;
@@ -622,6 +622,8 @@ namespace Nethermind.Synchronization.FastSync
                 
                 Interlocked.Exchange(ref _rootSaved, 1);
             }
+            
+            _alreadySaved.Set(syncItem.Hash);
 
             _branchProgress.ReportSynced(syncItem.Level, syncItem.ParentBranchChildIndex, syncItem.BranchChildIndex, syncItem.NodeDataType, NodeProgressState.Saved);
             PossiblySaveDependentNodes(syncItem.Hash);
