@@ -99,7 +99,7 @@ namespace Nethermind.Synchronization.FastSync
 
                     if (logger.IsInfo) logger.Info(
                         $"State Sync {TimeSpan.FromSeconds(SecondsInSync):dd\\.hh\\:mm\\:ss} | {dataSizeInfo} | branches: {branchProgress.Progress:P2} | kB/s: {savedKBytesPerSecond,5:F0} | accounts {SavedAccounts} | nodes {SavedNodesCount} | diagnostics: {pendingRequestsCount}.{AverageTimeInHandler:f2}ms");
-                    if (logger.IsDebug && DateTime.UtcNow - LastReportTime.full > TimeSpan.FromSeconds(10))
+                    if (logger.IsInfo && DateTime.UtcNow - LastReportTime.full > TimeSpan.FromSeconds(10))
                     {
                         long allChecks = CheckWasInDependencies + CheckWasCached + StateWasThere + StateWasNotThere;
                         if (logger.IsInfo) logger.Info($"OK {(decimal) OkCount / TotalRequestsCount:p2} | Emptish: {(decimal) EmptishCount / TotalRequestsCount:p2} | BadQuality: {(decimal) BadQualityCount / TotalRequestsCount:p2} | InvalidFormat: {(decimal) InvalidFormatCount / TotalRequestsCount:p2} | NotAssigned {(decimal) NotAssignedCount / TotalRequestsCount:p2}");
