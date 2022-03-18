@@ -5,7 +5,10 @@ on: workflow_dispatch
 jobs:
   build-nethermind:
     name: Building Nethermind Packages
-    runs-on: [ "ubuntu-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
     env: 
       RELEASE_DIRECTORY: /home/runner/work/nethermind/nethermind
       LIN_RELEASE: nethermind-lin-x64
