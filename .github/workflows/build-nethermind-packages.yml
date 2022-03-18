@@ -5,7 +5,7 @@ on: workflow_dispatch
 jobs:
   build-nethermind:
     name: Building Nethermind Packages
-    runs-on: ubuntu-latest
+    runs-on: [ "ubuntu-latest", "macos-latest" ]
     env: 
       RELEASE_DIRECTORY: /home/runner/work/nethermind/nethermind
       LIN_RELEASE: nethermind-lin-x64
