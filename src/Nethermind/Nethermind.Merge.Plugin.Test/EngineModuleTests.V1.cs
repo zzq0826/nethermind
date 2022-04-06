@@ -1035,6 +1035,48 @@ namespace Nethermind.Merge.Plugin.Test
             Assert.AreEqual("0x0000000000000000000000000000000000000000000000000000000000000000", result.TerminalBlockHash.ToString());
         }
 
+        [Test]
+        public async Task beaconPivot_is_updated()
+        {
+            using MergeTestBlockchain chain =
+                await CreateBlockChain(new MergeConfig() { Enabled = true, TerminalTotalDifficulty = "0" });
+            IEngineRpcModule rpc = CreateEngineModule(chain);
+
+            Block parent =chain.BlockTree.Head!;
+            for (int i = 1; i <=3; ++i)
+            {
+                Block block = Build.A.Block.WithNumber(i).WithParent(parent).WithDifficulty(0).WithNonce(0)
+                    .WithStateRoot(new Keccak("0x1ef7300d8961797263939a3d29bbba4ccf1702fabf02d8ad7a20b454edb6fd2f"))
+                    .TestObject;
+                block.Header.IsPostMerge = true;
+                block.Header.Hash = block.CalculateHash();
+                BlockRequestResult blockRequest = new(block);
+                ResultWrapper<PayloadStatusV1> executePayloadResult =
+                    await rpc.engine_newPayloadV1(blockRequest);
+                executePayloadResult.Data.Status.Should().Be(PayloadStatus.Valid);
+                parent = block;
+            
+            }
+            
+            Block beaconPivot = Build.A.Block.WithNumber(5).WithDifficulty(0).WithNonce(0).TestObject;
+            beaconPivot.Header.IsPostMerge = true;
+            beaconPivot.Header.Hash = beaconPivot.CalculateHash();
+            BlockRequestResult blockRequest2 = new(beaconPivot);
+            ResultWrapper<PayloadStatusV1> executePayloadResult2 =
+                await rpc.engine_newPayloadV1(blockRequest2);
+            executePayloadResult2.Data.Status.Should().Be(PayloadStatus.Accepted);
+
+            PayloadAttributes? payloadAttributes = new()
+            {
+                PrevRandao = Keccak.Zero, SuggestedFeeRecipient = Address.Zero, Timestamp = Timestamper.UnixTime.Seconds
+            };
+            ForkchoiceStateV1? forkchoiceStateV1 = new(beaconPivot.Hash, beaconPivot.Hash, beaconPivot.Hash);
+            ResultWrapper<ForkchoiceUpdatedV1Result>? forkchoiceUpdatedResult =
+                await rpc.engine_forkchoiceUpdatedV1(forkchoiceStateV1, payloadAttributes);
+            forkchoiceUpdatedResult.Data.PayloadStatus.Status.Should().Be(PayloadStatus.Syncing);
+            
+        }
+
         private async Task<BlockRequestResult> SendNewBlockV1(IEngineRpcModule rpc, MergeTestBlockchain chain)
         {
             BlockRequestResult blockRequestResult = CreateBlockRequest(
