@@ -19,7 +19,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using ConcurrentCollections;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
@@ -47,8 +49,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly ISyncReport _syncReport;
         private readonly IBlockTree _blockTree;
         private readonly ISyncConfig _syncConfig;
-
-        private readonly object _dummyObject = new();
+        
         private readonly object _handlerLock = new();
 
         private readonly int _headersRequestSize = GethSyncLimits.MaxHeaderFetch;
@@ -67,7 +68,7 @@ namespace Nethermind.Synchronization.FastBlocks
         /// <summary>
         /// Requests sent to peers for which responses have not been received yet  
         /// </summary>
-        private readonly ConcurrentDictionary<HeadersSyncBatch, object> _sent = new();
+        private readonly ConcurrentHashSet<HeadersSyncBatch> _sent = new();
 
         /// <summary>
         /// Responses received from peers but waiting in a queue for some other requests to be handled first
@@ -77,13 +78,10 @@ namespace Nethermind.Synchronization.FastBlocks
         private bool AllHeadersDownloaded => (_blockTree.LowestInsertedHeader?.Number ?? long.MaxValue) == 1;
         private bool AnyHeaderDownloaded => _blockTree.LowestInsertedHeader != null;
 
-        private long HeadersInQueue => _dependencies.Sum(hd => hd.Value.Response?.Length ?? 0);
-        
-        private ulong MemoryInQueue => (ulong)_dependencies
-            .Sum(d => (d.Value.Response ?? Array.Empty<BlockHeader>()).Sum(h =>
-                // ReSharper disable once ConvertClosureToMethodGroup
-                MemorySizeEstimator.EstimateSize(h)));
+        private int _headersInQueue = 0;
 
+        private long MemoryInQueue => _headersInQueue * MemorySizeEstimator.MaxHeaderSize;
+        
         public HeadersSyncFeed(
             IBlockTree? blockTree,
             ISyncPeerPool? syncPeerPool,
@@ -157,6 +155,7 @@ namespace Nethermind.Synchronization.FastBlocks
             _syncReport.FastBlocksHeaders.Update(_pivotNumber);
             _syncReport.FastBlocksHeaders.MarkEnd();
             _dependencies.Clear(); // there may be some dependencies from wrong branches
+            _headersInQueue = 0;
             _pending.Clear(); // there may be pending wrong branches
             _sent.Clear(); // we my still be waiting for some bad branches
             _syncReport.HeadersInQueue.Update(0L);
@@ -166,11 +165,15 @@ namespace Nethermind.Synchronization.FastBlocks
         private void HandleDependentBatches()
         {
             long? lowest = _blockTree.LowestInsertedHeader?.Number;
+            int inserted = 0;
             while (lowest.HasValue && _dependencies.TryRemove(lowest.Value - 1, out HeadersSyncBatch? dependentBatch))
             {
+                inserted += dependentBatch?.Response?.Length ?? 0;
                 InsertHeaders(dependentBatch!);
                 lowest = _blockTree.LowestInsertedHeader?.Number;
             }
+            
+            Interlocked.Add(ref _headersInQueue, -inserted);
         }
 
         public override Task<HeadersSyncBatch?> PrepareRequest()
@@ -188,7 +191,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
             if (batch is not null)
             {
-                _sent.TryAdd(batch, _dummyObject);
+                _sent.Add(batch);
                 if (batch.StartNumber >= (_blockTree.LowestInsertedHeader?.Number ?? 0) - FastBlocksPriorities.ForHeaders)
                 {
                     batch.Prioritized = true;
@@ -232,7 +235,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
                     foreach (var sentBatch in _sent)
                     {
-                        all.TryAdd(sentBatch.Key.EndNumber, $"  SENT       {sentBatch.Key}");
+                        all.TryAdd(sentBatch.EndNumber, $"  SENT       {sentBatch}");
                     }
 
                     foreach (KeyValuePair<long, string> keyValuePair in all
@@ -280,7 +283,7 @@ namespace Nethermind.Synchronization.FastBlocks
             finally
             {
                 batch.MarkHandlingEnd();
-                _sent.TryRemove(batch, out _);
+                _sent.TryRemove(batch);
             }
         }
 
@@ -428,6 +431,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
                         HeadersSyncBatch dependentBatch = BuildDependentBatch(batch, addedLast, addedEarliest);
                         _dependencies[header.Number] = dependentBatch;
+                        Interlocked.Add(ref _headersInQueue, dependentBatch.Response!.Length);
                         if (_logger.IsDebug) _logger.Debug($"{batch} -> DEPENDENCY {dependentBatch}");
 
                         // but we cannot do anything with it yet
@@ -516,7 +520,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
             if (_logger.IsDebug) _logger.Debug($"LOWEST_INSERTED {_blockTree.LowestInsertedHeader?.Number} | HANDLED {batch}");
 
-            _syncReport.HeadersInQueue.Update(HeadersInQueue);
+            _syncReport.HeadersInQueue.Update(_headersInQueue);
             return added;
         }
 

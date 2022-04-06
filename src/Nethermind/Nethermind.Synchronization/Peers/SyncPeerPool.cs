@@ -21,6 +21,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ConcurrentCollections;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Synchronization;
@@ -55,9 +56,11 @@ namespace Nethermind.Synchronization.Peers
         private readonly ConcurrentDictionary<PublicKey, PeerInfo> _peers
             = new();
 
+        private int _peerCount = 0;
+
         private readonly ConcurrentDictionary<PublicKey, CancellationTokenSource> _refreshCancelTokens
             = new();
-        private readonly ConcurrentDictionary<SyncPeerAllocation, object?> _replaceableAllocations
+        private readonly ConcurrentHashSet<SyncPeerAllocation> _replaceableAllocations
             = new();
         
         private readonly INodeStatsManager _stats;
@@ -178,51 +181,13 @@ namespace Nethermind.Synchronization.Peers
             }
         }
 
-        public IEnumerable<PeerInfo> AllPeers
-        {
-            get
-            {
-                foreach ((_, PeerInfo peerInfo) in _peers) yield return peerInfo;
-            }
-        }
-        
-        public IEnumerable<PeerInfo> NonStaticPeers
-        {
-            get
-            {
-                foreach ((_, PeerInfo peerInfo) in _peers)
-                {
-                    if (peerInfo.SyncPeer.Node?.IsStatic == false)
-                    {
-                        yield return peerInfo;
-                    }
-                }
-            }
-        }
+        public IEnumerable<PeerInfo> AllPeers => _peers.Values;
 
-        public IEnumerable<PeerInfo> InitializedPeers
-        {
-            get
-            {
-                foreach ((_, PeerInfo peerInfo) in _peers)
-                {
-                    if (!peerInfo.SyncPeer.IsInitialized)
-                    {
-                        continue;
-                    }
+        public IEnumerable<PeerInfo> NonStaticPeers => _peers.Values.Where(p => p.SyncPeer.Node?.IsStatic == false);
 
-                    yield return peerInfo;
-                }
-            }
-        }
+        public IEnumerable<PeerInfo> InitializedPeers => _peers.Values.Where(p => p.SyncPeer.IsInitialized);
 
-        internal IEnumerable<SyncPeerAllocation> ReplaceableAllocations
-        {
-            get
-            {
-                foreach ((SyncPeerAllocation allocation, _) in _replaceableAllocations) yield return allocation;
-            }
-        }
+        internal IEnumerable<SyncPeerAllocation> ReplaceableAllocations => _replaceableAllocations;
 
         public int PeerCount => _peers.Count;
         public int InitializedPeersCount => InitializedPeers.Count();
@@ -250,8 +215,11 @@ namespace Nethermind.Synchronization.Peers
             }
             
             PeerInfo peerInfo = new(syncPeer);
-            _peers.TryAdd(syncPeer.Node.Id, peerInfo);
-            Metrics.SyncPeers = _peers.Count;
+            if (_peers.TryAdd(syncPeer.Node.Id, peerInfo))
+            {
+                Interlocked.Increment(ref _peerCount);
+                Metrics.SyncPeers = _peerCount;
+            }
             
             BlockHeader? header = _blockTree.FindHeader(syncPeer.HeadHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
             if (header is not null)
@@ -289,9 +257,10 @@ namespace Nethermind.Synchronization.Peers
                 return;
             }
 
-            Metrics.SyncPeers = _peers.Count;
+            Interlocked.Decrement(ref _peerCount);
+            Metrics.SyncPeers = _peerCount;
 
-            foreach ((SyncPeerAllocation allocation, _) in _replaceableAllocations)
+            foreach (SyncPeerAllocation allocation in _replaceableAllocations)
             {
                 if (allocation.Current?.SyncPeer.Node.Id == id)
                 {
@@ -321,7 +290,7 @@ namespace Nethermind.Synchronization.Peers
                     {
                         if (peerAllocationStrategy.CanBeReplaced)
                         {
-                            _replaceableAllocations.TryAdd(allocation, null);
+                            _replaceableAllocations.Add(allocation);
                         }
 
                         return allocation;
@@ -353,7 +322,7 @@ namespace Nethermind.Synchronization.Peers
         {
             if (_logger.IsTrace) _logger.Trace($"Returning {syncPeerAllocation}");
 
-            _replaceableAllocations.TryRemove(syncPeerAllocation, out _);
+            _replaceableAllocations.TryRemove(syncPeerAllocation);
             syncPeerAllocation.Cancel();
 
             if (_replaceableAllocations.Count > 1024 * 16) _logger.Warn($"Peer allocations leakage - {_replaceableAllocations.Count}");
@@ -626,7 +595,7 @@ namespace Nethermind.Synchronization.Peers
         {
             DropUselessPeers();
             WakeUpPeerThatSleptEnough();
-            foreach ((SyncPeerAllocation allocation, _) in _replaceableAllocations)
+            foreach (SyncPeerAllocation allocation in _replaceableAllocations)
             {
                 INodeStatsManager stats = _stats;
                 lock (_isAllocatedChecks)

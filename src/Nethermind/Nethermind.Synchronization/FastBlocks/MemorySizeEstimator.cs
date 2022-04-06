@@ -89,6 +89,8 @@ namespace Nethermind.Synchronization.FastBlocks
 
             return 1212 + (header.ExtraData?.Length ?? 0);
         }
+
+        public static readonly long MaxHeaderSize = 1244;
         
         public static long EstimateSize(Transaction? transaction)
         {

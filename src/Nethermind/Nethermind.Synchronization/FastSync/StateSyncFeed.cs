@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ConcurrentCollections;
 using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
@@ -69,9 +70,10 @@ namespace Nethermind.Synchronization.FastSync
         private readonly ISyncModeSelector _syncModeSelector;
         private readonly IBlockTree _blockTree;
 
-        private readonly ConcurrentDictionary<StateSyncBatch, object?> _pendingRequests = new ();
+        private readonly ConcurrentHashSet<StateSyncBatch> _pendingRequests = new ();
+        private int _pendingRequestsCount = 0;
         private Dictionary<Keccak, HashSet<DependentItem>> _dependencies = new ();
-        private LruKeyCache<Keccak> _alreadySaved = new(AlreadySavedCapacity, "saved nodes");
+        private readonly LruKeyCache<Keccak> _alreadySaved = new(AlreadySavedCapacity, "saved nodes");
         private readonly HashSet<Keccak> _codesSameAsNodes = new();
 
         private BranchProgress _branchProgress;
@@ -175,7 +177,10 @@ namespace Nethermind.Synchronization.FastSync
 
                     if (_logger.IsTrace) _logger.Trace($"After preparing a request of {requestHashes.Count} from ({_pendingItems.Description}) nodes | {_dependencies.Count}");
                     if (_logger.IsTrace) _logger.Trace($"Adding pending request {result}");
-                    _pendingRequests.TryAdd(result, null);
+                    if (_pendingRequests.Add(result))
+                    {
+                        Interlocked.Increment(ref _pendingRequestsCount);
+                    }
 
                     Interlocked.Increment(ref Metrics.StateSyncRequests);
                     return await Task.FromResult(result);
@@ -205,11 +210,13 @@ namespace Nethermind.Synchronization.FastSync
             }
 
             if (_logger.IsTrace) _logger.Trace($"Removing pending request {batch}");
-            if (!_pendingRequests.TryRemove(batch, out _))
+            if (!_pendingRequests.TryRemove(batch))
             {
                 if (_logger.IsDebug) _logger.Debug($"Cannot remove pending request {batch}");
                 return SyncResponseHandlingResult.OK;
             }
+            
+            Interlocked.Decrement(ref _pendingRequestsCount);
 
             int requestLength = batch.RequestedNodes?.Length ?? 0;
             int responseLength = batch.Responses?.Length ?? 0;
@@ -336,7 +343,7 @@ namespace Nethermind.Synchronization.FastSync
                             ? SyncResponseHandlingResult.LesserQuality
                             : SyncResponseHandlingResult.OK;
 
-                    _data.DisplayProgressReport(_pendingRequests.Count, _branchProgress, _logger);
+                    _data.DisplayProgressReport(_pendingRequestsCount, _branchProgress, _logger);
 
                     long total = _handleWatch.ElapsedMilliseconds + _networkWatch.ElapsedMilliseconds;
                     if (total != 0)
@@ -397,10 +404,10 @@ namespace Nethermind.Synchronization.FastSync
             }
             else
             {
-                foreach ((StateSyncBatch pendingRequest, _) in _pendingRequests)
+                foreach (StateSyncBatch pendingRequest in _pendingRequests)
                 {
                     // re-add the pending request
-                    for (int i = 0; i < pendingRequest.RequestedNodes.Length; i++)
+                    for (int i = 0; i < pendingRequest.RequestedNodes!.Length; i++)
                     {
                         AddNodeToPending(pendingRequest.RequestedNodes[i], null, "pending request", true);
                     }
@@ -408,6 +415,7 @@ namespace Nethermind.Synchronization.FastSync
             }
 
             _pendingRequests.Clear();
+            Interlocked.Exchange(ref _pendingRequestsCount, 0);
 
             bool hasOnlyRootNode = false;
 
