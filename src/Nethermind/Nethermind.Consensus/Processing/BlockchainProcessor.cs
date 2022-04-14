@@ -358,7 +358,7 @@ namespace Nethermind.Consensus.Processing
                     _blockTree.MarkChainAsProcessed(processingBranch.Blocks.ToArray());
                 }
 
-                Metrics.LastBlockProcessingTimeInMs = stopwatch.ElapsedMilliseconds;
+                Metrics.LastBlockProcessingTimeInMs = _stopwatch.ElapsedMilliseconds;
             }
 
             if ((options & ProcessingOptions.ReadOnlyChain) == ProcessingOptions.None)
@@ -406,7 +406,6 @@ namespace Nethermind.Consensus.Processing
         }
 
         private Block[]? ProcessBranch(ProcessingBranch processingBranch,
-            Block suggestedBlock,
             ProcessingOptions options,
             IBlockTracer tracer)
         {

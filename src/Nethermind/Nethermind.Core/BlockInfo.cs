@@ -36,7 +36,7 @@ namespace Nethermind.Core
             TotalDifficulty = totalDifficulty;
         }
 
-        public UInt256 TotalDifficulty { get; }
+        public UInt256 TotalDifficulty { get; set;  }
 
         public bool WasProcessed { get; set; }
 
