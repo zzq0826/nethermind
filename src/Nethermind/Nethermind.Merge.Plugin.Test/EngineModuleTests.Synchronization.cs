@@ -97,7 +97,7 @@ public partial class EngineModuleTests
             .AssertBestPointers(0, 0, 0, 18)
             .AssertLowestHeaders(1, 1)
             .ProcessBlocks(1, 18)
-            .AssertBestPointers(18, 18, 18, 18) // TODO: investigate why failing
+            .AssertBestPointers(18, 18, 18, 18)
             .SendPayloadRequest(19, PayloadStatus.Valid)
             .AssertBestPointers(19, 19, 19, 19);
         await scenario.Finish();

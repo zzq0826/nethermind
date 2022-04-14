@@ -58,6 +58,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
         private readonly IBeaconPivot _beaconPivot;
         private readonly IBlockCacheService _blockCacheService;
         private readonly ISyncProgressResolver _syncProgressResolver;
+        private readonly IMergeSyncController _mergeSyncController;
         private readonly ILogger _logger;
         private readonly LruCache<Keccak, bool> _latestBlocks = new(50, "LatestBlocks");
         private readonly ConcurrentDictionary<Keccak, Keccak> _lastValidHashes = new();
@@ -74,6 +75,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             IBeaconPivot beaconPivot,
             IBlockCacheService blockCacheService,
             ISyncProgressResolver syncProgressResolver,
+            IMergeSyncController mergeSyncController,
             ILogManager logManager)
         {
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
@@ -86,6 +88,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             _beaconPivot = beaconPivot;
             _blockCacheService = blockCacheService;
             _syncProgressResolver = syncProgressResolver;
+            _mergeSyncController = mergeSyncController;
             _logger = logManager.GetClassLogger();
         }
 
@@ -110,9 +113,13 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return NewPayloadV1Result.InvalidBlockHash;
             }
-
+            
             BlockHeader? parentHeader = _blockTree.FindHeader(request.ParentHash, BlockTreeLookupOptions.None);
-            if (parentHeader == null)
+            bool parentExists = parentHeader != null;
+            bool parentProcessed = parentExists && _blockTree.WasProcessed(parentHeader!.Number,
+                parentHeader!.Hash ?? parentHeader.CalculateHash());
+            bool beaconPivotExists = _beaconPivot.BeaconPivotExists();
+            if (!parentExists)
             {
                 // possible that headers sync finished before this was called, so blocks in cache weren't inserted
                 if (!_beaconSyncStrategy.IsBeaconSyncFinished(parentHeader))
@@ -135,8 +142,16 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 _blockCacheService.BlockCache.TryAdd(request.BlockHash, block);
                 return NewPayloadV1Result.Accepted;
             }
+            
+            if (!parentProcessed && !beaconPivotExists)
+            {
+                BlockTreeInsertOptions insertOptions = BlockTreeInsertOptions.All;
+                _blockTree.Insert(block, true, insertOptions);
+                if (_logger.IsInfo) _logger.Info("Syncing... Parent wasn't processed. Inserting block.");
+                return NewPayloadV1Result.Syncing;
+            }
 
-            if (!_beaconSyncStrategy.IsBeaconSyncFinished(parentHeader))
+            if (!parentProcessed && beaconPivotExists)
             {
                 if (!_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
                 {
@@ -152,7 +167,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 // TODO: beaconsync add TDD and validation checks
                 block.Header.TotalDifficulty = parentHeader.TotalDifficulty + block.Difficulty;
                 block.Header.IsPostMerge = true;
-                bool parentProcessed = _blockTree.WasProcessed(parentHeader.Number, parentHeader.Hash ?? parentHeader.CalculateHash());
                 if (!parentProcessed)
                 {
                     if (_beaconSyncStrategy.FastSyncEnabled)
@@ -175,7 +189,8 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                             _blockTree.Insert(block, true);
                         }
                     }
-                    _logger.Info($"Headers sync finished but beacon sync still not finished for ${requestStr}");
+                    
+                    if (_logger.IsInfo) _logger.Info($"Headers sync finished but beacon sync still not finished for {requestStr}");
                     return NewPayloadV1Result.Syncing;
                 }
 
@@ -183,15 +198,16 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             }
 
             if (_poSSwitcher.TerminalTotalDifficulty == null ||
-                parentHeader.TotalDifficulty < _poSSwitcher.TerminalTotalDifficulty)
+                parentHeader!.TotalDifficulty < _poSSwitcher.TerminalTotalDifficulty)
             {
                 if (_logger.IsWarn)
                     _logger.Warn(
-                        $"Invalid terminal block. Nethermind TTD {_poSSwitcher.TerminalTotalDifficulty}, Parent TD: {parentHeader.TotalDifficulty}. Request: {requestStr}");
+                        $"Invalid terminal block. Nethermind TTD {_poSSwitcher.TerminalTotalDifficulty}, Parent TD: {parentHeader!.TotalDifficulty}. Request: {requestStr}");
 
                 return NewPayloadV1Result.InvalidTerminalBlock;
             }
 
+            _mergeSyncController.StopSyncing();
             (ValidationResult ValidationResult, string? Message) result =
                 ValidateBlockAndProcess(block, out Block? processedBlock, parentHeader);
             if ((result.ValidationResult & ValidationResult.AlreadyKnown) != 0 ||
