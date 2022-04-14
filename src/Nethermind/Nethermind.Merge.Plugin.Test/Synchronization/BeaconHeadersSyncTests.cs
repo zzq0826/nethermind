@@ -155,7 +155,7 @@ public class BeaconHeadersSyncTests
         HeadersSyncBatch? result = await feed.PrepareRequest();
         result.Should().BeNull();
         feed.CurrentState.Should().Be(SyncFeedState.Dormant);
-        measuredProgress.CurrentValue.Should().Be(0);
+        measuredProgress.HasEnded.Should().BeTrue();
     }
 
     [Test]

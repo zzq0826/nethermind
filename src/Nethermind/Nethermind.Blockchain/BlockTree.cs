@@ -682,8 +682,16 @@ namespace Nethermind.Blockchain
                 }
 
                 BestSuggestedHeader = header;
-                if (block is not null && block.IsPostMerge)
+                if (block is not null && block.IsPostMerge) {
                     BestSuggestedBody = block;
+
+                    if (block.Number > BestKnownBeaconNumber)
+                    {
+                        BestKnownBeaconNumber = block.Number;
+                        BestSuggestedBeaconHeader = header;
+                        BestSuggestedBeaconBody = block;
+                    }
+                }
 
                 if (block is not null && shouldProcess)
                 {

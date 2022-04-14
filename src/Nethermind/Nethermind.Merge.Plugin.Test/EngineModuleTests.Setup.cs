@@ -24,7 +24,6 @@ using Nethermind.Consensus.Comparers;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
-using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
@@ -36,15 +35,12 @@ using Nethermind.Db;
 using Nethermind.Facade.Eth;
 using Nethermind.Int256;
 using Nethermind.Logging;
-using Nethermind.Merge.Plugin.Data;
 using Nethermind.Merge.Plugin.Handlers;
 using Nethermind.Merge.Plugin.Handlers.V1;
 using Nethermind.Merge.Plugin.Synchronization;
 using Nethermind.Specs;
-using Nethermind.Specs.ChainSpecStyle;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
-using Nethermind.Synchronization;
 using Nethermind.Synchronization.ParallelSync;
 using NSubstitute;
 
@@ -52,17 +48,17 @@ namespace Nethermind.Merge.Plugin.Test
 {
     public partial class EngineModuleTests
     {
-        private async Task<MergeTestBlockchain> CreateBlockChain(IMergeConfig mergeConfig = null, IPayloadPreparationService? mockedPayloadService = null) 
+        private static async Task<MergeTestBlockchain> CreateBlockChain(IMergeConfig mergeConfig = null, IPayloadPreparationService? mockedPayloadService = null) 
             => await new MergeTestBlockchain(mergeConfig, mockedPayloadService)
                 .Build(
                     new SingleReleaseSpecProvider(London.Instance, 1));
 
-        private IEngineRpcModule CreateEngineModule(MergeTestBlockchain chain, ISyncConfig? syncConfig = null)
+        private static IEngineRpcModule CreateEngineModule(MergeTestBlockchain chain, ISyncConfig? syncConfig = null)
         {
             ISyncProgressResolver syncProgressResolver = Substitute.For<ISyncProgressResolver>();
             IPeerRefresher peerRefresher = Substitute.For<IPeerRefresher>();
             
-            chain.BeaconPivot = new BeaconPivot(syncConfig ?? new SyncConfig(), chain.MergeConfig, new MemDb(), chain.BlockTree, peerRefresher, chain.LogManager);
+            chain.BeaconPivot = new BeaconPivot(syncConfig ?? new SyncConfig(), chain.MergeConfig, chain.DbProvider.MetadataDb, chain.BlockTree, peerRefresher, chain.LogManager);
             BlockCacheService blockCacheService = new();
             chain.BeaconSync = new BeaconSync(chain.BeaconPivot, chain.BlockTree, syncConfig ?? new SyncConfig(), chain.DbProvider.MetadataDb, chain.LogManager);
             return new EngineRpcModule(
@@ -75,7 +71,7 @@ namespace Nethermind.Merge.Plugin.Test
                 chain.LogManager);
         }
 
-        private class MergeTestBlockchain : TestBlockchain
+        public class MergeTestBlockchain : TestBlockchain
         {
             public IMergeConfig MergeConfig { get; set; }
             

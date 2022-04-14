@@ -150,10 +150,8 @@ namespace Nethermind.Core.Test.Blockchain
             ReadOnlyTrieStore = TrieStore.AsReadOnly(StateDb);
             StateReader = new StateReader(ReadOnlyTrieStore, CodeDb, LogManager);
             
-            IDb blockDb = new MemDb();
-            IDb headerDb = new MemDb();
-            IDb blockInfoDb = new MemDb();
-            BlockTree = new BlockTree(blockDb, headerDb, blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), SpecProvider, NullBloomStorage.Instance, LimboLogs.Instance);
+            IDb blockInfoDb = DbProvider.BlockInfosDb;
+            BlockTree = new BlockTree(DbProvider, new ChainLevelInfoRepository(blockInfoDb), SpecProvider, NullBloomStorage.Instance, LimboLogs.Instance);
             ReadOnlyState = new ChainHeadReadOnlyStateProvider(BlockTree, StateReader);
             TransactionComparerProvider = new TransactionComparerProvider(SpecProvider, BlockTree);
             TxPool = CreateTxPool();
