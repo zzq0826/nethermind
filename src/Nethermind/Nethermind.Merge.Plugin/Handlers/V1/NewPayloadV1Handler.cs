@@ -110,13 +110,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return NewPayloadV1Result.InvalidBlockHash;
             }
-            
-            if (!_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
-            {
-                bool inserted = TryInsertDanglingBlock(block);
-                return inserted ? NewPayloadV1Result.Syncing : NewPayloadV1Result.Accepted;
-            }
-            
+
             BlockHeader? parentHeader = _blockTree.FindHeader(request.ParentHash, BlockTreeLookupOptions.None);
             if (parentHeader == null)
             {
@@ -144,6 +138,12 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
             if (!_beaconSyncStrategy.IsBeaconSyncFinished(parentHeader))
             {
+                if (!_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
+                {
+                    bool inserted = TryInsertDanglingBlock(block);
+                    return inserted ? NewPayloadV1Result.Syncing : NewPayloadV1Result.Accepted;
+                }
+                
                 if (parentHeader.TotalDifficulty == 0)
                 {
                     parentHeader.TotalDifficulty = _blockTree.BackFillTotalDifficulty(_beaconPivot.PivotNumber, block.Number - 1);
@@ -423,7 +423,8 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                     while (current.Number > state)
                     {
-                        if (_blockTree.WasProcessed(current.Number, current.Hash))
+                        if (_blockTree.FindLevel(current.Number) is not null
+                        && _blockTree.WasProcessed(current.Number, current.Hash))
                         {
                             break;
                         }

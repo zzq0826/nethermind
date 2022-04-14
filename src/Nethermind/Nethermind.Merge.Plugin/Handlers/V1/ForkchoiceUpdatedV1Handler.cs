@@ -88,21 +88,19 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             PayloadAttributes? payloadAttributes)
         {
             string requestStr = $"{forkchoiceState} {payloadAttributes}";
-            if (!_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
-            {
-                _blockCacheService.SyncingHead = forkchoiceState.HeadBlockHash;
-                if (_logger.IsInfo) { _logger.Info($"Syncing... Request: {requestStr}"); }
-                return ForkchoiceUpdatedV1Result.Syncing;
-            }
-            
+
             Block? newHeadBlock = EnsureHeadBlockHash(forkchoiceState.HeadBlockHash);
             if (newHeadBlock == null)
             {
                 if (_blockCacheService.BlockCache.TryGetValue(forkchoiceState.HeadBlockHash, out Block? block))
                 {
-                    _mergeSyncController.InitSyncing(block.Header);
-                    _blockCacheService.SyncingHead = forkchoiceState.HeadBlockHash;
+                    // check old headers sync finished before starting new one
+                    if (_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
+                    {
+                        _mergeSyncController.InitSyncing(block.Header);
+                    }
                     
+                    _blockCacheService.SyncingHead = forkchoiceState.HeadBlockHash;
                     if (_logger.IsInfo) { _logger.Info($"Syncing... Request: {requestStr}"); }
                     return ForkchoiceUpdatedV1Result.Syncing;
                 }
