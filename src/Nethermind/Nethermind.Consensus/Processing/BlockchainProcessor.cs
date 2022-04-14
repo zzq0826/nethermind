@@ -320,12 +320,6 @@ namespace Nethermind.Consensus.Processing
                 return null;
             }
 
-            if ((options & (ProcessingOptions.ReadOnlyChain | ProcessingOptions.DoNotUpdateHead)) == 0)
-            {
-                _blockTree.UpdateMainChain(processingBranch.Blocks.ToArray(), true);
-                Metrics.LastBlockProcessingTimeInMs = _stopwatch.ElapsedMilliseconds;
-            }
-
             Block? lastProcessed = null;
             if (processedBlocks.Length > 0)
             {
