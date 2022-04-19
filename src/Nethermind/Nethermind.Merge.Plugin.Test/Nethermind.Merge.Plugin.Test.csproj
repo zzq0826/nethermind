@@ -18,6 +18,7 @@
       <ProjectReference Include="..\Nethermind.Merge.Plugin\Nethermind.Merge.Plugin.csproj" />
       <ProjectReference Include="..\Nethermind.Overseer.Test\Nethermind.Overseer.Test.csproj" />
       <ProjectReference Include="..\Nethermind.Runner.Test\Nethermind.Runner.Test.csproj" />
+      <ProjectReference Include="..\Nethermind.Synchronization.Test\Nethermind.Synchronization.Test.csproj" />
     </ItemGroup>
 
     <ItemGroup>
