@@ -133,8 +133,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 newHeadBlock.Header.TotalDifficulty =
                     _blockTree.BackFillTotalDifficulty(_beaconPivot.PivotNumber, newHeadBlock.Number);
             }
-
-
+            
             (BlockHeader? finalizedHeader, string? finalizationErrorMsg) =
                 ValidateHashForFinalization(forkchoiceState.FinalizedBlockHash);
             if (finalizationErrorMsg != null)
@@ -351,6 +350,43 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             blocksList.Reverse();
             blocks = blocksList.ToArray();
             return true;
+        }
+        
+        private void TryInsertPreviousBlocks(Block block)
+        {
+            int maxDepth = 50;
+            int currentDepth = 0;
+            Block? current = block;
+            Stack<Block> stack = new();
+
+            while (!_blockTree.IsKnownBeaconBlock(current.Number, current.Hash ?? current.CalculateHash()))
+            {
+                stack.Push(current);
+                _blockCacheService.BlockCache.TryGetValue(current.ParentHash!, out Block? parentBlock);
+                current = parentBlock;
+                if (current == null)
+                {
+                    break;
+                }
+
+                if (currentDepth > maxDepth)
+                {
+                    current = null;
+                    break;
+                }
+                currentDepth++;
+            }
+
+            if (current != null)
+            {
+                if (_blockTree.WasProcessed(current.Number, current.Hash ?? current.CalculateHash()))
+                {
+                    while (stack.TryPop(out Block? child))
+                    {
+                        _blockTree.SuggestBlock(child);
+                    }   
+                }
+            }
         }
     }
 }

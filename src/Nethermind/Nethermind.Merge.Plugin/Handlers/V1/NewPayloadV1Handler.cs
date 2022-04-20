@@ -62,7 +62,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
         private readonly ILogger _logger;
         private readonly LruCache<Keccak, bool> _latestBlocks = new(50, "LatestBlocks");
         private readonly ConcurrentDictionary<Keccak, Keccak> _lastValidHashes = new();
-        private long _state = 0;
+        private readonly long _state = 0;
 
         public NewPayloadV1Handler(
             IBlockValidator blockValidator,
@@ -115,14 +115,16 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             }
             
             BlockHeader? parentHeader = _blockTree.FindHeader(request.ParentHash, BlockTreeLookupOptions.None);
+            
             bool parentExists = parentHeader != null;
             bool parentProcessed = parentExists && _blockTree.WasProcessed(parentHeader!.Number,
-                parentHeader!.Hash ?? parentHeader.CalculateHash());
+                parentHeader.Hash ?? parentHeader.CalculateHash());
             bool beaconPivotExists = _beaconPivot.BeaconPivotExists();
+            
             if (!parentExists)
             {
                 // possible that headers sync finished before this was called, so blocks in cache weren't inserted
-                if (!_beaconSyncStrategy.IsBeaconSyncFinished(parentHeader))
+                if (beaconPivotExists)
                 {
                     bool inserted = TryInsertDanglingBlock(block);
                     if (_logger.IsInfo)
@@ -138,8 +140,8 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     return inserted ? NewPayloadV1Result.Syncing : NewPayloadV1Result.Accepted;
                 }
 
-                _logger.Info($"Insert block into cache without parent {block}");
-                _blockCacheService.BlockCache.TryAdd(request.BlockHash, block);
+                _logger.Info($"Inserted block into cache without parent {block}");
+                _blockCacheService.Add(block);
                 return NewPayloadV1Result.Accepted;
             }
             
@@ -159,13 +161,13 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     return inserted ? NewPayloadV1Result.Syncing : NewPayloadV1Result.Accepted;
                 }
                 
-                if (parentHeader.TotalDifficulty == 0)
+                if (parentHeader?.TotalDifficulty == 0)
                 {
                     parentHeader.TotalDifficulty = _blockTree.BackFillTotalDifficulty(_beaconPivot.PivotNumber, block.Number - 1);
                 }
 
                 // TODO: beaconsync add TDD and validation checks
-                block.Header.TotalDifficulty = parentHeader.TotalDifficulty + block.Difficulty;
+                block.Header.TotalDifficulty = parentHeader!.TotalDifficulty + block.Difficulty;
                 block.Header.IsPostMerge = true;
                 if (!parentProcessed)
                 {
@@ -193,12 +195,10 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     if (_logger.IsInfo) _logger.Info($"Headers sync finished but beacon sync still not finished for {requestStr}");
                     return NewPayloadV1Result.Syncing;
                 }
-
-                _blockCacheService.BlockCache.Clear();
             }
 
             if (_poSSwitcher.TerminalTotalDifficulty == null ||
-                parentHeader!.TotalDifficulty < _poSSwitcher.TerminalTotalDifficulty)
+                (parentHeader?.TotalDifficulty ?? 0) < _poSSwitcher.TerminalTotalDifficulty)
             {
                 if (_logger.IsWarn)
                     _logger.Warn(
@@ -206,8 +206,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return NewPayloadV1Result.InvalidTerminalBlock;
             }
-
-            _mergeSyncController.StopSyncing();
+            
             (ValidationResult ValidationResult, string? Message) result =
                 ValidateBlockAndProcess(block, out Block? processedBlock, parentHeader);
             if ((result.ValidationResult & ValidationResult.AlreadyKnown) != 0 ||
@@ -234,6 +233,9 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
             if (_logger.IsInfo)
                 _logger.Info($"Valid. Result of {requestStr}");
+            
+            TryProcessBlockCache(block);
+            _mergeSyncController.StopSyncing();
 
             return NewPayloadV1Result.Valid(request.BlockHash);
         }
@@ -378,6 +380,28 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             return false;
         }
 
+        private void TryProcessBlockCache(Block block)
+        {
+            Stack<Block> stack = new ();
+            stack.Push(block);
+
+            while (stack.Count > 0 || stack.Count > 50)
+            {
+                Block parent = stack.Pop();
+                IList<Block>? children = _blockCacheService.GetChildren(parent);
+                if (children != null)
+                {
+                    foreach (Block child in children)
+                    {
+                        (ValidationResult ValidationResult, string? Message) result =
+                            ValidateBlockAndProcess(child, out Block? processedBlock, parent.Header);
+                        bool isValid = (result.ValidationResult & ValidationResult.Valid) != 0;
+                        if (isValid) stack.Push(child);
+                    }
+                }
+            }
+        }
+
         private bool TryInsertDanglingBlock(Block block)
         {
             BlockTreeInsertOptions insertOptions = BlockTreeInsertOptions.All;
@@ -408,7 +432,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     if (current == null)
                     {
                         // block not part of beacon pivot chain, save in cache
-                        _blockCacheService.BlockCache.TryAdd(block.Hash, block);
+                        _blockCacheService.Add(block);
                         return false;
                     }
 
@@ -423,7 +447,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
             return true;
         }
-        
+
         // TODO: beaconsync this should be moved to be part of the forward beacon sync
         private void TryProcessChainFromStateSyncBlock(BlockHeader parentHeader, Block block)
         {

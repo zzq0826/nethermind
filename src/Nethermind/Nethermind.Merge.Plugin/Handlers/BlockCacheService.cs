@@ -20,11 +20,54 @@ using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Crypto;
 
 namespace Nethermind.Merge.Plugin.Handlers;
 
 public class BlockCacheService : IBlockCacheService
 {
+    public void Add(Block block)
+    {
+        if (block.ParentHash != null)
+        {
+            if (BlocksByParent.TryGetValue(block.ParentHash, out IList<Block>? children))
+            {
+                children.Add(block);
+            }
+            else
+            {
+                BlocksByParent.TryAdd(block.ParentHash, new List<Block> { block });
+            }
+        }
+        BlockCache.TryAdd(block.Hash ?? block.CalculateHash(), block);
+    }
+
+    public Block? Get(Keccak hash)
+    {
+        if (BlockCache.TryGetValue(hash, out Block? block))
+        {
+            return block;
+        }
+
+        return null;
+    }
+
+    public void Clear()
+    {
+        BlockCache.Clear();
+        BlocksByParent.Clear();
+    }
+
+    public IList<Block>? GetChildren(Block block)
+    {
+        if (BlocksByParent.TryGetValue(block.Hash ?? block.CalculateHash(), out IList<Block>? children))
+        {
+            return children;
+        }
+        return null;
+    }
+
+    public ConcurrentDictionary<Keccak, IList<Block>> BlocksByParent { get; } = new();
     public ConcurrentDictionary<Keccak, Block> BlockCache { get; } = new();
     public Keccak? ProcessDestination { get; set; }
     public Keccak? SyncingHead { get; set; }
