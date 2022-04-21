@@ -15,14 +15,29 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using Nethermind.Core;
+using Nethermind.Core.Test.Builders;
+using Nethermind.Int256;
 using Nethermind.Synchronization.Test;
+using NUnit.Framework;
 
 namespace Nethermind.Merge.Plugin.Test.Synchronization;
 
+[TestFixture(SynchronizerType.Fast)]
+[TestFixture(SynchronizerType.Full)]
+[Parallelizable(ParallelScope.All)]
 public class MergeSynchronizerTests
 {
-    private readonly SynchronizerType _synchronizerType = SynchronizerType.Eth2Merge;
-
+    private readonly SynchronizerType _synchronizerType;
+    
+    public MergeSynchronizerTests(SynchronizerType synchronizerType)
+    {
+        _synchronizerType = synchronizerType;
+    }
+    
+    private static Block _genesisBlock = Build.A.Block.Genesis.WithDifficulty(100000)
+        .WithTotalDifficulty((UInt256)100000).TestObject;
+    
     private WhenImplementation When => new(_synchronizerType);
 
     private class WhenImplementation
@@ -34,6 +49,6 @@ public class MergeSynchronizerTests
             _synchronizerType = synchronizerType;
         }
 
-        public SynchronizerTests.SyncingContext Syncing => new(_synchronizerType);
+        public MergeSyncingContext Syncing => new(_synchronizerType);
     }
 }

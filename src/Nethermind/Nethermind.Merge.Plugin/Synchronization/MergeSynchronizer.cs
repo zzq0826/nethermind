@@ -37,12 +37,7 @@ namespace Nethermind.Merge.Plugin.Synchronization;
 
 public class MergeSynchronizer : Synchronizer
 {
-    private readonly IMergeSyncController _mergeSync;
     private readonly IMergeConfig _mergeConfig;
-    private readonly IBlockCacheService _blockCacheService;
-    private readonly ISyncProgressResolver _syncProgressResolver;
-    private readonly IBlockValidator _blockValidator;
-    private readonly IBlockProcessingQueue _blockProcessingQueue;
 
     public MergeSynchronizer(
         IDbProvider dbProvider,
@@ -55,21 +50,11 @@ public class MergeSynchronizer : Synchronizer
         ISyncConfig syncConfig,
         IBlockDownloaderFactory blockDownloaderFactory,
         IPivot pivot,
-        IMergeSyncController mergeSync,
         IMergeConfig mergeConfig,
-        IBlockCacheService blockCacheService,
-        ISyncProgressResolver syncProgressResolver,
-        IBlockValidator blockValidator,
-        IBlockProcessingQueue blockProcessingQueue,
         ILogManager logManager) : base(dbProvider, specProvider, blockTree, receiptStorage, peerPool, nodeStatsManager,
         syncModeSelector, syncConfig, blockDownloaderFactory, pivot, logManager)
     {
-        _mergeSync = mergeSync;
         _mergeConfig = mergeConfig;
-        _blockCacheService = blockCacheService;
-        _syncProgressResolver = syncProgressResolver;
-        _blockValidator = blockValidator;
-        _blockProcessingQueue = blockProcessingQueue;
     }
 
     public override void Start()

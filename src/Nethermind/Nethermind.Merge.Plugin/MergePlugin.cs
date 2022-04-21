@@ -245,12 +245,7 @@ namespace Nethermind.Merge.Plugin
                     _syncConfig,
                     _api.BlockDownloaderFactory,
                     _api.Pivot,
-                    _beaconSync,
                     _mergeConfig,
-                    _blockCacheService,
-                    _api.SyncProgressResolver,
-                    _api.BlockValidator,
-                    _api.BlockProcessingQueue,
                     _api.LogManager);
             }
 

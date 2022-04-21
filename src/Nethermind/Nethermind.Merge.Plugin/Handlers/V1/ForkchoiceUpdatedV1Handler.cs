@@ -24,7 +24,6 @@ using Nethermind.Consensus;
 using Nethermind.Consensus.Producers;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.Facade.Eth;
 using Nethermind.JsonRpc;

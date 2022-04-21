@@ -47,6 +47,7 @@ using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Synchronization.Blocks;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
+using Nethermind.Synchronization.Test.Mocks;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using NSubstitute;
@@ -116,7 +117,7 @@ namespace Nethermind.Synchronization.Test
                     }
 
                     SyncTestContext remotePeer = _peers[remoteIndex];
-                    localPeer.PeerPool.AddPeer(new SyncPeerMock(remotePeer.Tree, TestItem.PublicKeys[localIndex],
+                    localPeer.PeerPool.AddPeer(new OldStyleSyncPeerMock(remotePeer.Tree, TestItem.PublicKeys[localIndex],
                         $"PEER{localIndex}", remotePeer.SyncServer, TestItem.PublicKeys[remoteIndex],
                         $"PEER{remoteIndex}"));
                 }
