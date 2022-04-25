@@ -202,7 +202,7 @@ public class BlockTreeTests
                 {
                     Block? beaconBlock = _syncedTree!.FindBlock(num, BlockTreeLookupOptions.None);
                     AddBlockResult insertResult = _notSyncedTree!.Insert(beaconBlock!, true,
-                        BlockTreeInsertOptions.SkipUpdateBestPointers | BlockTreeInsertOptions.TotalDifficultyNotNeeded);
+                        BlockTreeInsertOptions.All);
                     Assert.AreEqual(AddBlockResult.Added, insertResult);
                     return this;
                 }
@@ -220,7 +220,7 @@ public class BlockTreeTests
 
                 public ScenarioBuilder InsertHeaders(long low, long high)
                 {
-                    BlockTreeInsertOptions options = BlockTreeInsertOptions.TotalDifficultyNotNeeded | BlockTreeInsertOptions.SkipUpdateBestPointers;;
+                    BlockTreeInsertOptions options = BlockTreeInsertOptions.All;
                     for (long i = high; i >= low; --i)
                     {
                         BlockHeader? beaconHeader = _syncedTree!.FindHeader(i, BlockTreeLookupOptions.None);

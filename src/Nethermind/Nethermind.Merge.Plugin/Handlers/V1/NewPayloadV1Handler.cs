@@ -234,7 +234,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             if (_logger.IsInfo)
                 _logger.Info($"Valid. Result of {requestStr}");
             
-            TryProcessBlockCache(block);
             _mergeSyncController.StopSyncing();
 
             return NewPayloadV1Result.Valid(request.BlockHash);

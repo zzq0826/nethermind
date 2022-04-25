@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System.Diagnostics;
+using System.Linq;
 
 namespace Nethermind.Core
 {
@@ -26,7 +27,9 @@ namespace Nethermind.Core
             HasBlockOnMainChain = hasBlockInMainChain;
             BlockInfos = blockInfos;
         }
-        
+
+        public bool HasNonBeaconChainBlocks => BlockInfos.Any(b =>
+            (b.Metadata & (BlockMetadata.BeaconHeader | BlockMetadata.BeaconBody)) == 0);
         public bool HasBlockOnMainChain { get; set; }
         public BlockInfo[] BlockInfos { get; set; }
         public BlockInfo? MainChainBlock => HasBlockOnMainChain ? BlockInfos[0] : null;
