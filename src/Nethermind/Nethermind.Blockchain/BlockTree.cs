@@ -547,9 +547,14 @@ namespace Nethermind.Blockchain
                             $"LowestInsertedBeaconHeader changed, old: {LowestInsertedBeaconHeader?.Number}, new: {header?.Number}");
                     LowestInsertedBeaconHeader = header;
                 }
-                blockInfo.Metadata |= BlockMetadata.BeaconHeader;
             }
             
+            bool addBeaconMetadata = (options & BlockTreeInsertOptions.AddBeaconMetadata) != 0;
+            if (addBeaconMetadata)
+            {
+                blockInfo.Metadata |= BlockMetadata.BeaconHeader;
+            }
+
             ChainLevelInfo chainLevel = new(isOnMainChain, blockInfo);
             _chainLevelInfoRepository.PersistLevel(header.Number, chainLevel);
 
@@ -584,8 +589,8 @@ namespace Nethermind.Blockchain
                 Insert(block.Header, options);
             }
             
-            bool skipBeaconPointers = (options & BlockTreeInsertOptions.UpdateBeaconPointers) == 0;
-            if (!skipBeaconPointers)
+            bool addBeaconMetadata = (options & BlockTreeInsertOptions.AddBeaconMetadata) != 0;
+            if (addBeaconMetadata)
             {
                 ChainLevelInfo chainLevelInfo = LoadLevel(block.Number);
                 if (chainLevelInfo is not null)
