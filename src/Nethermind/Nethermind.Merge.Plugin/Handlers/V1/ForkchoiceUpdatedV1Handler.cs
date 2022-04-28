@@ -88,6 +88,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             PayloadAttributes? payloadAttributes)
         {
             string requestStr = $"{forkchoiceState} {payloadAttributes}";
+            if (_logger.IsInfo) { _logger.Info($"Received: {requestStr}"); }
             Block? newHeadBlock = EnsureHeadBlockHash(forkchoiceState.HeadBlockHash);
             if (newHeadBlock == null)
             {
@@ -104,9 +105,9 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     return ForkchoiceUpdatedV1Result.Syncing;
                 }
 
-                if (_logger.IsWarn)
+                if (_logger.IsInfo)
                 {
-                    _logger.Warn($"Syncing... Unknown forkchoiceState head hash... Request: {requestStr}");
+                    _logger.Info($"Syncing... Unknown forkchoiceState head hash... Request: {requestStr}");
                 }
 
                 return ForkchoiceUpdatedV1Result.Syncing;

@@ -25,6 +25,9 @@ namespace Nethermind.Synchronization.Test
 {
     [TestFixture(SynchronizerType.Fast)]
     [TestFixture(SynchronizerType.Full)]
+    [TestFixture(SynchronizerType.Eth2MergeFull)]
+    [TestFixture(SynchronizerType.Eth2MergeFast)]
+    [TestFixture(SynchronizerType.Eth2MergeFastWithoutTTD)]
     [Parallelizable(ParallelScope.All)]
     public class SynchronizerTests
     {
@@ -59,7 +62,7 @@ namespace Nethermind.Synchronization.Test
         [OneTimeTearDown]
         public void TearDown()
         {
-            foreach (SyncingContext syncingContext in SyncingContext._allInstances)
+            foreach (SyncingContext syncingContext in SyncingContext.AllInstances)
             {
                 syncingContext.Stop();
             }
@@ -250,15 +253,15 @@ namespace Nethermind.Synchronization.Test
                 return receivedBlock && peerBNewBlock.Hash == peerA.HeadBlock.Hash;
             }, WaitTime);
 
-            if (_synchronizerType == SynchronizerType.Eth2Merge)
-            {
-                Assert.IsNull(peerBNewBlock);
-                Assert.AreNotEqual(peerB.HeadBlock.Hash, peerA.HeadBlock.Hash);
-            }
-            else
-            {
+            // if (_synchronizerType == SynchronizerType.Eth2MergeFull)
+            // {
+            //     Assert.IsNull(peerBNewBlock);
+            //     Assert.AreNotEqual(peerB.HeadBlock.Hash, peerA.HeadBlock.Hash);
+            // }
+            // else
+            // {
                 Assert.AreEqual(peerBNewBlock?.Header.Hash!, peerA.HeadBlock.Hash);
-            }
+            // }
         }
 
         [Test, Retry(3)]
@@ -330,6 +333,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_reorg_based_on_total_difficulty()
         {
+            if (_synchronizerType == SynchronizerType.Eth2MergeFastWithoutTTD)
+            {
+                return;
+            }
             SyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 
@@ -368,6 +375,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_extend_chain_on_new_block_when_high_difficulty_low_number()
         {
+            if (_synchronizerType == SynchronizerType.Eth2MergeFastWithoutTTD)
+            {
+                return;
+            }
             SyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 

@@ -56,7 +56,6 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _peerRefresher = peerRefresher;
             _logger = logManager.GetClassLogger();
             // _currentBeaconPivot = _blockTree.LowestInsertedBeaconHeader; // ToDo Sarah: I think it is incorrect, but we should discuss it
-
         }
 
         public long PivotNumber => _currentBeaconPivot?.Number ?? _syncConfig.PivotNumberParsed;
@@ -68,7 +67,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
         public long PivotDestinationNumber => _currentBeaconPivot is null
             ? 0
-            // :  Math.Max(_syncConfig.PivotNumberParsed, _blockTree.BestSuggestedHeader?.Number ?? 0) + 1; // ToDo Sarah the current code is not ready to go to BestSuggestedHeader. I see that beacon finished is trying to reach _syncConfig and we're stuck beacause of that
+            // :  Math.Max(_syncConfig.PivotNumberParsed, _blockTree.BestSuggestedHeader?.Number ?? 0) + 1; // ToDo Sarah the current code is not ready to go with BestSuggestedHeader. I see that beacon finished is trying to reach _syncConfig and we're stuck because of that
             : _syncConfig.PivotNumberParsed + 1;
         public void EnsurePivot(BlockHeader? blockHeader)
         {
