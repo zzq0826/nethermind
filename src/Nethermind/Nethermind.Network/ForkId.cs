@@ -45,6 +45,16 @@ namespace Nethermind.Network
         {
             return HashCode.Combine(ForkHash.GetSimplifiedHashCode(), Next);
         }
+        
+        public static bool operator==(ForkId left, ForkId right)
+        {
+            return left.Equals(right);
+        }
+        
+        public static bool operator!=(ForkId left, ForkId right)
+        {
+            return !left.Equals(right);
+        }
 
         public override string ToString()
         {

@@ -244,25 +244,27 @@ namespace Nethermind.Synchronization.Peers
         public int PeerMaxCount { get; }
         private int PriorityPeerMaxCount { get; }
 
-        public void RefreshTotalDifficulty(ISyncPeer syncPeer, Keccak blockHash)
+        public Task RefreshTotalDifficulty(ISyncPeer syncPeer, Keccak blockHash)
         {
             RefreshTotalDiffTask task = new(blockHash, syncPeer);
             _peerRefreshQueue.Add(task);
+            return task.TaskCompletionSource.Task;
         }
 
-        public void AddPeer(ISyncPeer syncPeer)
+        public ValueTask AddPeer(ISyncPeer syncPeer)
         {
             if (_logger.IsDebug) _logger.Debug($"Adding sync peer {syncPeer.Node:c}");
             if (!_isStarted)
             {
                 if (_logger.IsDebug) _logger.Debug($"Sync peer pool not started yet - adding peer is blocked: {syncPeer.Node:s}");
-                return;
+                return default;
             }
 
+            
             if (_peers.ContainsKey(syncPeer.Node.Id))
             {
                 if (_logger.IsDebug) _logger.Debug($"Sync peer {syncPeer.Node:c} already in peers collection.");
-                return;
+                return default;
             }
             
             PeerInfo peerInfo = new(syncPeer);
@@ -280,12 +282,15 @@ namespace Nethermind.Synchronization.Peers
             if (header is not null)
             {
                 syncPeer.HeadNumber = header.Number;
+                return default;
             }
             else
             {
                 if (_logger.IsDebug) _logger.Debug($"Adding {syncPeer.Node:c} to refresh queue");
                 if (NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportInterestingEvent(syncPeer.Node.Address, "adding node to refresh queue");
-                _peerRefreshQueue.Add(new RefreshTotalDiffTask(syncPeer));
+                RefreshTotalDiffTask task = new(syncPeer);
+                _peerRefreshQueue.Add(task);
+                return new ValueTask(task.TaskCompletionSource.Task);
             }
         }
 
@@ -700,6 +705,8 @@ namespace Nethermind.Synchronization.Peers
             public Keccak? BlockHash { get; }
 
             public ISyncPeer SyncPeer { get; }
+            
+            public TaskCompletionSource TaskCompletionSource { get; } = new();
         }
 
         public void Dispose()

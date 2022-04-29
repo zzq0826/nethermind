@@ -21,6 +21,7 @@ namespace Nethermind.Stats.Model
         P2PVersion,
         Capabilities,
         ChainId,
-        DifferentGenesis
+        DifferentGenesis,
+        DifferentForkId
     }
 }

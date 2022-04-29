@@ -14,6 +14,8 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using Nethermind.Core.Crypto;
+using Nethermind.Core.Specs;
 using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.EventArg;
 
@@ -22,5 +24,6 @@ namespace Nethermind.Network
     public interface IProtocolValidator
     {
         bool DisconnectOnInvalid(string protocol, ISession session, ProtocolInitializedEventArgs eventArgs);
+        bool DisconnectOnInvalidFork(ISpecProvider specProvider, string protocol, long headNumber, ISession session, ProtocolInitializedEventArgs eventArgs);
     }
 }

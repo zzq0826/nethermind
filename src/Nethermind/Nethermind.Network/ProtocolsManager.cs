@@ -309,7 +309,7 @@ namespace Nethermind.Network
         private void InitSyncPeerProtocol(ISession session, SyncPeerProtocolHandlerBase handler)
         {
             session.Node.EthDetails = handler.Name;
-            handler.ProtocolInitialized += (sender, args) =>
+            handler.ProtocolInitialized += async (sender, args) =>
             {
                 if (!RunBasicChecks(session, handler.ProtocolCode, handler.ProtocolVersion)) return;
                 SyncPeerProtocolInitializedEventArgs typedArgs = (SyncPeerProtocolInitializedEventArgs)args;
@@ -336,9 +336,17 @@ namespace Nethermind.Network
                             }
                         }
                         
-                        _syncPool.AddPeer(handler);
-                        if (handler.IncludeInTxPool) _txPool.AddPeer(handler);
-                        if (_logger.IsDebug) _logger.Debug($"{handler.ClientId} sync peer {session} created.");
+                        await _syncPool.AddPeer(handler);
+                        isValid = _protocolValidator.DisconnectOnInvalidFork(_specProvider, handler.ProtocolCode, handler.HeadNumber, session, args);
+                        if (isValid)
+                        {
+                            if (handler.IncludeInTxPool) _txPool.AddPeer(handler);
+                            if (_logger.IsDebug) _logger.Debug($"{handler.ClientId} sync peer {session} created.");
+                        }
+                        else
+                        {
+                            if (_logger.IsTrace) _logger.Trace($"|NetworkTrace| {handler.ProtocolCode}{handler.ProtocolVersion} is invalid on {session}");
+                        }
                     }
                     else
                     {

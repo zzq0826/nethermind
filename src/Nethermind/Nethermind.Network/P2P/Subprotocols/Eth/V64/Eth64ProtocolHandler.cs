@@ -31,6 +31,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V64
     /// </summary>
     public class Eth64ProtocolHandler : Eth63ProtocolHandler
     {
+        public const int EthProtocolVersion = 64;
         private readonly ISpecProvider _specProvider;
 
         public Eth64ProtocolHandler(ISession session,
@@ -46,7 +47,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V64
         
         public override string Name => "eth64";
         
-        public override byte ProtocolVersion => 64;
+        public override byte ProtocolVersion => EthProtocolVersion;
 
         protected override void EnrichStatusMessage(StatusMessage statusMessage)
         {

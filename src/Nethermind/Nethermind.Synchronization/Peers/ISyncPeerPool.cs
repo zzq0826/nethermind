@@ -70,7 +70,8 @@ namespace Nethermind.Synchronization.Peers
         /// Invoked when a new connection is established and ETH subprotocol handshake is finished - this node is ready to sync.
         /// </summary>
         /// <param name="syncPeer"></param>
-        void AddPeer(ISyncPeer syncPeer);
+        /// <returns>A task for refreshing difficulty.</returns>
+        ValueTask AddPeer(ISyncPeer syncPeer);
         
         /// <summary>
         /// Invoked after a session / connection is closed.
@@ -90,7 +91,8 @@ namespace Nethermind.Synchronization.Peers
         /// </summary>
         /// <param name="syncPeer"></param>
         /// <param name="hash">Hash of a block that we know might be the head block of the peer</param>
-        void RefreshTotalDifficulty(ISyncPeer syncPeer, Keccak hash);
+        /// <returns>A task for refreshing.</returns>
+        Task RefreshTotalDifficulty(ISyncPeer syncPeer, Keccak hash);
 
         /// <summary>
         /// Starts the pool loops.

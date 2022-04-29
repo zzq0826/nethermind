@@ -20,9 +20,12 @@ using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
+using Nethermind.Core.Crypto;
+using Nethermind.Core.Specs;
 using Nethermind.Logging;
 using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.EventArg;
+using Nethermind.Network.P2P.Subprotocols.Eth.V64;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
 
@@ -87,10 +90,43 @@ namespace Nethermind.Network
                         if (session.Node.IsStatic && _logger.IsWarn) _logger.Warn($"Disconnected an invalid static node: {session.Node.Host}:{session.Node.Port}, reason: {DisconnectReason.BreachOfProtocol} (invalid genesis)");
                         return false;
                     }
-                    
+
+                    if (protocol == Protocol.Eth 
+                        && syncPeerArgs.ProtocolVersion >= Eth64ProtocolHandler.EthProtocolVersion
+                        && syncPeerArgs.ForkId is null)
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Initiating disconnect with peer: {session.RemoteNodeId}, no forkId.");
+                        _nodeStatsManager.ReportFailedValidation(session.Node, CompatibilityValidationType.DifferentForkId);
+                        Disconnect(session, DisconnectReason.BreachOfProtocol, "no forkId");
+                        if (session.Node.IsStatic && _logger.IsWarn) _logger.Warn($"Disconnected an invalid static node: {session.Node.Host}:{session.Node.Port}, reason: {DisconnectReason.BreachOfProtocol} (no forkId)");
+                        return false;
+                    }
                     break;
             }
             
+            return true;
+        }
+
+        public bool DisconnectOnInvalidFork(ISpecProvider specProvider, string protocol, long headNumber, ISession session, ProtocolInitializedEventArgs eventArgs)
+        {
+            switch (protocol)
+            {
+                case Protocol.Eth:
+                    SyncPeerProtocolInitializedEventArgs syncPeerArgs = (SyncPeerProtocolInitializedEventArgs) eventArgs;
+                    ForkId forkId = ForkInfo.CalculateForkId(specProvider, headNumber, syncPeerArgs.GenesisHash);
+                    if (syncPeerArgs.ProtocolVersion >= Eth64ProtocolHandler.EthProtocolVersion 
+                        && forkId != syncPeerArgs.ForkId)
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Initiating disconnect with peer: {session.RemoteNodeId}, different forkId: {syncPeerArgs.ForkId}, our: {forkId}");
+                        _nodeStatsManager.ReportFailedValidation(session.Node, CompatibilityValidationType.DifferentForkId);
+                        Disconnect(session, DisconnectReason.BreachOfProtocol, "different forkId");
+                        if (session.Node.IsStatic && _logger.IsWarn) _logger.Warn($"Disconnected an invalid static node: {session.Node.Host}:{session.Node.Port}, reason: {DisconnectReason.BreachOfProtocol} (different forkId)");
+                        return false;
+                    }
+
+                    break;
+            }
+
             return true;
         }
 
