@@ -115,7 +115,7 @@ public partial class EngineModuleTests
             private IEngineRpcModule? _rpc;
             private Task<ScenarioBuilder>? _antecedent;
 
-            private BlockTreeInsertOptions _insertOptions = BlockTreeInsertOptions.All;
+            private BlockTreeInsertOptions _insertOptions = BlockTreeInsertOptions.BeaconBlockInsert;
 
             public ScenarioBuilder CreateRpcModule(int treeSize, int syncedTreeSize, ISyncConfig? syncConfig = null)
             {

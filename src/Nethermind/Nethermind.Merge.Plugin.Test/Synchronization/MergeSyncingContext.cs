@@ -53,9 +53,10 @@ public class MergeSyncingContext : SyncingContextBase
         ISyncConfig GetSyncConfig() =>
             synchronizerType switch
             {
-                SynchronizerType.Fast => SyncConfig.WithFastSync,
-                SynchronizerType.Eth2Merge => SyncConfig.WithEth2Merge,
-                SynchronizerType.Full => SyncConfig.WithFullSyncOnly,
+                SynchronizerType.Eth2MergeFastWithoutTTD => SyncConfig.WithFastSync,
+                SynchronizerType.Eth2MergeFullWithoutTTD => SyncConfig.WithFullSyncOnly,
+                SynchronizerType.Eth2MergeFast => SyncConfig.WithFastSync,
+                SynchronizerType.Eth2MergeFull => SyncConfig.WithFullSyncOnly,
                 _ => throw new ArgumentOutOfRangeException(nameof(synchronizerType), synchronizerType, null)
             };
 
@@ -136,6 +137,6 @@ public class MergeSyncingContext : SyncingContextBase
         Synchronizer.Start();
         Synchronizer.SyncEvent += SynchronizerOnSyncEvent;
 
-        _allInstances.Enqueue(this);
+        AllInstances.Enqueue(this);
     }
 }

@@ -81,7 +81,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_sync_with_one_peer_straight()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
 
             When.Syncing
                 .AfterProcessingGenesis()
@@ -92,7 +92,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_sync_with_one_peer_straight_and_extend_chain()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(3);
 
             When.Syncing
@@ -104,7 +104,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_extend_chain_by_one_on_new_block_message()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -119,10 +119,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_reorg_on_new_block_message()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(3);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(3);
 
             When.Syncing
@@ -139,10 +139,10 @@ namespace Nethermind.Synchronization.Test
         [Ignore("Not supported for now - still analyzing this scenario")]
         public void Can_reorg_on_hint_block_message()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(3);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(3);
 
             When.Syncing
@@ -158,7 +158,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_extend_chain_by_one_on_block_hint_message()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -173,7 +173,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_extend_chain_by_more_than_one_on_new_block_message()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -192,7 +192,7 @@ namespace Nethermind.Synchronization.Test
         {
             // this test was designed for no sync-timer sync process
             // now it checks something different
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -207,10 +207,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_sync_when_best_peer_is_timing_out()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
-            SyncPeerMock badPeer = new("B", false, false, true);
+            SynchronizerSyncPeerMock badPeer = new("B", false, false, true);
             badPeer.AddBlocksUpTo(20);
 
             When.Syncing
@@ -230,10 +230,10 @@ namespace Nethermind.Synchronization.Test
                 return;
             }
 
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(2);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(2, 0, 1);
 
             When.Syncing
@@ -267,7 +267,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Will_not_add_same_peer_twice()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -282,7 +282,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Will_remove_peer_when_init_fails()
         {
-            SyncPeerMock peerA = new("A", true, true);
+            SynchronizerSyncPeerMock peerA = new("A", true, true);
             peerA.AddBlocksUpTo(1);
 
             When.Syncing
@@ -296,8 +296,8 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_remove_peers()
         {
-            SyncPeerMock peerA = new("A");
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerB = new("B");
 
             When.Syncing
                 .AfterProcessingGenesis()
@@ -316,10 +316,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_reorg_on_add_peer()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(SyncBatchSize.Max);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(SyncBatchSize.Max * 2, 0, 1);
 
             When.Syncing
@@ -337,10 +337,10 @@ namespace Nethermind.Synchronization.Test
             {
                 return;
             }
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddHighDifficultyBlocksUpTo(6, 0, 1);
 
             When.Syncing
@@ -355,10 +355,10 @@ namespace Nethermind.Synchronization.Test
         [Ignore("Not supported for now - still analyzing this scenario")]
         public void Can_extend_chain_on_hint_block_when_high_difficulty_low_number()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddHighDifficultyBlocksUpTo(5, 0, 1);
 
             When.Syncing
@@ -379,10 +379,10 @@ namespace Nethermind.Synchronization.Test
             {
                 return;
             }
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddHighDifficultyBlocksUpTo(6, 0, 1);
 
             When.Syncing
@@ -400,10 +400,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Will_not_reorganize_on_same_chain_length()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(10);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(10, 0, 1);
 
             When.Syncing
@@ -417,10 +417,10 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Will_not_reorganize_more_than_max_reorg_length()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(BlockDownloader.MaxReorganizationLength + 1);
 
-            SyncPeerMock peerB = new("B");
+            SynchronizerSyncPeerMock peerB = new("B");
             peerB.AddBlocksUpTo(BlockDownloader.MaxReorganizationLength + 2, 0, 1);
 
             When.Syncing
@@ -434,7 +434,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Ignore("travis")]
         public void Can_sync_more_than_a_batch()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(SyncBatchSize.Max * 3);
 
             When.Syncing
@@ -446,7 +446,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_sync_exactly_one_batch()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(SyncBatchSize.Max);
 
             When.Syncing
@@ -459,7 +459,7 @@ namespace Nethermind.Synchronization.Test
         [Test, Retry(3)]
         public void Can_stop()
         {
-            SyncPeerMock peerA = new("A");
+            SynchronizerSyncPeerMock peerA = new("A");
             peerA.AddBlocksUpTo(SyncBatchSize.Max);
 
             When.Syncing

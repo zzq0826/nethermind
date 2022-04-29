@@ -16,20 +16,16 @@
 // 
 
 using System;
-using DotNetty.Transport.Channels;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
-using Nethermind.Db;
 using Nethermind.Db.Blooms;
 using Nethermind.Logging;
 using Nethermind.Merge.Plugin.Synchronization;
-using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
 using NUnit.Framework;
-using Nethermind.Consensus.Processing;
 
 namespace Nethermind.Merge.Plugin.Test;
 
@@ -361,7 +357,7 @@ public partial class BlockTreeTests
             .InsertBeaconPivot(7)
             .InsertHeaders(4, 6)
             .Restart()
-            .AssertLowestInsertedBeaconHeader(1);
+            .AssertLowestInsertedBeaconHeader(4);
     }
     
     [Test]
@@ -373,8 +369,7 @@ public partial class BlockTreeTests
             .InsertHeaders(4, 6)
             .SuggestBlocks(4, 4)
             .Restart()
-            .AssertBestSuggestedBody(4)
-            .AssertLowestInsertedBeaconHeader(1);
+            .AssertBestSuggestedBody(4);
     }
     
     [Test]
@@ -386,8 +381,7 @@ public partial class BlockTreeTests
             .InsertHeaders(4, 6)
             .SuggestBlocks(4, 6)
             .Restart()
-            .AssertBestSuggestedBody(6)
-            .AssertLowestInsertedBeaconHeader(1);
+            .AssertBestSuggestedBody(6);
     }
     
     [Test]

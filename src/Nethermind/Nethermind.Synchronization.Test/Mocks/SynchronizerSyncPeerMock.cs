@@ -31,7 +31,7 @@ using Nethermind.Stats.Model;
 
 namespace Nethermind.Synchronization.Test.Mocks;
 
-public class SyncPeerMock : ISyncPeer
+public class SynchronizerSyncPeerMock : ISyncPeer
 {
     private readonly bool _causeTimeoutOnInit;
     private readonly bool _causeTimeoutOnBlocks;
@@ -45,7 +45,7 @@ public class SyncPeerMock : ISyncPeer
     private static readonly Block _genesisBlock = Build.A.Block.Genesis.WithDifficulty(100000)
         .WithTotalDifficulty((UInt256)100000).TestObject;
 
-    public SyncPeerMock(string peerName, bool causeTimeoutOnInit = false, bool causeTimeoutOnBlocks = false,
+    public SynchronizerSyncPeerMock(string peerName, bool causeTimeoutOnInit = false, bool causeTimeoutOnBlocks = false,
         bool causeTimeoutOnHeaders = false)
     {
         _causeTimeoutOnInit = causeTimeoutOnInit;

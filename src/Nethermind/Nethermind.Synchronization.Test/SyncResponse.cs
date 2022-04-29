@@ -13,16 +13,21 @@
 // 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// 
 
-namespace Nethermind.Synchronization.Test
+using System;
+
+namespace Nethermind.Synchronization.Test;
+
+[Flags]
+public enum SyncResponse
 {
-    public enum SynchronizerType
-    {
-        Full,
-        Fast,
-        Eth2MergeFull,
-        Eth2MergeFast,
-        Eth2MergeFastWithoutTTD,
-        Eth2MergeFullWithoutTTD
-    }
+    Consistent = 1,
+    AllCorrect = 7,
+    JustFirst = 8,
+    AllKnown = 16,
+    TimeoutOnFullBatch = 32,
+    NoBody = 64,
+    WithTransactions = 128,
+    IncorrectReceiptRoot = 256
 }

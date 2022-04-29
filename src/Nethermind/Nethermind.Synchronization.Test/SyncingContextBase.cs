@@ -36,7 +36,7 @@ namespace Nethermind.Synchronization.Test;
 
 public abstract class SyncingContextBase
 {
-    public static readonly ConcurrentQueue<SyncingContextBase> _allInstances = new();
+    public static readonly ConcurrentQueue<SyncingContextBase> AllInstances = new();
 
     private readonly Dictionary<string, ISyncPeer> _peers = new();
     protected abstract BlockTree BlockTree { get; }
@@ -169,7 +169,7 @@ public abstract class SyncingContextBase
 
     public SyncingContextBase AfterPeerIsAdded(ISyncPeer syncPeer)
     {
-        ((SyncPeerMock)syncPeer).Disconnected += (_, _) => SyncPeerPool.RemovePeer(syncPeer);
+        ((SynchronizerSyncPeerMock)syncPeer).Disconnected += (_, _) => SyncPeerPool.RemovePeer(syncPeer);
 
         _logger.Info($"PEER ADDED {syncPeer.ClientId}");
         _peers.TryAdd(syncPeer.ClientId, syncPeer);

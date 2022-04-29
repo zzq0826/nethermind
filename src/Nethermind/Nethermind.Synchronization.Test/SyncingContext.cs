@@ -50,7 +50,6 @@ public class SyncingContext : SyncingContextBase
             synchronizerType switch
             {
                 SynchronizerType.Fast => SyncConfig.WithFastSync,
-                SynchronizerType.Eth2Merge => SyncConfig.WithEth2Merge,
                 SynchronizerType.Full => SyncConfig.WithFullSyncOnly,
                 _ => throw new ArgumentOutOfRangeException(nameof(synchronizerType), synchronizerType, null)
             };
@@ -124,6 +123,6 @@ public class SyncingContext : SyncingContextBase
         Synchronizer.Start();
         Synchronizer.SyncEvent += SynchronizerOnSyncEvent;
 
-        _allInstances.Enqueue(this);
+        AllInstances.Enqueue(this);
     }
 }
