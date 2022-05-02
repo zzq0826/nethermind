@@ -118,7 +118,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             bool parentExists = parentHeader != null;
             bool parentProcessed = parentExists && _blockTree.WasProcessed(parentHeader!.Number,
                 parentHeader.Hash ?? parentHeader.CalculateHash());
-            bool beaconPivotExists = _beaconPivot.BeaconPivotExists();
             if (!parentExists)
             {
                 // possible that headers sync finished before this was called, so blocks in cache weren't inserted
@@ -272,7 +271,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
         private ProcessingOptions GetProcessingOptions()
         {
-            ProcessingOptions options = ProcessingOptions.None;
+            ProcessingOptions options = ProcessingOptions.EthereumMerge;
             if (_initConfig.StoreReceipts)
             {
                 options |= ProcessingOptions.StoreReceipts;
@@ -378,7 +377,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
             return true;
         }
-        
+
         // TODO: beaconsync this should be moved to be part of the forward beacon sync
         private void TryProcessChainFromStateSyncBlock(BlockHeader parentHeader, Block block)
         {

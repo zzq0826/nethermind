@@ -94,14 +94,11 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             {
                 if (_blockCacheService.BlockCache.TryGetValue(forkchoiceState.HeadBlockHash, out Block? block))
                 {
-                    // check old headers sync finished before starting new one
-                    if (_beaconSyncStrategy.IsBeaconSyncHeadersFinished())
-                    {
-                        _mergeSyncController.InitSyncing(block.Header);
-                    }
-                    
+                    _mergeSyncController.InitSyncing(block.Header);
                     _blockCacheService.SyncingHead = forkchoiceState.HeadBlockHash;
-                    if (_logger.IsInfo) { _logger.Info($"Syncing... Request: {requestStr}"); }
+
+                    if (_logger.IsInfo) { _logger.Info($"Start a new sync process... Request: {requestStr}"); }
+
                     return ForkchoiceUpdatedV1Result.Syncing;
                 }
 
@@ -113,7 +110,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 return ForkchoiceUpdatedV1Result.Syncing;
             }
 
-            if (!_beaconSyncStrategy.IsBeaconSyncFinished(newHeadBlock.Header))
+            if (!_blockTree.WasProcessed(newHeadBlock.Number, newHeadBlock.Hash ?? newHeadBlock.CalculateHash()))
             {
                 // ToDO of course we shouldn't refresh the peers in this way. This need to be optimized and we need to rethink refreshing
                 if (i % 10 == 0)
@@ -124,16 +121,9 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return ForkchoiceUpdatedV1Result.Syncing;
             }
-            if (_logger.IsInfo) _logger.Info($"Block {newHeadBlock} was processed");
-            _mergeSyncController.StopSyncing();
+            if (_logger.IsInfo) _logger.Info($"FCU - block {newHeadBlock} was processed");
 
-            // TODO: beaconsync investigate why this would occur
-            if (newHeadBlock.Header.TotalDifficulty == 0)
-            {
-                newHeadBlock.Header.TotalDifficulty =
-                    _blockTree.BackFillTotalDifficulty(_beaconPivot.PivotNumber, newHeadBlock.Number);
-            }
-            
+
             (BlockHeader? finalizedHeader, string? finalizationErrorMsg) =
                 ValidateHashForFinalization(forkchoiceState.FinalizedBlockHash);
             if (finalizationErrorMsg != null)
@@ -273,7 +263,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             Block? block = _blockTree.FindBlock(headBlockHash, BlockTreeLookupOptions.None);
             if (block is null)
             {
-                if (_logger.IsWarn) _logger.Warn($"Syncing... Block {headBlockHash} not found.");
+                if (_logger.IsInfo) _logger.Info($"Syncing... Block {headBlockHash} not found.");
             }
 
             return block;
@@ -350,43 +340,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             blocksList.Reverse();
             blocks = blocksList.ToArray();
             return true;
-        }
-        
-        private void TryInsertPreviousBlocks(Block block)
-        {
-            int maxDepth = 50;
-            int currentDepth = 0;
-            Block? current = block;
-            Stack<Block> stack = new();
-
-            while (!_blockTree.IsKnownBeaconBlock(current.Number, current.Hash ?? current.CalculateHash()))
-            {
-                stack.Push(current);
-                _blockCacheService.BlockCache.TryGetValue(current.ParentHash!, out Block? parentBlock);
-                current = parentBlock;
-                if (current == null)
-                {
-                    break;
-                }
-
-                if (currentDepth > maxDepth)
-                {
-                    current = null;
-                    break;
-                }
-                currentDepth++;
-            }
-
-            if (current != null)
-            {
-                if (_blockTree.WasProcessed(current.Number, current.Hash ?? current.CalculateHash()))
-                {
-                    while (stack.TryPop(out Block? child))
-                    {
-                        _blockTree.SuggestBlock(child);
-                    }   
-                }
-            }
         }
     }
 }

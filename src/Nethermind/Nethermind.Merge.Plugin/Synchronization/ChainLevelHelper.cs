@@ -17,7 +17,9 @@
 
 using System.Collections.Generic;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
+using Nethermind.Crypto;
 using Nethermind.Logging;
 
 namespace Nethermind.Merge.Plugin.Synchronization;
@@ -32,88 +34,132 @@ public interface IChainLevelHelper
 public class ChainLevelHelper : IChainLevelHelper
 {
     private readonly IBlockTree _blockTree;
+    private readonly ISyncConfig _syncConfig;
     private readonly ILogger _logger;
 
     public ChainLevelHelper(
         IBlockTree blockTree,
+        ISyncConfig syncConfig,
         ILogManager logManager)
     {
         _blockTree = blockTree;
+        _syncConfig = syncConfig;
         _logger = logManager.GetClassLogger();
     }
-    
+
     public BlockHeader[] GetNextHeaders(int maxCount)
     {
+        long? startingPoint = GetStartingPoint();
+        if (startingPoint == null)
+            return null;
+
         List<BlockHeader> headers = new(maxCount);
         int i = 0;
-        long currentNumber = _blockTree.BestKnownNumber;
+
         while (i < maxCount)
         {
-            ChainLevelInfo? level = _blockTree.FindLevel(currentNumber);
-            if (level == null)
+            ChainLevelInfo? level = _blockTree.FindLevel(startingPoint!.Value);
+            if (level == null || level.MainChainBlock == null)
             {
-                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper.GetNextHeaders - level {currentNumber} not found");
+                if (_logger.IsTrace)
+                    _logger.Trace($"ChainLevelHelper.GetNextHeaders - level {startingPoint} not found");
                 break;
             }
 
-            for (int j = 0; j < level.BlockInfos.Length; ++j)
-            {
-                BlockHeader? newHeader = _blockTree.FindHeader(level.BlockInfos[j].BlockHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+            BlockInfo blockInfo = level.MainChainBlock;
+            BlockHeader? newHeader =
+                _blockTree.FindHeader(blockInfo.BlockHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
 
-                if (newHeader == null)
-                {
-                    if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - header {currentNumber} not found");
-                    continue;
-                }
-                
-                newHeader.TotalDifficulty = level.BlockInfos[j].TotalDifficulty == 0 ? null : level.BlockInfos[j].TotalDifficulty;
-                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - A new block header {newHeader.ToString(BlockHeader.Format.FullHashAndNumber)}");
-                headers.Add(newHeader);
-                ++i;
-                if (i >= maxCount)
-                    break;
+            if (newHeader == null)
+            {
+                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - header {startingPoint} not found");
+                continue;
             }
-            
-            ++currentNumber;
+
+            newHeader.TotalDifficulty = blockInfo.TotalDifficulty == 0 ? null : blockInfo.TotalDifficulty;
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"ChainLevelHelper - A new block header {newHeader.ToString(BlockHeader.Format.FullHashAndNumber)}");
+            headers.Add(newHeader);
+            ++i;
+            if (i >= maxCount)
+                break;
+
+            ++startingPoint;
         }
 
         return headers.ToArray();
     }
-    
+
     public Block[] GetNextBlocks(int maxCount)
     {
+        long? startingPoint = GetStartingPoint();
+        if (startingPoint == null)
+            return null;
         List<Block> blocks = new(maxCount);
         int i = 0;
-        long currentNumber = _blockTree.BestKnownNumber;
         while (i < maxCount)
         {
-            ChainLevelInfo? level = _blockTree.FindLevel(currentNumber);
-            if (level == null)
+            ChainLevelInfo? level = _blockTree.FindLevel(startingPoint!.Value);
+            if (level == null || level.MainChainBlock == null)
             {
-                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper.GetNextBlocks - level {currentNumber} not found");
+                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper.GetNextBlocks - level {startingPoint} not found");
                 break;
             }
 
-            for (int j = 0; j < level.BlockInfos.Length; ++j)
+            BlockInfo blockInfo = level.MainChainBlock;
+
+            Block? newBlock = _blockTree.FindBlock(blockInfo.BlockHash);
+            if (newBlock == null)
             {
-                Block? newBlock = _blockTree.FindBlock(level.BlockInfos[j].BlockHash);
-                if (newBlock == null)
-                {
-                    if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - block {currentNumber} not found");
-                    continue;
-                }
-                
-                newBlock.Header.TotalDifficulty = level.BlockInfos[j].TotalDifficulty == 0 ? null : level.BlockInfos[j].TotalDifficulty;
-                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - A new block block {newBlock.ToString(Block.Format.FullHashAndNumber)}");
-                blocks.Add(newBlock);
-                ++i;
-                if (i >= maxCount)
-                    break;
+                if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper - block {startingPoint} not found");
+                continue;
             }
-            
-            ++currentNumber;
+
+            newBlock.Header.TotalDifficulty = blockInfo.TotalDifficulty == 0
+                ? null
+                : blockInfo.TotalDifficulty;
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"ChainLevelHelper - A new block block {newBlock.ToString(Block.Format.FullHashAndNumber)}");
+            blocks.Add(newBlock);
+            ++i;
+            if (i >= maxCount)
+                break;
+
+            ++startingPoint;
         }
 
         return blocks.ToArray();
+    }
+
+    private long? GetStartingPoint()
+    {
+        long startingPoint = _blockTree.BestKnownNumber + 1;
+        bool parentBlockExists = false;
+        // in normal situation we will have one iteration of this loop, in some cases a few. Thanks to that we don't need to add extra pointer to manage forward syncing
+        do
+        {
+            BlockHeader? header = _blockTree.FindHeader(startingPoint, BlockTreeLookupOptions.All);
+            if (header == null)
+            {
+                if (_logger.IsTrace) _logger.Trace($"Header for number {startingPoint} was not found");
+                return null;
+            }
+
+            Block? block = _blockTree.FindBlock(header!.ParentHash ?? header.CalculateHash());
+            parentBlockExists = block != null;
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"Searching for starting point on level {startingPoint}. Header: {header.ToString(BlockHeader.Format.FullHashAndNumber)}, Block: {block?.ToString(Block.Format.FullHashAndNumber)}");
+            --startingPoint;
+            if (_syncConfig.FastSync && startingPoint <= _syncConfig.PivotNumberParsed)
+            {
+                if (_logger.IsTrace) _logger.Trace($"Reached syncConfig pivot. Starting point: {startingPoint}");
+                break;
+            }
+        } while (!parentBlockExists);
+
+        return startingPoint;
     }
 }

@@ -193,7 +193,7 @@ public partial class BlockTreeTests
                             LimboLogs.Instance);
                     }
 
-                    _chainLevelHelper = new ChainLevelHelper(NotSyncedTree, LimboLogs.Instance);
+                    _chainLevelHelper = new ChainLevelHelper(NotSyncedTree, new SyncConfig(), LimboLogs.Instance);
                     return this;
                 }
 
@@ -219,12 +219,12 @@ public partial class BlockTreeTests
                 public ScenarioBuilder SuggestBlocksUsingChainLevels(int maxCount = 2)
                 {
                     BlockHeader[] headers = _chainLevelHelper!.GetNextHeaders(maxCount);
-                    while (headers.Length !=1)
+                    while (headers != null && headers.Length > 0)
                     {
                         for (int i = 0; i < headers.Length; ++i)
                         {
                             Block? beaconBlock = SyncedTree!.FindBlock(headers[i].Hash!, BlockTreeLookupOptions.None);
-                            AddBlockResult insertResult = NotSyncedTree!.SuggestBlock(beaconBlock!, BlockTreeSuggestOptions.ShouldProcess | BlockTreeSuggestOptions.TryProcessKnownBlock);
+                            AddBlockResult insertResult = NotSyncedTree!.SuggestBlock(beaconBlock!, BlockTreeSuggestOptions.ShouldProcess | BlockTreeSuggestOptions.TryProcessKnownBlock, true);
                             Assert.True(AddBlockResult.Added == insertResult, $"BeaconBlock {beaconBlock!.ToString(Block.Format.FullHashAndNumber)}");
                         }
                         
@@ -236,7 +236,7 @@ public partial class BlockTreeTests
 
                 public ScenarioBuilder InsertHeaders(long low, long high)
                 {
-                    BlockTreeInsertOptions options = BlockTreeInsertOptions.BeaconBlockInsert;
+                    BlockTreeInsertOptions options = BlockTreeInsertOptions.TotalDifficultyNotNeeded | BlockTreeInsertOptions.SkipUpdateBestPointers;
                     for (long i = high; i >= low; --i)
                     {
                         BlockHeader? beaconHeader = SyncedTree!.FindHeader(i, BlockTreeLookupOptions.None);

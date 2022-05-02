@@ -25,15 +25,9 @@ namespace Nethermind.Synchronization.Test
 {
     [TestFixture(SynchronizerType.Fast)]
     [TestFixture(SynchronizerType.Full)]
-    [TestFixture(SynchronizerType.Eth2MergeFull)]
-    [TestFixture(SynchronizerType.Eth2MergeFast)]
-    [TestFixture(SynchronizerType.Eth2MergeFastWithoutTTD)]
-    [Parallelizable(ParallelScope.All)]
     public class SynchronizerTests
     {
         private readonly SynchronizerType _synchronizerType;
-        
-        private const int WaitTime = 500;
 
         public SynchronizerTests(SynchronizerType synchronizerType)
         {
@@ -252,16 +246,9 @@ namespace Nethermind.Synchronization.Test
                 bool receivedBlock = peerB.ReceivedBlocks.TryPeek(out peerBNewBlock);
                 return receivedBlock && peerBNewBlock.Hash == peerA.HeadBlock.Hash;
             }, WaitTime);
-
-            // if (_synchronizerType == SynchronizerType.Eth2MergeFull)
-            // {
-            //     Assert.IsNull(peerBNewBlock);
-            //     Assert.AreNotEqual(peerB.HeadBlock.Hash, peerA.HeadBlock.Hash);
-            // }
-            // else
-            // {
-                Assert.AreEqual(peerBNewBlock?.Header.Hash!, peerA.HeadBlock.Hash);
-            // }
+            
+            Assert.AreEqual(peerBNewBlock?.Header.Hash!, peerA.HeadBlock.Hash);
+            
         }
 
         [Test, Retry(3)]
@@ -465,5 +452,7 @@ namespace Nethermind.Synchronization.Test
             When.Syncing
                 .Stop();
         }
+
+        private const int WaitTime = 500;
     }
 }
