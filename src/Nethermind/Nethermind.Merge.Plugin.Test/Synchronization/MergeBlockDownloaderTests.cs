@@ -54,7 +54,7 @@ public class MergeBlockDownloaderTests
         InMemoryReceiptStorage receiptStorage = new();
         MergeBlockDownloader downloader = new(ctx.PosSwitcher, ctx.BeaconPivot, ctx.Feed, ctx.PeerPool, ctx.NotSyncedTree,
             Always.Valid, Always.Valid, NullSyncReport.Instance, receiptStorage, RopstenSpecProvider.Instance,
-            CreateMergePeerChoiceStrategy(ctx.PosSwitcher), new ChainLevelHelper(ctx.NotSyncedTree, LimboLogs.Instance),
+            CreateMergePeerChoiceStrategy(ctx.PosSwitcher), new ChainLevelHelper(ctx.NotSyncedTree, ctx.SyncConfig, LimboLogs.Instance),
             LimboLogs.Instance);
 
         SyncResponse responseOptions = SyncResponse.AllCorrect;
@@ -99,6 +99,7 @@ public class MergeBlockDownloaderTests
         public IBeaconPivot BeaconPivot;
         public IBlockTree SyncedTree;
         public IBlockTree NotSyncedTree;
+        public ISyncConfig SyncConfig;
         public BlockTreeTests.BlockTreeTestScenario.ScenarioBuilder blockTrees;
 
         public Context(int pivotNumber, int nonSyncedTreeSize, long headNumber, long insertedBeaconBlocks)
@@ -118,17 +119,17 @@ public class MergeBlockDownloaderTests
 
             MemDb stateDb = new();
 
-            SyncConfig syncConfig = new();
+            SyncConfig = new SyncConfig();
             SyncProgressResolver syncProgressResolver = new(
                 BlockTree,
                 NullReceiptStorage.Instance,
                 stateDb,
                 new TrieStore(stateDb, LimboLogs.Instance),
-                syncConfig,
+                SyncConfig,
                 LimboLogs.Instance);
             TotalDifficultyBasedBetterPeerStrategy bestPeerStrategy =
                 new(syncProgressResolver, LimboLogs.Instance);
-            ISyncModeSelector syncModeSelector = new MultiSyncModeSelector(syncProgressResolver, PeerPool, syncConfig, No.BeaconSync,
+            ISyncModeSelector syncModeSelector = new MultiSyncModeSelector(syncProgressResolver, PeerPool, SyncConfig, No.BeaconSync,
                 bestPeerStrategy, LimboLogs.Instance);
             Feed = new FullSyncFeed(syncModeSelector, LimboLogs.Instance);
             MergeConfig mergeConfig = new() { Enabled = true };

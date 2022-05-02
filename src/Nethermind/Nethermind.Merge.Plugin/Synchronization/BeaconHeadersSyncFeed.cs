@@ -35,8 +35,8 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
     private readonly IPivot _pivot;
     private readonly IMergeConfig _mergeConfig;
     private readonly ILogger _logger;
-    protected override long HeadersDestinationNumber => _pivot.PivotDestinationNumber;
-    protected override bool AllHeadersDownloaded => (_blockTree.LowestInsertedBeaconHeader?.Number ?? long.MaxValue) <= _pivot.PivotDestinationNumber;
+    protected override long HeadersDestinationNumber => _blockTree.BestSuggestedHeader?.Number ?? 0;
+    protected override bool AllHeadersDownloaded => (_blockTree.LowestInsertedBeaconHeader?.Number ?? long.MaxValue) <= (_blockTree.BestSuggestedHeader?.Number ?? 0);
     protected override BlockHeader? LowestInsertedBlockHeader => _blockTree.LowestInsertedBeaconHeader;
     protected override MeasuredProgress HeadersSyncProgressReport => _syncReport.BeaconHeaders;
     public BeaconHeadersSyncFeed(
@@ -83,12 +83,6 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
 
     protected override void FinishAndCleanUp()
     {
-        // TODO: beaconsync backfill of TD should be moved to forward beacon sync
-        if (_mergeConfig.FinalTotalDifficultyParsed == null)
-        {
-            // set total difficulty as beacon pivot does not provide total difficulty
-            _blockTree.BackFillTotalDifficulty(LowestInsertedBlockHeader?.Number ?? 0, _pivotNumber);   
-        }
         // make feed dormant as there may be more header syncs when there is a new beacon pivot
         FallAsleep();
         PostFinishCleanUp();

@@ -23,8 +23,10 @@ using NUnit.Framework;
 
 namespace Nethermind.Merge.Plugin.Test.Synchronization;
 
-[TestFixture(SynchronizerType.Fast)]
-[TestFixture(SynchronizerType.Full)]
+[TestFixture(SynchronizerType.Eth2MergeFull)]
+[TestFixture(SynchronizerType.Eth2MergeFast)]
+[TestFixture(SynchronizerType.Eth2MergeFastWithoutTTD)]
+[TestFixture(SynchronizerType.Eth2MergeFullWithoutTTD)]
 [Parallelizable(ParallelScope.All)]
 public class MergeSynchronizerTests
 {

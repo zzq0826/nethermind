@@ -25,6 +25,7 @@ using Nethermind.Crypto;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Synchronization;
 
 namespace Nethermind.Merge.Plugin.Synchronization
@@ -55,7 +56,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _blockTree = blockTree;
             _peerRefresher = peerRefresher;
             _logger = logManager.GetClassLogger();
-            // _currentBeaconPivot = _blockTree.LowestInsertedBeaconHeader; // ToDo Sarah: I think it is incorrect, but we should discuss it
+            _currentBeaconPivot = _blockTree.LowestInsertedBeaconHeader; // ToDo Sarah: I think it is incorrect, but we should discuss it
         }
 
         public long PivotNumber => _currentBeaconPivot?.Number ?? _syncConfig.PivotNumberParsed;
@@ -92,7 +93,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
         {
             if (_logger.IsInfo) _logger.Info($"Removing beacon pivot, previous pivot: {_currentBeaconPivot}");
             _currentBeaconPivot = null;
-            // ToDo clear DB
+            _metadataDb.Delete(MetadataDbKeys.LowestInsertedBeaconHeaderHash);
         }
 
         public bool BeaconPivotExists() => _currentBeaconPivot != null;
