@@ -18,8 +18,8 @@ namespace Nethermind.Synchronization.SnapSync
     {
         long _testReqCount;
 
-        private const int STORAGE_BATCH_SIZE = 500;
-        private const int CODES_BATCH_SIZE = 500;
+        private const int STORAGE_BATCH_SIZE = 1500;
+        private const int CODES_BATCH_SIZE = 1500;
         private readonly byte[] ACC_PROGRESS_KEY = Encoding.ASCII.GetBytes("AccountProgressKey");
 
         private int _activeAccountRequests;
@@ -47,6 +47,8 @@ namespace Nethermind.Synchronization.SnapSync
             _db = db ?? throw new ArgumentNullException(nameof(db));
 
             _pivot = new Pivot(blockTree, logManager);
+
+            _logger.Info($"SNAP - batch sizes - storage:{STORAGE_BATCH_SIZE}, codes:{CODES_BATCH_SIZE}");
 
             //TODO: maybe better to move to a init methot instead of the constructor
             GetSyncProgress();

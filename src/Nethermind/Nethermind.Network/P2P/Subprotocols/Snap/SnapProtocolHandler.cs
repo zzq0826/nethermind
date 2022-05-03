@@ -35,7 +35,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 {
     public class SnapProtocolHandler : ZeroProtocolHandlerBase, ISnapSyncPeer
     {
-        private const int BYTES_LIMIT = 1_000_000;
+        public const int BYTES_LIMIT = 2_000_000;
 
         public override string Name => "snap1";
         protected override TimeSpan InitTimeout => Timeouts.Eth;
@@ -129,7 +129,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void LogRequest(IByteBuffer buffer)
         {
-            Logger.Info($"SNAP - GetNodeData{Bytes.ToHexString(buffer.Array)}");
+            Logger.Info($"SNAP - GetNodeData:{Bytes.ToHexString(buffer.Array)}");
         }
 
         private void Handle(AccountRangeMessage msg, long size)
