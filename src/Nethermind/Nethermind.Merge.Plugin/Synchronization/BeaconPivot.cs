@@ -41,21 +41,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private BlockHeader? _currentBeaconPivot;
         private BlockHeader? _pivotParent;
         private bool _pivotParentProcessed;
-
-        private BlockHeader? CurrentBeaconPivot
-        {
-            get => _currentBeaconPivot;
-            set
-            {
-                _currentBeaconPivot = value;
-                if (value != null)
-                {
-                    _metadataDb.Set(MetadataDbKeys.BeaconSyncPivotHash,
-                        Rlp.Encode(value.Hash ?? value.CalculateHash()).Bytes);
-                } else _metadataDb.Delete(MetadataDbKeys.LowestInsertedBeaconHeaderHash);
-            }
-        }
-
+        
         public BeaconPivot(
             ISyncConfig syncConfig,
             IMergeConfig mergeConfig,
@@ -71,6 +57,21 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _peerRefresher = peerRefresher;
             _logger = logManager.GetClassLogger();
             LoadBeaconPivot();
+            
+        }
+    
+        private BlockHeader? CurrentBeaconPivot
+        {
+            get => _currentBeaconPivot;
+            set
+            {
+                _currentBeaconPivot = value;
+                if (value != null)
+                {
+                    _metadataDb.Set(MetadataDbKeys.BeaconSyncPivotHash,
+                        Rlp.Encode(value.Hash ?? value.CalculateHash()).Bytes);
+                } else _metadataDb.Delete(MetadataDbKeys.BeaconSyncPivotHash);
+            }
         }
 
         public long PivotNumber => CurrentBeaconPivot?.Number ?? _syncConfig.PivotNumberParsed;
@@ -98,7 +99,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 {
                     return;
                 }
-
+                
                 CurrentBeaconPivot = blockHeader;
                 _blockTree.LowestInsertedBeaconHeader = blockHeader;
                 if (_logger.IsInfo) _logger.Info($"New beacon pivot: {blockHeader}");
@@ -117,7 +118,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
         {
             if (_metadataDb.KeyExists(MetadataDbKeys.BeaconSyncPivotHash))
             {
-                Keccak? pivotHash = _metadataDb.Get(MetadataDbKeys.LowestInsertedBeaconHeaderHash)?
+                Keccak? pivotHash = _metadataDb.Get(MetadataDbKeys.BeaconSyncPivotHash)?
                     .AsRlpStream().DecodeKeccak();
                 if (pivotHash != null)
                 {

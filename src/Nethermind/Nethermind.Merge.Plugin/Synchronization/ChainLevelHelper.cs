@@ -16,6 +16,7 @@
 // 
 
 using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
@@ -140,13 +141,13 @@ public class ChainLevelHelper : IChainLevelHelper
         // in normal situation we will have one iteration of this loop, in some cases a few. Thanks to that we don't need to add extra pointer to manage forward syncing
         do
         {
-            BlockHeader? header = _blockTree.FindHeader(startingPoint, BlockTreeLookupOptions.All);
-            if (header == null)
+            ChainLevelInfo? level = _blockTree.FindLevel(startingPoint);
+            if (level == null || level.BlockInfos.Any(b => (b.Metadata & BlockMetadata.BeaconHeader) == 0))
             {
-                if (_logger.IsTrace) _logger.Trace($"Header for number {startingPoint} was not found");
                 return null;
             }
 
+            BlockHeader? header = _blockTree.FindHeader(startingPoint, BlockTreeLookupOptions.None);
             Block? block = _blockTree.FindBlock(header!.ParentHash ?? header.CalculateHash());
             parentBlockExists = block != null;
             if (_logger.IsTrace)

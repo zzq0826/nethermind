@@ -236,7 +236,7 @@ public partial class BlockTreeTests
 
                 public ScenarioBuilder InsertHeaders(long low, long high)
                 {
-                    BlockTreeInsertOptions options = BlockTreeInsertOptions.TotalDifficultyNotNeeded | BlockTreeInsertOptions.SkipUpdateBestPointers;
+                    BlockTreeInsertOptions options = BlockTreeInsertOptions.BeaconBlockInsert;
                     for (long i = high; i >= low; --i)
                     {
                         BlockHeader? beaconHeader = SyncedTree!.FindHeader(i, BlockTreeLookupOptions.None);

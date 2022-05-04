@@ -97,12 +97,7 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
     protected override AddBlockResult InsertToBlockTree(BlockHeader header)
     {
         if (_logger.IsTrace) _logger.Trace($"Adding new header in beacon headers sync {header.ToString(BlockHeader.Format.FullHashAndNumber)}");
-        BlockTreeInsertOptions options = BlockTreeInsertOptions.SkipUpdateBestPointers | BlockTreeInsertOptions.UpdateBeaconPointers;
-        if (_nextHeaderDiff is null)
-        {
-            options |= BlockTreeInsertOptions.TotalDifficultyNotNeeded;
-        }
-
+        BlockTreeInsertOptions options = BlockTreeInsertOptions.BeaconBlockInsert;
         AddBlockResult insertOutcome = _blockTree.IsKnownBlock(header.Number, header.Hash)
             ? AddBlockResult.AlreadyKnown
             : _blockTree.Insert(header, options);
