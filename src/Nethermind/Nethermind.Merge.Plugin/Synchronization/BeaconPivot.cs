@@ -42,6 +42,20 @@ namespace Nethermind.Merge.Plugin.Synchronization
         private BlockHeader? _pivotParent;
         private bool _pivotParentProcessed;
 
+        private BlockHeader? CurrentBeaconPivot
+        {
+            get => _currentBeaconPivot;
+            set
+            {
+                _currentBeaconPivot = value;
+                if (value != null)
+                {
+                    _metadataDb.Set(MetadataDbKeys.BeaconSyncPivotHash,
+                        Rlp.Encode(value.Hash ?? value.CalculateHash()).Bytes);
+                } else _metadataDb.Delete(MetadataDbKeys.LowestInsertedBeaconHeaderHash);
+            }
+        }
+
         public BeaconPivot(
             ISyncConfig syncConfig,
             IMergeConfig mergeConfig,
@@ -56,34 +70,36 @@ namespace Nethermind.Merge.Plugin.Synchronization
             _blockTree = blockTree;
             _peerRefresher = peerRefresher;
             _logger = logManager.GetClassLogger();
-            _currentBeaconPivot = _blockTree.LowestInsertedBeaconHeader; // ToDo Sarah: I think it is incorrect, but we should discuss it
+            LoadBeaconPivot();
         }
 
-        public long PivotNumber => _currentBeaconPivot?.Number ?? _syncConfig.PivotNumberParsed;
+        public long PivotNumber => CurrentBeaconPivot?.Number ?? _syncConfig.PivotNumberParsed;
 
-        public Keccak PivotHash => _currentBeaconPivot?.Hash ?? _syncConfig.PivotHashParsed;
+        public Keccak PivotHash => CurrentBeaconPivot?.Hash ?? _syncConfig.PivotHashParsed;
 
-        public UInt256? PivotTotalDifficulty => _currentBeaconPivot is null ?
-            _syncConfig.PivotTotalDifficultyParsed : _currentBeaconPivot.TotalDifficulty;
+        public UInt256? PivotTotalDifficulty => CurrentBeaconPivot is null
+            ? _syncConfig.PivotTotalDifficultyParsed
+            : CurrentBeaconPivot.TotalDifficulty;
 
-        public long PivotDestinationNumber => _currentBeaconPivot is null
+        public long PivotDestinationNumber => CurrentBeaconPivot is null
             ? 0
             // :  Math.Max(_syncConfig.PivotNumberParsed, _blockTree.BestSuggestedHeader?.Number ?? 0) + 1; // ToDo Sarah the current code is not ready to go with BestSuggestedHeader. I see that beacon finished is trying to reach _syncConfig and we're stuck because of that
             : _syncConfig.PivotNumberParsed + 1;
+
         public void EnsurePivot(BlockHeader? blockHeader)
         {
             bool beaconPivotExists = BeaconPivotExists();
             if (blockHeader != null)
             {
                 _peerRefresher.RefreshPeers(blockHeader.Hash!);
-                
+
                 // ToDo Sarah in some cases this could be wrong
                 if (beaconPivotExists && (PivotNumber > blockHeader.Number || blockHeader.Hash == PivotHash))
                 {
                     return;
                 }
-                
-                _currentBeaconPivot = blockHeader;
+
+                CurrentBeaconPivot = blockHeader;
                 _blockTree.LowestInsertedBeaconHeader = blockHeader;
                 if (_logger.IsInfo) _logger.Info($"New beacon pivot: {blockHeader}");
             }
@@ -92,16 +108,31 @@ namespace Nethermind.Merge.Plugin.Synchronization
         public void RemoveBeaconPivot()
         {
             if (_logger.IsInfo) _logger.Info($"Removing beacon pivot, previous pivot: {_currentBeaconPivot}");
-            _currentBeaconPivot = null;
-            _metadataDb.Delete(MetadataDbKeys.LowestInsertedBeaconHeaderHash);
+            CurrentBeaconPivot = null;
         }
 
-        public bool BeaconPivotExists() => _currentBeaconPivot != null;
+        public bool BeaconPivotExists() => CurrentBeaconPivot != null;
+
+        private void LoadBeaconPivot()
+        {
+            if (_metadataDb.KeyExists(MetadataDbKeys.BeaconSyncPivotHash))
+            {
+                Keccak? pivotHash = _metadataDb.Get(MetadataDbKeys.LowestInsertedBeaconHeaderHash)?
+                    .AsRlpStream().DecodeKeccak();
+                if (pivotHash != null)
+                {
+                    _currentBeaconPivot =
+                        _blockTree.FindHeader(pivotHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+                }
+            }
+
+            if (_logger.IsInfo) _logger.Info($"Loaded Beacon Pivot: {CurrentBeaconPivot}");
+        }
     }
 
     public interface IBeaconPivot : IPivot
     {
-        void  EnsurePivot(BlockHeader? blockHeader);
+        void EnsurePivot(BlockHeader? blockHeader);
 
         void RemoveBeaconPivot();
 
