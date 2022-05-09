@@ -246,22 +246,28 @@ namespace Nethermind.Synchronization.SnapSync
 
         public void AddCodes(Keccak[] requestedHashes, byte[][] codes)
         {
-            HashSet<Keccak> set = requestedHashes.ToHashSet();
-
-            for (int i = 0; i < codes.Length; i++)
+            int requestIndex = 0;
+            List<Keccak> missingHashes = new();
+            for (int i = 0; i < codes.Length && requestIndex < requestedHashes.Length; )
             {
                 byte[] code = codes[i];
-                Keccak codeHash = Keccak.Compute(code);
-
-                if (set.Remove(codeHash))
+                ValueKeccak codeHash = ValueKeccak.Compute(code);
+                Keccak requestedHash = requestedHashes[requestIndex];
+                if (codeHash == requestedHash)
                 {
-                    _dbProvider.CodeDb.Set(codeHash, code);
+                    _dbProvider.CodeDb.Set(requestedHash, code);
+                    i++;
                 }
+                else
+                {
+                    missingHashes.Add(requestedHash);
+                }
+                requestIndex++;
             }
 
             Interlocked.Add(ref Metrics.SnapSyncedCodes, codes.Length);
 
-            _progressTracker.ReportCodeRequestFinished(set);
+            _progressTracker.ReportCodeRequestFinished(missingHashes);
         }
 
         public void RetryRequest(SnapSyncBatch batch)

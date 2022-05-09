@@ -57,6 +57,56 @@ namespace Nethermind.Core.Crypto
             KeccakHash.ComputeHashBytesToSpan(input, output);
             return result;
         }
+        
+        public static bool operator==(ValueKeccak a, Keccak? b)
+        {
+            if (ReferenceEquals(b, null))
+            {
+                return false;
+            }
+
+            return Core.Extensions.Bytes.AreEqual(a.BytesAsSpan, b.Bytes);
+        }
+        
+        public static bool operator!=(ValueKeccak a, Keccak? b)
+        {
+            if (ReferenceEquals(b, null))
+            {
+                return false;
+            }
+
+            return !Core.Extensions.Bytes.AreEqual(a.BytesAsSpan, b.Bytes);
+        }
+        
+        public static bool operator==(ValueKeccak a, ValueKeccak b)
+        {
+            return Core.Extensions.Bytes.AreEqual(a.BytesAsSpan, b.BytesAsSpan);
+        }
+        
+        public static bool operator!=(ValueKeccak a, ValueKeccak b)
+        {
+            return !Core.Extensions.Bytes.AreEqual(a.BytesAsSpan, b.BytesAsSpan);
+        }
+        
+        public static bool operator==(Keccak? a, ValueKeccak b)
+        {
+            if (ReferenceEquals(a, null))
+            {
+                return false;
+            }
+
+            return Core.Extensions.Bytes.AreEqual(a.Bytes, b.BytesAsSpan);
+        }
+        
+        public static bool operator!=(Keccak? a, ValueKeccak b)
+        {
+            if (ReferenceEquals(a, null))
+            {
+                return false;
+            }
+
+            return !Core.Extensions.Bytes.AreEqual(a.Bytes, b.BytesAsSpan);
+        }
     }
 
     [DebuggerStepThrough]

@@ -193,14 +193,14 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
-        public void ReportCodeRequestFinished(ICollection<Keccak> codeHashes = null)
+        public void ReportCodeRequestFinished(ICollection<Keccak>? missedCodeHashes = null)
         {
-            EnqueueCodeHashes(codeHashes);
+            EnqueueCodeHashes(missedCodeHashes);
 
             Interlocked.Decrement(ref _activeCodeRequests);
         }
 
-        public void ReportAccountRefreshFinished(AccountsToRefreshRequest accountsToRefreshRequest = null)
+        public void ReportAccountRefreshFinished(AccountsToRefreshRequest? accountsToRefreshRequest = null)
         {
             if (accountsToRefreshRequest is not null)
             {
