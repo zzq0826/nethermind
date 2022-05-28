@@ -834,9 +834,10 @@ namespace Nethermind.TxPool.Test
         }
 
         [Test]
+        [Repeat(25)]
         public void should_add_transactions_concurrently()
         {
-            int size = 3;
+            int size = 2048;
             TxPoolConfig config = new() {GasLimit = _txGasLimit, Size = size};
             _txPool = CreatePool(config);
 
@@ -855,6 +856,26 @@ namespace Nethermind.TxPool.Test
             });
 
             _txPool.GetPendingTransactionsCount().Should().Be(size);
+        }
+        
+        [Test]
+        [Repeat(25)]
+        public void should_reject_transactions_concurrently()
+        {
+            int size = 2048;
+            TxPoolConfig config = new() {GasLimit = _txGasLimit, Size = size};
+            _txPool = CreatePool(config);
+            
+            Parallel.ForEach(TestItem.PrivateKeys, k =>
+            {
+                for (uint i = 0; i < 100; i++)
+                {
+                    Transaction tx = GetTransaction(i, GasCostOf.Transaction, 10.GWei(), TestItem.AddressA, Array.Empty<byte>(), k);
+                    _txPool.SubmitTx(tx, TxHandlingOptions.None);
+                }
+            });
+
+            _txPool.GetPendingTransactionsCount().Should().Be(0);
         }
 
         [TestCase(true, true,10)]
