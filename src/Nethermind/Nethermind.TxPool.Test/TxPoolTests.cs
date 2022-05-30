@@ -864,7 +864,12 @@ namespace Nethermind.TxPool.Test
         {
             int size = 2048;
             TxPoolConfig config = new() {GasLimit = _txGasLimit, Size = size};
-            _txPool = CreatePool(config);
+            
+            var trieStore = new TrieStore(new MemDb(), _logManager);
+            var codeDb = new MemDb();
+            StateReader stateReader = new(trieStore, codeDb, _logManager);
+            ChainHeadInfoProvider chainHeadInfoProvider = new(_specProvider, _blockTree, stateReader);
+            _txPool = CreatePool(config, chainHeadInfoProvider: chainHeadInfoProvider);
             
             Parallel.ForEach(TestItem.PrivateKeys, k =>
             {
