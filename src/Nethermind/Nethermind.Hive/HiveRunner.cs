@@ -222,19 +222,6 @@ namespace Nethermind.Hive
                     return;
                 }
 
-                try
-                {
-                    if (_tracer.Trace(block, NullBlockTracer.Instance) is null)
-                    {
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (_logger.IsError) _logger.Error($"Failed to process block {block}", ex);
-                    return;
-                }
-                
                 if (_logger.IsInfo)
                     _logger.Info(
                         $"HIVE suggested {block.ToString(Block.Format.Short)}, now best suggested header {_blockTree.BestSuggestedHeader}, head {_blockTree.Head?.Header?.ToString(BlockHeader.Format.Short)}");
