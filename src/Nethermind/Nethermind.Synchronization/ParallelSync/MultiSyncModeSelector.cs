@@ -146,12 +146,14 @@ namespace Nethermind.Synchronization.ParallelSync
             else
             {
                 bool inBeaconControl = _beaconSyncStrategy.ShouldBeInBeaconModeControl();
+                _logger.Info($"HIVEDEBUG is in beacon control: {inBeaconControl}");
                 (UInt256? peerDifficulty, long? peerBlock) = ReloadDataFromPeers();
                 // if there are no peers that we could use then we cannot sync
                 if (peerDifficulty == null || peerBlock == null || peerBlock == 0)
                 {
                     newModes = inBeaconControl ? SyncMode.WaitingForBlock : SyncMode.Disconnected;
                     reason = "No Useful Peers";
+                    _logger.Info($"HIVEDEBUG new modes: {newModes}");
                 }
                 // to avoid expensive checks we make this simple check at the beginning
                 else
@@ -159,6 +161,8 @@ namespace Nethermind.Synchronization.ParallelSync
                     Snapshot best = TakeSnapshot(peerDifficulty.Value, peerBlock.Value, inBeaconControl);
                     best.IsInBeaconHeaders = _beaconSyncStrategy.ShouldBeInBeaconHeaders();
                     
+                    _logger.Info($"HIVEDEBUG FASTSYNC enabled: {FastSyncEnabled}");
+                    _logger.Info($"HIVEDEBUG FASTBLOCKS enabled: {FastBlocksEnabled}");
                     if (!FastSyncEnabled)
                     {
                         best.IsInWaitingForBlock = ShouldBeInWaitingForBlockMode(best);
