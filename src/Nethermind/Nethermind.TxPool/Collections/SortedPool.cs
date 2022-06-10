@@ -268,12 +268,13 @@ namespace Nethermind.TxPool.Collections
         /// </summary>
         /// <param name="key">Key to be inserted.</param>
         /// <param name="value">Element to insert.</param>
+        /// <param name="forceInsert">True if element should be forcefully inserted.</param>
         /// <param name="removed">Element removed because of exceeding capacity</param>
         /// <returns>If element was inserted. False if element was already present in pool.</returns>
         [MethodImpl(MethodImplOptions.Synchronized)]
-        public bool TryInsert(TKey key, TValue value, out TValue? removed)
+        public bool TryInsert(TKey key, TValue value, bool forceInsert, out TValue? removed)
         {
-            if (CanInsert(key, value))
+            if (CanInsert(key, value, forceInsert))
             {
                 TGroupKey group = MapToGroup(value);
 
@@ -297,7 +298,7 @@ namespace Nethermind.TxPool.Collections
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
-        public bool TryInsert(TKey key, TValue value) => TryInsert(key, value, out _);
+        public bool TryInsert(TKey key, TValue value) => TryInsert(key, value, false, out _);
         
         private void RemoveLast(out TValue? removed)
         {
@@ -307,7 +308,7 @@ namespace Nethermind.TxPool.Collections
         /// <summary>
         /// Checks if element can be inserted.
         /// </summary>
-        protected virtual bool CanInsert(TKey key, TValue value)
+        protected virtual bool CanInsert(TKey key, TValue value, bool forceInsert = false)
         {
             if (value is null)
             {

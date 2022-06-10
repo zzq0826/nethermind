@@ -297,7 +297,7 @@ namespace Nethermind.TxPool
                 bool eip1559Enabled = _specProvider.GetCurrentHeadSpec().IsEip1559Enabled;
 
                 tx.GasBottleneck = tx.CalculateEffectiveGasPrice(eip1559Enabled, _headInfo.CurrentBaseFee);
-                bool inserted = _transactions.TryInsert(tx.Hash, tx, out Transaction? removed);
+                bool inserted = _transactions.TryInsert(tx.Hash, tx, tx.IsFree(), out Transaction? removed);
                 if (inserted)
                 { 
                     _transactions.UpdateGroup(tx.SenderAddress!, UpdateBucketWithAddedTransaction);

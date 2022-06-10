@@ -75,12 +75,17 @@ namespace Nethermind.TxPool.Collections
         
         protected virtual bool AllowSameKeyReplacement => false; 
 
-        protected override bool CanInsert(TKey key, TValue value)
+        protected override bool CanInsert(TKey key, TValue value, bool isFree = false)
         {
             // either there is no distinct value or it would go before (or at same place) as old value
             // if it would go after old value in order, we ignore it and wont add it
             if (AllowSameKeyReplacement || base.CanInsert(key, value))
             {
+                if (isFree)
+                {
+                    return true;
+                }
+                
                 bool isDuplicate = _distinctDictionary.TryGetValue(value, out var oldKvp);
                 if (isDuplicate)
                 {
