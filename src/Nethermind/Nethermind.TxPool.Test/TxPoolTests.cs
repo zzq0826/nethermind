@@ -1182,6 +1182,68 @@ namespace Nethermind.TxPool.Test
             _txPool.GetPendingTransactions().First().Should().BeEquivalentTo(replaced ? newTx : oldTx);
         }
 
+        [Test]
+        public void should_always_replace_free_tx()
+        {
+            ISpecProvider specProvider = GetLondonSpecProvider();
+            _txPool = CreatePool(null, specProvider);
+            Transaction oldTx = Build.A.Transaction
+                .WithSenderAddress(TestItem.AddressA)
+                .WithNonce(0)
+                .WithType(TxType.Legacy)
+                .WithGasPrice(UInt256.Zero)
+                .WithTo(TestItem.AddressB)
+                .WithIsServiceTransaction(true)
+                .SignedAndResolved(_ethereumEcdsa, TestItem.PrivateKeyA).TestObject;
+            Transaction newTx = Build.A.Transaction
+                .WithSenderAddress(TestItem.AddressA)
+                .WithNonce(0)
+                .WithType(TxType.Legacy)
+                .WithGasPrice(UInt256.Zero)
+                .WithTo(TestItem.AddressC)
+                .WithIsServiceTransaction(true)
+                .SignedAndResolved(_ethereumEcdsa, TestItem.PrivateKeyA).TestObject;
+            EnsureSenderBalance(TestItem.AddressA, UInt256.MaxValue);
+
+            _txPool.SubmitTx(oldTx, TxHandlingOptions.PersistentBroadcast);
+            _txPool.SubmitTx(newTx, TxHandlingOptions.PersistentBroadcast);
+            
+            _txPool.GetPendingTransactions().Length.Should().Be(1);
+            _txPool.GetPendingTransactions().First().Should().BeEquivalentTo(newTx);
+        }
+        
+        [Test]
+        public void should_always_replace_free_tx_1559()
+        {
+            ISpecProvider specProvider = GetLondonSpecProvider();
+            _txPool = CreatePool(null, specProvider);
+            Transaction oldTx = Build.A.Transaction
+                .WithSenderAddress(TestItem.AddressA)
+                .WithNonce(0)
+                .WithType(TxType.EIP1559)
+                .WithMaxFeePerGas(UInt256.Zero)
+                .WithMaxPriorityFeePerGas(UInt256.Zero)
+                .WithTo(TestItem.AddressB)
+                .WithIsServiceTransaction(true)
+                .SignedAndResolved(_ethereumEcdsa, TestItem.PrivateKeyA).TestObject;
+            Transaction newTx = Build.A.Transaction
+                .WithSenderAddress(TestItem.AddressA)
+                .WithNonce(0)
+                .WithType(TxType.EIP1559)
+                .WithMaxFeePerGas(UInt256.Zero)
+                .WithMaxPriorityFeePerGas(UInt256.Zero)
+                .WithTo(TestItem.AddressC)
+                .WithIsServiceTransaction(true)
+                .SignedAndResolved(_ethereumEcdsa, TestItem.PrivateKeyA).TestObject;
+            EnsureSenderBalance(TestItem.AddressA, UInt256.MaxValue);
+
+            _txPool.SubmitTx(oldTx, TxHandlingOptions.PersistentBroadcast);
+            _txPool.SubmitTx(newTx, TxHandlingOptions.PersistentBroadcast);
+            
+            _txPool.GetPendingTransactions().Length.Should().Be(1);
+            _txPool.GetPendingTransactions().First().Should().BeEquivalentTo(newTx);
+        }
+
         private IDictionary<ITxPoolPeer, PrivateKey> GetPeers(int limit = 100)
         {
             var peers = new Dictionary<ITxPoolPeer, PrivateKey>();
