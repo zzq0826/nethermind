@@ -22,6 +22,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 #pragma warning disable 618
 
@@ -35,6 +36,7 @@ namespace Nethermind.Blockchain.Receipts
         private long? _lowestInsertedReceiptBlock;
         private readonly IDbWithSpan _blocksDb;
         private readonly IDb _transactionDb;
+        private readonly ILogger _logger;
         private static readonly Keccak MigrationBlockNumberKey = Keccak.Compute(nameof(MigratedBlockNumber));
         private long _migratedBlockNumber;
         private static readonly ReceiptStorageDecoder StorageDecoder = ReceiptStorageDecoder.Instance;
@@ -42,7 +44,7 @@ namespace Nethermind.Blockchain.Receipts
         private const int CacheSize = 64;
         private readonly ICache<Keccak, TxReceipt[]> _receiptsCache = new LruCache<Keccak, TxReceipt[]>(CacheSize, CacheSize, "receipts");
 
-        public PersistentReceiptStorage(IColumnsDb<ReceiptsColumns> receiptsDb, ISpecProvider specProvider, IReceiptsRecovery receiptsRecovery)
+        public PersistentReceiptStorage(IColumnsDb<ReceiptsColumns> receiptsDb, ISpecProvider specProvider, IReceiptsRecovery receiptsRecovery, ILogManager logManager)
         {
             long Get(Keccak key, long defaultValue) => _database.Get(key)?.ToLongFromBigEndianByteArrayWithoutLeadingZeros() ?? defaultValue;
             
@@ -55,12 +57,22 @@ namespace Nethermind.Blockchain.Receipts
             byte[] lowestBytes = _database.Get(Keccak.Zero);
             _lowestInsertedReceiptBlock = lowestBytes == null ? (long?) null : new RlpStream(lowestBytes).DecodeLong();
             _migratedBlockNumber = Get(MigrationBlockNumberKey, long.MaxValue);
+
+            _logger = logManager.GetClassLogger(GetType());
         }
 
         public Keccak FindBlockHash(Keccak txHash)
         {
-            var blockHashData = _transactionDb.Get(txHash);
-            return blockHashData == null ? FindReceiptObsolete(txHash)?.BlockHash : new Keccak(blockHashData);
+            byte[]? blockHashData = _transactionDb.Get(txHash);
+            
+            Keccak blockHash = blockHashData == null ? FindReceiptObsolete(txHash)?.BlockHash : new Keccak(blockHashData);
+            if (blockHash == null)
+            {
+                if (_logger.IsTrace)
+                    _logger.Trace($"Blockhash for transaction {txHash} not found.");
+            }
+
+            return blockHash;
         }
 
         // Find receipt stored with old - obsolete format.
@@ -172,13 +184,16 @@ namespace Nethermind.Blockchain.Receipts
             txReceipts ??= Array.Empty<TxReceipt>();
             int txReceiptsLength = txReceipts.Length;
             
+            if (_logger.IsTrace) 
+                _logger.Trace($"Storing {txReceipts.Length} transactions for block {block.Hash}");
+            
             if (block.Transactions.Length != txReceiptsLength)
             {
                 throw new InvalidDataException(
                     $"Block {block.ToString(Block.Format.FullHashAndNumber)} has different numbers " +
                     $"of transactions {block.Transactions.Length} and receipts {txReceipts.Length}.");
             }
-
+            
             _receiptsRecovery.TryRecover(block, txReceipts, false);
             
             var blockNumber = block.Number;
@@ -194,6 +209,11 @@ namespace Nethermind.Blockchain.Receipts
                     var txHash = block.Transactions[i].Hash;
                     _transactionDb.Set(txHash, block.Hash.Bytes);
                 }
+            }
+            else
+            {
+                if (_logger.IsTrace) 
+                    _logger.Trace($"Transaction for block {block.Hash} not stored because it is marked as removed");
             }
 
             if (blockNumber < MigratedBlockNumber)

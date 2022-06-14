@@ -1469,11 +1469,17 @@ namespace Nethermind.Blockchain
             level.HasBlockOnMainChain = true;
             _chainLevelInfoRepository.PersistLevel(block.Number, level, batch);
 
-            Block previous = hashOfThePreviousMainBlock is not null && hashOfThePreviousMainBlock != block.Hash
+            Block? previous = hashOfThePreviousMainBlock is not null && hashOfThePreviousMainBlock != block.Hash
                 ? FindBlock(hashOfThePreviousMainBlock, BlockTreeLookupOptions.TotalDifficultyNotNeeded)
                 : null;
 
             if (_logger.IsTrace) _logger.Trace($"Block added to main {block}, block TD {block.TotalDifficulty}");
+            if (previous != null)
+            {
+                if (_logger.IsTrace)
+                    _logger.Trace($"Triggering block replacement for previous block {previous.Hash}, current block: {block.Hash}");
+            }
+
             BlockAddedToMain?.Invoke(this, new BlockReplacementEventArgs(block, previous));
 
             if (forceUpdateHeadBlock || block.IsGenesis || HeadImprovementRequirementsSatisfied(block.Header))

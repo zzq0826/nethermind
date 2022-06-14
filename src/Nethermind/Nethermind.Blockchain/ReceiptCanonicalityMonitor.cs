@@ -54,6 +54,9 @@ namespace Nethermind.Blockchain
         {
             if (previousBlock != null)
             {
+                if (_logger.IsTrace)
+                    _logger.Trace($"Rolling back receipts for transaction {previousBlock.Hash}");
+                
                 TxReceipt[] txReceipts = _receiptStorage.Get(previousBlock);
                 foreach (var txReceipt in txReceipts)
                 {
