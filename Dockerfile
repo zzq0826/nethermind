@@ -14,7 +14,7 @@ RUN if [ "$TARGETARCH" = "amd64" ] ; \
     dotnet publish src/Nethermind/Nethermind.Runner -r $TARGETOS-$TARGETARCH -c release -o out ; \
     fi
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:6.0-jammy
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:6.0
 
 ARG TARGETPLATFORM
 ARG TARGETOS
