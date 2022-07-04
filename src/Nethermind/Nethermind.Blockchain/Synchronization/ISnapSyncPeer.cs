@@ -22,6 +22,6 @@ namespace Nethermind.Blockchain.Synchronization
     {
         public Keccak RootHash { get; set; }
 
-        public byte[][] AccountAndStoragePathes { get; set; }
+        public PathGroup[] AccountAndStoragePaths { get; set; }
     }
 }

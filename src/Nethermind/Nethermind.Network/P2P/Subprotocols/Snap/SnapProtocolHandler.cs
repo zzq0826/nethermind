@@ -248,7 +248,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             GetTrieNodesMessage reqMsg = new ()
             {
                 RootHash = request.RootHash,
-                Paths = new [] { new PathGroup { Group = request.AccountAndStoragePathes } },
+                Paths = request.AccountAndStoragePaths,
                 Bytes = BYTES_LIMIT
             };
 

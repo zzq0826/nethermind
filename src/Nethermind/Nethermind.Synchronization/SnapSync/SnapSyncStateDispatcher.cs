@@ -16,13 +16,12 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.State.Snap;
 using Nethermind.Synchronization.FastSync;
@@ -43,173 +42,144 @@ namespace Nethermind.Synchronization.SnapSync
         protected override async Task Dispatch(PeerInfo peerInfo, StateSyncBatch batch, CancellationToken cancellationToken)
         {
             ISyncPeer peer = peerInfo.SyncPeer;
-            //
-            // //TODO: replace with a constant "snap"
-            if (peer.TryGetSatelliteProtocol<ISnapSyncPeer>("snap", out var handler))
+            if (batch.RequestedNodes is null)
             {
-                foreach(var item in batch.RequestedNodes!.Where(x=>x.NodeDataType == NodeDataType.State))
-                {
-                    var x = item.PathNibbles.Select(x=> new Nibble(x)).ToArray().ToPackedByteArray();
-                    Logger.Warn("ACC REQ:" + item.RootHash + "|" + x.ToHexString());
-                    Task<byte[][]> task = handler.GetTrieNodes(new TrieNodesRequest
-                    {
-                        RootHash = item.RootHash,
-                        AccountAndStoragePathes = new []
-                        {
-                            x
-                        }
-                    }, cancellationToken);
-                    
-                    await task.ContinueWith(
-                        (t, state) =>
-                        {
-                            if (t.IsFaulted)
-                            {
-                                //if (Logger.IsTrace)
-                                    Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                            }
-                    
-                            StateSyncBatch batchLocal = (StateSyncBatch)state!;
-                            if (t.IsCompletedSuccessfully)
-                            {
-                                batchLocal.Responses = t.Result;
-                            }
-                        }, batch);
-                }
-                foreach(var item in batch.RequestedNodes!.Where(x=>x.NodeDataType == NodeDataType.Storage))
-                {
-                    //while (true)
-                    //{
-                        var x = item.AccountPathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
-                        var y = item.PathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
-                        Logger.Warn("STR REQ:"+ item.RootHash + "|"  + x.ToHexString() + "," + y.ToHexString());
-                        Task<byte[][]> task = handler.GetTrieNodes(
-                            new TrieNodesRequest {RootHash = item.RootHash, AccountAndStoragePathes = new[] {x, y}},
-                            cancellationToken);
-                        await task.ContinueWith(
-                            (t, state) =>
-                            {
-                                if (t.IsFaulted)
-                                {
-                                    //if (Logger.IsTrace)
-                                        Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                                }
-                    
-                                StateSyncBatch batchLocal = (StateSyncBatch)state!;
-                                if (t.IsCompletedSuccessfully)
-                                {
-                                    batchLocal.Responses = t.Result;
-                                }
-                            }, batch);
-                }
-                foreach(var item in batch.RequestedNodes!.Where(x=>x.NodeDataType.HasFlag(NodeDataType.Code)))
-                {
-                    var x = item.PathNibbles.Select(x=> new Nibble(x)).ToArray().ToPackedByteArray();
-                    Logger.Warn("CDE REQ:" + item.RootHash + "|" + item.Hash.ToString());
-                    Task<byte[][]> task = handler.GetByteCodes(new []
-                    {
-                        item.Hash
-                    }, cancellationToken);
-                    
-                    await task.ContinueWith(
-                        (t, state) =>
-                        {
-                            if (t.IsFaulted)
-                            {
-                                //if (Logger.IsTrace)
-                                    Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                            }
-                    
-                            StateSyncBatch batchLocal = (StateSyncBatch)state!;
-                            if (t.IsCompletedSuccessfully)
-                            {
-                                batchLocal.Responses = t.Result;
-                            }
-                        }, batch);
-                }
-                // if (batch.AccountRangeRequest is not null)
-                // {
-                //     Task<AccountsAndProofs> task = handler.GetAccountRange(batch.AccountRangeRequest, cancellationToken);
-                //
-                //     await task.ContinueWith(
-                //         (t, state) =>
-                //         {
-                //             if (t.IsFaulted)
-                //             {
-                //                 if (Logger.IsTrace)
-                //                     Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                //             }
-                //
-                //             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
-                //             if (t.IsCompletedSuccessfully)
-                //             {
-                //                 batchLocal.AccountRangeResponse = t.Result;
-                //             }
-                //         }, batch);
-                // }
-                // else if (batch.StorageRangeRequest is not null)
-                // {
-                //     Task<SlotsAndProofs> task = handler.GetStorageRange(batch.StorageRangeRequest, cancellationToken);
-                //
-                //     await task.ContinueWith(
-                //         (t, state) =>
-                //         {
-                //             if (t.IsFaulted)
-                //             {
-                //                 if (Logger.IsTrace)
-                //                     Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                //             }
-                //
-                //             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
-                //             if (t.IsCompletedSuccessfully)
-                //             {
-                //                 batchLocal.StorageRangeResponse = t.Result;
-                //             }
-                //         }, batch);
-                // }
-                // else if (batch.CodesRequest is not null)
-                // {
-                //     Task<byte[][]> task = handler.GetByteCodes(batch.CodesRequest, cancellationToken);
-                //
-                //     await task.ContinueWith(
-                //         (t, state) =>
-                //         {
-                //             if (t.IsFaulted)
-                //             {
-                //                 if (Logger.IsTrace)
-                //                     Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                //             }
-                //
-                //             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
-                //             if (t.IsCompletedSuccessfully)
-                //             {
-                //                 batchLocal.CodesResponse = t.Result;
-                //             }
-                //         }, batch);
-                // }
-                // else if (batch.AccountsToRefreshRequest is not null)
-                // {
-                //     Task<byte[][]> task = handler.GetTrieNodes(batch.AccountsToRefreshRequest, cancellationToken);
-                //
-                //     await task.ContinueWith(
-                //         (t, state) =>
-                //         {
-                //             if (t.IsFaulted)
-                //             {
-                //                 if (Logger.IsTrace)
-                //                     Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
-                //             }
-                //
-                //             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
-                //             if (t.IsCompletedSuccessfully)
-                //             {
-                //                 batchLocal.AccountsToRefreshResponse = t.Result;
-                //             }
-                //         }, batch);
-                // }
+                return;
             }
 
-            await Task.CompletedTask;
+            if (peer.TryGetSatelliteProtocol<ISnapSyncPeer>("snap", out var handler))
+            {
+                Dictionary<Keccak, (
+                        List<byte[]> Nodes,
+                        Dictionary<Keccak, List<byte[]>> Storage, 
+                        List<Keccak> Codes)
+                    >
+                    batches = new();
+                
+                Dictionary<Keccak, int> batchIndex = new();
+                for (int i = 0; i < batch.RequestedNodes.Length; i++)
+                {
+                    StateSyncItem? rItem = batch.RequestedNodes[i];
+                    batchIndex[rItem.Hash] = i;
+                    if(!batches.ContainsKey(rItem.RootHash))
+                    {
+                        batches[rItem.RootHash] =
+                            (
+                                new List<byte[]>(),
+                                new Dictionary<Keccak, List<byte[]>>(),
+                                new List<Keccak>()
+                            );
+                    }
+                    switch (rItem.NodeDataType)
+                    {
+                        case NodeDataType.State:
+                            batches[rItem.RootHash].Nodes.Add(
+                                rItem.PathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray());
+                            break;
+                        case NodeDataType.Storage:
+                            var x = rItem.AccountPathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
+                            var y = rItem.PathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
+                            var nodeHash = new Keccak(x);
+                            if(!batches[rItem.RootHash].Storage.ContainsKey(nodeHash))
+                            {
+                                batches[rItem.RootHash].Storage[nodeHash] = new List<byte[]>();
+                            }
+                            batches[rItem.RootHash].Storage[nodeHash].Add(y);
+                            break;
+                        case NodeDataType.Code:
+                            batches[rItem.RootHash].Codes.Add(rItem.Hash);
+                            break;
+                        default:
+                            throw new Exception();
+                    }
+                }
+
+                List<Task> tasks = new();
+                batch.Responses = new byte[batch.RequestedNodes.Length][];
+                foreach(var root in batches.Keys)
+                {
+                    var rootBatch = batches[root];
+                    var nodePaths =
+                        rootBatch.Nodes.Select(x => new PathGroup {Group = new[] {x}})
+                            .Concat(rootBatch.Storage.Select(kv =>
+                                new PathGroup {Group = new[] {kv.Key.Bytes}.Concat(kv.Value).ToArray()}))
+                            .ToArray();
+                    Task<byte[][]> nodes = handler.GetTrieNodes(
+                        new TrieNodesRequest {RootHash = root, 
+                            AccountAndStoragePaths = nodePaths
+                        },
+                        cancellationToken);
+
+                    tasks.Add(nodes.ContinueWith(
+                        (t, state) =>
+                        {
+                            if (t.IsFaulted)
+                            {
+                                if (Logger.IsTrace)
+                                    Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
+                            }
+
+                            StateSyncBatch batchLocal = (StateSyncBatch)state!;
+                            if (t.IsCompletedSuccessfully)
+                            {
+                                foreach (var res in t.Result)
+                                {
+                                    var hash = Keccak.Compute(res);
+
+                                    if (batchIndex.ContainsKey(hash))
+                                    {
+                                        batchLocal.Responses[batchIndex[hash]] = res;
+                                    }
+                                    else
+                                    {
+                                        
+                                    }
+                                }
+                            }
+                        }, batch));
+                    
+                    Task<byte[][]> codes = handler.GetByteCodes(
+                    rootBatch.Codes.ToArray()
+                    , cancellationToken);
+
+                    tasks.Add(codes.ContinueWith(
+                        (t, state) =>
+                        {
+                            if (t.IsFaulted)
+                            {
+                                if (Logger.IsTrace)
+                                    Logger.Error("DEBUG/ERROR Error after dispatching the snap sync request", t.Exception);
+                            }
+
+                            StateSyncBatch batchLocal = (StateSyncBatch)state!;
+                            if (t.IsCompletedSuccessfully)
+                            {
+                                foreach (var res in t.Result)
+                                {
+                                    var hash = Keccak.Compute(res);
+
+                                    if (batchIndex.ContainsKey(hash))
+                                    {
+                                        batchLocal.Responses[batchIndex[hash]] = res;
+                                    }
+                                    else
+                                    {
+                                        
+                                    }
+                                }
+                            }
+                        }, batch));
+                }
+
+                await Task.WhenAll(tasks.ToArray()).ContinueWith(x =>
+                {
+                    Logger.Warn($"STATS: {batch.Responses.Count(xx=>xx is not null)}/{batch.RequestedNodes.Length}");
+                    foreach (var root in batches)
+                    {
+                        Logger.Warn($"STATS: {root.Key}: {root.Value.Nodes.Count}/{root.Value.Storage.Sum(x=>x.Value.Count)}/{root.Value.Codes.Count}");
+                    }
+                });
+            }
         }
     }
 }
