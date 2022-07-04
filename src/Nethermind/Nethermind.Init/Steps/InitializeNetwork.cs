@@ -212,7 +212,7 @@ namespace Nethermind.Init.Steps
                 }
             });
 
-            if (_syncConfig.SnapSync)
+            //if (_syncConfig.SnapSync)
             {
                 SnapCapabilitySwitcher snapCapabilitySwitcher = new(_api.ProtocolsManager, progressTracker);
                 snapCapabilitySwitcher.EnableSnapCapabilityUntilSynced();

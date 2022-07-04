@@ -242,6 +242,22 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
             return response.Nodes;
         }
+        
+        public async Task<byte[][]> GetTrieNodes(TrieNodesRequest request, CancellationToken token)
+        {
+            GetTrieNodesMessage reqMsg = new ()
+            {
+                RootHash = request.RootHash,
+                Paths = new [] { new PathGroup { Group = request.AccountAndStoragePathes } },
+                Bytes = BYTES_LIMIT
+            };
+
+            TrieNodesMessage response = await SendRequest(reqMsg, _getTrieNodesRequests, token);
+
+            Metrics.SnapGetTrieNodesSent++;
+
+            return response.Nodes;
+        }
 
         private PathGroup[] GetPathGroups(AccountsToRefreshRequest request)
         {

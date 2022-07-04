@@ -74,7 +74,7 @@ namespace Nethermind.Trie
 
             if (oddity == 1)
             {
-                bytes[0] = ToByte(0, nibbles[0]);
+                bytes[0] = ToByte(1, nibbles[0]);
             }
 
             return bytes;

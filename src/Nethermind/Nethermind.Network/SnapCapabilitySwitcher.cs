@@ -40,16 +40,13 @@ public class SnapCapabilitySwitcher
     /// </summary>
     public void EnableSnapCapabilityUntilSynced()
     {
-        if (!_progressTracker.IsSnapGetRangesFinished())
-        {
-            _protocolsManager.AddSupportedCapability(new Capability(Protocol.Snap, 1));
-            _progressTracker.SnapSyncFinished += OnSnapSyncFinished;
-        }
+        _protocolsManager.AddSupportedCapability(new Capability(Protocol.Snap, 1));
+        _progressTracker.SnapSyncFinished += OnSnapSyncFinished;
     }
 
     private void OnSnapSyncFinished(object? sender, EventArgs e)
     {
-        _progressTracker.SnapSyncFinished -= OnSnapSyncFinished;
-        _protocolsManager.RemoveSupportedCapability(new Capability(Protocol.Snap, 1));
+        //_progressTracker.SnapSyncFinished -= OnSnapSyncFinished;
+        //_protocolsManager.RemoveSupportedCapability(new Capability(Protocol.Snap, 1));
     }
 }

@@ -126,8 +126,10 @@ namespace Nethermind.Synchronization
                 {
                     StartSnapSyncComponents();
                 }
-                
-                StartStateSyncComponents();
+                else
+                {
+                    StartStateSyncComponents();
+                }
             }
         }
 
@@ -159,8 +161,8 @@ namespace Nethermind.Synchronization
         {
             TreeSync treeSync = new(SyncMode.StateNodes, _dbProvider.CodeDb, _dbProvider.StateDb, _blockTree, _logManager);
             _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _logManager);
-            StateSyncDispatcher stateSyncDispatcher = new(_stateSyncFeed!, _syncPeerPool, new StateSyncAllocationStrategyFactory(), _logManager);
-            Task syncDispatcherTask = stateSyncDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
+            SnapSyncStateDispatcher stateSyncDispatcher = new(_stateSyncFeed!, _syncPeerPool, new StateSyncAllocationStrategyFactory(), _logManager);
+            _ = stateSyncDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
             {
                 if (t.IsFaulted)
                 {
@@ -175,10 +177,24 @@ namespace Nethermind.Synchronization
 
         private void StartSnapSyncComponents()
         {
+            TreeSync treeSync = new(SyncMode.StateNodes, _dbProvider.CodeDb, _dbProvider.StateDb, _blockTree, _logManager);
+            _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _logManager);
+            SnapSyncStateDispatcher stateSyncDispatcher = new(_stateSyncFeed!, _syncPeerPool, new StateSyncAllocationStrategyFactory(), _logManager);
+            _ = stateSyncDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    if (_logger.IsError) _logger.Error("State sync failed", t.Exception);
+                }
+                else
+                {
+                    if (_logger.IsInfo) _logger.Info("State sync task completed.");
+                }
+            });
+            
             _snapSyncFeed = new SnapSyncFeed(_syncMode, _snapProvider, _blockTree, _logManager);
             SnapSyncDispatcher dispatcher = new(_snapSyncFeed!, _syncPeerPool, new SnapSyncAllocationStrategyFactory(), _logManager);
-            
-            Task _ = dispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
+            _ = dispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
             {
                 if (t.IsFaulted)
                 {

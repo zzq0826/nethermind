@@ -15,6 +15,8 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
+using System;
+
 namespace Nethermind.Db
 {
     public class PruningConfig : IPruningConfig
@@ -24,6 +26,7 @@ namespace Nethermind.Db
             get => Mode.IsMemory();
             set
             {
+                _e = !_e;
                 if (value)
                 {
                     Mode |= PruningMode.Memory;
@@ -35,6 +38,10 @@ namespace Nethermind.Db
             }
         }
 
+
+        bool _e;
+        [Obsolete]
+        public bool Enabled2 { get { return _e; } set { _e = value; } }
         public PruningMode Mode { get; set; } = PruningMode.Hybrid;
         public long CacheMb { get; set; } = 1024;
         public long PersistenceInterval { get; set; } = 8192;
