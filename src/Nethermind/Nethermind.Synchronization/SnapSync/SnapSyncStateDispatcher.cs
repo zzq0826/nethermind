@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.State.Snap;
 using Nethermind.Synchronization.FastSync;
@@ -79,6 +80,9 @@ namespace Nethermind.Synchronization.SnapSync
                         case NodeDataType.Storage:
                             var x = rItem.AccountPathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
                             var y = rItem.PathNibbles.Select(x => new Nibble(x)).ToArray().ToPackedByteArray();
+                            
+                            Logger.Warn($"STR: {x.ToHexString()}: {y.ToHexString()}");
+
                             var nodeHash = new Keccak(x);
                             if(!batches[rItem.RootHash].Storage.ContainsKey(nodeHash))
                             {
