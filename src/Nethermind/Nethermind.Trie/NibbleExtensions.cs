@@ -65,19 +65,35 @@ namespace Nethermind.Trie
 
         public static byte[] ToPackedByteArray(this Nibble[] nibbles)
         {
-            int oddity = nibbles.Length % 2;
-            byte[] bytes = new byte[nibbles.Length / 2 + oddity];
-            for (int i = oddity; i < bytes.Length - oddity; i++)
+            if (nibbles.Length == 64)
             {
-                bytes[i] = ToByte(nibbles[2 * i + oddity], nibbles[2 * i + 1 + oddity]);
-            }
+                byte[] bytes = new byte[32];
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    bytes[i] = ToByte(nibbles[2 * i], nibbles[2 * i + 1]);
+                }
 
-            if (oddity == 1)
+                return bytes;
+            }
+            else
             {
-                bytes[0] = ToByte(1, nibbles[0]);
-            }
+                bool isPacked = nibbles.Length < 64;
 
-            return bytes;
+
+                int oddity = nibbles.Length % 2;
+                byte[] bytes = new byte[nibbles.Length / 2 + 1];
+                for (int i = 0; i < bytes.Length - 1; i++)
+                {
+                    bytes[i + (isPacked ? 1 : 0)] = ToByte(nibbles[2 * i + oddity], nibbles[2 * i + 1 + oddity]);
+                }
+
+                if (oddity == 1)
+                {
+                    bytes[0] = ToByte(1, nibbles[0]);
+                }
+
+                return bytes;
+            }
         }
 
         public static byte ToByte(Nibble highNibble, Nibble lowNibble)
