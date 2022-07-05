@@ -281,7 +281,7 @@ namespace Nethermind.Synchronization.Peers
             BlockHeader? header = _blockTree.FindHeader(syncPeer.HeadHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
             if (header is not null)
             {
-                syncPeer.HeadNumber = header.Number;
+                UpdateSyncPeerHeadIfHeaderIsBetter(syncPeer, header);
             }
             else
             {
@@ -625,7 +625,6 @@ namespace Nethermind.Synchronization.Peers
 
                             UpdateSyncPeerHeadIfHeaderIsBetter(syncPeer, header);
 
-                            syncPeer.IsInitialized = true;
                             SignalPeersChanged();
                         }
                     }
@@ -682,6 +681,7 @@ namespace Nethermind.Synchronization.Peers
                     syncPeer.TotalDifficulty = newTotalDifficulty;
                     syncPeer.HeadNumber = header.Number;
                     syncPeer.HeadHash = header.Hash!;
+                    syncPeer.IsInitialized = true;
                     PeerRefreshed?.Invoke(this, new PeerHeadRefreshedEventArgs(syncPeer, header));
                 }
             }
@@ -690,6 +690,7 @@ namespace Nethermind.Synchronization.Peers
                 if (_logger.IsTrace) _logger.Trace($"REFRESH Updating header of {syncPeer} from {syncPeer.HeadNumber} to {header.Number} based on headNumber");
                 syncPeer.HeadNumber = header.Number;
                 syncPeer.HeadHash = header.Hash!;
+                syncPeer.IsInitialized = true;
             }
         }
 
