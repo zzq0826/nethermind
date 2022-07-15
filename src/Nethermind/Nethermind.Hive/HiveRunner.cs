@@ -201,7 +201,8 @@ namespace Nethermind.Hive
             if (!await semaphore.WaitAsync(5000))
             {
                 if (_logger.IsInfo) _logger.Info($"HIVE Tracing block {block.Hash}");
-                _tracer.Trace(block, NullBlockTracer.Instance);
+                Block? processedBlock = _tracer.Trace(block, NullBlockTracer.Instance);
+                if (_logger.IsInfo) _logger.Info($"HIVE Tracer processed block: {processedBlock}");
             }
         }
 
