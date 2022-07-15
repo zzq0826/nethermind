@@ -1,16 +1,16 @@
 ﻿//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -196,11 +196,12 @@ namespace Nethermind.Hive
             return Rlp.Decode<Block>(blockRlp);
         }
 
-        private async Task WaitForBlockProcessing(SemaphoreSlim semaphore)
+        private async Task WaitForBlockProcessing(Block block, SemaphoreSlim semaphore)
         {
             if (!await semaphore.WaitAsync(5000))
             {
-                throw new InvalidOperationException();
+                if (_logger.IsInfo) _logger.Info($"HIVE Tracing block {block.Hash}");
+                _tracer.Trace(block, NullBlockTracer.Instance);
             }
         }
 
@@ -222,24 +223,11 @@ namespace Nethermind.Hive
                     return;
                 }
 
-                try
-                {
-                    if (_tracer.Trace(block, NullBlockTracer.Instance) is null)
-                    {
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (_logger.IsError) _logger.Error($"Failed to process block {block}", ex);
-                    return;
-                }
-                
                 if (_logger.IsInfo)
                     _logger.Info(
                         $"HIVE suggested {block.ToString(Block.Format.Short)}, now best suggested header {_blockTree.BestSuggestedHeader}, head {_blockTree.Head?.Header?.ToString(BlockHeader.Format.Short)}");
-                
-                await WaitForBlockProcessing(_resetEvent);
+
+                await WaitForBlockProcessing(block, _resetEvent);
             }
             catch (Exception e)
             {
