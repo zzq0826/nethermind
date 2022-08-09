@@ -28,6 +28,7 @@ using Nethermind.Consensus.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Hive
@@ -62,6 +63,8 @@ namespace Nethermind.Hive
 
         public async Task Start(CancellationToken cancellationToken)
         {
+            P2PProtocolHandler.SetEthProtocolVersion(67);
+            
             if (_logger.IsInfo) _logger.Info("HIVE initialization started");
             _blockProcessingQueue.BlockRemoved += BlockProcessingFinished;
             IHiveConfig hiveConfig = _configurationProvider.GetConfig<IHiveConfig>();
