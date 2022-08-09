@@ -38,6 +38,7 @@ using Nethermind.Network.Enr;
 using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.Analyzers;
 using Nethermind.Network.P2P.Messages;
+using Nethermind.Network.P2P.ProtocolHandlers;
 using Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V65;
 using Nethermind.Network.Rlpx;
@@ -90,6 +91,8 @@ namespace Nethermind.Init.Steps
             _logger = _api.LogManager.GetClassLogger();
             _networkConfig = _api.Config<INetworkConfig>();
             _syncConfig = _api.Config<ISyncConfig>();
+
+            P2PProtocolHandler.SetEthProtocolVersion(_networkConfig.EthProtocolVersion);
         }
 
         public async Task Execute(CancellationToken cancellationToken)

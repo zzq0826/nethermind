@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -51,18 +51,45 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
 
         protected override TimeSpan InitTimeout => Timeouts.P2PHello;
 
-        public static readonly IEnumerable<Capability> DefaultCapabilities = new Capability[]
+        private static readonly List<Capability> _defaultCapabilities = new(7)
         {
             new(Protocol.Eth, 62),
             new(Protocol.Eth, 63),
             new(Protocol.Eth, 64),
             new(Protocol.Eth, 65),
             new(Protocol.Eth, 66),
+            new(Protocol.Eth, 67),
             // new Capability(Protocol.Les, 3)
         };
 
-        public IReadOnlyList<Capability> AgreedCapabilities { get { return _agreedCapabilities; } }
-        public IReadOnlyList<Capability> AvailableCapabilities { get { return _availableCapabilities; } }
+        public static IReadOnlyList<Capability> DefaultCapabilities { get; private set; } = _defaultCapabilities;
+
+        public static void SetEthProtocolVersion(int ethProtocolVersion)
+        {
+            if (ethProtocolVersion is >= 62 and <= 67)
+            {
+                DefaultCapabilities = _defaultCapabilities
+                    .Where(c => c.ProtocolCode != Protocol.Eth || c.Version <= ethProtocolVersion)
+                    .ToList();
+            }
+            else
+            {
+                DefaultCapabilities = _defaultCapabilities;
+            }
+        }
+
+        public static void SetDefaultMaxEthProtocolVersion()
+        {
+            SetEthProtocolVersion(66);
+        }
+
+        static P2PProtocolHandler()
+        {
+            SetDefaultMaxEthProtocolVersion();
+        }
+
+        public IReadOnlyList<Capability> AgreedCapabilities => _agreedCapabilities;
+        public IReadOnlyList<Capability> AvailableCapabilities => _availableCapabilities;
         private readonly List<Capability> SupportedCapabilities = DefaultCapabilities.ToList();
 
         public int ListenPort { get; }
@@ -91,12 +118,10 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         public bool HasAgreedCapability(Capability capability) => _agreedCapabilities.Contains(capability);
         public void AddSupportedCapability(Capability capability)
         {
-            if (SupportedCapabilities.Contains(capability))
+            if (!SupportedCapabilities.Contains(capability))
             {
-                return;
+                SupportedCapabilities.Add(capability);
             }
-
-            SupportedCapabilities.Add(capability);
         }
 
         public override void Init()
@@ -107,10 +132,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             // irrespective of sending Hello from our side
             CheckProtocolInitTimeout().ContinueWith(x =>
             {
-                if (x.IsFaulted && Logger.IsError)
-                {
-                    Logger.Error("Error during p2pProtocol handler timeout logic", x.Exception);
-                }
+                if (x.IsFaulted && Logger.IsError) Logger.Error("Error during p2pProtocol handler timeout logic", x.Exception);
             });
         }
 
@@ -122,13 +144,15 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                 {
                     Metrics.HellosReceived++;
                     HandleHello(Deserialize<HelloMessage>(msg.Data));
-                    
+
                     // We need to initialize subprotocols in alphabetical order. Protocols are using AdaptiveId,
                     // which should be constant for the whole session. Some protocols (like Eth) are sending messages
                     // on initialization and we need to avoid changing theirs AdaptiveId by initializing protocols,
                     // which are alphabetically before already initialized ones.
-                    foreach (Capability capability in
-                        _agreedCapabilities.GroupBy(c => c.ProtocolCode).Select(c => c.OrderBy(v => v.Version).Last()).OrderBy(c => c.ProtocolCode))
+                    foreach (Capability capability in _agreedCapabilities
+                                 .GroupBy(c => c.ProtocolCode)
+                                 .Select(c => c.OrderBy(v => v.Version).Last())
+                                 .OrderBy(c => c.ProtocolCode))
                     {
                         if (Logger.IsTrace) Logger.Trace($"{Session} Starting protocolHandler for {capability.ProtocolCode} v{capability.Version} on {Session.RemotePort}");
                         SubprotocolRequested?.Invoke(this, new ProtocolEventArgs(capability.ProtocolCode, capability.Version));
@@ -223,23 +247,18 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             {
                 if (SupportedCapabilities.Contains(theirCapability))
                 {
-                    if (Logger.IsTrace)
-                        Logger.Trace($"{Session.RemoteNodeId} Agreed on {theirCapability.ProtocolCode} v{theirCapability.Version}");
+                    if (Logger.IsTrace) Logger.Trace($"{Session.RemoteNodeId} Agreed on {theirCapability.ProtocolCode} v{theirCapability.Version}");
                     _agreedCapabilities.Add(theirCapability);
                 }
                 else
                 {
-                    if (Logger.IsTrace)
-                        Logger.Trace($"{Session.RemoteNodeId} Capability not supported " +
-                                     $"{theirCapability.ProtocolCode} v{theirCapability.Version}");
+                    if (Logger.IsTrace) Logger.Trace($"{Session.RemoteNodeId} Capability not supported {theirCapability.ProtocolCode} v{theirCapability.Version}");
                 }
             }
 
             if (_agreedCapabilities.Count == 0)
             {
-                Session.InitiateDisconnect(
-                    DisconnectReason.UselessPeer,
-                    $"capabilities: {string.Join(", ", capabilities)}");
+                Session.InitiateDisconnect(DisconnectReason.UselessPeer, $"capabilities: {string.Join(", ", capabilities)}");
             }
 
             ReceivedProtocolInitMsg(hello);
@@ -251,7 +270,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                 Capabilities = capabilities,
                 ListenPort = hello.ListenPort
             };
-            
+
             ProtocolInitialized?.Invoke(this, eventArgs);
         }
 
@@ -267,7 +286,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                 if (Logger.IsWarn) Logger.Warn($"Another ping request in process: {Session.Node:c}");
                 return true;
             }
-            
+
             Task<Packet> pongTask = _pongCompletionSource.Task;
 
             if (Logger.IsTrace) Logger.Trace($"{Session} P2P sending ping on {Session.RemotePort} ({RemoteClientId})");
@@ -301,21 +320,15 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
 
         public override void DisconnectProtocol(DisconnectReason disconnectReason, string details)
         {
-            if (Logger.IsTrace)
-                Logger.Trace($"Sending disconnect {disconnectReason} ({details}) to {Session.Node:s}");
+            if (Logger.IsTrace) Logger.Trace($"Sending disconnect {disconnectReason} ({details}) to {Session.Node:s}");
             DisconnectMessage message = new(disconnectReason);
             Send(message);
-            if(NetworkDiagTracer.IsEnabled)
-                NetworkDiagTracer.ReportDisconnect(Session.Node.Address, $"Local {disconnectReason} {details}");
+            if(NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportDisconnect(Session.Node.Address, $"Local {disconnectReason} {details}");
         }
-        
+
         private void SendHello()
         {
-            if (Logger.IsTrace)
-            {
-                Logger.Trace($"{Session} {Name} sending hello with Client ID {ClientVersion.Description}, " +
-                             $"protocol {Name}, listen port {ListenPort}");
-            }
+            if (Logger.IsTrace) Logger.Trace($"{Session} {Name} sending hello with Client ID {ClientVersion.Description}, protocol {Name}, listen port {ListenPort}");
 
             HelloMessage helloMessage = new()
             {
@@ -358,7 +371,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         }
 
         public override string Name => Protocol.P2P;
-        
+
         private void HandlePong(Packet msg)
         {
             ReportIn("Pong");

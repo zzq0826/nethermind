@@ -14,7 +14,9 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Linq;
+using FluentAssertions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Timers;
 using Nethermind.Logging;
@@ -81,8 +83,7 @@ namespace Nethermind.Network.Test.P2P
             p2PProtocolHandler.Init();
 
             string[] expectedCapabilities = {"eth62", "eth63", "eth64", "eth65", "eth66", "wit0"};
-            _session.Received(1).DeliverMessage(
-                Arg.Is<HelloMessage>(m => m.Capabilities.Select(c => c.ToString()).SequenceEqual(expectedCapabilities)));
+            _session.Received(1).DeliverMessage(Arg.Is<HelloMessage>(m => m.Capabilities.Select(c => c.ToString()).SequenceEqual(expectedCapabilities)));
         }
 
         [Test]
@@ -105,6 +106,22 @@ namespace Nethermind.Network.Test.P2P
         {
             P2PProtocolHandler p2PProtocolHandler = CreateSession();
             Assert.AreEqual(ListenPort, p2PProtocolHandler.ListenPort);
+        }
+
+        [Test]
+        [Parallelizable(ParallelScope.None)]
+        public void Gets_expected_eth_protocol_versions([Values(62, 63, 64, 65, 66, 67)] int version)
+        {
+            P2PProtocolHandler.SetEthProtocolVersion(version);
+            try
+            {
+                P2PProtocolHandler.DefaultCapabilities.Should().Contain(new Capability(Protocol.Eth, version));
+                P2PProtocolHandler.DefaultCapabilities.Should().NotContain(new Capability(Protocol.Eth, version + 1));
+            }
+            finally
+            {
+                P2PProtocolHandler.SetDefaultMaxEthProtocolVersion();
+            }
         }
     }
 }
