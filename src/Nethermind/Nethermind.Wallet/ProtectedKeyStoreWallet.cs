@@ -1,16 +1,16 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-//
+// 
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
+// 
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-//
+// 
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -19,7 +19,6 @@ using System.Linq;
 using System.Runtime.Caching;
 using System.Security;
 using Nethermind.Core;
-using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
 using Nethermind.Crypto;
 using Nethermind.KeyStore;
@@ -37,7 +36,7 @@ namespace Nethermind.Wallet
         private readonly ITimestamper _timestamper;
         private readonly ILogger _logger;
 
-        private readonly LruCache<String, ProtectedPrivateKey> _unlockedAccounts;
+        private readonly MemoryCache _unlockedAccounts;
         public event EventHandler<AccountLockedEventArgs> AccountLocked;
         public event EventHandler<AccountUnlockedEventArgs> AccountUnlocked;
 
@@ -47,8 +46,7 @@ namespace Nethermind.Wallet
             _protectedPrivateKeyFactory = protectedPrivateKeyFactory ?? throw new ArgumentNullException(nameof(protectedPrivateKeyFactory));
             _timestamper = timestamper ?? Timestamper.Default;
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
-            // maxCapacity - 100, is just an estimate here
-            _unlockedAccounts = new LruCache<string, ProtectedPrivateKey>(100, nameof(ProtectedKeyStoreWallet));
+            _unlockedAccounts = new MemoryCache(nameof(ProtectedKeyStoreWallet));
         }
 
         public void Import(byte[] keyData, SecureString passphrase)
@@ -80,7 +78,8 @@ namespace Nethermind.Wallet
                 if (result.ResultType == ResultType.Success)
                 {
                     if (_logger.IsInfo) _logger.Info($"Unlocking account: {address}");
-                    _unlockedAccounts.Set(key.Address.ToString(), _protectedPrivateKeyFactory.Create(key));
+                    _unlockedAccounts.Add(key.Address.ToString(), _protectedPrivateKeyFactory.Create(key),
+                        new CacheItemPolicy() { Priority = CacheItemPriority.NotRemovable, AbsoluteExpiration = _timestamper.UtcNowOffset + (timeSpan ?? DefaultExpirationTime) });
                     AccountUnlocked?.Invoke(this, new AccountUnlockedEventArgs(address));
                     return true;
                 }
@@ -93,7 +92,7 @@ namespace Nethermind.Wallet
         public bool LockAccount(Address address)
         {
             AccountLocked?.Invoke(this, new AccountLockedEventArgs(address));
-            _unlockedAccounts.Delete(address.ToString());
+            _unlockedAccounts.Remove(address.ToString());
             return true;
         }
 
@@ -110,7 +109,7 @@ namespace Nethermind.Wallet
 
         private Signature SignCore(Keccak message, Address address, Func<PrivateKey> getPrivateKeyWhenNotFound)
         {
-            var protectedPrivateKey = (ProtectedPrivateKey) _unlockedAccounts.Get(address.ToString());
+            var protectedPrivateKey = (ProtectedPrivateKey)_unlockedAccounts.Get(address.ToString());
             using PrivateKey key = protectedPrivateKey != null ? protectedPrivateKey.Unprotect() : getPrivateKeyWhenNotFound();
             var rs = Proxy.SignCompact(message.Bytes, key.KeyBytes, out int v);
             return new Signature(rs, v);
