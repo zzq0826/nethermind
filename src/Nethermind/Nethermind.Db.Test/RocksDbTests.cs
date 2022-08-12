@@ -25,6 +25,6 @@ public static class RocksDbTests
 
         // Patch version check is needed
         // until the package includes the binaries for arm64
-        Assert.AreEqual("7.4.4", $"{major}.{minor}.{patch}", "Unexpected RocksDB version");
+        Assert.AreEqual("6.29.3", $"{major}.{minor}.{patch}", "Unexpected RocksDB version");
     }
 }
