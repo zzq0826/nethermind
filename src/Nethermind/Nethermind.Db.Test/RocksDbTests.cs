@@ -21,8 +21,10 @@ public static class RocksDbTests
 
         var major = versions[0];
         var minor = versions[1];
+        var patch = versions[2];
 
-        // Patch version is ignored
-        Assert.AreEqual("7.4", $"{major}.{minor}", "Unexpected RocksDB version");
+        // Patch version check is needed
+        // until the package includes the binaries for arm64
+        Assert.AreEqual("7.4.4", $"{major}.{minor}.{patch}", "Unexpected RocksDB version");
     }
 }
