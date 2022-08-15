@@ -220,20 +220,16 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     }
 
                     bool isKnownBeaconBlock = _blockTree.IsKnownBeaconBlock(currentBlock.Number, currentBlock.GetOrCalculateHash());
-                    BlockTreeSuggestOptions suggestOptions =
-                        shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"Current block {currentBlock}, BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBeaconBlock: {isKnownBeaconBlock}");
+                    bool isTerminalBlock = currentBlock.Header.IsTerminalBlock(_specProvider);
+                    BlockTreeSuggestOptions suggestOptions = shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
+                    if (_logger.IsTrace) _logger.Trace($"Current block {currentBlock}, BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBeaconBlock: {isKnownBeaconBlock}");
 
-                    if (isKnownBeaconBlock)
+                    if (isKnownBeaconBlock || isTerminalBlock)
                     {
                         suggestOptions |= BlockTreeSuggestOptions.FillBeaconBlock;
                     }
 
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBeaconBlock {isKnownBeaconBlock} ShouldProcess: {shouldProcess}");
+                    if (_logger.IsTrace) _logger.Trace($"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBeaconBlock {isKnownBeaconBlock} ShouldProcess: {shouldProcess}");
 
                     AddBlockResult addResult = _blockTree.SuggestBlock(currentBlock, suggestOptions);
                     if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0, addResult))
