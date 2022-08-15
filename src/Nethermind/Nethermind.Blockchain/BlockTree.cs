@@ -67,7 +67,7 @@ namespace Nethermind.Blockchain
         private readonly IDb _metadataDb;
 
         private readonly ICache<Keccak, Block> _invalidBlocks =
-            new LruCache<Keccak, Block>(128, 128, "invalid blocks");
+            new LruCache<Keccak, Block>(32, 32, "invalid blocks");
 
         private readonly BlockDecoder _blockDecoder = new();
         private readonly HeaderDecoder _headerDecoder = new();
