@@ -67,7 +67,7 @@ namespace Nethermind.Blockchain
         private readonly IDb _metadataDb;
 
         private readonly ICache<Keccak, Block> _invalidBlocks =
-            new LruCache<Keccak, Block>(128, 128, "invalid blocks");
+            new LruCache<Keccak, Block>(32, 32, "invalid blocks");
 
         private readonly BlockDecoder _blockDecoder = new();
         private readonly HeaderDecoder _headerDecoder = new();
@@ -704,7 +704,7 @@ namespace Nethermind.Blockchain
             bool setAsMain = options.ContainsFlag(BlockTreeSuggestOptions.ForceSetAsMain) ||
                              !options.ContainsFlag(BlockTreeSuggestOptions.ForceDontSetAsMain) && !shouldProcess;
 
-            if (_logger.IsTrace) _logger.Trace($"Suggesting a new block. BestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head TD: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}. ShouldProcess: {shouldProcess}, TryProcessKnownBlock: {fillBeaconBlock}, SetAsMain {setAsMain}");
+            if (_logger.IsTrace) _logger.Trace($"Suggesting a new block. BestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head TD: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}. ShouldProcess: {shouldProcess}, TryProcessKnownBlock: {fillBeaconBlock}, SetAsMain {setAsMain}.{Environment.NewLine}{Environment.StackTrace}");
 
 #if DEBUG
             /* this is just to make sure that we do not fall into this trap when creating tests */
@@ -781,9 +781,7 @@ namespace Nethermind.Blockchain
                 bool bestSuggestedImprovementSatisfied = BestSuggestedImprovementRequirementsSatisfied(header);
                 if (bestSuggestedImprovementSatisfied)
                 {
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
+                    if (_logger.IsTrace) _logger.Trace($"New best suggested block. PreviousBestSuggestedBlock {BestSuggestedBody}, BestSuggestedBlock TD {BestSuggestedBody?.TotalDifficulty}, Block TD {block?.TotalDifficulty}, Head: {Head}, Head: {Head?.TotalDifficulty}, Block {block?.ToString(Block.Format.FullHashAndNumber)}");
                     BestSuggestedHeader = block.Header;
 
                     if (block.IsPostMerge)
