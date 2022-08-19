@@ -88,7 +88,7 @@ namespace Nethermind.Consensus.AuRa.Rewards
         
         private BlockReward[] CalculateRewardsWithContract(Block block, IRewardContract contract)
         {
-            _logger.Trace("Calculating rewards using AuRaBlockRewards contract");
+            _logger.Trace($"Calculating rewards using AuRaBlockRewards contract at {contract.ContractAddress}");
 
             (Address[] beneficieries, ushort[] kinds) GetBeneficiaries()
             {

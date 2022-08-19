@@ -30,6 +30,8 @@ namespace Nethermind.Consensus.AuRa.Contracts
 {
     public interface IRewardContract : IActivatedAtBlock
     {
+        public Address ContractAddress { get; }
+
         /// <summary>
         /// produce rewards for the given benefactors,
         /// with corresponding reward codes.
