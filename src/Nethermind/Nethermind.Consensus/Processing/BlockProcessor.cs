@@ -292,7 +292,8 @@ namespace Nethermind.Consensus.Processing
         // TODO: block processor pipeline
         private void ApplyMinerRewards(Block block, IBlockTracer tracer, IReleaseSpec spec)
         {
-            if (_logger.IsTrace) _logger.Trace("Applying miner rewards:");
+            if (_logger.IsTrace)
+                _logger.Trace($"Applying miner rewards for block {block.Number} using {_rewardCalculator.GetType().FullName}:");
             BlockReward[] rewards = _rewardCalculator.CalculateRewards(block);
             for (int i = 0; i < rewards.Length; i++)
             {
