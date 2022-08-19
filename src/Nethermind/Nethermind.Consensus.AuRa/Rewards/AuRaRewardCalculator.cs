@@ -26,6 +26,7 @@ using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.Logging;
 
 namespace Nethermind.Consensus.AuRa.Rewards
 {
@@ -33,12 +34,15 @@ namespace Nethermind.Consensus.AuRa.Rewards
     {
         private readonly StaticRewardCalculator _blockRewardCalculator;
         private readonly IList<IRewardContract> _contracts;
+        private readonly ILogger _logger;
         
-        public AuRaRewardCalculator(AuRaParameters auRaParameters, IAbiEncoder abiEncoder, ITransactionProcessor transactionProcessor)
+        public AuRaRewardCalculator(AuRaParameters auRaParameters, IAbiEncoder abiEncoder, ITransactionProcessor transactionProcessor, ILogger logger)
         {
             if (auRaParameters == null) throw new ArgumentNullException(nameof(auRaParameters));
             if (abiEncoder == null) throw new ArgumentNullException(nameof(abiEncoder));
             if (transactionProcessor == null) throw new ArgumentNullException(nameof(transactionProcessor));
+
+            _logger = logger;
 
             IList<IRewardContract> BuildTransitions()
             {
@@ -84,6 +88,8 @@ namespace Nethermind.Consensus.AuRa.Rewards
         
         private BlockReward[] CalculateRewardsWithContract(Block block, IRewardContract contract)
         {
+            _logger.Trace("Calculating rewards using AuRaBlockRewards contract");
+
             (Address[] beneficieries, ushort[] kinds) GetBeneficiaries()
             {
                 var length = block.Uncles.Length + 1;
@@ -119,20 +125,22 @@ namespace Nethermind.Consensus.AuRa.Rewards
             return blockRewards;
         }
 
-        public static IRewardCalculatorSource GetSource(AuRaParameters auRaParameters, IAbiEncoder abiEncoder) => new AuRaRewardCalculatorSource(auRaParameters, abiEncoder);
+        public static IRewardCalculatorSource GetSource(AuRaParameters auRaParameters, IAbiEncoder abiEncoder, ILogManager logManager) => new AuRaRewardCalculatorSource(auRaParameters, abiEncoder, logManager);
 
         private class AuRaRewardCalculatorSource : IRewardCalculatorSource
         {
             private readonly AuRaParameters _auRaParameters;
             private readonly IAbiEncoder _abiEncoder;
+            private readonly ILogger _logger;
 
-            public AuRaRewardCalculatorSource(AuRaParameters auRaParameters, IAbiEncoder abiEncoder)
+            public AuRaRewardCalculatorSource(AuRaParameters auRaParameters, IAbiEncoder abiEncoder, ILogManager logManager)
             {
+                _logger = logManager.GetClassLogger<AuRaRewardCalculator>();
                 _auRaParameters = auRaParameters;
                 _abiEncoder = abiEncoder;
             }
 
-            public IRewardCalculator Get(ITransactionProcessor processor) => new AuRaRewardCalculator(_auRaParameters, _abiEncoder, processor);
+            public IRewardCalculator Get(ITransactionProcessor processor) => new AuRaRewardCalculator(_auRaParameters, _abiEncoder, processor, _logger);
         }
         
         public static class BenefactorKind
