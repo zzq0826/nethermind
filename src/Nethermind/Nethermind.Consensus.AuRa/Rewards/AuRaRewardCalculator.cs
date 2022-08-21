@@ -114,6 +114,7 @@ namespace Nethermind.Consensus.AuRa.Rewards
 
             var (beneficiaries, kinds) = GetBeneficiaries();
             var (addresses, rewards) = contract.Reward(block.Header, beneficiaries, kinds);
+            _logger.Trace($"AuRaRewardContract returned {addresses.Length} addresses to reward");
 
             var blockRewards = new BlockReward[addresses.Length];
             for (int index = 0; index < addresses.Length; index++)
