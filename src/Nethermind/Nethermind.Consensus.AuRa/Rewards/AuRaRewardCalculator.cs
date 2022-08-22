@@ -113,7 +113,7 @@ namespace Nethermind.Consensus.AuRa.Rewards
             }
 
             var (beneficiaries, kinds) = GetBeneficiaries();
-            _logger.Trace($"Calling AuRaRewardContract.reward with ${beneficiaries.Length} beneficiaries");
+            _logger.Trace($"Calling AuRaRewardContract.reward({beneficiaries.Length},{kinds.Length},{kinds[0]})");
             var (addresses, rewards) = contract.Reward(block.Header, beneficiaries, kinds);
             _logger.Trace($"AuRaRewardContract returned {addresses.Length} addresses to reward");
 
