@@ -730,7 +730,7 @@ namespace Nethermind.Blockchain
             }
 
             bool isKnown = IsKnownBlock(header.Number, header.Hash);
-            if (isKnown && (BestSuggestedHeader?.Number ?? 0) >= header.Number)
+            if (isKnown && (BestSuggestedHeader?.Number ?? 0) >= header.Number && !fillBeaconBlock)
             {
                 if (_logger.IsTrace) _logger.Trace($"Block {header.ToString(BlockHeader.Format.FullHashAndNumber)} already known.");
                 return AddBlockResult.AlreadyKnown;

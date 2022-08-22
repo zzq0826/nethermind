@@ -97,7 +97,7 @@ public class ChainLevelHelper : IChainLevelHelper
                 }
             }
 
-            if (beaconMainChainBlock.IsBeaconInfo)
+            if (beaconMainChainBlock.IsBeaconInfo || beaconMainChainBlock.TotalDifficulty == 0)
                 newHeader.TotalDifficulty = beaconMainChainBlock.TotalDifficulty == 0 ? null : beaconMainChainBlock.TotalDifficulty;
             if (_logger.IsTrace)
                 _logger.Trace(
@@ -144,7 +144,7 @@ public class ChainLevelHelper : IChainLevelHelper
     /// <returns></returns>
     private long? GetStartingPoint()
     {
-        long startingPoint = Math.Min(_blockTree.BestKnownNumber + 1, _beaconPivot.ProcessDestination?.Number ?? long.MaxValue);
+        long startingPoint = Math.Min(_blockTree.BestKnownNumber, _beaconPivot.ProcessDestination?.Number ?? long.MaxValue);
         bool foundBeaconBlock;
 
         if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper. starting point's starting point is {startingPoint}");
@@ -152,10 +152,10 @@ public class ChainLevelHelper : IChainLevelHelper
         BlockInfo? beaconMainChainBlock = GetBeaconMainChainBlockInfo(startingPoint);
         if (beaconMainChainBlock == null) return null;
 
-        if (!beaconMainChainBlock.IsBeaconInfo)
-        {
-            return startingPoint;
-        }
+        // if (!beaconMainChainBlock.IsBeaconInfo && beaconMainChainBlock.TotalDifficulty != 0)
+        // {
+        //     return startingPoint;
+        // }
 
         Keccak currentHash = beaconMainChainBlock.BlockHash;
         // in normal situation we will have one iteration of this loop, in some cases a few. Thanks to that we don't need to add extra pointer to manage forward syncing
@@ -169,7 +169,7 @@ public class ChainLevelHelper : IChainLevelHelper
             }
 
             BlockInfo parentBlockInfo = (_blockTree.GetInfo( header.Number - 1, header.ParentHash!)).Info;
-            foundBeaconBlock = parentBlockInfo.IsBeaconInfo;
+            foundBeaconBlock = parentBlockInfo.IsBeaconInfo || parentBlockInfo.TotalDifficulty == 0;
             if (_logger.IsTrace)
                 _logger.Trace(
                     $"Searching for starting point on level {startingPoint}. Header: {header.ToString(BlockHeader.Format.FullHashAndNumber)}, BlockInfo: {parentBlockInfo.IsBeaconBody}, {parentBlockInfo.IsBeaconHeader}");

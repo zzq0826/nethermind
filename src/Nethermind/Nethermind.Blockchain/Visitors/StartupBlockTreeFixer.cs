@@ -1,19 +1,19 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
-// 
+//
 
 using System;
 using System.IO;
@@ -31,7 +31,7 @@ namespace Nethermind.Blockchain.Visitors
 {
     public class StartupBlockTreeFixer : IBlockTreeVisitor
     {
-        public const int DefaultBatchSize = 4000;
+        public const int DefaultBatchSize = 60000;
         private readonly IBlockTree _blockTree;
         private readonly IDb _stateDb;
         private readonly ILogger _logger;
@@ -54,7 +54,7 @@ namespace Nethermind.Blockchain.Visitors
         private readonly long _batchSize;
 
         public StartupBlockTreeFixer(
-            ISyncConfig syncConfig, 
+            ISyncConfig syncConfig,
             IBlockTree blockTree,
             IDb stateDb,
             ILogger logger,
@@ -84,9 +84,8 @@ namespace Nethermind.Blockchain.Visitors
             {
                 if (e.Block.Number == _currentDbLoadBatchEnd)
                 {
-                    TaskCompletionSource completionSource = _dbBatchProcessed;
+                    _dbBatchProcessed.SetResult();
                     _dbBatchProcessed = null;
-                    completionSource.SetResult();
                 }
             }
         }
@@ -114,7 +113,7 @@ namespace Nethermind.Blockchain.Visitors
             {
                 if(_logger.IsInfo) _logger.Info($"Reviewed {_currentLevelNumber - StartLevelInclusive} blocks out of {EndLevelExclusive - StartLevelInclusive}");
             }
-            
+
             if (_gapStart != null)
             {
                 _currentLevel = null;
@@ -173,14 +172,14 @@ namespace Nethermind.Blockchain.Visitors
             AssertNotVisitingAfterGap();
             _blocksCheckedInCurrentLevel++;
             _bodiesInCurrentLevel++;
-            
+
             if (_firstBlockVisited)
             {
                 _suggestBlocks = CanSuggestBlocks(block);
             }
 
             if (!_suggestBlocks) return BlockVisitOutcome.None;
-            
+
             long i = block.Number - StartLevelInclusive;
             if (i % _batchSize == _batchSize - 1 && i != _blocksToLoad - 1 &&
                 _blockTree.Head.Number + _batchSize < block.Number)
@@ -190,7 +189,7 @@ namespace Nethermind.Blockchain.Visitors
                     _logger.Info(
                         $"Loaded {i + 1} out of {_blocksToLoad} blocks from DB into processing queue, waiting for processor before loading more.");
                 }
-            
+
                 _dbBatchProcessed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 await using (cancellationToken.Register(() => _dbBatchProcessed.SetCanceled()))
                 {
@@ -198,7 +197,7 @@ namespace Nethermind.Blockchain.Visitors
                     await _dbBatchProcessed.Task;
                 }
             }
-            
+
             return BlockVisitOutcome.Suggest;
 
         }

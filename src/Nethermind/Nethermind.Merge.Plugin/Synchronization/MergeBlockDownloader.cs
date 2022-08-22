@@ -219,7 +219,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                         }
                     }
 
-                    bool isKnownBeaconBlock = _blockTree.IsKnownBeaconBlock(currentBlock.Number, currentBlock.GetOrCalculateHash());
+                    bool isKnownBeaconBlock = _poSSwitcher.GetBlockConsensusInfo(currentBlock.Header).IsPostMerge;
                     BlockTreeSuggestOptions suggestOptions =
                         shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
                     if (_logger.IsTrace)
