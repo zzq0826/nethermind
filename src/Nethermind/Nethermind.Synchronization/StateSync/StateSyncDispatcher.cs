@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.State.Snap;
@@ -157,5 +158,15 @@ namespace Nethermind.Synchronization.StateSync
         }
 
         private byte[] EncodePath(byte[] input) => input.Length == 64 ? Nibbles.ToBytes(input) : Nibbles.ToCompactHexEncoding(input);
+
+        internal void RecoverAccount(Keccak accountHash, Keccak root)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak root)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

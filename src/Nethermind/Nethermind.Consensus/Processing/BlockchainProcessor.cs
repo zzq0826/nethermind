@@ -476,7 +476,7 @@ namespace Nethermind.Consensus.Processing
             {
                 InvalidBlock?.Invoke(this, new IBlockchainProcessor.InvalidBlockEventArgs
                 {
-                    InvalidBlockHash = ex.InvalidBlockHash,
+                    InvalidBlock = ex.InvalidBlock,
                     Exception = ex
                 });
 

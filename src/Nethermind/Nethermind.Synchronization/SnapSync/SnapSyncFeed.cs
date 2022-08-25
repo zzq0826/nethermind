@@ -42,7 +42,7 @@ namespace Nethermind.Synchronization.SnapSync
 
         private readonly ISyncModeSelector _syncModeSelector;
         private readonly ISnapProvider _snapProvider;
-
+        private readonly ConcurrentQueue<AccountsToRefreshRequest> _healingQueue = new();
         private readonly ILogger _logger;
         public override bool IsMultiFeed => true;
         public override AllocationContexts Contexts => AllocationContexts.Snap;
@@ -60,6 +60,13 @@ namespace Nethermind.Synchronization.SnapSync
         {
             try
             {
+                if(_healingQueue.TryDequeue(out AccountsToRefreshRequest healingRequest))
+                {
+                    return Task.FromResult(new SnapSyncBatch
+                    {
+                        AccountsToRefreshRequest = healingRequest
+                    });
+                }
                 (SnapSyncBatch request, bool finished) = _snapProvider.GetNextRequest();
 
                 if (request == null)
@@ -204,6 +211,30 @@ namespace Nethermind.Synchronization.SnapSync
 
                 return SyncResponseHandlingResult.OK;
             }
+        }
+
+        internal void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak root)
+        {
+            _healingQueue.Enqueue(new AccountsToRefreshRequest
+            {
+                RootHash = root,
+                Paths = new AccountWithStorageStartingHash[]
+                {
+                    new AccountWithStorageStartingHash { StorageStartingHash = storageHash, PathAndAccount = new PathWithAccount{ Path = accountHash } }
+                } 
+            });
+        }
+
+        internal void RecoverAccount(Keccak accountHash, Keccak root)
+        {
+            _healingQueue.Enqueue(new AccountsToRefreshRequest
+            {
+                RootHash = root,
+                Paths = new AccountWithStorageStartingHash[]
+    {
+                    new AccountWithStorageStartingHash { PathAndAccount = new PathWithAccount{ Path = accountHash } }
+    }
+            });
         }
 
         public void Dispose()

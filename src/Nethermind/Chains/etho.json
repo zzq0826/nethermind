@@ -1,0 +1,73 @@
+{
+  "name": "Etho",
+  "dataDir": "etho",
+  "engine": {
+    "clique": {
+      "params": {
+        "period": 5,
+        "epoch": 30000
+      }
+    }
+  },
+  "params": {
+    "accountStartNonce": "0x0",
+    "chainID": "1542424251",
+    "networkID": "1542424251",
+
+    "eip140Transition": "0x0",
+    "eip145Transition": "0x0",
+    "eip150Transition": "0x0",
+    "eip155Transition": "0x0",
+    "eip160Transition": "0x0",
+    "eip161abcTransition": "0x0",
+    "eip161dTransition": "0x0",
+    "eip211Transition": "0x0",
+    "eip214Transition": "0x0",
+    "eip658Transition": "0x0",
+    "eip1014Transition": "0x0",
+    "eip1052Transition": "0x0",
+    "eip1283Transition": "0x0",
+    "eip1283DisableTransition": "0x0",
+    "eip152Transition": "0x0",
+    "eip1108Transition": "0x0",
+    "eip1344Transition": "0x0",
+    "eip1884Transition": "0x0",
+    "eip2028Transition": "0x0",
+    "eip2200Transition": "0x0",
+    "eip2565Transition": "0x0",
+    "eip2929Transition": "0x0",
+    "eip2930Transition": "0x0",
+    "maxCodeSizeTransition": "0x0",
+    "eip1559Transition": "42000000",
+
+
+    "gasLimitBoundDivisor": "0x400",
+    "maxCodeSize": "0x6000",
+    "maximumExtraDataSize": "0xffff"
+  },
+  "genesis": {
+    "author": "0x0000000000000000000000000000000000000000",
+    "difficulty": "0x1",
+    "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000508bf74a1555f2e2e2e4b431185ced8f4d49a8520000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "gasLimit": "8000000",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "seal": {
+      "ethereum": {
+        "nonce": "0x0000000000000000",
+        "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "timestamp": 0
+  },
+  "nodes": [
+    "enode://0e0f50cce3ab600eea0d52ed6ea11fcf14a0a058d9b207eb2c097347dc1ca888ae9dc4e02cc8b0f82e622d42a11b2cf95f48dda8b5c68a1434d8df970598d173@127.0.0.1:30304"
+  ],
+  "accounts": {
+    "0x508bf74a1555f2e2e2e4b431185ced8f4d49a852": {
+      "balance": "300000000000000000"
+    },
+    "0x373b3db24165cd530f089fee1351d87d1df30f81": {
+      "balance": "400000000000000000"
+    }
+  }
+}

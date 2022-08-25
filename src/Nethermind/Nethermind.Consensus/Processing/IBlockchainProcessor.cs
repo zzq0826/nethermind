@@ -42,7 +42,7 @@ namespace Nethermind.Consensus.Processing
 
         public class InvalidBlockEventArgs : EventArgs
         {
-            public Keccak InvalidBlockHash { get; init; }
+            public Block InvalidBlock { get; init; }
             public Exception? Exception { get; init; }
         }
     }

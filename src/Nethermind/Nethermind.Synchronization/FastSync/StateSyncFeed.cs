@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
@@ -34,6 +35,7 @@ namespace Nethermind.Synchronization.FastSync
         private readonly ILogger _logger;
         private readonly ISyncModeSelector _syncModeSelector;
         private readonly TreeSync _treeSync;
+        private readonly ConcurrentQueue<object> _healingQueue = new();
 
         public override bool IsMultiFeed => true;
 
@@ -105,6 +107,42 @@ namespace Nethermind.Synchronization.FastSync
                 FallAsleep();
                 _treeSync.ResetStateRoot(CurrentState);
             }
+        }
+
+        internal void RecoverAccount(Keccak accountHash, Keccak root)
+        {
+            new StateSyncItem(root, accountHash.Bytes, null, NodeDataType.State);
+        }
+
+        internal void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak root)
+        {
+            new StateSyncItem(root, accountHash.Bytes, storageHash.Bytes, NodeDataType.Storage);
+        }
+    }
+
+    internal class StorageHealingRequest
+    {
+        private Keccak _storageHash;
+        private Keccak _accountHash;
+        private Keccak _root;
+
+        public StorageHealingRequest(Keccak storageHash, Keccak accountHash, Keccak root)
+        {
+            _storageHash = storageHash;
+            _accountHash = accountHash;
+            _root = root;
+        }
+    }
+
+    internal class HealingRequest
+    {
+        private Keccak _accountHash;
+        private Keccak _root;
+
+        public HealingRequest(Keccak accountHash, Keccak root)
+        {
+            _accountHash = accountHash;
+            _root = root;
         }
     }
 }

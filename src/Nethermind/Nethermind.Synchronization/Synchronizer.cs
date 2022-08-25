@@ -30,11 +30,13 @@ using Nethermind.Stats.Model;
 using Nethermind.Synchronization.Blocks;
 using Nethermind.Synchronization.FastBlocks;
 using Nethermind.Synchronization.FastSync;
+using Nethermind.Synchronization.Healing;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Reporting;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.StateSync;
+using Nethermind.Trie;
 
 namespace Nethermind.Synchronization
 {
@@ -112,11 +114,12 @@ namespace Nethermind.Synchronization
         {
             switch (e)
             {
+
                 case MissingAccountNodeTrieException accountMissingException:
-                    _healingFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
+                    _snapSyncFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
                     break;
                 case MissingStorageNodeTrieException storageMissingException:
-                    _healingFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
+                    _snapSyncFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
                     break;
             }
         }

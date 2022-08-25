@@ -35,6 +35,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "Etho": {
+      "commandName": "Project",
+      "commandLineArgs": "--config etho -dd D:\\nethermind_db\\etho",
+      "environmentVariables": {
+        " ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
     "Goerli": {
       "commandName": "Project",
       "commandLineArgs": "-c goerli -dd %NETHERMIND_DATA_DIR% --JsonRpc.Enabled true",

@@ -78,8 +78,7 @@ namespace Nethermind.Consensus.Producers
         {
             Interlocked.Exchange(ref _canProduce, 1);
             Interlocked.Exchange(ref Metrics.CanProduceBlocks, 1);
-            if (_logger.IsTrace)
-                _logger.Trace(
+                _logger.Warn(
                     $"Can produce blocks, current best suggested {_blockTree.BestSuggestedHeader}" +
                     $"{Environment.NewLine}current head {_blockTree.Head}{Environment.NewLine}{new StackTrace()}");        
 

@@ -543,9 +543,9 @@ namespace Nethermind.Db.Rocks
                     Flush();
                 }
 
-                _isDisposed = true;
 
                 ReleaseUnmanagedResources();
+                _isDisposed = true;
                 if (disposing)
                 {
                     _dbsByPath.Remove(_fullPath!, out _);
