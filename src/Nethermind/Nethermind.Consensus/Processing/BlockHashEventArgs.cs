@@ -59,5 +59,10 @@ public enum ProcessingResult
     /// <summary>
     /// Processing failed
     /// </summary>
-    ProcessingError
+    ProcessingError,
+
+    /// <summary>
+    /// Block hash wasn't found
+    /// </summary>
+    MissingTrieIntegrity,
 }

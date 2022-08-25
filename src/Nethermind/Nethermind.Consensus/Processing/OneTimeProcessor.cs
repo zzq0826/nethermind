@@ -20,6 +20,7 @@ using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Evm.Tracing;
+using Nethermind.Trie;
 
 namespace Nethermind.Consensus.Processing
 {
@@ -75,6 +76,7 @@ namespace Nethermind.Consensus.Processing
         public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
         public event EventHandler<BlockProcessedEventArgs> BlockInvalid;
         public event EventHandler<IBlockchainProcessor.InvalidBlockEventArgs>? InvalidBlock;
+        public event EventHandler<TrieException> CorruptedState;
 #pragma warning restore 67
 
         public void Dispose()

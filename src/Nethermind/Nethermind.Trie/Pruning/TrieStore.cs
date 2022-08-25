@@ -317,7 +317,8 @@ namespace Nethermind.Trie.Pruning
         }
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
-
+        public static HashSet<Keccak> Tried = new();
+        public static HashSet<Keccak> OK = new();
         internal byte[] LoadRlp(Keccak keccak, IKeyValueStore? keyValueStore)
         {
             keyValueStore ??= _keyValueStore;
@@ -541,7 +542,7 @@ namespace Nethermind.Trie.Pruning
 
         public void Dispose()
         {
-            if (_logger.IsDebug) _logger.Debug("Disposing trie");
+            _logger.Error("Disposing trie");
             PersistOnShutdown();
         }
 
@@ -603,13 +604,15 @@ namespace Nethermind.Trie.Pruning
             try
             {
                 _currentBatch ??= _keyValueStore.StartBatch();
-                if (_logger.IsDebug) _logger.Debug($"Persisting from root {commitSet.Root} in {commitSet.BlockNumber}");
+                 _logger.Warn($"Persisting from root {commitSet.Root} in {commitSet.BlockNumber}");
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 commitSet.Root?.CallRecursively(PersistNode, this, true, _logger);
                 stopwatch.Stop();
                 Metrics.SnapshotPersistenceTime = stopwatch.ElapsedMilliseconds;
 
+                    _logger.Warn(
+                        $"Persisted trie from {commitSet.Root} at {commitSet.BlockNumber} in {stopwatch.ElapsedMilliseconds}ms (cache memory {MemoryUsedByDirtyCache})");
                 if (_logger.IsDebug) _logger.Debug($"Persisted trie from {commitSet.Root} at {commitSet.BlockNumber} in {stopwatch.ElapsedMilliseconds}ms (cache memory {MemoryUsedByDirtyCache})");
 
                 LastPersistedBlockNumber = commitSet.BlockNumber;

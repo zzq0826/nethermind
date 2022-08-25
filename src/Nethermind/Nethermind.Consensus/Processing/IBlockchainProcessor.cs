@@ -20,6 +20,7 @@ using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Evm.Tracing;
+using Nethermind.Trie;
 
 namespace Nethermind.Consensus.Processing
 {
@@ -37,9 +38,12 @@ namespace Nethermind.Consensus.Processing
 
         event EventHandler<InvalidBlockEventArgs> InvalidBlock;
 
+        event EventHandler<TrieException> CorruptedState;
+
         public class InvalidBlockEventArgs : EventArgs
         {
-            public Block InvalidBlock { get; init; }
+            public Keccak InvalidBlockHash { get; init; }
+            public Exception? Exception { get; init; }
         }
     }
 }

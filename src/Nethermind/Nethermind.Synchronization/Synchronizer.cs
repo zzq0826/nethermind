@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Consensus.Processing;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
@@ -69,6 +70,8 @@ namespace Nethermind.Synchronization
         private HeadersSyncFeed? _headersFeed;
         private BodiesSyncFeed? _bodiesFeed;
         private ReceiptsSyncFeed? _receiptsFeed;
+        private readonly IHealingFeed _healingFeed;
+        private readonly IBlockchainProcessor _blockchainProcessor;
 
         public Synchronizer(
             IDbProvider dbProvider,
@@ -83,6 +86,7 @@ namespace Nethermind.Synchronization
             IBlockDownloaderFactory blockDownloaderFactory,
             IPivot pivot,
             ISyncReport syncReport,
+            IBlockchainProcessor? blockchainProcessor,
             ILogManager logManager)
         {
             _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
@@ -99,6 +103,22 @@ namespace Nethermind.Synchronization
             _nodeStatsManager = nodeStatsManager ?? throw new ArgumentNullException(nameof(nodeStatsManager));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
+            _healingFeed = new HealingFeedStub();
+            _blockchainProcessor = blockchainProcessor ?? throw new ArgumentNullException(nameof(blockchainProcessor));
+            _blockchainProcessor.CorruptedState += BlockchainProcessor_CorruptedState;
+        }
+
+        private void BlockchainProcessor_CorruptedState(object? sender, TrieException e)
+        {
+            switch (e)
+            {
+                case MissingAccountNodeTrieException accountMissingException:
+                    _healingFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
+                    break;
+                case MissingStorageNodeTrieException storageMissingException:
+                    _healingFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
+                    break;
+            }
         }
 
         public virtual void Start()
@@ -294,6 +314,7 @@ namespace Nethermind.Synchronization
         public void Dispose()
         {
             CancellationTokenExtensions.CancelDisposeAndClear(ref _syncCancellation);
+            _blockchainProcessor.CorruptedState -= BlockchainProcessor_CorruptedState;
             _syncReport.Dispose();
             _fastSyncFeed?.Dispose();
             _stateSyncFeed?.Dispose();

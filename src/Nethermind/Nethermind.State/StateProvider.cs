@@ -651,9 +651,21 @@ namespace Nethermind.State
 
         private Account? GetState(Address address)
         {
-            Metrics.StateTreeReads++;
-            Account? account = _tree.Get(address);
-            return account;
+            try
+            {
+                if(!TrieStore.OK.Contains(Keccak.Compute(address.Bytes)))
+                {
+                    TrieStore.Tried.Add(Keccak.Compute(address.Bytes));
+                    throw new TrieException();
+                }
+                Metrics.StateTreeReads++;
+                Account? account = _tree.Get(address);
+                
+                return account;
+            }catch(TrieException e)
+            {                
+                throw new MissingAccountNodeTrieException(Keccak.Compute(address.Bytes), _tree.RootHash, e);
+            }
         }
 
         private void SetState(Address address, Account? account)

@@ -15,7 +15,9 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Logging;
+using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 
 namespace Nethermind.State
@@ -56,7 +58,19 @@ namespace Nethermind.State
 
         public byte[] Get(StorageCell storageCell)
         {
-            return _persistentStorageProvider.Get(storageCell);
+            try
+            {
+                if (!TrieStore.OK.Contains(Keccak.Compute(storageCell.Index.ToBigEndian())))
+                {
+                    TrieStore.Tried.Add(Keccak.Compute(storageCell.Index.ToBigEndian()));
+                    throw new TrieException();
+                }
+                return _persistentStorageProvider.Get(storageCell);
+            }
+            catch (TrieException e)
+            {
+                throw new MissingStorageNodeTrieException(Keccak.Compute(storageCell.Index.ToBigEndian()), Keccak.Compute(storageCell.Address.Bytes), Keccak.Zero, e);
+            }
         }
 
         public byte[] GetOriginal(StorageCell storageCell)

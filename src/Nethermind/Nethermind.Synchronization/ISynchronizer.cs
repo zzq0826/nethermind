@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Nethermind.Synchronization.Healing;
 
 namespace Nethermind.Synchronization
 {

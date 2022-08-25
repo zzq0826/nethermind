@@ -2116,6 +2116,7 @@ namespace Nethermind.Blockchain
                 _highestPersistedState = value;
                 if (value.HasValue)
                 {
+                    _logger.Warn($"PERSISTED {value.HasValue}");
                     _blockInfoDb.Set(StateHeadHashDbEntryAddress, Rlp.Encode(value.Value).Bytes);
                 }
             }

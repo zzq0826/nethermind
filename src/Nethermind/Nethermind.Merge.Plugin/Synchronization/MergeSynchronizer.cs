@@ -57,6 +57,7 @@ public class MergeSynchronizer : Synchronizer
         IPivot pivot,
         IPoSSwitcher poSSwitcher,
         IMergeConfig mergeConfig,
+        IBlockchainProcessor? blockchainProcessor,
         IInvalidChainTracker invalidChainTracker,
         ILogManager logManager,
         ISyncReport syncReport)
@@ -73,6 +74,7 @@ public class MergeSynchronizer : Synchronizer
             blockDownloaderFactory,
             pivot,
             syncReport,
+            blockchainProcessor,
             logManager)
     {
         _invalidChainTracker = invalidChainTracker;

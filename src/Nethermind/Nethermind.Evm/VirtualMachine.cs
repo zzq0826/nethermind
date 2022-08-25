@@ -32,6 +32,7 @@ using Nethermind.Evm.Precompiles.Snarks.Shamatar;
 using Nethermind.Evm.Tracing;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Trie;
 
 [assembly: InternalsVisibleTo("Nethermind.Evm.Test")]
 
@@ -336,7 +337,12 @@ namespace Nethermind.Evm
 
                     previousState.Dispose();
                 }
-                catch (Exception ex) when (ex is EvmException || ex is OverflowException)
+                catch (MissingStorageNodeTrieException ex)
+                {
+                    ex.Root = state.Env.TxExecutionContext.Header.StateRoot;
+                    throw;
+                }
+                catch (Exception ex) when (ex is EvmException or OverflowException)
                 {
                     if (_logger.IsTrace) _logger.Trace($"exception ({ex.GetType().Name}) in {currentState.ExecutionType} at depth {currentState.Env.CallDepth} - restoring snapshot");
 

@@ -390,6 +390,7 @@ namespace Nethermind.Merge.Plugin
                     _api.Pivot,
                     _poSSwitcher,
                     _mergeConfig,
+                    _api.BlockchainProcessor,
                     _invalidChainTracker,
                     _api.LogManager,
                     syncReport);

@@ -26,13 +26,13 @@ using Nethermind.Blockchain.Find;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
-using Nethermind.Db;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Evm.Tracing.ParityStyle;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Trie;
 using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing
@@ -70,6 +70,8 @@ namespace Nethermind.Consensus.Processing
         private readonly Stopwatch _stopwatch = new();
 
         public event EventHandler<IBlockchainProcessor.InvalidBlockEventArgs> InvalidBlock;
+
+        public event EventHandler<TrieException> CorruptedState;
 
         /// <summary>
         ///
@@ -302,7 +304,11 @@ namespace Nethermind.Consensus.Processing
                 }
                 catch (Exception exception)
                 {
-                    if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef}, Exception: {exception}");
+                    if(exception is TrieException trieException)
+                    {
+                        CorruptedState?.Invoke(this, trieException);
+                    }
+                    if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef.Block?.Number}, Exception: {exception}");
                     BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
                 }
                 finally
@@ -315,6 +321,11 @@ namespace Nethermind.Consensus.Processing
             }
 
             if (_logger.IsInfo) _logger.Info("Block processor queue stopped.");
+        }
+
+        private async Task Recovery(TrieException ex)
+        {
+            await Task.Delay(5000);
         }
 
         private void FireProcessingQueueEmpty()
@@ -465,7 +476,8 @@ namespace Nethermind.Consensus.Processing
             {
                 InvalidBlock?.Invoke(this, new IBlockchainProcessor.InvalidBlockEventArgs
                 {
-                    InvalidBlock = ex.InvalidBlock,
+                    InvalidBlockHash = ex.InvalidBlockHash,
+                    Exception = ex
                 });
 
                 invalidBlockHash = ex.InvalidBlock.Hash;
