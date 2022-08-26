@@ -213,30 +213,6 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
-        internal void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak root)
-        {
-            _healingQueue.Enqueue(new AccountsToRefreshRequest
-            {
-                RootHash = root,
-                Paths = new AccountWithStorageStartingHash[]
-                {
-                    new AccountWithStorageStartingHash { StorageStartingHash = storageHash, PathAndAccount = new PathWithAccount{ Path = accountHash } }
-                } 
-            });
-        }
-
-        internal void RecoverAccount(Keccak accountHash, Keccak root)
-        {
-            _healingQueue.Enqueue(new AccountsToRefreshRequest
-            {
-                RootHash = root,
-                Paths = new AccountWithStorageStartingHash[]
-    {
-                    new AccountWithStorageStartingHash { PathAndAccount = new PathWithAccount{ Path = accountHash } }
-    }
-            });
-        }
-
         public void Dispose()
         {
             _syncModeSelector.Changed -= SyncModeSelectorOnChanged;

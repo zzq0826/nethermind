@@ -116,10 +116,10 @@ namespace Nethermind.Synchronization
             {
 
                 case MissingAccountNodeTrieException accountMissingException:
-                    _snapSyncFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
+                    _stateSyncFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
                     break;
                 case MissingStorageNodeTrieException storageMissingException:
-                    _snapSyncFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
+                    _stateSyncFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
                     break;
             }
         }
