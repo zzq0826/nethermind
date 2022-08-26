@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -58,7 +58,7 @@ namespace Nethermind.Blockchain.Test.Receipts
             _storage.TryGetReceiptsIterator(1, Keccak.Zero, out var iterator);
             iterator.TryGetNext(out _).Should().BeFalse();
         }
-        
+
         [Test]
         public void ReceiptsIterator_doesnt_throw_on_null()
         {
@@ -66,23 +66,23 @@ namespace Nethermind.Blockchain.Test.Receipts
             _storage.TryGetReceiptsIterator(1, Keccak.Zero, out var iterator);
             iterator.TryGetNext(out _).Should().BeFalse();
         }
-        
+
         [Test]
         public void Get_returns_empty_on_empty_span()
         {
             _storage.Get(Keccak.Zero).Should().BeEquivalentTo(Array.Empty<TxReceipt>());
         }
-        
+
         [Test]
         public void Adds_and_retrieves_receipts_for_block()
         {
             var (block, receipts) = InsertBlock();
-            
+
             _storage.Get(block).Should().BeEquivalentTo(receipts);
             // second should be from cache
             _storage.Get(block).Should().BeEquivalentTo(receipts);
         }
-        
+
         [Test]
         public void Should_not_cache_empty_non_processed_blocks()
         {
@@ -99,7 +99,7 @@ namespace Nethermind.Blockchain.Test.Receipts
             // before should not be cached
             _storage.Get(block).Should().BeEquivalentTo(receipts);
         }
-        
+
         [Test]
         public void Adds_and_retrieves_receipts_for_block_with_iterator_from_cache_after_insert()
         {
@@ -124,7 +124,7 @@ namespace Nethermind.Blockchain.Test.Receipts
             receiptStructRef.Logs.Should().BeNullOrEmpty();
             iterator.TryGetNext(out receiptStructRef).Should().BeFalse();
         }
-        
+
         [Test]
         public void Adds_and_retrieves_receipts_for_block_with_iterator_from_cache_after_get()
         {
@@ -138,33 +138,46 @@ namespace Nethermind.Blockchain.Test.Receipts
             receiptStructRef.Logs.Should().BeEquivalentTo(receipts.First().Logs);
             iterator.TryGetNext(out receiptStructRef).Should().BeFalse();
         }
-        
+
         [Test]
         public void Should_handle_inserting_null_receipts()
         {
             Block block = Build.A.Block.WithReceiptsRoot(TestItem.KeccakA).TestObject;
             _storage.Insert(block, null);
         }
-        
+
         [Test]
         public void HasBlock_should_returnFalseForMissingHash()
         {
-            _storage.HasBlock(Keccak.Compute("missing-value")).Should().BeFalse();
+            BlockHeader header = Build.A.BlockHeader.WithHash(Keccak.Compute("missing-value")).TestObject;
+            _storage.HasBlock(header).Should().BeFalse();
         }
-        
+
         [Test]
         public void HasBlock_should_returnTrueForKnownHash()
         {
             var (block, _) = InsertBlock();
-            _storage.HasBlock(block.Hash!).Should().BeTrue();
+            _storage.HasBlock(block.Header).Should().BeTrue();
         }
-        
+
+        [TestCase(10, true)]
+        [TestCase(11, true)]
+        [TestCase(100, true)]
+        [TestCase(1, false)]
+        [TestCase(9, false)]
+        public void HasBlock_should_returnTrueForMissingReceiptsButDownloadedBlock(long blockNumber, bool isFound)
+        {
+            BlockHeader header = Build.A.BlockHeader.WithHash(Keccak.Compute("missing-value")).WithNumber(blockNumber).TestObject;
+            _storage.LowestInsertedReceiptBlockNumber = 10;
+            _storage.HasBlock(header).Should().Be(isFound);
+        }
+
         [Test]
         public void EnsureCanonical_should_change_tx_blockhash([Values(false, true)] bool ensureCanonical)
         {
             (Block block, TxReceipt[] receipts) = InsertBlock();
             _storage.FindBlockHash(receipts[0].TxHash!).Should().Be(block.Hash!);
-            
+
             Block anotherBlock = Build.A.Block
                 .WithTransactions(block.Transactions)
                 .WithReceiptsRoot(TestItem.KeccakA)

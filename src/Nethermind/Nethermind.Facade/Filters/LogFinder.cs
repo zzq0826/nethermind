@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,7 +33,7 @@ namespace Nethermind.Blockchain.Find
     {
         private static int ParallelExecutions = 0;
         private static int ParallelLock = 0;
-        
+
         private readonly IReceiptFinder _receiptFinder;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IBloomStorage _bloomStorage;
@@ -42,7 +42,7 @@ namespace Nethermind.Blockchain.Find
         private readonly int _rpcConfigGetLogsThreads;
         private readonly IBlockFinder _blockFinder;
         private readonly ILogger _logger;
-        
+
         public LogFinder(IBlockFinder? blockFinder,
             IReceiptFinder? receiptFinder,
             IReceiptStorage? receiptStorage,
@@ -63,7 +63,7 @@ namespace Nethermind.Blockchain.Find
 
         public IEnumerable<FilterLog> FindLogs(LogFilter filter, CancellationToken cancellationToken = default)
         {
-            BlockHeader FindHeader(BlockParameter blockParameter, string name, bool headLimit) => 
+            BlockHeader FindHeader(BlockParameter blockParameter, string name, bool headLimit) =>
                 _blockFinder.FindHeader(blockParameter, headLimit) ?? throw new ResourceNotFoundException($"Block not found: {name} {blockParameter}");
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -76,14 +76,14 @@ namespace Nethermind.Blockchain.Find
                 throw new ArgumentException($"'From' block '{fromBlock.Number}' is later than 'to' block '{toBlock.Number}'.");
             }
             cancellationToken.ThrowIfCancellationRequested();
-            
-            if (fromBlock.Number != 0 && fromBlock.ReceiptsRoot != Keccak.EmptyTreeHash && !_receiptStorage.HasBlock(fromBlock.Hash!))
+
+            if (fromBlock.Number != 0 && !_receiptStorage.HasBlock(fromBlock))
             {
                 throw new ResourceNotFoundException($"Receipt not available for 'From' block '{fromBlock.Number}'.");
             }
             cancellationToken.ThrowIfCancellationRequested();
-            
-            if (toBlock.Number != 0 && toBlock.ReceiptsRoot != Keccak.EmptyTreeHash &&  !_receiptStorage.HasBlock(toBlock.Hash!))
+
+            if (toBlock.Number != 0 && !_receiptStorage.HasBlock(toBlock))
             {
                 throw new ResourceNotFoundException($"Receipt not available for 'To' block '{toBlock.Number}'.");
             }
@@ -146,7 +146,7 @@ namespace Nethermind.Blockchain.Find
             int parallelLock = Interlocked.CompareExchange(ref ParallelLock, 1, 0);
             int parallelExecutions = Interlocked.Increment(ref ParallelExecutions) - 1;
             bool canRunParallel = parallelLock == 0;
-            
+
             IEnumerable<long> filterBlocks = FilterBlocks(filter, fromBlock.Number, toBlock.Number, canRunParallel, cancellationToken);
 
             if (canRunParallel)
@@ -160,7 +160,7 @@ namespace Nethermind.Blockchain.Find
             {
                 if (_logger.IsTrace) _logger.Trace($"Not allowing parallel eth_getLogs, already parallel executions: {parallelExecutions}.");
             }
-            
+
             return filterBlocks
                 .SelectMany(blockNumber => FindLogsInBlock(filter, FindBlockHash(blockNumber, cancellationToken), blockNumber, cancellationToken));
         }
@@ -235,14 +235,14 @@ namespace Nethermind.Blockchain.Find
                 while (iterator.TryGetNext(out var receipt))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     LogEntriesIterator logsIterator = receipt.Logs == null ? new LogEntriesIterator(receipt.LogsRlp) : new LogEntriesIterator(receipt.Logs);
                     if (filter.Matches(ref receipt.Bloom))
                     {
                         while (logsIterator.TryGetNext(out var log))
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            
+
                             if (filter.Accepts(ref log))
                             {
                                 logList ??= new List<FilterLog>();
@@ -312,7 +312,7 @@ namespace Nethermind.Blockchain.Find
                     }
                 }
             }
-            
+
             cancellationToken.ThrowIfCancellationRequested();
 
             var receipts = GetReceipts(blockHash, blockNumber);
@@ -322,7 +322,7 @@ namespace Nethermind.Blockchain.Find
                 for (var i = 0; i < receipts.Length; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     var receipt = receipts[i];
 
                     if (filter.Matches(receipt.Bloom))
@@ -330,7 +330,7 @@ namespace Nethermind.Blockchain.Find
                         for (var j = 0; j < receipt.Logs.Length; j++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            
+
                             var log = receipt.Logs[j];
                             if (filter.Accepts(log))
                             {

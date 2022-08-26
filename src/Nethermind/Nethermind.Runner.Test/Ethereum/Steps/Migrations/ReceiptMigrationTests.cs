@@ -131,7 +131,7 @@ namespace Nethermind.Runner.Test.Ethereum.Steps.Migrations
                 set => _outStorage.MigratedBlockNumber = value;
             }
             
-            public bool HasBlock(Keccak hash)
+            public bool HasBlock(BlockHeader hash)
             {
                 return _outStorage.HasBlock(hash);
             }
