@@ -63,7 +63,9 @@ namespace Nethermind.Merge.Plugin
             Validate(header, _blockTree.FindParentHeader(header, BlockTreeLookupOptions.None), isUncle);
 
         protected override bool ValidateTotalDifficulty(BlockHeader parent, BlockHeader header) =>
-            _poSSwitcher.IsPostMerge(header) || base.ValidateTotalDifficulty(parent, header);
+            _poSSwitcher.IsPostMerge(header)
+                ? parent.IsPostTTD(_specProvider) // post-merge all parents have to be over TTDm including terminal block
+                : base.ValidateTotalDifficulty(parent, header);
 
         private bool ValidateTheMergeChecks(BlockHeader header)
         {
