@@ -57,18 +57,13 @@ public class MergeBetterPeerStrategy : IBetterPeerStrategy
             : bestPeerInfo.Number > bestBlock.Number;
     }
 
-    public bool IsDesiredPeer(in (UInt256 TotalDifficulty, long Number) bestPeerInfo, in (UInt256 TotalDifficulty, long Number) bestHeader)
-    {
-        if (ShouldApplyPreMergeLogic(bestPeerInfo.TotalDifficulty, bestHeader.TotalDifficulty))
-        {
-            return _preMergeBetterPeerStrategy.IsDesiredPeer(bestPeerInfo, bestHeader);
-        }
-
+    public bool IsDesiredPeer(in (UInt256 TotalDifficulty, long Number) bestPeerInfo, in (UInt256 TotalDifficulty, long Number) bestHeader) =>
         // Post-merge it depends on the beacon pivot.
         // Some hive test sync to a lower number and have peer without the beacon pivot, but it has
         // the pivot's parent. So we need to allow peer with the parent of the beacon pivot.
-        return _beaconPivot.BeaconPivotExists() && bestPeerInfo.Number >= _beaconPivot.PivotNumber - 1;
-    }
+        _beaconPivot.BeaconPivotExists()
+            ? bestPeerInfo.Number >= _beaconPivot.PivotNumber - 1
+            : ShouldApplyPreMergeLogic(bestPeerInfo.TotalDifficulty, bestHeader.TotalDifficulty) && _preMergeBetterPeerStrategy.IsDesiredPeer(bestPeerInfo, bestHeader);
 
     public bool IsLowerThanTerminalTotalDifficulty(UInt256 totalDifficulty) =>
         _poSSwitcher.TerminalTotalDifficulty is null || totalDifficulty < _poSSwitcher.TerminalTotalDifficulty;
