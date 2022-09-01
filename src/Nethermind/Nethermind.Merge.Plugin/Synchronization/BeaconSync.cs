@@ -78,7 +78,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
             bool notInBeaconModeControl = !_isInBeaconModeControl;
             bool notFinishedBeaconHeaderSync = !IsBeaconSyncHeadersFinished();
 
-            if (_logger.IsTrace) _logger.Trace($"ShouldBeInBeaconHeaders: NotInBeaconModeControl: {notInBeaconModeControl}, BeaconPivotExists: {beaconPivotExists}, NotFinishedBeaconHeaderSync: {notFinishedBeaconHeaderSync} LowestInsertedBeaconHeaderNumber: {_blockTree.LowestInsertedBeaconHeader?.Number}, BeaconPivot: {_beaconPivot.PivotNumber}, BeaconPivotDestinationNumber: {_beaconPivot.PivotDestinationNumber}");
+            if (_logger.IsInfo) _logger.Info($"ShouldBeInBeaconHeaders: NotInBeaconModeControl: {notInBeaconModeControl}, BeaconPivotExists: {beaconPivotExists}, NotFinishedBeaconHeaderSync: {notFinishedBeaconHeaderSync} LowestInsertedBeaconHeaderNumber: {_blockTree.LowestInsertedBeaconHeader?.Number}, BeaconPivot: {_beaconPivot.PivotNumber}, BeaconPivotDestinationNumber: {_beaconPivot.PivotDestinationNumber}");
             return beaconPivotExists &&
                    notInBeaconModeControl &&
                    notFinishedBeaconHeaderSync;
@@ -97,7 +97,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                             || lowestInsertedBeaconHeader.Number <= _syncConfig.PivotNumberParsed + 1
                             || chainMerged;
 
-            if (_logger.IsTrace) _logger.Trace(
+            if (_logger.IsInfo) _logger.Info(
                 $"IsBeaconSyncHeadersFinished: {finished}," +
                 $" BeaconPivotExists: {_beaconPivot.BeaconPivotExists()}," +
                 $" LowestInsertedBeaconHeaderNumber: {_blockTree.LowestInsertedBeaconHeader?.Number}," +

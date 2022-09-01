@@ -145,7 +145,7 @@ public class PeerRefresher : IPeerRefresher, IAsyncDisposable
             return;
         }
 
-        if (_logger.IsTrace) _logger.Trace($"PeerRefreshForFCU received block info from {syncPeer.Node:c} headHeader: {headBlockHeader} headParentHeader: {headParentBlockHeader} finalizedBlockHeader: {finalizedBlockHeader}");
+        if (_logger.IsInfo) _logger.Info($"PeerRefreshForFCU received block info from {syncPeer.Node:c} headHeader: {headBlockHeader} headParentHeader: {headParentBlockHeader} finalizedBlockHeader: {finalizedBlockHeader}");
 
         if (finalizedBlockhash != Keccak.Zero && finalizedBlockHeader == null)
         {

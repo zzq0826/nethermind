@@ -54,12 +54,12 @@ public class MergePeerAllocationStrategy : IPeerAllocationStrategy
         IEnumerable<PeerInfo> peerInfos = peers as PeerInfo[] ?? peers.ToArray();
         IEnumerable<PeerInfo> postTTDPeers = peerInfos.Where(p => p.TotalDifficulty >= terminalTotalDifficulty);
         bool anyPostMergePeers = postTTDPeers.Any();
-        if (_logger.IsTrace) _logger.Trace($"{nameof(MergePeerAllocationStrategy)}: IsPostMerge: {isPostMerge} AnyPostMergePeers: {anyPostMergePeers}, CurrentPeer: {currentPeer} Peers: {string.Join(",", peerInfos)}");
+        if (_logger.IsInfo) _logger.Info($"{nameof(MergePeerAllocationStrategy)}: IsPostMerge: {isPostMerge} AnyPostMergePeers: {anyPostMergePeers}, CurrentPeer: {currentPeer} Peers: {string.Join(",", peerInfos)}");
         PeerInfo? peerInfo = isPostMerge || anyPostMergePeers
             ? _postMergeAllocationStrategy.Allocate(currentPeer, postTTDPeers, nodeStatsManager, blockTree)
             : _preMergeAllocationStrategy.Allocate(currentPeer, peerInfos, nodeStatsManager, blockTree);
 
-        if (_logger.IsTrace) _logger.Trace($"MergePeerAllocationStrategy: Result of peer allocation {peerInfo}");
+        if (_logger.IsInfo) _logger.Info($"MergePeerAllocationStrategy: Result of peer allocation {peerInfo}");
         return peerInfo;
     }
 
