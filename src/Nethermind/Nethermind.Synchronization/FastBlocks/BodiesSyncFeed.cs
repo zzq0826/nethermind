@@ -135,7 +135,7 @@ namespace Nethermind.Synchronization.FastBlocks
             {
                 if (batch == null)
                 {
-                    if(_logger.IsDebug) _logger.Debug("Received a NULL batch as a response");
+                    if(_logger.IsInfo) _logger.Info("Received a NULL batch as a response");
                     return SyncResponseHandlingResult.InternalError;
                 }
 
@@ -197,7 +197,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     else
                     {
                         hasBreachedProtocol = true;
-                        if (_logger.IsDebug) _logger.Debug($"{batch} - reporting INVALID - tx or uncles");
+                        if (_logger.IsInfo) _logger.Info($"{batch} - reporting INVALID - tx or uncles");
 
                         if (batch.ResponseSourcePeer != null)
                         {
@@ -228,8 +228,8 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void LogPostProcessingBatchInfo(BodiesSyncBatch batch, int validResponsesCount)
         {
-            if (_logger.IsDebug)
-                _logger.Debug(
+            if (_logger.IsInfo)
+                _logger.Info(
                     $"{nameof(BodiesSyncBatch)} back from {batch.ResponseSourcePeer} with {validResponsesCount}/{batch.Infos.Length}");
         }
 

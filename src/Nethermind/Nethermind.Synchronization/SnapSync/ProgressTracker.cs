@@ -46,7 +46,7 @@ namespace Nethermind.Synchronization.SnapSync
             _db = db ?? throw new ArgumentNullException(nameof(db));
 
             _pivot = new Pivot(blockTree, logManager);
-            
+
             //TODO: maybe better to move to a init method instead of the constructor
             GetSyncProgress();
         }
@@ -74,7 +74,7 @@ namespace Nethermind.Synchronization.SnapSync
         public (SnapSyncBatch request, bool finished) GetNextRequest()
         {
             Interlocked.Increment(ref _reqCount);
-            
+
             var pivotHeader = _pivot.GetPivotHeader();
             var rootHash = pivotHeader.StateRoot;
             var blockNumber = pivotHeader.Number;
@@ -178,7 +178,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
 
             LogRequest(NO_REQUEST);
-            
+
             return (null, IsSnapGetRangesFinished());
         }
 
@@ -290,7 +290,7 @@ namespace Nethermind.Synchronization.SnapSync
             MoreAccountsToRight = false;
             NextAccountPath = Keccak.MaxValue;
             _db.Set(ACC_PROGRESS_KEY, NextAccountPath.Bytes);
-            
+
             SnapSyncFinished?.Invoke(this, EventArgs.Empty);
         }
 
@@ -303,7 +303,7 @@ namespace Nethermind.Synchronization.SnapSync
                 if (_logger.IsInfo) _logger.Info($"SNAP - progress of State Ranges (Phase 1): {progress}% [{new string('*', (int)progress / 10)}{new string(' ', 10 - (int)progress / 10)}]");
             }
 
-            if (_logger.IsTrace || _reqCount % 1000 == 0)
+            if (_logger.IsInfo || _reqCount % 1000 == 0)
             {
                 _logger.Info(
                     $"SNAP - ({reqType}, diff:{_pivot.Diff}) {MoreAccountsToRight}:{NextAccountPath} - Requests Account:{_activeAccountRequests} | Storage:{_activeStorageRequests} | Code:{_activeCodeRequests} | Refresh:{_activeAccRefreshRequests} - Queues Slots:{NextSlotRange.Count} | Storages:{StoragesToRetrieve.Count} | Codes:{CodesToRetrieve.Count} | Refresh:{AccountsToRefresh.Count}");

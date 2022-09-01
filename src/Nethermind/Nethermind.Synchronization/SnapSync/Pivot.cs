@@ -38,7 +38,7 @@ namespace Nethermind.Synchronization.SnapSync
                 _bestHeader = _blockTree.BestSuggestedHeader;
             }
 
-            if (_logger.IsDebug)
+            if (_logger.IsInfo)
             {
                 var currentHeader = _blockTree.FindHeader(_bestHeader.Number);
                 if (currentHeader.StateRoot != _bestHeader.StateRoot)

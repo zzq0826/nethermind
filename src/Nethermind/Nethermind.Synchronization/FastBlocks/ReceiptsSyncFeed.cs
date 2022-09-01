@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,7 +48,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private SyncStatusList _syncStatusList;
         private readonly long _pivotNumber;
         private readonly long _barrier;
-        
+
         private bool ShouldFinish => !_syncConfig.DownloadReceiptsInFastSync || AllReceiptsDownloaded;
         private bool AllReceiptsDownloaded => _receiptStorage.LowestInsertedReceiptBlockNumber <= _barrier;
 
@@ -78,9 +78,9 @@ namespace Nethermind.Synchronization.FastBlocks
 
             _pivotNumber = _syncConfig.PivotNumberParsed;
             _barrier = _syncConfig.AncientReceiptsBarrierCalc;
-            
+
             if(_logger.IsInfo) _logger.Info($"Using pivot {_pivotNumber} and barrier {_barrier} in receipts sync");
-            
+
             _syncStatusList = new SyncStatusList(
                 _blockTree,
                 _pivotNumber,
@@ -154,7 +154,7 @@ namespace Nethermind.Synchronization.FastBlocks
             {
                 if (batch is null)
                 {
-                    if (_logger.IsDebug) _logger.Debug("Received a NULL batch as a response");
+                    if (_logger.IsInfo) _logger.Info("Received a NULL batch as a response");
                     return SyncResponseHandlingResult.InternalError;
                 }
 
@@ -184,8 +184,8 @@ namespace Nethermind.Synchronization.FastBlocks
                 else
                 {
                     IReleaseSpec releaseSpec = _specProvider.GetSpec(blockInfo.BlockNumber);
-                    preparedReceipts = receipts.GetReceiptsRoot(releaseSpec, header.ReceiptsRoot) != header.ReceiptsRoot 
-                        ? null 
+                    preparedReceipts = receipts.GetReceiptsRoot(releaseSpec, header.ReceiptsRoot) != header.ReceiptsRoot
+                        ? null
                         : receipts;
                 }
             }
@@ -224,7 +224,7 @@ namespace Nethermind.Synchronization.FastBlocks
                             {
                                 if (_logger.IsWarn) _logger.Warn($"Could not find block {blockInfo.BlockHash}");
                             }
-                            
+
                             _syncStatusList.MarkUnknown(blockInfo.BlockNumber);
                         }
                         else
@@ -244,7 +244,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     else
                     {
                         hasBreachedProtocol = true;
-                        if (_logger.IsDebug) _logger.Debug($"{batch} - reporting INVALID - tx or uncles");
+                        if (_logger.IsInfo) _logger.Info($"{batch} - reporting INVALID - tx or uncles");
 
                         if (batch.ResponseSourcePeer != null)
                         {
@@ -273,8 +273,8 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void LogPostProcessingBatchInfo(ReceiptsSyncBatch batch, int validResponsesCount)
         {
-            if (_logger.IsDebug)
-                _logger.Debug(
+            if (_logger.IsInfo)
+                _logger.Info(
                     $"{nameof(ReceiptsSyncBatch)} back from {batch.ResponseSourcePeer} with {validResponsesCount}/{batch.Infos.Length}");
         }
 
