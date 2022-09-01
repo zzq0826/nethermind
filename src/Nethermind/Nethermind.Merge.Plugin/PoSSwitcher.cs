@@ -172,8 +172,8 @@ namespace Nethermind.Merge.Plugin
 
         public (bool IsTerminal, bool IsPostMerge) GetBlockConsensusInfo(BlockHeader header)
         {
-            if (_logger.IsTrace)
-                _logger.Trace(
+            if (_logger.IsInfo)
+                _logger.Info(
                     $"GetBlockConsensusInfo {header.ToString(BlockHeader.Format.FullHashAndNumber)} header.IsPostMerge: {header.IsPostMerge} header.TotalDifficulty {header.TotalDifficulty} header.Difficulty {header.Difficulty} TTD: {_specProvider.TerminalTotalDifficulty} MergeBlockNumber {_specProvider.MergeBlockNumber}, TransitionFinished: {TransitionFinished}");
 
             bool isTerminal = false, isPostMerge;
@@ -212,8 +212,8 @@ namespace Nethermind.Merge.Plugin
             }
 
             header.IsPostMerge = isPostMerge;
-            if (_logger.IsTrace)
-                _logger.Trace(
+            if (_logger.IsInfo)
+                _logger.Info(
                     $"GetBlockConsensusInfo Result: IsTerminal: {isTerminal}, IsPostMerge: {isPostMerge}, {header.ToString(BlockHeader.Format.FullHashAndNumber)} header.IsPostMerge: {header.IsPostMerge} header.TotalDifficulty {header.TotalDifficulty} header.Difficulty {header.Difficulty} TTD: {_specProvider.TerminalTotalDifficulty} MergeBlockNumber {_specProvider.MergeBlockNumber}, TransitionFinished: {TransitionFinished}");
             return (isTerminal, isPostMerge);
         }
