@@ -240,7 +240,7 @@ namespace Nethermind.Synchronization.ParallelSync
                     if ((newModes & (SyncMode.Full | SyncMode.WaitingForBlock)) != SyncMode.None
                         && (Current & (SyncMode.Full | SyncMode.WaitingForBlock)) == SyncMode.None)
                     {
-                        if (_logger.IsTrace) _logger.Trace($"Setting last full sync switch block to {best.Block}");
+                        if (_logger.IsInfo) _logger.Info($"Setting last full sync switch block to {best.Block}");
                         LastBlockThatEnabledFullSync = best.Block;
                     }
                 }
@@ -259,7 +259,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         private bool IsTheModeSwitchWorthMentioning(SyncMode newModes)
         {
-            return _logger.IsDebug ||
+            return _logger.IsInfo ||
                    newModes != Current &&
                    (newModes != SyncMode.WaitingForBlock || Current != SyncMode.Full) &&
                    (newModes != SyncMode.Full || Current != SyncMode.WaitingForBlock);
@@ -267,10 +267,10 @@ namespace Nethermind.Synchronization.ParallelSync
 
         private void UpdateSyncModes(SyncMode newModes, string? reason = null)
         {
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 string message = $"Changing state to {newModes} | {reason}";
-                if (_logger.IsTrace) _logger.Trace(message);
+                if (_logger.IsInfo) _logger.Info(message);
             }
 
             SyncMode previous = Current;
@@ -321,7 +321,7 @@ namespace Nethermind.Synchronization.ParallelSync
                            notInFastSync &&
                            notInStateSync);
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("WAITING FOR BLOCK",
                     (nameof(inBeaconControl), inBeaconControl),
@@ -369,7 +369,7 @@ namespace Nethermind.Synchronization.ParallelSync
                           notHasJustStartedFullSync &&
                           notNeedToWaitForHeaders;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("FAST",
                     (nameof(notInBeaconModes), notInBeaconModes),
@@ -401,7 +401,7 @@ namespace Nethermind.Synchronization.ParallelSync
                           notInStateSync &&
                           notNeedToWaitForHeaders;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("FULL",
                     (nameof(notInBeaconModes), notInBeaconModes),
@@ -424,7 +424,7 @@ namespace Nethermind.Synchronization.ParallelSync
             bool result = notInBeaconModes &&
                           desiredPeerKnown;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("FULL",
                     (nameof(notInBeaconModes), notInBeaconModes),
@@ -439,7 +439,7 @@ namespace Nethermind.Synchronization.ParallelSync
         {
             bool fastBlocksHeadersNotFinished = !FastBlocksHeadersFinished;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("HEADERS",
                     (nameof(fastBlocksHeadersNotFinished), fastBlocksHeadersNotFinished));
@@ -461,7 +461,7 @@ namespace Nethermind.Synchronization.ParallelSync
             // fast blocks bodies can run in parallel with full sync when headers are finished
             bool result = fastBodiesNotFinished && fastHeadersFinished && notInStateSync && stateSyncFinished;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("BODIES",
                     (nameof(fastBodiesNotFinished), fastBodiesNotFinished),
@@ -484,7 +484,7 @@ namespace Nethermind.Synchronization.ParallelSync
             // fast blocks receipts can run in parallel with full sync when bodies are finished
             bool result = fastReceiptsNotFinished && fastBodiesFinished && notInStateSync && stateSyncFinished;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("RECEIPTS",
                     (nameof(fastReceiptsNotFinished), fastReceiptsNotFinished),
@@ -537,7 +537,7 @@ namespace Nethermind.Synchronization.ParallelSync
                           notInAStickyFullSync &&
                           notNeedToWaitForHeaders;
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("STATE",
                     (nameof(fastSyncEnabled), fastSyncEnabled),
@@ -559,7 +559,7 @@ namespace Nethermind.Synchronization.ParallelSync
             bool isCloseToHead = peerBlock >= best.Header && (peerBlock - best.Header) < Constants.MaxDistanceFromHead;
             bool snapNotFinished = !_syncProgressResolver.IsSnapGetRangesFinished();
 
-            if (_logger.IsTrace)
+            if (_logger.IsInfo)
             {
                 LogDetailedSyncModeChecks("SNAP_RANGES",
                     (nameof(SnapSyncEnabled), SnapSyncEnabled),
@@ -673,7 +673,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
             bool result = checks.All(c => c.IsSatisfied);
             string text = $"{(result ? " * " : "   ")}{syncType.PadRight(20)}: yes({string.Join(", ", matched)}), no({string.Join(", ", failed)})";
-            _logger.Trace(text);
+            _logger.Info(text);
         }
 
         private ref struct Snapshot
