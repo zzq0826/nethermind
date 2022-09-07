@@ -44,12 +44,12 @@ namespace Nethermind.Synchronization.FastSync
         private readonly Stopwatch _networkWatch = new();
         private readonly Stopwatch _handleWatch = new();
 
-        private Keccak _rootNode = Keccak.EmptyTreeHash;
+        private Keccak _rootNode { get; set; } = Keccak.EmptyTreeHash;
         private int _rootSaved;
 
-        private readonly ILogger _logger;
+        protected readonly ILogger _logger;
         private readonly IDb _codeDb;
-        private readonly IDb _stateDb;
+        public readonly IDb _stateDb;
 
         private readonly IBlockTree _blockTree;
 
@@ -333,7 +333,7 @@ namespace Nethermind.Synchronization.FastSync
                 try
                 {
                     _logger.Info($"STATE SYNC FINISHED:{Metrics.StateSyncRequests}, {Metrics.SyncedStateTrieNodes}");
-
+                    RecoverySaga.Instance.Finish();
                     VerifyPostSyncCleanUp();
                     return (false, true);
                 }
@@ -355,6 +355,19 @@ namespace Nethermind.Synchronization.FastSync
         {
             BlockHeader bestSuggested = _blockTree.BestSuggestedHeader;
             if (bestSuggested == null || bestSuggested.Number == 0)
+            {
+                return;
+            }
+
+            if (_logger.IsInfo) _logger.Info($"Starting the node data sync from the {bestSuggested.ToString(BlockHeader.Format.Short)} {bestSuggested.StateRoot} root");
+
+            ResetStateRoot(bestSuggested.Number, bestSuggested.StateRoot!, currentState);
+        }
+
+        public void ResetStateRootForRecovery(long blockNumber, Keccak root, SyncFeedState currentState)
+        {
+            BlockHeader bestSuggested = _blockTree.FindBlock(blockNumber).Header;
+            if (bestSuggested == null || bestSuggested.Number == 0 || bestSuggested.StateRoot != root)
             {
                 return;
             }
@@ -432,7 +445,7 @@ namespace Nethermind.Synchronization.FastSync
             return _data;
         }
 
-        private AddNodeResult AddNodeToPending(StateSyncItem syncItem, DependentItem? dependentItem, string reason, bool missing = false)
+        protected AddNodeResult AddNodeToPending(StateSyncItem syncItem, DependentItem? dependentItem, string reason, bool missing = false)
         {
             if (!missing)
             {
@@ -534,6 +547,8 @@ namespace Nethermind.Synchronization.FastSync
                 SaveNode(dependentItem.SyncItem, dependentItem.Value);
             }
         }
+        public static HashSet<Keccak> Ok = new HashSet<Keccak>();
+        public static HashSet<Keccak> Deleted = new HashSet<Keccak>();
 
         private void SaveNode(StateSyncItem syncItem, byte[] data)
         {
@@ -548,6 +563,8 @@ namespace Nethermind.Synchronization.FastSync
                         {
                             Interlocked.Add(ref _data.DataSize, data.Length);
                             Interlocked.Increment(ref Metrics.SyncedStateTrieNodes);
+                            if(!syncItem.IsRoot) Ok.Add(syncItem.Hash);
+                            Console.WriteLine("~~~~~~ AD {0}", syncItem.Hash);
                             _stateDb.Set(syncItem.Hash, data);
                         }
 

@@ -36,10 +36,24 @@ namespace Nethermind.Trie
         }
     }
 
-
-    public class MissingAccountNodeTrieException : TrieException
+    public class SpecificTrieException : TrieException
     {
-        public Keccak Root { get; }
+        public Keccak Root { get; set;  }
+        public long BlockNumber { get; set;  }
+        public SpecificTrieException(string message) : base(message)
+        {
+
+        }
+
+        public SpecificTrieException(string message, Exception inner) : base(message, inner)
+        {
+        }
+    }
+
+
+    public class MissingAccountNodeTrieException : SpecificTrieException
+    {
+        
 
         public Keccak AccountHash { get; }
 
@@ -50,9 +64,8 @@ namespace Nethermind.Trie
         }
     }
 
-    public class MissingStorageNodeTrieException : TrieException
+    public class MissingStorageNodeTrieException : SpecificTrieException
     {
-        public Keccak Root { get; set; }
 
         public Keccak AccountHash { get; }
 

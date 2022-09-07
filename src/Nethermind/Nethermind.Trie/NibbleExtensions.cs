@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -29,6 +29,17 @@ namespace Nethermind.Trie
             {
                 nibbles[i * 2] = new Nibble((byte)((bytes[i] & 240) >> 4));
                 nibbles[i * 2 + 1] = new Nibble((byte)(bytes[i] & 15));
+            }
+
+            return nibbles;
+        }
+        public static byte[] NibbleBytesFromBytes(params byte[] bytes)
+        {
+            byte[] nibbles = new byte[2 * bytes.Length];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                nibbles[i * 2] = (byte)((bytes[i] & 240) >> 4);
+                nibbles[i * 2 + 1] = (byte)(bytes[i] & 15);
             }
 
             return nibbles;

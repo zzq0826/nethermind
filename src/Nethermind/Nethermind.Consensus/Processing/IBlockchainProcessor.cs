@@ -38,7 +38,7 @@ namespace Nethermind.Consensus.Processing
 
         event EventHandler<InvalidBlockEventArgs> InvalidBlock;
 
-        event EventHandler<TrieException> CorruptedState;
+        //event EventHandler<TrieException> CorruptedState;
 
         public class InvalidBlockEventArgs : EventArgs
         {

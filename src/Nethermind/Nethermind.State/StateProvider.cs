@@ -653,11 +653,11 @@ namespace Nethermind.State
         {
             try
             {
-                if(!TrieStore.OK.Contains(Keccak.Compute(address.Bytes)))
-                {
-                    TrieStore.Tried.Add(Keccak.Compute(address.Bytes));
-                    throw new TrieException();
-                }
+                //if(!TrieStore.OK.Contains(Keccak.Compute(address.Bytes)))
+                //{
+                //    TrieStore.Tried.Add(Keccak.Compute(address.Bytes));
+                //    throw new TrieException();
+                //}
                 Metrics.StateTreeReads++;
                 Account? account = _tree.Get(address);
                 

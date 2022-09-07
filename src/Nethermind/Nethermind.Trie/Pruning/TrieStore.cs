@@ -317,8 +317,8 @@ namespace Nethermind.Trie.Pruning
         }
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
-        public static HashSet<Keccak> Tried = new();
-        public static HashSet<Keccak> OK = new();
+        //public static HashSet<Keccak> Tried = new();
+        //public static HashSet<Keccak> OK = new();
         internal byte[] LoadRlp(Keccak keccak, IKeyValueStore? keyValueStore)
         {
             keyValueStore ??= _keyValueStore;

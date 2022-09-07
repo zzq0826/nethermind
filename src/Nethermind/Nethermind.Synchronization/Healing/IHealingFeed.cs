@@ -13,58 +13,58 @@ namespace Nethermind.Synchronization.Healing
         void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak rootHash);
     }
 
-    public class HealingFeedStub: IHealingFeed
-    {
-        public bool UseDeplay = true;
+    //public class HealingFeedStub: IHealingFeed
+    //{
+    //    public bool UseDeplay = true;
 
-        public HealingFeedStub()
-        {
-            if(IHealingFeed.Instance is not null)
-            {
-                throw new InvalidOperationException("HealingFeedStub is misused");
-            }
-            IHealingFeed.Instance = this;
-        }
+    //    public HealingFeedStub()
+    //    {
+    //        if(IHealingFeed.Instance is not null)
+    //        {
+    //            throw new InvalidOperationException("HealingFeedStub is misused");
+    //        }
+    //        IHealingFeed.Instance = this;
+    //    }
 
-        public void RecoverAccount(Keccak accountHash, Keccak rootHash) {
-            if (!UseDeplay) {
-                TrieStore.Tried.Remove(rootHash);
-                TrieStore.OK.Add(rootHash);
-                TrieStore.Tried.Remove(accountHash);
-                TrieStore.OK.Add(accountHash);
+    //    public void RecoverAccount(Keccak accountHash, Keccak rootHash) {
+    //        if (!UseDeplay) {
+    //            TrieStore.Tried.Remove(rootHash);
+    //            TrieStore.OK.Add(rootHash);
+    //            TrieStore.Tried.Remove(accountHash);
+    //            TrieStore.OK.Add(accountHash);
 
-                return;
-            }
-            _ = Task.Delay(30).ContinueWith((t) =>
-            {
-                TrieStore.Tried.Remove(rootHash);
-                TrieStore.OK.Add(rootHash);
-                TrieStore.Tried.Remove(accountHash);
-                TrieStore.OK.Add(accountHash);
+    //            return;
+    //        }
+    //        _ = Task.Delay(30).ContinueWith((t) =>
+    //        {
+    //            TrieStore.Tried.Remove(rootHash);
+    //            TrieStore.OK.Add(rootHash);
+    //            TrieStore.Tried.Remove(accountHash);
+    //            TrieStore.OK.Add(accountHash);
 
-            });
-        }
+    //        });
+    //    }
 
-        public void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak rootHash) {
-            if (!UseDeplay)
-            {
-                TrieStore.Tried.Remove(rootHash);
-                TrieStore.OK.Add(rootHash);
-                TrieStore.Tried.Remove(accountHash);
-                TrieStore.OK.Add(accountHash);
-                TrieStore.Tried.Remove(storageHash);
-                TrieStore.OK.Add(storageHash);
-                return;
-            }
-            _ = Task.Delay(30).ContinueWith((t) =>
-            {
-                TrieStore.Tried.Remove(rootHash);
-                TrieStore.OK.Add(rootHash);
-                TrieStore.Tried.Remove(accountHash);
-                TrieStore.OK.Add(accountHash);
-                TrieStore.Tried.Remove(storageHash);
-                TrieStore.OK.Add(storageHash);
-            });
-        }
-    }
+    //    public void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak rootHash) {
+    //        if (!UseDeplay)
+    //        {
+    //            TrieStore.Tried.Remove(rootHash);
+    //            TrieStore.OK.Add(rootHash);
+    //            TrieStore.Tried.Remove(accountHash);
+    //            TrieStore.OK.Add(accountHash);
+    //            TrieStore.Tried.Remove(storageHash);
+    //            TrieStore.OK.Add(storageHash);
+    //            return;
+    //        }
+    //        _ = Task.Delay(30).ContinueWith((t) =>
+    //        {
+    //            TrieStore.Tried.Remove(rootHash);
+    //            TrieStore.OK.Add(rootHash);
+    //            TrieStore.Tried.Remove(accountHash);
+    //            TrieStore.OK.Add(accountHash);
+    //            TrieStore.Tried.Remove(storageHash);
+    //            TrieStore.OK.Add(storageHash);
+    //        });
+    //    }
+    //}
 }

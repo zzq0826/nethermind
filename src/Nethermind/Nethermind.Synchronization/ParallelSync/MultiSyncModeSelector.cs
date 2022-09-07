@@ -87,6 +87,7 @@ namespace Nethermind.Synchronization.ParallelSync
         public event EventHandler<SyncModeChangedEventArgs>? Changed;
 
         public SyncMode Current { get; private set; } = SyncMode.Disconnected;
+        public bool IsRecovery { get; set; } = false;
 
         public MultiSyncModeSelector(
             ISyncProgressResolver syncProgressResolver,
@@ -97,7 +98,8 @@ namespace Nethermind.Synchronization.ParallelSync
             ILogManager logManager,
             bool needToWaitForHeaders = false)
         {
-            _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
+            RecoverySaga.Instance.Register(this);
+           _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _beaconSyncStrategy = beaconSyncStrategy ?? throw new ArgumentNullException(nameof(beaconSyncStrategy));
             _syncPeerPool = syncPeerPool ?? throw new ArgumentNullException(nameof(syncPeerPool));
@@ -393,7 +395,8 @@ namespace Nethermind.Synchronization.ParallelSync
             bool notInStateSync = !best.IsInStateSync;
             bool notNeedToWaitForHeaders = NotNeedToWaitForHeaders;
 
-            bool result = notInBeaconModes &&
+            bool result = !IsRecovery &&
+                          notInBeaconModes &&
                           desiredPeerKnown &&
                           postPivotPeerAvailable &&
                           hasFastSyncBeenActive &&
@@ -527,7 +530,7 @@ namespace Nethermind.Synchronization.ParallelSync
             bool notHasJustStartedFullSync = !HasJustStartedFullSync(best);
 
 
-            bool result = fastSyncEnabled &&
+            bool result = IsRecovery || (fastSyncEnabled &&
                           notInBeaconModes &&
                           hasFastSyncBeenActive &&
                           hasAnyPostPivotPeer &&
@@ -535,9 +538,9 @@ namespace Nethermind.Synchronization.ParallelSync
                           stateNotDownloadedYet &&
                           notHasJustStartedFullSync &&
                           notInAStickyFullSync &&
-                          notNeedToWaitForHeaders;
+                          notNeedToWaitForHeaders);
 
-            if (_logger.IsTrace)
+            //if (_logger.IsTrace)
             {
                 LogDetailedSyncModeChecks("STATE",
                     (nameof(fastSyncEnabled), fastSyncEnabled),
@@ -568,8 +571,7 @@ namespace Nethermind.Synchronization.ParallelSync
             }
 
             return SnapSyncEnabled
-                && isCloseToHead
-                && snapNotFinished;
+                && ((isCloseToHead && snapNotFinished )|| IsRecovery);
         }
 
         private bool HasJustStartedFullSync(Snapshot best) =>

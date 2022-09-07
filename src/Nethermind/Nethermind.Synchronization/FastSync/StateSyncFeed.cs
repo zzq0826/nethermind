@@ -35,7 +35,8 @@ namespace Nethermind.Synchronization.FastSync
         private readonly ILogger _logger;
         private readonly ISyncModeSelector _syncModeSelector;
         private readonly TreeSync _treeSync;
-        private readonly ConcurrentQueue<object> _healingQueue = new();
+        private readonly RecoverTreeSync _recoverTreeSync;
+        private TreeSync CurrentTreeSync { get; set; }
 
         public override bool IsMultiFeed => true;
 
@@ -44,12 +45,16 @@ namespace Nethermind.Synchronization.FastSync
         public StateSyncFeed(
             ISyncModeSelector syncModeSelector,
             TreeSync treeSync,
+            RecoverTreeSync recoverTreeSync,
             ILogManager logManager)
         {
             _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
             _treeSync = treeSync ?? throw new ArgumentNullException(nameof(treeSync));
+            _recoverTreeSync = recoverTreeSync ?? throw new ArgumentNullException(nameof(treeSync));
+            CurrentTreeSync = _treeSync;
             _syncModeSelector.Changed += SyncModeSelectorOnChanged;
-
+            RecoverySaga.Instance.RegisterStateFeed(this);
+            RecoverySaga.Instance.Register(_treeSync._stateDb);
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
@@ -57,7 +62,7 @@ namespace Nethermind.Synchronization.FastSync
         {
             try
             {
-                (bool continueProcessing, bool finishSyncRound) = _treeSync.ValidatePrepareRequest(_syncModeSelector.Current);
+                (bool continueProcessing, bool finishSyncRound) = CurrentTreeSync.ValidatePrepareRequest(_syncModeSelector.Current);
 
                 if (finishSyncRound)
                 {
@@ -69,7 +74,7 @@ namespace Nethermind.Synchronization.FastSync
                     return EmptyBatch!;
                 }
 
-                return await _treeSync.PrepareRequest(_syncModeSelector.Current);
+                return await CurrentTreeSync.PrepareRequest(_syncModeSelector.Current);
             }
             catch (Exception e)
             {
@@ -80,7 +85,7 @@ namespace Nethermind.Synchronization.FastSync
 
         public override SyncResponseHandlingResult HandleResponse(StateSyncBatch? batch, PeerInfo peer = null)
         {
-            return _treeSync.HandleResponse(batch);
+            return CurrentTreeSync.HandleResponse(batch);
         }
 
         public void Dispose()
@@ -94,7 +99,7 @@ namespace Nethermind.Synchronization.FastSync
             {
                 if ((e.Current & SyncMode.StateNodes) == SyncMode.StateNodes)
                 {
-                    _treeSync.ResetStateRootToBestSuggested(CurrentState);
+                    CurrentTreeSync.ResetStateRootToBestSuggested(CurrentState);
                     Activate();
                 }
             }
@@ -105,44 +110,32 @@ namespace Nethermind.Synchronization.FastSync
             lock (_handleWatch)
             {
                 FallAsleep();
-                _treeSync.ResetStateRoot(CurrentState);
+                CurrentTreeSync.ResetStateRoot(CurrentState);
             }
         }
 
-        internal void RecoverAccount(Keccak accountHash, Keccak root)
+        public void ResetRoot(long number, Keccak state)
         {
-            new StateSyncItem(root, accountHash.Bytes, null, NodeDataType.State);
+            lock (_handleWatch)
+            {
+                FallAsleep();
+                CurrentTreeSync.ResetStateRoot(number, state, CurrentState);
+            }
         }
 
-        internal void RecoverStorageSlot(Keccak storageHash, Keccak accountHash, Keccak root)
+        public void Recover(long number, Keccak state, Keccak accountHash, Keccak? storageHash = null)
         {
-            new StateSyncItem(root, accountHash.Bytes, storageHash.Bytes, NodeDataType.Storage);
+            lock (_handleWatch)
+            {
+                FallAsleep();
+                CurrentTreeSync = _recoverTreeSync;
+                _recoverTreeSync.Recover(number, state, CurrentState, accountHash, storageHash);
+            }
         }
-    }
 
-    internal class StorageHealingRequest
-    {
-        private Keccak _storageHash;
-        private Keccak _accountHash;
-        private Keccak _root;
-
-        public StorageHealingRequest(Keccak storageHash, Keccak accountHash, Keccak root)
+        public void ResetRecovery()
         {
-            _storageHash = storageHash;
-            _accountHash = accountHash;
-            _root = root;
-        }
-    }
-
-    internal class HealingRequest
-    {
-        private Keccak _accountHash;
-        private Keccak _root;
-
-        public HealingRequest(Keccak accountHash, Keccak root)
-        {
-            _accountHash = accountHash;
-            _root = root;
+            CurrentTreeSync = _treeSync;
         }
     }
 }

@@ -37,13 +37,17 @@ using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing
 {
+    public interface IRecoverySaga
+    {
+        Task RecoverFrom(SpecificTrieException ex);
+    }
     public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
     {
         public int SoftMaxRecoveryQueueSizeInTx = 10000; // adjust based on tx or gas
         public const int MaxProcessingQueueSize = 2000; // adjust based on tx or gas
 
         public ITracerBag Tracers => _compositeBlockTracer;
-
+        public static IRecoverySaga RecoverySaga { get; set; }
         private readonly IBlockProcessor _blockProcessor;
         private readonly IBlockPreprocessorStep _recoveryStep;
         private readonly IStateReader _stateReader;
@@ -71,7 +75,7 @@ namespace Nethermind.Consensus.Processing
 
         public event EventHandler<IBlockchainProcessor.InvalidBlockEventArgs> InvalidBlock;
 
-        public event EventHandler<TrieException> CorruptedState;
+       // public event EventHandler<TrieException> CorruptedState;
 
         /// <summary>
         ///
@@ -275,49 +279,56 @@ namespace Nethermind.Consensus.Processing
 
             foreach (BlockRef blockRef in _blockQueue.GetConsumingEnumerable(_loopCancellationSource.Token))
             {
-                try
+                while (true)
                 {
-                    if (blockRef.IsInDb || blockRef.Block == null)
+                    try
                     {
-                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.MissingBlock));
-                        throw new InvalidOperationException("Processing loop expects only resolved blocks");
+                        if (blockRef.IsInDb || blockRef.Block == null)
+                        {
+                            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.MissingBlock));
+                            throw new InvalidOperationException("Processing loop expects only resolved blocks");
+                        }
+
+                        Block block = blockRef.Block;
+
+                        if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
+                        _stats.Start();
+
+                        Block processedBlock = Process(block, blockRef.ProcessingOptions, _compositeBlockTracer.GetTracer());
+
+                        if (processedBlock is null)
+                        {
+                            if (_logger.IsTrace) _logger.Trace($"Failed / skipped processing {block.ToString(Block.Format.Full)}");
+                            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.ProcessingError));
+                        }
+                        else
+                        {
+                            if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
+                            _stats.UpdateStats(block, _recoveryQueue.Count, _blockQueue.Count);
+                            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Success));
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        if (exception is SpecificTrieException trieException)
+                        {
+                            trieException.BlockNumber = blockRef.Block.Number;
+                            _logger.Warn($"Healing block: {blockRef.Block?.Number}");
+                            RecoverySaga.RecoverFrom(trieException).Wait();
+                            continue;
+                        }
+                        if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef.Block?.Number}, Exception: {exception}");
+                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref _queueCount);
                     }
 
-                    Block block = blockRef.Block;
-
-                    if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
-                    _stats.Start();
-
-                    Block processedBlock = Process(block, blockRef.ProcessingOptions, _compositeBlockTracer.GetTracer());
-
-                    if (processedBlock is null)
-                    {
-                        if (_logger.IsTrace) _logger.Trace($"Failed / skipped processing {block.ToString(Block.Format.Full)}");
-                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.ProcessingError));
-                    }
-                    else
-                    {
-                        if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
-                        _stats.UpdateStats(block, _recoveryQueue.Count, _blockQueue.Count);
-                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Success));
-                    }
+                    if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
+                    FireProcessingQueueEmpty();
+                    break;
                 }
-                catch (Exception exception)
-                {
-                    if(exception is TrieException trieException)
-                    {
-                        CorruptedState?.Invoke(this, trieException);
-                    }
-                    if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef.Block?.Number}, Exception: {exception}");
-                    BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
-                }
-                finally
-                {
-                    Interlocked.Decrement(ref _queueCount);
-                }
-
-                if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
-                FireProcessingQueueEmpty();
             }
 
             if (_logger.IsInfo) _logger.Info("Block processor queue stopped.");

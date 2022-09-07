@@ -72,7 +72,7 @@ namespace Nethermind.Synchronization
         private HeadersSyncFeed? _headersFeed;
         private BodiesSyncFeed? _bodiesFeed;
         private ReceiptsSyncFeed? _receiptsFeed;
-        private readonly IHealingFeed _healingFeed;
+        //private readonly IHealingFeed _healingFeed;
         private readonly IBlockchainProcessor _blockchainProcessor;
 
         public Synchronizer(
@@ -105,24 +105,26 @@ namespace Nethermind.Synchronization
             _nodeStatsManager = nodeStatsManager ?? throw new ArgumentNullException(nameof(nodeStatsManager));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
-            _healingFeed = new HealingFeedStub();
+            //_healingFeed = new HealingFeedStub();
             _blockchainProcessor = blockchainProcessor ?? throw new ArgumentNullException(nameof(blockchainProcessor));
-            _blockchainProcessor.CorruptedState += BlockchainProcessor_CorruptedState;
+            BlockchainProcessor.RecoverySaga = RecoverySaga.Instance;
+            //_blockchainProcessor.CorruptedState += BlockchainProcessor_CorruptedState;
         }
 
-        private void BlockchainProcessor_CorruptedState(object? sender, TrieException e)
-        {
-            switch (e)
-            {
+        //private void BlockchainProcessor_CorruptedState(object? sender, TrieException e)
+        //{
+        //    ((MultiSyncModeSelector)_syncMode).IsRecovery = true;
+        //    switch (e)
+        //    {
 
-                case MissingAccountNodeTrieException accountMissingException:
-                    _stateSyncFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
-                    break;
-                case MissingStorageNodeTrieException storageMissingException:
-                    _stateSyncFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
-                    break;
-            }
-        }
+        //        case MissingAccountNodeTrieException accountMissingException:
+        //            _stateSyncFeed.RecoverAccount(accountMissingException.AccountHash, accountMissingException.Root);
+        //            break;
+        //        case MissingStorageNodeTrieException storageMissingException:
+        //            _stateSyncFeed.RecoverStorageSlot(storageMissingException.StorageHash, storageMissingException.AccountHash, storageMissingException.Root);
+        //            break;
+        //    }
+        //}
 
         public virtual void Start()
         {
@@ -172,8 +174,11 @@ namespace Nethermind.Synchronization
         private void StartStateSyncComponents()
         {
             TreeSync treeSync = new(SyncMode.StateNodes, _dbProvider.CodeDb, _dbProvider.StateDb, _blockTree, _logManager);
-            _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _logManager);
+            RecoverTreeSync recoverTreeSync = new(SyncMode.StateNodes, _dbProvider.CodeDb, _dbProvider.StateDb, _blockTree, _logManager);
+            _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, recoverTreeSync, _logManager);
+
             StateSyncDispatcher stateSyncDispatcher = new(_stateSyncFeed!, _syncPeerPool, new StateSyncAllocationStrategyFactory(), _syncConfig, _logManager);
+            RecoverySaga.Instance.RegisterStateSyncDispatcher(stateSyncDispatcher);
             Task syncDispatcherTask = stateSyncDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
             {
                 if (t.IsFaulted)
@@ -317,7 +322,7 @@ namespace Nethermind.Synchronization
         public void Dispose()
         {
             CancellationTokenExtensions.CancelDisposeAndClear(ref _syncCancellation);
-            _blockchainProcessor.CorruptedState -= BlockchainProcessor_CorruptedState;
+            //_blockchainProcessor.CorruptedState -= BlockchainProcessor_CorruptedState;
             _syncReport.Dispose();
             _fastSyncFeed?.Dispose();
             _stateSyncFeed?.Dispose();

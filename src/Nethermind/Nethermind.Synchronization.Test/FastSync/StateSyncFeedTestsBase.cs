@@ -97,7 +97,8 @@ namespace Nethermind.Synchronization.Test.FastSync
             syncConfig.FastSync = true;
             ctx.SyncModeSelector = StaticSelector.StateNodesWithFastBlocks;
             ctx.TreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, blockTree, _logManager);
-            ctx.Feed = new StateSyncFeed(ctx.SyncModeSelector, ctx.TreeFeed, _logManager);
+            ctx.RecoverTreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, blockTree, _logManager);
+            ctx.Feed = new StateSyncFeed(ctx.SyncModeSelector, ctx.TreeFeed, ctx.RecoverTreeFeed, _logManager);
             ctx.StateSyncDispatcher =
                 new StateSyncDispatcher(ctx.Feed, ctx.Pool, new StateSyncAllocationStrategyFactory(), syncConfig, _logManager);
             ctx.StateSyncDispatcher.Start(CancellationToken.None);
@@ -128,6 +129,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             public ISyncModeSelector SyncModeSelector;
             public ISyncPeerPool Pool;
             public TreeSync TreeFeed;
+            public RecoverTreeSync RecoverTreeFeed;
             public StateSyncFeed Feed;
             public StateSyncDispatcher StateSyncDispatcher;
         }

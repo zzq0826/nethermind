@@ -60,11 +60,11 @@ namespace Nethermind.State
         {
             try
             {
-                if (!TrieStore.OK.Contains(Keccak.Compute(storageCell.Index.ToBigEndian())))
-                {
-                    TrieStore.Tried.Add(Keccak.Compute(storageCell.Index.ToBigEndian()));
-                    throw new TrieException();
-                }
+                //if (!TrieStore.OK.Contains(Keccak.Compute(storageCell.Index.ToBigEndian())))
+                //{
+                //    TrieStore.Tried.Add(Keccak.Compute(storageCell.Index.ToBigEndian()));
+                //    throw new TrieException();
+                //}
                 return _persistentStorageProvider.Get(storageCell);
             }
             catch (TrieException e)
