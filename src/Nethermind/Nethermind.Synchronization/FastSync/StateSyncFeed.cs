@@ -96,7 +96,7 @@ namespace Nethermind.Synchronization.FastSync
 
             counter++;
 
-            if(counter % 100 == 0)
+            if(counter % 1000 == 0)
             {
                 PrintStats();
             }
