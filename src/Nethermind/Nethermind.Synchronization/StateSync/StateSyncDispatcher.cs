@@ -46,7 +46,7 @@ namespace Nethermind.Synchronization.StateSync
 
 
         ConcurrentDictionary<string, int> clients = new ConcurrentDictionary<string, int>();
-        private void GetStats(ISyncPeer peer, string method)
+        private void InsertStats(ISyncPeer peer, string method)
         {
             string key = method + ":" + peer.ClientId;
 
@@ -74,12 +74,15 @@ namespace Nethermind.Synchronization.StateSync
             }
         }
 
+        int counter = 0;
         protected override async Task Dispatch(PeerInfo peerInfo, StateSyncBatch batch, CancellationToken cancellationToken)
         {
             if (batch == null || batch.RequestedNodes == null || batch.RequestedNodes.Length == 0)
             {
                 return;
             }
+
+            counter++;
 
             //string printByteArray(byte[] bytes)
             //{
@@ -102,7 +105,7 @@ namespace Nethermind.Synchronization.StateSync
                         Logger.Trace($"GETBYTECODES count:{a.Length}");
                         task = handler.GetByteCodes(a, cancellationToken);
 
-                        GetStats(peer, "GETBYTECODES");
+                        InsertStats(peer, "GETBYTECODES");
                     }
                     else
                     {
@@ -112,7 +115,7 @@ namespace Nethermind.Synchronization.StateSync
 
                         task = handler.GetTrieNodes(request, cancellationToken);
 
-                        GetStats(peer, "GETTRIENODES");
+                        InsertStats(peer, "GETTRIENODES");
                     }
 
                     
@@ -131,7 +134,13 @@ namespace Nethermind.Synchronization.StateSync
 
                 task = peer.GetNodeData(a, cancellationToken);
 
-                GetStats(peer, "GETNODEDATA");
+                InsertStats(peer, "GETNODEDATA");
+            }
+
+            if (counter % 1000 == 0)
+            {
+                Logger.Warn("1000 requests");
+                PrintStats();
             }
 
             await task.ContinueWith(
