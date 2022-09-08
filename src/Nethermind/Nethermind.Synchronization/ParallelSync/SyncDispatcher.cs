@@ -201,7 +201,7 @@ namespace Nethermind.Synchronization.ParallelSync
             }
         }
 
-        private void SyncFeedOnStateChanged(object? sender, SyncFeedStateEventArgs e)
+        protected virtual void SyncFeedOnStateChanged(object? sender, SyncFeedStateEventArgs e)
         {
             SyncFeedState state = e.NewState;
             UpdateState(state);

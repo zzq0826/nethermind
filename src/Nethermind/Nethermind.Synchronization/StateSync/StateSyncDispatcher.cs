@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -40,6 +41,37 @@ namespace Nethermind.Synchronization.StateSync
             : base(syncFeed, syncPeerPool, peerAllocationStrategy, logManager)
         {
             _snapSyncEnabled = syncConfig.SnapSync;
+        }
+
+
+
+        ConcurrentDictionary<string, int> clients = new ConcurrentDictionary<string, int>();
+        private void GetStats(ISyncPeer peer, string method)
+        {
+            string key = method + ":" + peer.ClientId;
+
+            if (clients.ContainsKey(key))
+            {
+                clients[key] = clients[key] + 1;
+            }
+            else
+            {
+                clients[key] = 1;
+            }
+        }
+
+        protected override void SyncFeedOnStateChanged(object? sender, SyncFeedStateEventArgs e)
+        {
+            base.SyncFeedOnStateChanged(sender, e);
+            PrintStats();
+        }
+
+        private void PrintStats()
+        {
+            foreach (var item in clients)
+            {
+                Logger.Warn($"{item.Key} -> {item.Value}");
+            }
         }
 
         protected override async Task Dispatch(PeerInfo peerInfo, StateSyncBatch batch, CancellationToken cancellationToken)
@@ -69,6 +101,8 @@ namespace Nethermind.Synchronization.StateSync
                         var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
                         Logger.Trace($"GETBYTECODES count:{a.Length}");
                         task = handler.GetByteCodes(a, cancellationToken);
+
+                        GetStats(peer, "GETBYTECODES");
                     }
                     else
                     {
@@ -77,22 +111,28 @@ namespace Nethermind.Synchronization.StateSync
                         Logger.Trace($"GETTRIENODES count:{request.AccountAndStoragePaths.Length}");
 
                         task = handler.GetTrieNodes(request, cancellationToken);
+
+                        GetStats(peer, "GETTRIENODES");
                     }
+
+                    
                 }
             }
 
-            if(task == null)
-            {
-                return;
-            }
-
-            //if (task is null)
+            //if(task == null)
             //{
-            //    var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
-            //    Logger.Warn($"GETNODEDATA count:{a.Length}");
-
-            //    task = peer.GetNodeData(a, cancellationToken);
+            //    return;
             //}
+
+            if (task is null)
+            {
+                var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
+                //Logger.Warn($"GETNODEDATA count:{a.Length}");
+
+                task = peer.GetNodeData(a, cancellationToken);
+
+                GetStats(peer, "GETNODEDATA");
+            }
 
             await task.ContinueWith(
                 (t, state) =>
