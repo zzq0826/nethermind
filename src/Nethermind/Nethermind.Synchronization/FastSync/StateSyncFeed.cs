@@ -76,8 +76,30 @@ namespace Nethermind.Synchronization.FastSync
             }
         }
 
+        ConcurrentDictionary<string, int> clients = new ConcurrentDictionary<string, int>();
+        int counter = 0;
         public override SyncResponseHandlingResult HandleResponse(StateSyncBatch? batch, PeerInfo peer = null)
         {
+            if(batch != null && peer != null)
+            {
+                string key = peer.SyncPeer.ClientId;
+
+                if (clients.ContainsKey(key))
+                {
+                    clients[key] = clients[key] + 1;
+                }
+                else
+                {
+                    clients[key] = 1;
+                }
+            }
+
+            counter++;
+
+            if(counter % 100 == 0)
+            {
+                PrintStats();
+            }
             return _treeSync.HandleResponse(batch);
         }
 
@@ -100,10 +122,20 @@ namespace Nethermind.Synchronization.FastSync
 
         private void FinishThisSyncRound()
         {
+            PrintStats();
+
             lock (_handleWatch)
             {
                 FallAsleep();
                 _treeSync.ResetStateRoot(CurrentState);
+            }
+        }
+
+        private void PrintStats()
+        {
+            foreach (var item in clients)
+            {
+                _logger.Warn($"{item.Key} -> {item.Value}" );
             }
         }
     }
