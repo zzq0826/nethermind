@@ -85,7 +85,7 @@ namespace Nethermind.Synchronization.StateSync
             if (task is null)
             {
                 var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
-                Logger.Warn($"GETNODEDATA count:{a.Length}");
+                Logger.Warn($"GETNODEDATA count:{a.Length} {string.Join(",", a.Select(x=>x.ToString()).ToArray())}");
 
                 task = peer.GetNodeData(a, cancellationToken);
             }

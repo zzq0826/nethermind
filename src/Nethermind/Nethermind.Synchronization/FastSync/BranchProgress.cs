@@ -29,7 +29,7 @@ namespace Nethermind.Synchronization.FastSync
     /// ++++++++++++++++++*+++++****************************************
     /// **************************************************************** 
     /// </summary>
-    internal class BranchProgress
+    public class BranchProgress
     {
         private ILogger _logger;
         private NodeProgressState[] _syncProgress;

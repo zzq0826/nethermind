@@ -499,6 +499,8 @@ namespace Nethermind.Runner
 
         private static void ConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         {
+            if (_logger.IsTrace)
+                _logger.Trace($"Running cancellation was requested");
             _processCloseCancellationSource.Cancel();
             _ = _cancelKeySource.TrySetResult(null);
             e.Cancel = true;

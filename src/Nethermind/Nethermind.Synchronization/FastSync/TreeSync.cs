@@ -29,8 +29,8 @@ namespace Nethermind.Synchronization.FastSync
 
         private static readonly AccountDecoder AccountDecoder = new();
 
-        private readonly DetailedProgress _data;
-        private readonly IPendingSyncItems _pendingItems;
+        protected readonly DetailedProgress _data;
+        protected readonly IPendingSyncItems _pendingItems;
 
         private readonly Keccak _fastSyncProgressKey = Keccak.Zero;
 
@@ -38,17 +38,17 @@ namespace Nethermind.Synchronization.FastSync
         private DateTime _currentSyncStart;
         private long _currentSyncStartSecondsInSync;
 
-        private readonly object _stateDbLock = new();
-        private readonly object _codeDbLock = new();
+        protected readonly object _stateDbLock = new();
+        protected readonly object _codeDbLock = new();
 
         private readonly Stopwatch _networkWatch = new();
         private readonly Stopwatch _handleWatch = new();
 
-        private Keccak _rootNode { get; set; } = Keccak.EmptyTreeHash;
+        protected Keccak _rootNode { get; set; } = Keccak.EmptyTreeHash;
         private int _rootSaved;
 
         protected readonly ILogger _logger;
-        private readonly IDb _codeDb;
+        protected readonly IDb _codeDb;
         public readonly IDb _stateDb;
 
         private readonly IBlockTree _blockTree;
@@ -58,10 +58,10 @@ namespace Nethermind.Synchronization.FastSync
         private LruKeyCache<Keccak> _alreadySaved = new(AlreadySavedCapacity, "saved nodes");
         private readonly HashSet<Keccak> _codesSameAsNodes = new();
 
-        private BranchProgress _branchProgress;
-        private int _hintsToResetRoot;
+        internal protected BranchProgress _branchProgress;
+        protected int _hintsToResetRoot;
         private long _blockNumber;
-        private SyncMode _syncMode;
+        protected SyncMode _syncMode;
 
         public TreeSync(SyncMode syncMode, IDb codeDb,IDb stateDb, IBlockTree blockTree, ILogManager logManager)
         {
@@ -289,7 +289,7 @@ namespace Nethermind.Synchronization.FastSync
             }
         }
 
-        public (bool continueProcessing, bool finishSyncRound) ValidatePrepareRequest(SyncMode currentSyncMode)
+        public virtual (bool continueProcessing, bool finishSyncRound) ValidatePrepareRequest(SyncMode currentSyncMode)
         {
             if (_rootSaved == 1)    
             {
@@ -445,12 +445,12 @@ namespace Nethermind.Synchronization.FastSync
             return _data;
         }
 
-        protected AddNodeResult AddNodeToPending(StateSyncItem syncItem, DependentItem? dependentItem, string reason, bool missing = false)
+        protected virtual AddNodeResult AddNodeToPending(StateSyncItem syncItem, DependentItem? dependentItem, string reason, bool missing = false)
         {
             if (!missing)
             {
                 if (syncItem.Level <= 2)
-                {
+                { 
                     _branchProgress.ReportSynced(syncItem, NodeProgressState.Requested);
                 }
 
@@ -550,7 +550,7 @@ namespace Nethermind.Synchronization.FastSync
         public static HashSet<Keccak> Ok = new HashSet<Keccak>();
         public static HashSet<Keccak> Deleted = new HashSet<Keccak>();
 
-        private void SaveNode(StateSyncItem syncItem, byte[] data)
+        protected virtual void SaveNode(StateSyncItem syncItem, byte[] data)
         {
             if (_logger.IsTrace) _logger.Trace($"SAVE {new string('+', syncItem.Level * 2)}{syncItem.NodeDataType.ToString().ToUpperInvariant()} {syncItem.Hash}");
             Interlocked.Increment(ref _data.SavedNodesCount);
@@ -622,7 +622,7 @@ namespace Nethermind.Synchronization.FastSync
             PossiblySaveDependentNodes(syncItem.Hash);
         }
 
-        private void VerifyPostSyncCleanUp()
+        protected void VerifyPostSyncCleanUp()
         {
             lock (_dependencies)
             {
@@ -807,7 +807,7 @@ namespace Nethermind.Synchronization.FastSync
             }
         }
 
-        private static uint CalculateRightness(NodeType nodeType, StateSyncItem currentStateSyncItem, int childIndex)
+        protected static uint CalculateRightness(NodeType nodeType, StateSyncItem currentStateSyncItem, int childIndex)
         {
             if (nodeType == NodeType.Branch)
             {
@@ -859,7 +859,7 @@ namespace Nethermind.Synchronization.FastSync
             }
         }
 
-        private enum AddNodeResult
+        protected enum AddNodeResult
         {
             AlreadySaved,
             AlreadyRequested,

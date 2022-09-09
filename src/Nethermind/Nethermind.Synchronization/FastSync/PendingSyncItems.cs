@@ -23,7 +23,7 @@ using System.Linq;
 
 namespace Nethermind.Synchronization.FastSync
 {
-    internal interface IPendingSyncItems
+    public interface IPendingSyncItems
     {
         StateSyncItem? PeekState();
         string RecalculatePriorities();
@@ -36,7 +36,7 @@ namespace Nethermind.Synchronization.FastSync
         void PushToSelectedStream(StateSyncItem item, decimal progress);
     }
 
-    internal class PendingSyncItems : IPendingSyncItems
+    public class PendingSyncItems : IPendingSyncItems
     {
         private ConcurrentStack<StateSyncItem>[] _allStacks = new ConcurrentStack<StateSyncItem>[7];
 

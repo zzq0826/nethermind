@@ -20,7 +20,7 @@ using System.Diagnostics;
 namespace Nethermind.Synchronization.FastSync
 {
     [DebuggerDisplay("{SyncItem.Hash} {Counter}")]
-    internal class DependentItem
+    public class DependentItem
     {
         public StateSyncItem SyncItem { get; }
         public byte[] Value { get; }

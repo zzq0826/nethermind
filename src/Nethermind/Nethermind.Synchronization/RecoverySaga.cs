@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Consensus.Processing;
+using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Synchronization.FastSync;
 using Nethermind.Synchronization.ParallelSync;
@@ -71,19 +72,37 @@ namespace Nethermind.Synchronization
 
         private RecoverySaga()
         {
+            int a = 0;
             Task.Run(async () =>
             {
-                while (true)
+                try
                 {
-                    await Task.Delay(1000);
-                    while(TreeSync.Ok.Any())
+                    while (true)
                     {
-                        var el = TreeSync.Ok.First();
-                        TreeSync.Ok.Remove(el);
-                        TreeSync.Deleted.Add(el);
-                        stateDb.Remove(el.Bytes);
-                        Console.WriteLine("~~~~~~ DELET {0}", el);
+                        await Task.Delay(1000);
+                        a++;
+                        if (a == 15)
+                        {
+                            stateDb.GetAll(true).Select(x => new Keccak(x.Key)).ToList().ForEach(x => stateDb.Delete(x));
+                            a = 0;
+                        }
+                        Console.WriteLine("STATE: \n{0}\n", string.Join("\n", stateDb.GetAll(true).Select(x => new Keccak(x.Key).ToString())));
+
+
+                        while (TreeSync.Ok.Any())
+                        {
+                            var el = TreeSync.Ok.First();
+                            TreeSync.Ok.Remove(el);
+                            TreeSync.Deleted.Add(el);
+                            stateDb.Remove(el.Bytes);
+                            Console.WriteLine("~~~~~~ DELET {0}", el);
+                            Console.WriteLine("STATE NEW: \n{0}\n", string.Join("\n", stateDb.GetAll(true).Select(x => new Keccak(x.Key).ToString())));
+                        }
                     }
+                }
+                catch
+                {
+
                 }
             });
         }

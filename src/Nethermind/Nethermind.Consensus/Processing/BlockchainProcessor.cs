@@ -75,7 +75,7 @@ namespace Nethermind.Consensus.Processing
 
         public event EventHandler<IBlockchainProcessor.InvalidBlockEventArgs> InvalidBlock;
 
-       // public event EventHandler<TrieException> CorruptedState;
+        // public event EventHandler<TrieException> CorruptedState;
 
         /// <summary>
         ///
@@ -310,6 +310,7 @@ namespace Nethermind.Consensus.Processing
                     }
                     catch (Exception exception)
                     {
+                        if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef.Block?.Number}, Exception: {exception}");
                         if (exception is SpecificTrieException trieException)
                         {
                             trieException.BlockNumber = blockRef.Block.Number;
@@ -317,7 +318,6 @@ namespace Nethermind.Consensus.Processing
                             RecoverySaga.RecoverFrom(trieException).Wait();
                             continue;
                         }
-                        if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef.Block?.Number}, Exception: {exception}");
                         BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
                     }
                     finally
@@ -332,11 +332,6 @@ namespace Nethermind.Consensus.Processing
             }
 
             if (_logger.IsInfo) _logger.Info("Block processor queue stopped.");
-        }
-
-        private async Task Recovery(TrieException ex)
-        {
-            await Task.Delay(5000);
         }
 
         private void FireProcessingQueueEmpty()
