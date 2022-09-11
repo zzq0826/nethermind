@@ -85,7 +85,7 @@ namespace Nethermind.Network.Discovery.Test
             _discoveryManager.MsgSender = _msgSender;
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task OnPingMessageTest()
         {
             //receiving ping
@@ -100,7 +100,7 @@ namespace Nethermind.Network.Discovery.Test
             _msgSender.Received().SendMsg(Arg.Is<PingMsg>(m => m.FarAddress!.Address.ToString() == Host && m.FarAddress.Port == Port));
         }
 
-        [Test, Ignore("Add bonding"), Retry(3)]
+        [Test, Ignore("Add bonding")]
         public void OnPongMessageTest()
         {
             //receiving pong
@@ -116,7 +116,7 @@ namespace Nethermind.Network.Discovery.Test
             Assert.AreEqual(NodeLifecycleState.Active, manager?.State);
         }
 
-        [Test, Ignore("Add bonding"), Retry(3)]
+        [Test, Ignore("Add bonding")]
         public void OnFindNodeMessageTest()
         {
             //receiving pong to have a node in the system
@@ -140,7 +140,7 @@ namespace Nethermind.Network.Discovery.Test
             _msgSender.Received(1).SendMsg(Arg.Is<NeighborsMsg>(m => m.FarAddress!.Address.ToString() == Host && m.FarAddress.Port == Port));
         }
 
-        [Test, Retry(3)]
+        [Test]
         public void MemoryTest()
         {
             //receiving pong to have a node in the system
@@ -160,7 +160,7 @@ namespace Nethermind.Network.Discovery.Test
 
         private static long GetExpirationTime() => Timestamper.Default.UnixTime.SecondsLong + 20;
 
-        [Test, Ignore("Add bonding"), Retry(3)]
+        [Test, Ignore("Add bonding")]
         public async Task OnNeighborsMessageTest()
         {
             //receiving pong to have a node in the system

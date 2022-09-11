@@ -69,7 +69,7 @@ namespace Nethermind.Core.Test
         }
 
         [Test]
-        [Retry(3)]
+        
         public void Update_twice_total_per_second()
         {
             ManualTimestamper manualTimestamper = new();
@@ -83,7 +83,7 @@ namespace Nethermind.Core.Test
         }
 
         [Test]
-        [Retry(3)]
+        
         public void Update_twice_current_per_second()
         {
             ManualTimestamper manualTimestamper = new();

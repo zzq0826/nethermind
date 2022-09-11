@@ -148,7 +148,7 @@ namespace Nethermind.Network.Discovery.Test
         }
 
         [Test]
-        [Retry(3)]
+        
         public async Task UnreachableStateTest()
         {
             Node node = new(TestItem.PublicKeyB, _host, _port);
@@ -161,7 +161,7 @@ namespace Nethermind.Network.Discovery.Test
             //Assert.AreEqual(NodeLifecycleState.Unreachable, manager.State);
         }
 
-        [Test, Retry(3), Ignore("Eviction changes were introduced and we would need to expose some internals to test bonding")]
+        [Test, Ignore("Eviction changes were introduced and we would need to expose some internals to test bonding")]
         public void EvictCandidateStateWonEvictionTest()
         {
             //adding 3 active nodes

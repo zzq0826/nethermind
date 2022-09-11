@@ -66,7 +66,7 @@ namespace Nethermind.Network.Test
         private const string enode4String =
             "enode://3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333b@some.url:434";
 
-        [Test, Retry(10)]
+        [Test]
         public async Task Will_connect_to_a_candidate_node()
         {
             await using Context ctx = new();
@@ -196,7 +196,7 @@ namespace Nethermind.Network.Test
             e.Session.Handshake(e.Session.RemoteNodeId);
         }
 
-        [Test, Retry(5)]
+        [Test]
         public async Task Will_fill_up_on_disconnects()
         {
             await using Context ctx = new();
@@ -211,7 +211,7 @@ namespace Nethermind.Network.Test
             Assert.AreEqual(50, ctx.RlpxPeer.ConnectAsyncCallsCount);
         }
 
-        [Test, Retry(5)]
+        [Test]
         public async Task Ok_if_fails_to_connect()
         {
             await using Context ctx = new();
@@ -224,7 +224,7 @@ namespace Nethermind.Network.Test
             Assert.AreEqual(0, ctx.PeerManager.ActivePeers.Count);
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Will_fill_up_over_and_over_again_on_disconnects()
         {
             await using Context ctx = new();
@@ -279,7 +279,7 @@ namespace Nethermind.Network.Test
             }
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Will_fill_up_over_and_over_again_on_disconnects_and_when_ids_keep_changing()
         {
             await using Context ctx = new();
@@ -389,7 +389,7 @@ namespace Nethermind.Network.Test
             ctx.PeerManager.ActivePeers.Count(p => p.Node.IsStatic).Should().Be(nodesCount);
         }
 
-        [Test, Retry(5)]
+        [Test]
         public async Task Will_disconnect_on_remove_static_node()
         {
             await using Context ctx = new();
@@ -411,7 +411,7 @@ namespace Nethermind.Network.Test
             disconnections.Should().Be(1);
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Will_connect_and_disconnect_on_peer_management()
         {
             await using Context ctx = new();

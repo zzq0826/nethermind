@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -129,13 +129,13 @@ namespace Nethermind.AuRa.Test
                     }
         }
 
-        [Test, Retry(6)]
+        [Test]
         public async Task Produces_block()
         {
             (await StartStop(new Context())).ShouldProduceBlocks(Quantity.AtLeastOne());
         }
         
-        [Test, Retry(6)]
+        [Test]
         public async Task Can_produce_first_block_when_private_chains_allowed()
         {
             Context context = new();
@@ -180,7 +180,7 @@ namespace Nethermind.AuRa.Test
             (await StartStop(context)).ShouldProduceBlocks(Quantity.None());
         }
         
-        [Test, Retry(9)]
+        [Test]
         public async Task Produces_block_when_ForceSealing_is_false_and_there_are_transactions()
         {
             Context context = new();
@@ -222,7 +222,7 @@ namespace Nethermind.AuRa.Test
             (await StartStop(context)).ShouldProduceBlocks(Quantity.None());
         }
         
-        [Test, Retry(6)]
+        [Test]
         public async Task Does_not_produce_block_when_there_is_new_best_suggested_block_not_yet_processed()
         {
             (await StartStop(new Context(), true, true)).ShouldProduceBlocks(Quantity.None());

@@ -93,7 +93,7 @@ namespace Nethermind.AuRa.Test.Contract
         }
         
         [Test]
-        [Retry(3)]
+        
         public async Task 
             priority_should_return_correctly()
         {
@@ -113,7 +113,7 @@ namespace Nethermind.AuRa.Test.Contract
         }
         
         [Test]
-        [Retry(3)]
+        
         public async Task mingas_should_return_correctly()
         {
             using TxPermissionContractBlockchainWithBlocks chain = await TestContractBlockchain.ForTest<TxPermissionContractBlockchainWithBlocks, TxPriorityContractTests>();
@@ -132,7 +132,7 @@ namespace Nethermind.AuRa.Test.Contract
         }
         
         [Test]
-        [Retry(3)]
+        
         [Explicit]
         public async Task whitelist_should_return_correctly_with_local_storage([Values(true, false)] bool fileFirst)
         {
@@ -171,7 +171,7 @@ namespace Nethermind.AuRa.Test.Contract
         }
         
         [Test]
-        [Retry(3)]
+        
         [Explicit]
         public async Task priority_should_return_correctly_with_local_storage([Values(true, false)] bool fileFirst)
         {
@@ -218,7 +218,7 @@ namespace Nethermind.AuRa.Test.Contract
         }
 
         [Test]
-        [Retry(3)]
+        
         [Explicit]
         public async Task mingas_should_return_correctly_with_local_storage([Values(true, false)] bool fileFirst)
         {

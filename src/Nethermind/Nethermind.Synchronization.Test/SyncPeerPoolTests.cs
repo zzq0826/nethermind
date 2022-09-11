@@ -356,7 +356,7 @@ namespace Nethermind.Synchronization.Test
             await ctx.Pool.StopAsync();
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Can_refresh()
         {
             await using Context ctx = new();
@@ -437,7 +437,7 @@ namespace Nethermind.Synchronization.Test
             Assert.False(replaced);
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Does_not_replace_on_small_difference_in_low_numbers()
         {
             await using Context ctx = new();
@@ -734,7 +734,7 @@ namespace Nethermind.Synchronization.Test
             Console.WriteLine($"{desc} freed allocation");
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Try_to_break_multithreaded()
         {
             await using Context ctx = new();

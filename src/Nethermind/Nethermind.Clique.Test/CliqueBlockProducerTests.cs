@@ -707,7 +707,7 @@ namespace Nethermind.Clique.Test
             await goerli.StopNode(TestItem.PrivateKeyC);
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Can_vote_a_validator_out()
         {
             On goerli = On.FastGoerli;
@@ -853,7 +853,7 @@ namespace Nethermind.Clique.Test
         }
 
         [Test]
-        [Retry(3)]
+        
         public async Task Creates_blocks_without_signals_from_block_tree()
         {
             await On.Goerli
@@ -882,7 +882,7 @@ namespace Nethermind.Clique.Test
             await goerli.StopNode(TestItem.PrivateKeyA);
         }
 
-        [Test, Retry(3)]
+        [Test]
         public async Task Many_validators_can_process_blocks()
         {
             PrivateKey[] keys = new[] {TestItem.PrivateKeyA, TestItem.PrivateKeyB, TestItem.PrivateKeyC}.OrderBy(pk => pk.Address, AddressComparer.Instance).ToArray();

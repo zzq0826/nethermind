@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ namespace Nethermind.Network.Discovery.Test
         }
 
         [Test]
-        [Retry(5)]
+        
         public async Task PingSentReceivedTest()
         {
             ResetMetrics();
@@ -106,7 +106,7 @@ namespace Nethermind.Network.Discovery.Test
         }
 
         [Test]
-        [Retry(5)]
+        
         public async Task PongSentReceivedTest()
         {
             ResetMetrics();
@@ -132,7 +132,7 @@ namespace Nethermind.Network.Discovery.Test
         }
         
         [Test]
-        [Retry(5)]
+        
         public async Task FindNodeSentReceivedTest()
         {
             ResetMetrics();
@@ -159,7 +159,7 @@ namespace Nethermind.Network.Discovery.Test
         }
 
         [Test]
-        [Retry(5)]
+        
         public async Task NeighborsSentReceivedTest()
         {
             ResetMetrics();
