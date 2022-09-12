@@ -90,7 +90,7 @@ namespace Nethermind.Synchronization.FastSync
                 if (requestHashes.Count > 0)
                 {
                     StateSyncItem[] requestedNodes = requestHashes.ToArray();
-                    StateSyncBatch result = new(requestedNodes);
+                    StateSyncBatch result = new(_rootNode, requestHashes[0].NodeDataType, requestedNodes);
 
                     Interlocked.Add(ref _data.RequestedNodesCount, result.RequestedNodes.Length);
                     Interlocked.Exchange(ref _data.SecondsInSync, _currentSyncStartSecondsInSync + secondsInCurrentSync);
@@ -671,7 +671,15 @@ namespace Nethermind.Synchronization.FastSync
                         {
                             branchChildPath[currentStateSyncItem.PathNibbles.Length] = (byte)childIndex;
 
-                            AddNodeResult addChildResult = AddNodeToPending(new StateSyncItem(childHash, currentStateSyncItem.AccountPathNibbles, branchChildPath.ToArray(), nodeDataType, currentStateSyncItem.Level + 1, CalculateRightness(trieNode.NodeType, currentStateSyncItem, childIndex)) { BranchChildIndex = (short)childIndex, ParentBranchChildIndex = currentStateSyncItem.BranchChildIndex }, dependentBranch, "branch child");
+                            AddNodeResult addChildResult = AddNodeToPending(
+                                new StateSyncItem(childHash, currentStateSyncItem.AccountPathNibbles, branchChildPath.ToArray(), nodeDataType, currentStateSyncItem.Level + 1, CalculateRightness(trieNode.NodeType, currentStateSyncItem, childIndex))
+                                {
+                                    BranchChildIndex = (short)childIndex,
+                                    ParentBranchChildIndex = currentStateSyncItem.BranchChildIndex
+                                },
+                                dependentBranch,
+                                "branch child");
+
                             if (addChildResult != AddNodeResult.AlreadySaved)
                             {
                                 dependentBranch.Counter++;
@@ -754,7 +762,11 @@ namespace Nethermind.Synchronization.FastSync
 
                         if (storageRoot != Keccak.EmptyTreeHash)
                         {
-                            AddNodeResult addStorageNodeResult = AddNodeToPending(new StateSyncItem(storageRoot, currentStateSyncItem.PathNibbles, null, NodeDataType.Storage, 0, currentStateSyncItem.Rightness), dependentItem, "storage");
+                            Span<byte> childPath = stackalloc byte[currentStateSyncItem.PathNibbles.Length + trieNode.Path!.Length];
+                            currentStateSyncItem.PathNibbles.CopyTo(childPath.Slice(0, currentStateSyncItem.PathNibbles.Length));
+                            trieNode.Path!.CopyTo(childPath.Slice(currentStateSyncItem.PathNibbles.Length));
+
+                            AddNodeResult addStorageNodeResult = AddNodeToPending(new StateSyncItem(storageRoot, childPath.ToArray(), null, NodeDataType.Storage, 0, currentStateSyncItem.Rightness), dependentItem, "storage");
                             if (addStorageNodeResult != AddNodeResult.AlreadySaved) dependentItem.Counter++;
                         }
 
