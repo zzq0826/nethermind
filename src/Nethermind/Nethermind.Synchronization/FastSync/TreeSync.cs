@@ -191,10 +191,11 @@ namespace Nethermind.Synchronization.FastSync
                             continue;
                         }
 
-                        /* if the peer does not have details of this particular node */
+                        /* node sent data that is not consistent with its hash - it happens surprisingly often */
                         byte[] currentResponseItem = batch.Responses[i];
                         if (currentResponseItem == null)
                         {
+                            _logger.Warn($"Missing nodes case#0: null");
                             AddNodeToPending(batch.RequestedNodes[i], null, "missing", true);
                             continue;
                         }
@@ -202,10 +203,18 @@ namespace Nethermind.Synchronization.FastSync
                         /* node sent data that is not consistent with its hash - it happens surprisingly often */
                         if (!ValueKeccak.Compute(currentResponseItem).BytesAsSpan.SequenceEqual(currentStateSyncItem.Hash.Bytes))
                         {
-                            AddNodeToPending(currentStateSyncItem, null, "missing", true);
-                            if (_logger.IsTrace) _logger.Trace($"Peer sent invalid data (batch {requestLength}->{responseLength}) of length {batch.Responses[i]?.Length} of type {batch.RequestedNodes[i].NodeDataType} at level {batch.RequestedNodes[i].Level} of type {batch.RequestedNodes[i].NodeDataType} Keccak({batch.Responses[i].ToHexString()}) != {batch.RequestedNodes[i].Hash}");
-                            invalidNodes++;
-                            continue;
+                            currentResponseItem = batch.Responses.Where(x => ValueKeccak.Compute(x).BytesAsSpan.SequenceEqual(currentStateSyncItem.Hash.Bytes)).FirstOrDefault();
+                            if (currentResponseItem is null)
+                            {
+                                AddNodeToPending(currentStateSyncItem, null, "missing", true);
+                                _logger.Warn($"Missing nodes case#1: Peer sent invalid data (batch {requestLength}->{responseLength}) of length {batch.Responses[i]?.Length} of type {batch.RequestedNodes[i].NodeDataType} at level {batch.RequestedNodes[i].Level} of type {batch.RequestedNodes[i].NodeDataType} Keccak({batch.Responses[i].ToHexString()}) != {batch.RequestedNodes[i].Hash}");
+                                invalidNodes++;
+                                continue;
+                            }
+                            else
+                            {
+                                _logger.Warn($"Missing nodes case#2: Missing order!");
+                            }
                         }
 
                         nonEmptyResponses++;
