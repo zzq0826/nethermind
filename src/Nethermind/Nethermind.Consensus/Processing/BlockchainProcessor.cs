@@ -418,6 +418,7 @@ namespace Nethermind.Consensus.Processing
         {
             if ((_options.DumpOptions & dumpType) != 0)
             {
+                if (_logger.IsTrace) _logger.Trace($"Tracing failing branch for root {processingBranch.Root} with dump type {dumpType}.");
                 try
                 {
                     _blockProcessor.Process(
@@ -425,6 +426,8 @@ namespace Nethermind.Consensus.Processing
                         processingBranch.BlocksToProcess,
                         options,
                         blockTracer);
+
+                    if (_logger.IsWarn) _logger.Warn($"Tracing failing branch for root {processingBranch.Root} with dump type {dumpType} didn't actually fail.");
                 }
                 catch (InvalidBlockException ex)
                 {
