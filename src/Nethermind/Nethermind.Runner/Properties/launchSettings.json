@@ -287,6 +287,13 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "Chiado": {
+      "commandName": "Project",
+      "commandLineArgs": "-c chiado -dd %NETHERMIND_DATA_DIR%",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
 }

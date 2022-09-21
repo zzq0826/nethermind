@@ -33,6 +33,7 @@ using Nethermind.Evm.Tracing.ParityStyle;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
+using Org.BouncyCastle.Crypto.Engines;
 using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing
@@ -414,20 +415,22 @@ namespace Nethermind.Consensus.Processing
                 return true;
         }
 
-        private void TraceFailingBranch(ProcessingBranch processingBranch, ProcessingOptions options, IBlockTracer blockTracer, DumpOptions dumpType)
+        private Block[] TraceFailingBranch(ProcessingBranch processingBranch, ProcessingOptions options, IBlockTracer blockTracer, DumpOptions dumpType)
         {
-            if ((_options.DumpOptions & dumpType) != 0)
+            // if ((_options.DumpOptions & dumpType) != 0)
             {
                 if (_logger.IsTrace) _logger.Trace($"Tracing failing branch for root {processingBranch.Root} with dump type {dumpType}.");
                 try
                 {
-                    _blockProcessor.Process(
+                    var processedBlocks = _blockProcessor.Process(
                         processingBranch.Root,
                         processingBranch.BlocksToProcess,
                         options,
                         blockTracer);
 
                     if (_logger.IsWarn) _logger.Warn($"Tracing failing branch for root {processingBranch.Root} with dump type {dumpType} didn't actually fail.");
+
+                    return processedBlocks;
                 }
                 catch (InvalidBlockException ex)
                 {
@@ -438,6 +441,8 @@ namespace Nethermind.Consensus.Processing
                     BlockTraceDumper.LogTraceFailure(blockTracer, processingBranch.Root, ex, _logger);
                 }
             }
+
+            return Array.Empty<Block>();
         }
 
         private Block[]? ProcessBranch(ProcessingBranch processingBranch, ProcessingOptions options, IBlockTracer tracer)
@@ -458,11 +463,23 @@ namespace Nethermind.Consensus.Processing
             Block[]? processedBlocks;
             try
             {
-                processedBlocks = _blockProcessor.Process(
-                    processingBranch.Root,
-                    processingBranch.BlocksToProcess,
-                    options,
-                    tracer);
+                if (processingBranch.BlocksToProcess[0].Number == 1016)
+                {
+                    processedBlocks = TraceFailingBranch(
+                        processingBranch,
+                        options,
+                        new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace),
+                        DumpOptions.Parity);
+                }
+                else
+                {
+                    processedBlocks = _blockProcessor.Process(
+                        processingBranch.Root,
+                        processingBranch.BlocksToProcess,
+                        options,
+                        tracer);
+
+                }
             }
             catch (InvalidBlockException ex)
             {
