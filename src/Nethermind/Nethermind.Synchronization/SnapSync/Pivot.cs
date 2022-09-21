@@ -41,7 +41,7 @@ namespace Nethermind.Synchronization.SnapSync
             if (_logger.IsDebug)
             {
                 var currentHeader = _blockTree.FindHeader(_bestHeader.Number);
-                if (currentHeader.StateRoot != _bestHeader.StateRoot)
+                if (currentHeader?.StateRoot != _bestHeader.StateRoot)
                 {
                     _logger.Warn($"SNAP - Pivot:{_bestHeader.StateRoot}, Current:{currentHeader.StateRoot}");
                 }
