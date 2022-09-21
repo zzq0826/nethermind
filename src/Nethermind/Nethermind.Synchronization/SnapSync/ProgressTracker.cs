@@ -28,7 +28,7 @@ namespace Nethermind.Synchronization.SnapSync
 
         // Speed calculation is a bit broken, so we don't set this too high until we fix that to prevent getting stuck
         // on slow peer which might reduces overall overall throughput. This is still an improvement though.
-        public const int MAX_ACCOUNT_REQUEST_WAIT = 200;
+        public const int MAX_ACCOUNT_REQUEST_WAIT = 1000;
         private readonly TimeSpan _maxAccountRequestWait = TimeSpan.FromMilliseconds(MAX_ACCOUNT_REQUEST_WAIT);
         private readonly AutoResetEvent _accountRequestCompleted = new(false);
 
