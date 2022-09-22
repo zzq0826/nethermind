@@ -231,9 +231,8 @@ namespace Nethermind.TxPool
 
         private IEnumerable<Transaction> GetTxsToSend(ITxPoolPeer peer, IList<Transaction> txsToSend)
         {
-            for (int index = 0; index < txsToSend.Count; index++)
+            foreach (Transaction tx in txsToSend)
             {
-                Transaction tx = txsToSend[index];
                 if (tx.DeliveredBy is null || !tx.DeliveredBy.Equals(peer.Id))
                 {
                     yield return tx;
