@@ -119,7 +119,8 @@ namespace Nethermind.Synchronization.SnapSync
             {
                 if (MoreAccountsToRight && _activeAccountRequests == 0)
                 {
-                    return CreateAccountRangeRequest(rootHash, blockNumber, request);
+					// Create empty request, nothing get requsted, and we reshedule on faster peer.
+                    return (request, false);
                 }
             }
 
