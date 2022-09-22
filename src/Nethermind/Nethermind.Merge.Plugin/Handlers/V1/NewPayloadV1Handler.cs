@@ -92,7 +92,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             _specProvider = specProvider;
             _logger = logManager.GetClassLogger();
             _defaultProcessingOptions = initConfig.StoreReceipts ? ProcessingOptions.EthereumMerge | ProcessingOptions.StoreReceipts : ProcessingOptions.EthereumMerge;
-            _timeout = timeout ?? TimeSpan.FromSeconds(7);
+            _timeout = timeout ?? TimeSpan.FromSeconds(10);
             if (cacheSize > 0)
                 _latestBlocks = new LruCache<Keccak, bool>(cacheSize, 0, "LatestBlocks");
         }
