@@ -95,32 +95,32 @@ namespace Nethermind.Synchronization.StateSync
 
             Task<byte[][]> task = null;
 
-            if (_snapSyncEnabled)
-            {
-                if (peer.TryGetSatelliteProtocol<ISnapSyncPeer>("snap", out var handler))
-                {
-                    if (batch.NodeDataType == NodeDataType.Code)
-                    {
-                        var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
-                        Logger.Trace($"GETBYTECODES count:{a.Length}");
-                        task = handler.GetByteCodes(a, cancellationToken);
+            //if (_snapSyncEnabled)
+            //{
+            //    if (peer.TryGetSatelliteProtocol<ISnapSyncPeer>("snap", out var handler))
+            //    {
+            //        if (batch.NodeDataType == NodeDataType.Code)
+            //        {
+            //            var a = batch.RequestedNodes.Select(n => n.Hash).ToArray();
+            //            Logger.Trace($"GETBYTECODES count:{a.Length}");
+            //            task = handler.GetByteCodes(a, cancellationToken);
 
-                        InsertStats(peer, "GETBYTECODES");
-                    }
-                    else
-                    {
-                        GetTrieNodesRequest request = GetRequest(batch);
+            //            InsertStats(peer, "GETBYTECODES");
+            //        }
+            //        else
+            //        {
+            //            GetTrieNodesRequest request = GetRequest(batch);
 
-                        Logger.Trace($"GETTRIENODES count:{request.AccountAndStoragePaths.Length}");
+            //            Logger.Trace($"GETTRIENODES count:{request.AccountAndStoragePaths.Length}");
 
-                        task = handler.GetTrieNodes(request, cancellationToken);
+            //            task = handler.GetTrieNodes(request, cancellationToken);
 
-                        InsertStats(peer, "GETTRIENODES");
-                    }
+            //            InsertStats(peer, "GETTRIENODES");
+            //        }
 
                     
-                }
-            }
+            //    }
+            //}
 
             //if(task == null)
             //{
