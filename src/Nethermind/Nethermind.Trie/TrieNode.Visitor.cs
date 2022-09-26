@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -78,7 +78,9 @@ namespace Nethermind.Trie
                             // single threaded route
                             for (int i = 0; i < BranchesCount; i++)
                             {
+                                visitContext.AbsolutePathNibbles.Add((byte)i);
                                 VisitChild(i, GetChild(trieNodeResolver, i), trieNodeResolver, treeVisitor, visitContext);
+                                visitContext.AbsolutePathNibbles.RemoveAt(visitContext.AbsolutePathNibbles.Count - 1);
                             }
                         }
 
@@ -93,7 +95,9 @@ namespace Nethermind.Trie
                                 {
                                     // we need to have separate context for each thread as context tracks level and branch child index
                                     TrieVisitContext childContext = visitContext.Clone();
+                                    childContext.AbsolutePathNibbles.Add((byte)i);
                                     VisitChild(i, children[i], trieNodeResolver, treeVisitor, childContext);
+                                    // no need to remove the element from AbsolutePathNibbles as the childContext is cleaned
                                 }
                                 finally
                                 {
@@ -134,62 +138,79 @@ namespace Nethermind.Trie
                     }
 
                 case NodeType.Extension:
+                {
+                    if (trieVisitContext.KeepTrackOfAbsolutePath)
                     {
-                        visitor.VisitExtension(this, trieVisitContext);
-                        TrieNode child = GetChild(nodeResolver, 0);
-                        if (child == null)
-                        {
-                            throw new InvalidDataException($"Child of an extension {Key} should not be null.");
-                        }
+                        trieVisitContext.AbsolutePathNibbles.AddRange(Path!);
+                    }
+                    visitor.VisitExtension(this, trieVisitContext);
+                    TrieNode child = GetChild(nodeResolver, 0);
+                    if (child == null)
+                    {
+                        throw new InvalidDataException($"Child of an extension {Key} should not be null.");
+                    }
 
-                        child.ResolveKey(nodeResolver, false);
-                        if (visitor.ShouldVisit(child.Keccak!))
+                    child.ResolveKey(nodeResolver, false);
+                    if (visitor.ShouldVisit(child.Keccak!))
+                    {
+                        trieVisitContext.Level++;
+                        trieVisitContext.BranchChildIndex = null;
+                        child.Accept(visitor, nodeResolver, trieVisitContext);
+                        trieVisitContext.Level--;
+                    }
+
+                    if (trieVisitContext.KeepTrackOfAbsolutePath)
+                    {
+                        trieVisitContext.AbsolutePathNibbles.RemoveRange(trieVisitContext.AbsolutePathNibbles.Count - Path.Length, Path.Length);
+                    }
+
+                    break;
+                }
+
+                case NodeType.Leaf:
+                {
+                    if (trieVisitContext.KeepTrackOfAbsolutePath)
+                    {
+                        trieVisitContext.AbsolutePathNibbles.AddRange(Path!);
+                    }
+                    visitor.VisitLeaf(this, trieVisitContext, Value);
+                    if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
+                    {
+                        Account account = _accountDecoder.Decode(Value.AsRlpStream());
+                        if (account.HasCode && visitor.ShouldVisit(account.CodeHash))
                         {
                             trieVisitContext.Level++;
                             trieVisitContext.BranchChildIndex = null;
-                            child.Accept(visitor, nodeResolver, trieVisitContext);
+                            visitor.VisitCode(account.CodeHash, trieVisitContext);
                             trieVisitContext.Level--;
                         }
 
-                        break;
-                    }
-
-                case NodeType.Leaf:
-                    {
-                        visitor.VisitLeaf(this, trieVisitContext, Value);
-                        if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
+                        if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
                         {
-                            Account account = _accountDecoder.Decode(Value.AsRlpStream());
-                            if (account.HasCode && visitor.ShouldVisit(account.CodeHash))
+                            trieVisitContext.IsStorage = true;
+                            trieVisitContext.Level++;
+                            trieVisitContext.BranchChildIndex = null;
+
+                            if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
                             {
-                                trieVisitContext.Level++;
-                                trieVisitContext.BranchChildIndex = null;
-                                visitor.VisitCode(account.CodeHash, trieVisitContext);
-                                trieVisitContext.Level--;
+                                storageRoot!.Accept(visitor, nodeResolver, trieVisitContext);
+                            }
+                            else
+                            {
+                                visitor.VisitMissingNode(account.StorageRoot, trieVisitContext);
                             }
 
-                            if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
-                            {
-                                trieVisitContext.IsStorage = true;
-                                trieVisitContext.Level++;
-                                trieVisitContext.BranchChildIndex = null;
-
-                                if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
-                                {
-                                    storageRoot!.Accept(visitor, nodeResolver, trieVisitContext);
-                                }
-                                else
-                                {
-                                    visitor.VisitMissingNode(account.StorageRoot, trieVisitContext);
-                                }
-
-                                trieVisitContext.Level--;
-                                trieVisitContext.IsStorage = false;
-                            }
+                            trieVisitContext.Level--;
+                            trieVisitContext.IsStorage = false;
                         }
-
-                        break;
                     }
+                    if (trieVisitContext.KeepTrackOfAbsolutePath)
+                    {
+                        trieVisitContext.AbsolutePathNibbles.RemoveRange(trieVisitContext.AbsolutePathNibbles.Count - Path.Length, Path.Length);
+                    }
+
+                    break;
+                }
 
                 default:
                     throw new TrieException($"An attempt was made to visit a node {Keccak} of type {NodeType}");
