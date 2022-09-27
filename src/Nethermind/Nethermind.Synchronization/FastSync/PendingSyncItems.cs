@@ -176,13 +176,13 @@ namespace Nethermind.Synchronization.FastSync
 
                 for (int i = 0; i < length; i++)
                 {
-                    if(CodeItems.TryPop(out var codeItem))
+                    if (CodeItems.TryPop(out var codeItem))
                     {
                         requestItems.Add(codeItem!);
                     }
                 }
 
-                if(requestItems.Count > 0)
+                if (requestItems.Count > 0)
                 {
                     return requestItems;
                 }

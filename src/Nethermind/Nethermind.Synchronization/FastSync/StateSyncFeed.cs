@@ -81,7 +81,7 @@ namespace Nethermind.Synchronization.FastSync
         int counter = 0;
         public override SyncResponseHandlingResult HandleResponse(StateSyncBatch? batch, PeerInfo peer = null)
         {
-            if(batch != null && peer != null)
+            if (batch != null && peer != null)
             {
                 string key = peer.SyncPeer.ClientId;
 
@@ -97,7 +97,7 @@ namespace Nethermind.Synchronization.FastSync
 
             counter++;
 
-            if(counter % 1000 == 0)
+            if (counter % 1000 == 0)
             {
                 PrintStats();
             }
@@ -136,7 +136,7 @@ namespace Nethermind.Synchronization.FastSync
         {
             foreach (var item in clients)
             {
-                _logger.Warn($"{item.Key} -> {item.Value}" );
+                _logger.Warn($"{item.Key} -> {item.Value}");
             }
         }
     }
