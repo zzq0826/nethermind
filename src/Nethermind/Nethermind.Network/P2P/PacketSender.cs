@@ -49,7 +49,7 @@ namespace Nethermind.Network.P2P
             }
 
             IByteBuffer buffer = _messageSerializationService.ZeroSerialize(message);
-            _logger.Info("RLP Value: " + buffer.Array.ToHexString());
+            _logger.Info("RLP Value: " + buffer.Copy().ReadAllBytes().ToHexString());
             int length = buffer.ReadableBytes;
             _context.WriteAndFlushAsync(buffer).ContinueWith(t =>
             {
