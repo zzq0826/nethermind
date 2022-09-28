@@ -116,6 +116,7 @@ namespace Nethermind.Init.Steps
 
             ProgressTracker progressTracker = new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager);
             _api.SnapProvider = new SnapProvider(progressTracker, _api.DbProvider, _api.LogManager);
+            _api.SnapServer = new SnapServer(_api.DbProvider, _api.LogManager);
 
             SyncProgressResolver syncProgressResolver = new(
                 _api.BlockTree!,
@@ -511,6 +512,7 @@ namespace Nethermind.Init.Steps
             _api.ProtocolsManager = new ProtocolsManager(
                 _api.SyncPeerPool!,
                 _api.SyncServer!,
+                _api.SnapServer,
                 _api.TxPool,
                 pooledTxsRequestor,
                 _api.DiscoveryApp!,
