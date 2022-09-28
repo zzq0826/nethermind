@@ -91,6 +91,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public override void HandleMessage(ZeroPacket message)
         {
             int size = message.Content.ReadableBytes;
+            Logger.Info("SNAP TEST: Message Size" + size);
 
             switch (message.PacketType)
             {
@@ -178,6 +179,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetByteCodesMessage getByteCodesMessage)
         {
             Metrics.SnapGetByteCodesReceived++;
+            Logger.Info(getByteCodesMessage.ToString());
             var response = FulfillByteCodesMessage(getByteCodesMessage);
             Send(response);
         }
