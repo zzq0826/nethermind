@@ -167,7 +167,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetAccountRangeMessage msg)
         {
             Metrics.SnapGetAccountRangeReceived++;
-            var response = FulfillAccountRangeMessage(msg);
+            // var response = FulfillAccountRangeMessage(msg);
+            AccountRangeMessage response = new();
             response.RequestId = msg.RequestId;
             Send(response);
         }
@@ -175,7 +176,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)
         {
             Metrics.SnapGetStorageRangesReceived++;
-            var response = FulfillStorageRangeMessage(getStorageRangesMessage);
+            // var response = FulfillStorageRangeMessage(getStorageRangesMessage);
+            StorageRangeMessage response = new();
             response.RequestId = getStorageRangesMessage.RequestId;
             Send(response);
         }
@@ -184,7 +186,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         {
             Metrics.SnapGetByteCodesReceived++;
             Logger.Info(getByteCodesMessage.ToString());
-            var response = FulfillByteCodesMessage(getByteCodesMessage);
+            // var response = FulfillByteCodesMessage(getByteCodesMessage);
+            ByteCodesMessage response = new(null);
             response.RequestId = getByteCodesMessage.RequestId;
             Send(response);
         }
@@ -192,7 +195,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetTrieNodesMessage getTrieNodesMessage)
         {
             Metrics.SnapGetTrieNodesReceived++;
-            var response = FulfillTrieNodesMessage(getTrieNodesMessage);
+            // var response = FulfillTrieNodesMessage(getTrieNodesMessage);
+            TrieNodesMessage response = new(null);
             response.RequestId = getTrieNodesMessage.RequestId;
             Send(response);
         }
