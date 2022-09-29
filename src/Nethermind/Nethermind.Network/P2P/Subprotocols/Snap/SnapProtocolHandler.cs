@@ -234,6 +234,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         {
             Logger.Info("FulfillByteCodesMessage: " + getByteCodesMessage.Hashes[0].Bytes.ToHexString());
             var byteCodes = SyncServer.GetByteCodes(getByteCodesMessage.Hashes);
+            Logger.Info("Response Length: " + byteCodes.Length);
             return new ByteCodesMessage(byteCodes);
         }
 

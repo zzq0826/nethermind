@@ -18,8 +18,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -29,6 +31,7 @@ using Nethermind.State.Proofs;
 using Nethermind.State.Snap;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using ILogger = Nethermind.Logging.ILogger;
 
 namespace Nethermind.Synchronization.SnapSync;
 
@@ -97,15 +100,22 @@ public class SnapServer: ISnapServer
 
     public byte[][] GetByteCodes(Keccak[] requestedHashes)
     {
+        _logger.Info("GetByteCodes SnapServer - Count: " + requestedHashes.Length);
+        for (int i = 0; i < requestedHashes.Length; i++)
+        {
+            _logger.Info(requestedHashes[i].Bytes.ToHexString());
+        }
         List<byte[]> response = new ();
-
+        _logger.Info("GetByteCodes SnapServer - Processing: ");
         for (int codeHashIndex = 0; codeHashIndex < requestedHashes.Length; codeHashIndex++)
         {
             byte[]? code = _dbProvider.CodeDb.Get(requestedHashes[codeHashIndex]);
             if (code is null)
             {
+                _logger.Info("null");
                 continue;
             }
+            _logger.Info(code.ToHexString());
             response.Add(code);
         }
 
