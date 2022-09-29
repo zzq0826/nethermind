@@ -189,6 +189,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             // var response = FulfillByteCodesMessage(getByteCodesMessage);
             ByteCodesMessage response = new(null);
             response.RequestId = getByteCodesMessage.RequestId;
+            Logger.Info("ByeCodeRequest ID: " + response.RequestId);
             Send(response);
         }
 
