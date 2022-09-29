@@ -167,8 +167,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetAccountRangeMessage msg)
         {
             Metrics.SnapGetAccountRangeReceived++;
-            // var response = FulfillAccountRangeMessage(msg);
-            AccountRangeMessage response = new();
+            var response = FulfillAccountRangeMessage(msg);
             response.RequestId = msg.RequestId;
             Send(response);
         }
@@ -176,8 +175,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)
         {
             Metrics.SnapGetStorageRangesReceived++;
-            // var response = FulfillStorageRangeMessage(getStorageRangesMessage);
-            StorageRangeMessage response = new();
+            var response = FulfillStorageRangeMessage(getStorageRangesMessage);
             response.RequestId = getStorageRangesMessage.RequestId;
             Send(response);
         }
@@ -187,17 +185,14 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             Metrics.SnapGetByteCodesReceived++;
             Logger.Info(getByteCodesMessage.ToString());
             var response = FulfillByteCodesMessage(getByteCodesMessage);
-            // ByteCodesMessage response = new(null);
             response.RequestId = getByteCodesMessage.RequestId;
-            Logger.Info("ByeCodeRequest ID: " + response.RequestId);
             Send(response);
         }
 
         private void Handle(GetTrieNodesMessage getTrieNodesMessage)
         {
             Metrics.SnapGetTrieNodesReceived++;
-            // var response = FulfillTrieNodesMessage(getTrieNodesMessage);
-            TrieNodesMessage response = new(null);
+            var response = FulfillTrieNodesMessage(getTrieNodesMessage);
             response.RequestId = getTrieNodesMessage.RequestId;
             Send(response);
         }
@@ -232,9 +227,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         }
         protected ByteCodesMessage FulfillByteCodesMessage(GetByteCodesMessage getByteCodesMessage)
         {
-            Logger.Info("FulfillByteCodesMessage: " + getByteCodesMessage.Hashes[0].Bytes.ToHexString());
             var byteCodes = SyncServer.GetByteCodes(getByteCodesMessage.Hashes, getByteCodesMessage.Bytes);
-            Logger.Info("Response Length: " + byteCodes.Length);
             return new ByteCodesMessage(byteCodes);
         }
 
