@@ -109,7 +109,12 @@ public class SnapServer: ISnapServer
         _logger.Info("GetByteCodes SnapServer - Processing: ");
         for (int codeHashIndex = 0; codeHashIndex < requestedHashes.Length; codeHashIndex++)
         {
-            byte[]? code = _dbProvider.CodeDb.Get(requestedHashes[codeHashIndex]);
+            Keccak? requestedHash = requestedHashes[codeHashIndex];
+            if (requestedHash.Bytes.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
+            {
+                response.Add(new byte[] { });
+            }
+            byte[]? code = _dbProvider.CodeDb.Get(requestedHash);
             if (code is null)
             {
                 _logger.Info("null");
