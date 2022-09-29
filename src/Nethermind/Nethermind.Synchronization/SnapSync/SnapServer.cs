@@ -98,17 +98,16 @@ public class SnapServer: ISnapServer
         return response.ToArray();
     }
 
-    public byte[][] GetByteCodes(Keccak[] requestedHashes)
+    public byte[][] GetByteCodes(Keccak[] requestedHashes, long byteLimit)
     {
-        _logger.Info("GetByteCodes SnapServer - Count: " + requestedHashes.Length);
-        for (int i = 0; i < requestedHashes.Length; i++)
-        {
-            _logger.Info(requestedHashes[i].Bytes.ToHexString());
-        }
+        long currentByteCount = 0;
         List<byte[]> response = new ();
-        _logger.Info("GetByteCodes SnapServer - Processing: ");
         for (int codeHashIndex = 0; codeHashIndex < requestedHashes.Length; codeHashIndex++)
         {
+            if (currentByteCount > byteLimit)
+            {
+                break;
+            }
             Keccak? requestedHash = requestedHashes[codeHashIndex];
             if (requestedHash.Bytes.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
             {
@@ -117,11 +116,11 @@ public class SnapServer: ISnapServer
             byte[]? code = _dbProvider.CodeDb.Get(requestedHash);
             if (code is null)
             {
-                _logger.Info("null");
                 continue;
             }
             _logger.Info(code.ToHexString());
             response.Add(code);
+            currentByteCount += code.Length;
         }
 
         return response.ToArray();
