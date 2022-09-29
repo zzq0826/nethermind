@@ -101,7 +101,9 @@ public class SnapServer: ISnapServer
 
         for (int codeHashIndex = 0; codeHashIndex < requestedHashes.Length; codeHashIndex++)
         {
-            response.Add(_dbProvider.CodeDb.Get(requestedHashes[codeHashIndex]));
+            var code = _dbProvider.CodeDb.Get(requestedHashes[codeHashIndex]);
+            code ??= new byte[] { };
+            response.Add(code);
         }
 
         return response.ToArray();
