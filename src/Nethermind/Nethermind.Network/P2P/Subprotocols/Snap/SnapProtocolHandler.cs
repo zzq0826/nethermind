@@ -93,7 +93,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public override void HandleMessage(ZeroPacket message)
         {
             int size = message.Content.ReadableBytes;
-            Logger.Info("SNAP TEST: Message Size" + size);
+            Logger.Info("SNAP TEST: Message Size " + size +" " + message.PacketType);
+
 
             switch (message.PacketType)
             {
@@ -128,6 +129,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                     Handle(byteCodesMessage, size);
                     break;
                 case SnapMessageCode.GetTrieNodes:
+                    Logger.Info("GetTrieNodes" + string.Join(", ", message.Content.Copy().ReadAllBytes()));
                     GetTrieNodesMessage getTrieNodesMessage = Deserialize<GetTrieNodesMessage>(message.Content);
                     ReportIn(getTrieNodesMessage);
                     Handle(getTrieNodesMessage);
@@ -192,6 +194,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private void Handle(GetTrieNodesMessage getTrieNodesMessage)
         {
             Metrics.SnapGetTrieNodesReceived++;
+            Logger.Info("GetTrieNodesMessage");
             var response = FulfillTrieNodesMessage(getTrieNodesMessage);
             response.RequestId = getTrieNodesMessage.RequestId;
             Send(response);
