@@ -76,7 +76,7 @@ public class SnapServer: ISnapServer
                     break;
                 default:
                     byte[]? accBytes = tree.GetNode(requestedPath[0], rootHash);
-                    if (accBytes is null)
+                    if (accBytes is null || accBytes.SequenceEqual(new byte[] {}))
                     {
                         break;
                     }
