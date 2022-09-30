@@ -108,7 +108,8 @@ public class SnapServer: ISnapServer
 
                     for (int reqStorage = 1; reqStorage < requestedPath.Length; reqStorage++)
                     {
-                        var sRlp = sTree.GetNode(requestedPath[reqStorage]);
+                        var storageDecodePath = CompactToHexEncode(requestedPath[reqStorage]);
+                        var sRlp = sTree.GetNode(storageDecodePath);
                         response.Add(sRlp);
                     }
                     break;
