@@ -18,7 +18,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -71,7 +70,11 @@ public class SnapServer: ISnapServer
                 case 0:
                     return null;
                 case 1:
-                    byte[]? rlp = tree.GetNode(CompactToHexEncode(requestedPath[0]), rootHash);
+                    var decoded = CompactToHexEncode(requestedPath[0]);
+                    _logger.Info("CompactToHexEncode: " + string.Join(",", requestedPath[0]));
+                    _logger.Info("CompactToHexEncode: " + string.Join(",", decoded));
+                    byte[]? rlp = tree.GetNode(decoded, rootHash);
+                    _logger.Info("RLP GetTrieNode: " + string.Join(",", rlp));
                     response.Add(rlp);
                     break;
                 default:
@@ -228,7 +231,7 @@ public class SnapServer: ISnapServer
 
             itr.ToBigEndian(key);
 
-            var blob = tree.GetNode(key, rootHash);
+            var blob = tree.GetNode(key.ToArray(), rootHash);
 
             if (blob is not null)
             {

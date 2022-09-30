@@ -330,23 +330,23 @@ namespace Nethermind.Trie
         }
 
         [DebuggerStepThrough]
-        public byte[]? GetNode(Span<byte> rawKey, Keccak? rootHash = null)
+        public byte[]? GetNode(byte[] nibbles, Keccak? rootHash = null)
         {
             try
             {
-                int nibblesCount = 2 * rawKey.Length;
-                byte[] array = null;
-                Span<byte> nibbles = rawKey.Length <= 64
-                    ? stackalloc byte[nibblesCount]
-                    : array = ArrayPool<byte>.Shared.Rent(nibblesCount);
-                Nibbles.BytesToNibbleBytes(rawKey, nibbles);
-                var result = Run(nibbles, nibblesCount, Array.Empty<byte>(), false, startRootHash: rootHash, isNodeRead: true);
-                if (array != null) ArrayPool<byte>.Shared.Return(array);
+                int nibblesCount = nibbles.Length;
+                // byte[] array = null;
+                // Span<byte> nibbles = rawKey.Length <= 64
+                //     ? stackalloc byte[nibblesCount]
+                //     : array = ArrayPool<byte>.Shared.Rent(nibblesCount);
+                // Nibbles.BytesToNibbleBytes(rawKey, nibbles);
+                byte[]? result = Run(nibbles, nibblesCount, Array.Empty<byte>(), false, startRootHash: rootHash, isNodeRead: true);
+                // if (array != null) ArrayPool<byte>.Shared.Return(array);
                 return result ?? new byte[] { };
             }
             catch (TrieException e)
             {
-                throw new TrieException($"Failed to load key {rawKey.ToHexString()} from root hash {rootHash ?? RootHash}.", e);
+                throw new TrieException($"Failed to load key {nibbles.ToHexString()} from root hash {rootHash ?? RootHash}.", e);
             }
         }
 
