@@ -71,16 +71,18 @@ public class SnapServer: ISnapServer
                 case 0:
                     return null;
                 case 1:
-                    var rlp = tree.GetNode(CompactToHexEncode(requestedPath[0]), rootHash);
+                    byte[]? rlp = tree.GetNode(CompactToHexEncode(requestedPath[0]), rootHash);
+                    if (rlp is null)
+                    {
+                        break;
+                    }
                     response.Add(rlp);
                     break;
                 default:
                     byte[]? accBytes = tree.GetNode(requestedPath[0], rootHash);
                     if (accBytes is null)
                     {
-                        // TODO: how to deal with empty account when storage asked?
-                        response.Add(null);
-                        continue;
+                        break;
                     }
                     Account? account = _decoder.Decode(accBytes.AsRlpStream());
                     var storageRoot = account.StorageRoot;
