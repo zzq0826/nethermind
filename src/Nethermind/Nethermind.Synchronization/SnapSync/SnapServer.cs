@@ -71,7 +71,7 @@ public class SnapServer: ISnapServer
                 case 0:
                     return null;
                 case 1:
-                    var rlp = tree.GetNode(requestedPath[0], rootHash);
+                    var rlp = tree.GetNode(CompactToHexEncode(requestedPath[0]), rootHash);
                     response.Add(rlp);
                     break;
                 default:
@@ -282,6 +282,28 @@ public class SnapServer: ISnapServer
             }
             return (nodes.ToArray(), responseSize, stopped);
         }
+
+    }
+
+    public static byte[] CompactToHexEncode(byte[] compactPath)
+    {
+        if (compactPath.Length == 0)
+        {
+            return compactPath;
+        }
+
+        byte[] nibbles = new byte[compactPath.Length * 2 + 1];
+        Span<byte> nibbleSpan = nibbles;
+        Nibbles.BytesToNibbleBytes(compactPath, nibbleSpan.Slice(0, 2 * compactPath.Length));
+        nibbles[^1] = 16;
+
+        if (nibbles[0] < 2)
+        {
+            nibbles = nibbles.Slice(0, nibbles.Length - 1);
+        }
+
+        var chop = 2 - (nibbles[0] & 1);
+        return nibbles.Slice(chop);
 
     }
 
