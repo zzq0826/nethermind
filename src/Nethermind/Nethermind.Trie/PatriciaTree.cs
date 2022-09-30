@@ -342,7 +342,7 @@ namespace Nethermind.Trie
                 Nibbles.BytesToNibbleBytes(rawKey, nibbles);
                 var result = Run(nibbles, nibblesCount, Array.Empty<byte>(), false, startRootHash: rootHash, isNodeRead: true);
                 if (array != null) ArrayPool<byte>.Shared.Return(array);
-                return result;
+                return result ?? new byte[] { };
             }
             catch (TrieException e)
             {
