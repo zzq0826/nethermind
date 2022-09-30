@@ -79,15 +79,31 @@ public class SnapServer: ISnapServer
                     break;
                 default:
                     var decodedAccountPath = CompactToHexEncode(requestedPath[0]);
-                    _logger.Info("CompactToHexEncode: " + string.Join(",", requestedPath[0]));
-                    _logger.Info("CompactToHexEncode: " + string.Join(",", decodedAccountPath));
+                    _logger.Info("Account CompactToHexEncode: " + string.Join(",", requestedPath[0]));
+                    _logger.Info("Account CompactToHexEncode: " + string.Join(",", decodedAccountPath));
                     byte[]? accBytes = tree.GetNode(decodedAccountPath, rootHash);
                     if (accBytes is null || accBytes.SequenceEqual(new byte[] {}))
                     {
                         break;
                     }
-                    Account? account = _decoder.Decode(accBytes.AsRlpStream());
+                    _logger.Info("Account RLP GetTrieNode: " + string.Join(",", accBytes));
+
+                    Account? account;
+                    try
+                    {
+                        account = _decoder.Decode(accBytes.AsRlpStream());
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        break;
+                    }
+
                     var storageRoot = account.StorageRoot;
+                    if (storageRoot.Bytes.SequenceEqual(Keccak.EmptyTreeHash.Bytes))
+                    {
+                        break;
+                    }
                     StorageTree sTree = new StorageTree(_store, storageRoot, _logManager);
 
                     for (int reqStorage = 1; reqStorage < requestedPath.Length; reqStorage++)
