@@ -78,10 +78,11 @@ public class SnapServer: ISnapServer
                     response.Add(rlp);
                     break;
                 default:
-                    var decodedAccountPath = CompactToHexEncode(requestedPath[0]);
-                    _logger.Info("Account CompactToHexEncode: " + string.Join(",", requestedPath[0]));
-                    _logger.Info("Account CompactToHexEncode: " + string.Join(",", decodedAccountPath));
-                    byte[]? accBytes = tree.GetNode(decodedAccountPath, rootHash);
+                    var length = requestedPath[0].Length;
+                    byte[] keyHash = new byte[32];
+                    Buffer.BlockCopy(requestedPath[0], 0, keyHash, 32-length, length);
+                    _logger.Info("CompactToHexEncode: " + string.Join(",", keyHash));
+                    byte[]? accBytes = tree.GetNodeByKey(keyHash, rootHash);
                     if (accBytes is null || accBytes.SequenceEqual(new byte[] {}))
                     {
                         break;
