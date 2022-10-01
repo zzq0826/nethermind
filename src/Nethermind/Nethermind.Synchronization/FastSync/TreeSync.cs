@@ -82,20 +82,20 @@ namespace Nethermind.Synchronization.FastSync
         {
             try
             {
-                List<StateSyncItem> requestHashes = _pendingItems.TakeBatch(MaxRequestSize);
-                LogRequestInfo(requestHashes);
+                List<StateSyncItem> requestItems = _pendingItems.TakeBatch(MaxRequestSize);
+                LogRequestInfo(requestItems);
 
                 long secondsInCurrentSync = (long)(DateTime.UtcNow - _currentSyncStart).TotalSeconds;
 
-                if (requestHashes.Count > 0)
+                if (requestItems.Count > 0)
                 {
-                    StateSyncItem[] requestedNodes = requestHashes.ToArray();
-                    StateSyncBatch result = new(_rootNode, requestHashes[0].NodeDataType, requestedNodes);
+                    StateSyncItem[] requestedNodes = requestItems.ToArray();
+                    StateSyncBatch result = new(_rootNode, requestItems[0].NodeDataType, requestedNodes);
 
                     Interlocked.Add(ref _data.RequestedNodesCount, result.RequestedNodes.Length);
                     Interlocked.Exchange(ref _data.SecondsInSync, _currentSyncStartSecondsInSync + secondsInCurrentSync);
 
-                    if (_logger.IsTrace) _logger.Trace($"After preparing a request of {requestHashes.Count} from ({_pendingItems.Description}) nodes | {_dependencies.Count}");
+                    if (_logger.IsTrace) _logger.Trace($"After preparing a request of {requestItems.Count} from ({_pendingItems.Description}) nodes | {_dependencies.Count}");
                     if (_logger.IsTrace) _logger.Trace($"Adding pending request {result}");
                     _pendingRequests.TryAdd(result, null);
 
@@ -103,7 +103,7 @@ namespace Nethermind.Synchronization.FastSync
                     return await Task.FromResult(result);
                 }
 
-                if (requestHashes.Count == 0 && secondsInCurrentSync >= Timeouts.Eth.TotalSeconds)
+                if (requestItems.Count == 0 && secondsInCurrentSync >= Timeouts.Eth.TotalSeconds)
                 {
                     // trying to reproduce past behaviour where we can recognize the transition time this way
                     Interlocked.Increment(ref _hintsToResetRoot);
