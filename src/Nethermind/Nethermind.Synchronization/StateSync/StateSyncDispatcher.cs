@@ -63,6 +63,7 @@ namespace Nethermind.Synchronization.StateSync
         protected override void SyncFeedOnStateChanged(object? sender, SyncFeedStateEventArgs e)
         {
             base.SyncFeedOnStateChanged(sender, e);
+            Logger.Warn($"StateNode STATE CHANGED to {e.NewState}");
             PrintStats();
         }
 
@@ -137,7 +138,7 @@ namespace Nethermind.Synchronization.StateSync
                 InsertStats(peer, "GETNODEDATA");
             }
 
-            if (counter % 1000 == 0)
+            if (counter % 10000 == 0)
             {
                 Logger.Warn("1000 requests");
                 PrintStats();
@@ -215,10 +216,10 @@ namespace Nethermind.Synchronization.StateSync
 
                 request.AccountAndStoragePaths[accountPathIndex] = new PathGroup() { Group = group };
 
-                accountPathIndex++;              
+                accountPathIndex++;
             }
 
-            if(batch.RequestedNodes.Length != requestedNodeIndex)
+            if (batch.RequestedNodes.Length != requestedNodeIndex)
                 Logger.Warn($"INCORRECT number of paths RequestedNodes.Length:{batch.RequestedNodes.Length} <> requestedNodeIndex:{requestedNodeIndex}");
 
             return request;

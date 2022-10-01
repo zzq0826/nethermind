@@ -97,7 +97,7 @@ namespace Nethermind.Synchronization.FastSync
 
             counter++;
 
-            if (counter % 1000 == 0)
+            if (counter % 10000 == 0)
             {
                 PrintStats();
             }
@@ -134,6 +134,7 @@ namespace Nethermind.Synchronization.FastSync
 
         private void PrintStats()
         {
+            _logger.Warn("StateNode results STATS");
             foreach (var item in clients)
             {
                 _logger.Warn($"{item.Key} -> {item.Value}");
