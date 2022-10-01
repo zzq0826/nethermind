@@ -293,6 +293,7 @@ namespace Nethermind.Synchronization.FastSync
         {
             if (_rootSaved == 1)
             {
+                if (_logger.IsInfo) _logger.Info("Falling asleep - root saved");
                 VerifyPostSyncCleanUp();
                 return (false, true);
             }
@@ -304,13 +305,13 @@ namespace Nethermind.Synchronization.FastSync
 
             if (_rootNode == Keccak.EmptyTreeHash)
             {
-                if (_logger.IsDebug) _logger.Debug("Falling asleep - root is empty tree");
+                if (_logger.IsInfo) _logger.Info("Falling asleep - root is empty tree");
                 return (false, true);
             }
 
             if (_hintsToResetRoot >= 32)
             {
-                if (_logger.IsDebug) _logger.Debug("Falling asleep - many missing responses");
+                if (_logger.IsInfo) _logger.Info("Falling asleep - many missing responses");
                 return (false, true);
             }
 
