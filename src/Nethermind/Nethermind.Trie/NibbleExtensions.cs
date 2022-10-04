@@ -1,21 +1,22 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
 using System.Diagnostics;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Trie
 {
@@ -84,5 +85,38 @@ namespace Nethermind.Trie
         {
             return (byte)(((byte)highNibble << 4) | (byte)lowNibble);
         }
+
+        public static byte[] ToBytes(byte[] nibbles)
+        {
+            byte[] bytes = new byte[nibbles.Length / 2];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = ToByte(nibbles[2 * i], nibbles[2 * i + 1]);
+            }
+
+            return bytes;
+        }
+        public static byte[] CompactToHexEncode(byte[] compactPath)
+        {
+            if (compactPath.Length == 0)
+            {
+                return compactPath;
+            }
+
+            byte[] nibbles = new byte[compactPath.Length * 2 + 1];
+            Span<byte> nibbleSpan = nibbles;
+            BytesToNibbleBytes(compactPath, nibbleSpan.Slice(0, 2 * compactPath.Length));
+            nibbles[^1] = 16;
+
+            if (nibbleSpan[0] < 2)
+            {
+                nibbleSpan = nibbleSpan[..(nibbles.Length - 1)];
+            }
+
+            int chop = 2 - (nibbleSpan[0] & 1);
+            return nibbleSpan[chop..].ToArray();
+
+        }
+
     }
 }

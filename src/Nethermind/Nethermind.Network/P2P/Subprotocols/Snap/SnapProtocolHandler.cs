@@ -31,6 +31,7 @@ using Nethermind.Network.Rlpx;
 using Nethermind.State.Snap;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
+using Nethermind.Synchronization.SnapSync;
 
 namespace Nethermind.Network.P2P.Subprotocols.Snap
 {
@@ -41,6 +42,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public static readonly TimeSpan UpperLatencyThreshold = TimeSpan.FromMilliseconds(2000);
         public static readonly TimeSpan LowerLatencyThreshold = TimeSpan.FromMilliseconds(1000);
         private const double BytesLimitAdjustmentFactor = 2;
+
+        protected ISnapServer SyncServer { get; }
 
         public override string Name => "snap1";
         protected override TimeSpan InitTimeout => Timeouts.Eth;
@@ -53,13 +56,14 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         private readonly MessageQueue<GetStorageRangeMessage, StorageRangeMessage> _getStorageRangeRequests;
         private readonly MessageQueue<GetByteCodesMessage, ByteCodesMessage> _getByteCodesRequests;
         private readonly MessageQueue<GetTrieNodesMessage, TrieNodesMessage> _getTrieNodesRequests;
-        private static readonly byte[] _emptyBytes = { 0 };
+        private static readonly byte[] _rootNodePath = { 0 };
 
         private int _currentBytesLimit = MinBytesLimit;
 
         public SnapProtocolHandler(ISession session,
             INodeStatsManager nodeStats,
             IMessageSerializationService serializer,
+            ISnapServer snapServer,
             ILogManager logManager)
             : base(session, nodeStats, serializer, logManager)
         {
@@ -67,6 +71,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             _getStorageRangeRequests = new(Send);
             _getByteCodesRequests = new(Send);
             _getTrieNodesRequests = new(Send);
+            SyncServer = snapServer;
         }
 
         public override event EventHandler<ProtocolInitializedEventArgs> ProtocolInitialized;
@@ -158,33 +163,70 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             _getTrieNodesRequests.Handle(msg, size);
         }
 
-        private void Handle(GetAccountRangeMessage msg)
+        private void Handle(GetAccountRangeMessage getAccountRangeMessage)
         {
             Metrics.SnapGetAccountRangeReceived++;
-            //throw new NotImplementedException();
+            AccountRangeMessage? response = FulfillAccountRangeMessage(getAccountRangeMessage);
+            response.RequestId = getAccountRangeMessage.RequestId;
+            Send(response);
         }
 
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)
         {
             Metrics.SnapGetStorageRangesReceived++;
-            //throw new NotImplementedException();
+            StorageRangeMessage? response = FulfillStorageRangeMessage(getStorageRangesMessage);
+            response.RequestId = getStorageRangesMessage.RequestId;
+            Send(response);
         }
 
         private void Handle(GetByteCodesMessage getByteCodesMessage)
         {
             Metrics.SnapGetByteCodesReceived++;
-            //throw new NotImplementedException();
+            ByteCodesMessage? response = FulfillByteCodesMessage(getByteCodesMessage);
+            response.RequestId = getByteCodesMessage.RequestId;
+            Send(response);
         }
 
         private void Handle(GetTrieNodesMessage getTrieNodesMessage)
         {
             Metrics.SnapGetTrieNodesReceived++;
-            //throw new NotImplementedException();
+            TrieNodesMessage? response = FulfillTrieNodesMessage(getTrieNodesMessage);
+            response.RequestId = getTrieNodesMessage.RequestId;
+            Send(response);
         }
 
         public override void DisconnectProtocol(DisconnectReason disconnectReason, string details)
         {
             Dispose();
+        }
+
+        protected TrieNodesMessage FulfillTrieNodesMessage(GetTrieNodesMessage getTrieNodesMessage)
+        {
+            var trieNodes = SyncServer.GetTrieNodes(getTrieNodesMessage.Paths, getTrieNodesMessage.RootHash);
+            return new TrieNodesMessage(trieNodes);
+        }
+
+        protected AccountRangeMessage FulfillAccountRangeMessage(GetAccountRangeMessage getAccountRangeMessage)
+        {
+
+            AccountRange? accountRange = getAccountRangeMessage.AccountRange;
+            (PathWithAccount[]? ranges, byte[][]? proofs) = SyncServer.GetAccountRanges(accountRange.RootHash, accountRange.StartingHash,
+                accountRange.LimitHash, getAccountRangeMessage.ResponseBytes);
+            AccountRangeMessage? response = new() {Proofs = proofs, PathsWithAccounts = ranges};
+            return response;
+        }
+        protected StorageRangeMessage FulfillStorageRangeMessage(GetStorageRangeMessage getStorageRangeMessage)
+        {
+            StorageRange? storageRange = getStorageRangeMessage.StoragetRange;
+            (PathWithStorageSlot[][]? ranges, byte[][]? proofs) = SyncServer.GetStorageRanges(storageRange.RootHash, storageRange.Accounts,
+                storageRange.StartingHash, storageRange.LimitHash, getStorageRangeMessage.ResponseBytes);
+            StorageRangeMessage? response = new() {Proofs = proofs, Slots = ranges};
+            return response;
+        }
+        protected ByteCodesMessage FulfillByteCodesMessage(GetByteCodesMessage getByteCodesMessage)
+        {
+            var byteCodes = SyncServer.GetByteCodes(getByteCodesMessage.Hashes, getByteCodesMessage.Bytes);
+            return new ByteCodesMessage(byteCodes);
         }
 
         public async Task<AccountsAndProofs> GetAccountRange(AccountRange range, CancellationToken token)
@@ -261,7 +303,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             for (int i = 0; i < request.Paths.Length; i++)
             {
                 AccountWithStorageStartingHash path = request.Paths[i];
-                groups[i] = new PathGroup() { Group = new[] { path.PathAndAccount.Path.Bytes, _emptyBytes } };
+                // we want the storage root for the account and {0} is the path to the root node
+                groups[i] = new PathGroup() { Group = new[] { path.PathAndAccount.Path.Bytes, _rootNodePath } };
             }
 
             return groups;

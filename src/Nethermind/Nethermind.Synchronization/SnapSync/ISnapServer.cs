@@ -15,28 +15,21 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 //
 
-using System;
+using Nethermind.Core.Crypto;
+using Nethermind.State.Snap;
 
-namespace Nethermind.Trie
+namespace Nethermind.Synchronization.SnapSync;
+
+public interface ISnapServer
 {
-    /// <summary>
-    /// Options to run <see cref="ITreeVisitor"/> on trie.
-    /// </summary>
-    public class VisitingOptions
-    {
-        public static readonly VisitingOptions Default = new();
+    public byte[][]? GetTrieNodes(PathGroup[] pathSet, Keccak rootHash);
+    public byte[][] GetByteCodes(Keccak[] requestedHashes, long byteLimit);
 
-        /// <summary>
-        /// Should visit accounts.
-        /// </summary>
-        public bool ExpectAccounts { get; init; } = true;
+    public (PathWithAccount[], byte[][]) GetAccountRanges(Keccak rootHash, Keccak startingHash, Keccak? limitHash,
+        long byteLimit);
 
-        /// <summary>
-        /// Maximum number of threads that will be used to visit the trie.
-        /// </summary>
-        public int MaxDegreeOfParallelism { get; init; } = 1;
+    public (PathWithStorageSlot[][], byte[][]?) GetStorageRanges(Keccak rootHash, PathWithAccount[] accounts,
+        Keccak? startingHash, Keccak? limitHash, long byteLimit);
 
-        public bool KeepTrackOfAbsolutePath { get; init; } = false;
 
-    }
 }
