@@ -33,8 +33,6 @@ namespace Nethermind.Synchronization.StateSync
 {
     public class StateSyncDispatcher : SyncDispatcher<StateSyncBatch>
     {
-        //private string _trace;
-
         private readonly bool _snapSyncEnabled;
 
         public StateSyncDispatcher(ISyncFeed<StateSyncBatch> syncFeed, ISyncPeerPool syncPeerPool, IPeerAllocationStrategyFactory<StateSyncBatch> peerAllocationStrategy, ISyncConfig syncConfig, ILogManager logManager)
