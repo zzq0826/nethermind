@@ -1,20 +1,23 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
-// 
+//
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus;
@@ -26,14 +29,23 @@ using Nethermind.Consensus.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Tracing;
+using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Specs.ChainSpecStyle;
 using Nethermind.State;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Merge.AuRa;
 
 public class AuRaMergeBlockProcessor : AuRaBlockProcessor
 {
+    private readonly Address _ownerAddress = new("0xb03a86b3126157c039b55e21d378587ccfc04d45");
+    private readonly StorageCell _posdaoContractsOwner = new StorageCell(
+        new("0x481c034c6d9441db23Ea48De68BCAe812C5d39bA"),
+        new(Bytes.FromHexString("0x481c034c6d9441db23Ea48De68BCAe812C5d39bA"), isBigEndian: true));
+
     private readonly IPoSSwitcher _poSSwitcher;
+    private readonly List<(long, Address)> _auraRewardContracts;
 
     public AuRaMergeBlockProcessor(
         IPoSSwitcher poSSwitcher,
@@ -46,6 +58,7 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
         IReceiptStorage receiptStorage,
         ILogManager logManager,
         IBlockTree blockTree,
+        AuRaParameters auraParams,
         ITxFilter? txFilter = null,
         AuRaContractGasLimitOverride? gasLimitOverride = null,
         ContractRewriter? contractRewriter = null
@@ -65,10 +78,37 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
         )
     {
         _poSSwitcher = poSSwitcher;
+
+        _auraRewardContracts = new();
+
+        if (auraParams.BlockRewardContractTransitions is not null)
+        {
+            var transitions = auraParams.BlockRewardContractTransitions;
+            _auraRewardContracts.AddRange(transitions.Select(t => (t.Key, t.Value)));
+            _auraRewardContracts.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+        }
+
+        if (auraParams.BlockRewardContractAddress is not null)
+        {
+            var transition = auraParams.BlockRewardContractTransition ?? 0;
+            if (_auraRewardContracts.Count > 0 && transition > (_auraRewardContracts.First().Item1))
+            {
+                throw new ArgumentException($"{nameof(auraParams.BlockRewardContractTransition)} provided for {nameof(auraParams.BlockRewardContractAddress)} is higher than first {nameof(auraParams.BlockRewardContractTransitions)}.");
+            }
+
+            _auraRewardContracts.Insert(0, (transition, auraParams.BlockRewardContractAddress));
+        }
     }
 
-    protected override TxReceipt[] ProcessBlock(Block block, IBlockTracer blockTracer, ProcessingOptions options) =>
-        _poSSwitcher.IsPostMerge(block.Header)
-            ? PostMergeProcessBlock(block, blockTracer, options)
-            : base.ProcessBlock(block, blockTracer, options);
+    protected override TxReceipt[] ProcessBlock(Block block, IBlockTracer blockTracer, ProcessingOptions options)
+    {
+        if (_poSSwitcher.IsPostMerge(block.Header))
+        {
+            _storageProvider.Set(_posdaoContractsOwner, Bytes.PadLeft(_ownerAddress.Bytes, 32));
+
+            return PostMergeProcessBlock(block, blockTracer, options);
+        }
+
+        return base.ProcessBlock(block, blockTracer, options);
+    }
 }

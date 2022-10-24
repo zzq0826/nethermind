@@ -33,6 +33,7 @@ namespace Nethermind.Merge.AuRa.InitializationSteps
                 _api.ReceiptStorage!,
                 _api.LogManager,
                 _api.BlockTree!,
+                _api.ChainSpec!.AuRa,
                 txFilter,
                 GetGasLimitCalculator(),
                 contractRewriter

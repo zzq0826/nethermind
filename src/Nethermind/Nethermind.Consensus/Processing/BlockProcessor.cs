@@ -41,7 +41,7 @@ namespace Nethermind.Consensus.Processing
         private readonly IReceiptStorage _receiptStorage;
         private readonly IWitnessCollector _witnessCollector;
         private readonly IBlockValidator _blockValidator;
-        private readonly IStorageProvider _storageProvider;
+        protected readonly IStorageProvider _storageProvider;
         private readonly IRewardCalculator _rewardCalculator;
         private readonly IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor;
 
