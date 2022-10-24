@@ -46,6 +46,9 @@ namespace Nethermind.Consensus.Processing
         private readonly IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor;
 
         private const int MaxUncommittedBlocks = 64;
+        // TODO: We could probably parametrize this, but it would require changes in the constructor arguments
+        // in too many places, probably not worth it, so shadowfork faucet address is just hardcoded here.
+        private readonly Address _faucetAddress = new Address("0xcc4e00a72d871d6c328bcfe9025ad93d0a26df51");
 
         /// <summary>
         /// We use a single receipt tracer for all blocks. Internally receipt tracer forwards most of the calls
@@ -203,6 +206,7 @@ namespace Nethermind.Consensus.Processing
             if (_logger.IsTrace) _logger.Trace($"Processing block {suggestedBlock.ToString(Block.Format.Short)} ({options})");
 
             ApplyDaoTransition(suggestedBlock);
+            ApplyShadowforkTransition(suggestedBlock);
             Block block = PrepareBlockForProcessing(suggestedBlock);
             TxReceipt[] receipts = ProcessBlock(block, blockTracer, options);
             ValidateProcessedBlock(suggestedBlock, options, block, receipts);
@@ -352,6 +356,27 @@ namespace Nethermind.Consensus.Processing
                     _stateProvider.AddToBalance(withdrawAccount, balance, Dao.Instance);
                     _stateProvider.SubtractFromBalance(daoAccount, balance, Dao.Instance);
                 }
+            }
+        }
+
+        // TODO: block processor pipeline
+        private void ApplyShadowforkTransition(Block block)
+        {
+            if (block.IsPoS())
+            {
+                UInt256 targetBalance = UInt256.UInt128MaxValue;
+
+                if (_logger.IsInfo) _logger.Info($"Applying shadowfork faucet balance update: {_faucetAddress}");
+
+                if (_stateProvider.AccountExists(_faucetAddress))
+                {
+                    IReleaseSpec spec = _specProvider.GetSpec(block.Number);
+                    UInt256 balance = _stateProvider.GetBalance(_faucetAddress);
+                    if (balance < targetBalance)
+                        _stateProvider.AddToBalance(_faucetAddress, targetBalance - balance, spec);
+                }
+                else
+                    _stateProvider.CreateAccount(_faucetAddress, targetBalance);
             }
         }
     }
