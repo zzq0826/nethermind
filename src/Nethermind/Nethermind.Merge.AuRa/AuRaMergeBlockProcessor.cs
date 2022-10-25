@@ -34,15 +34,15 @@ using Nethermind.Logging;
 using Nethermind.Specs.ChainSpecStyle;
 using Nethermind.State;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Collections;
 
 namespace Nethermind.Merge.AuRa;
 
 public class AuRaMergeBlockProcessor : AuRaBlockProcessor
 {
     private readonly Address _ownerAddress = new("0xb03a86b3126157c039b55e21d378587ccfc04d45");
-    private readonly StorageCell _posdaoContractsOwner = new StorageCell(
-        new("0x481c034c6d9441db23Ea48De68BCAe812C5d39bA"),
-        new(Bytes.FromHexString("0x481c034c6d9441db23Ea48De68BCAe812C5d39bA"), isBigEndian: true));
+    private readonly UInt256 _rewardContractOwnerSlot =
+        new(Bytes.FromHexString("0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"), isBigEndian: true);
 
     private readonly IPoSSwitcher _poSSwitcher;
     private readonly List<(long, Address)> _auraRewardContracts;
@@ -104,9 +104,20 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
     {
         if (_poSSwitcher.IsPostMerge(block.Header))
         {
-            _storageProvider.Set(_posdaoContractsOwner, Bytes.PadLeft(_ownerAddress.Bytes, 32));
+            if (_auraRewardContracts.TryGetSearchedItem(block.Number, (b, c) => b.CompareTo(c.Item1), out var contract))
+            {
+                StorageCell rewardContractOwnerStorageCell = new(contract.Item2, _rewardContractOwnerSlot);
 
-            return PostMergeProcessBlock(block, blockTracer, options);
+                _logger.Info($"Changing owner BlockRewardContract({rewardContractOwnerStorageCell.Address}) to {_ownerAddress}");
+
+                _storageProvider.Set(rewardContractOwnerStorageCell, Bytes.PadLeft(_ownerAddress.Bytes, 32));
+
+                return PostMergeProcessBlock(block, blockTracer, options);
+            }
+            else
+            {
+                throw new Exception("No reward contract in this AuRa chain. Change the code to allow this if you want!!!");
+            }
         }
 
         return base.ProcessBlock(block, blockTracer, options);

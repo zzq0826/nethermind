@@ -42,7 +42,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly AuRaContractGasLimitOverride? _gasLimitOverride;
         private readonly ContractRewriter? _contractRewriter;
         private readonly ITxFilter _txFilter;
-        private readonly ILogger _logger;
+        protected readonly ILogger _logger;
         private IAuRaValidator? _auRaValidator;
 
         public AuRaBlockProcessor(
