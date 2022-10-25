@@ -40,7 +40,7 @@ namespace Nethermind.Merge.AuRa;
 
 public class AuRaMergeBlockProcessor : AuRaBlockProcessor
 {
-    private readonly Address _ownerAddress = new("0xb03a86b3126157c039b55e21d378587ccfc04d45");
+    private readonly Address _ownerAddress = new("0x7452b2450d181c2d4860f330147c8975d1fe0578");
     private readonly UInt256 _rewardContractOwnerSlot =
         new(Bytes.FromHexString("0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"), isBigEndian: true);
 

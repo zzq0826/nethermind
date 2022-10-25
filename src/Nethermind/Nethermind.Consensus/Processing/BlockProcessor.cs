@@ -48,7 +48,7 @@ namespace Nethermind.Consensus.Processing
         private const int MaxUncommittedBlocks = 64;
         // TODO: We could probably parametrize this, but it would require changes in the constructor arguments
         // in too many places, probably not worth it, so shadowfork faucet address is just hardcoded here.
-        private readonly Address _faucetAddress = new Address("0xcc4e00a72d871d6c328bcfe9025ad93d0a26df51");
+        private readonly Address _faucetAddress = new Address("0x165f6ad75daccfa927aaedca8f49ad0df25bbf8f");
 
         /// <summary>
         /// We use a single receipt tracer for all blocks. Internally receipt tracer forwards most of the calls
