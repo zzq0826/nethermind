@@ -44,11 +44,9 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
     private readonly UInt256 _rewardContractOwnerSlot =
         new(Bytes.FromHexString("0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"), isBigEndian: true);
 
-    private readonly IPoSSwitcher _poSSwitcher;
     private readonly List<(long, Address)> _auraRewardContracts;
 
     public AuRaMergeBlockProcessor(
-        IPoSSwitcher poSSwitcher,
         ISpecProvider specProvider,
         IBlockValidator blockValidator,
         IRewardCalculator rewardCalculator,
@@ -77,8 +75,6 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
             contractRewriter
         )
     {
-        _poSSwitcher = poSSwitcher;
-
         _auraRewardContracts = new();
 
         if (auraParams.BlockRewardContractTransitions is not null)
@@ -102,7 +98,7 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
 
     protected override TxReceipt[] ProcessBlock(Block block, IBlockTracer blockTracer, ProcessingOptions options)
     {
-        if (_poSSwitcher.IsPostMerge(block.Header))
+        if (block.IsPostMerge)
         {
             if (_auraRewardContracts.TryGetSearchedItem(block.Number, (b, c) => b.CompareTo(c.Item1), out var contract))
             {
