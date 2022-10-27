@@ -15,6 +15,7 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Logging;
@@ -33,6 +34,13 @@ namespace Nethermind.Synchronization.ParallelSync
         protected ISyncFeed<T> Feed { get; }
         protected ISyncPeerPool SyncPeerPool { get; }
 
+        private readonly Monitoring.Model.Histogram.Child _dispatchLatencySuccessMetric;
+        private readonly Monitoring.Model.Histogram.Child _dispatchLatencyFailedMetric;
+        private readonly Monitoring.Model.Histogram.Child _dispatchLatencyTimeoutMetric;
+
+        private readonly Monitoring.Model.Histogram.Child _responseLatencySuccessMetric;
+        private readonly Monitoring.Model.Histogram.Child _responseLatencyFailedMetric;
+
         protected SyncDispatcher(
             ISyncFeed<T>? syncFeed,
             ISyncPeerPool? syncPeerPool,
@@ -45,6 +53,14 @@ namespace Nethermind.Synchronization.ParallelSync
             PeerAllocationStrategyFactory = peerAllocationStrategy ?? throw new ArgumentNullException(nameof(peerAllocationStrategy));
 
             syncFeed.StateChanged += SyncFeedOnStateChanged;
+
+            // Creating labelled histogram ahead of time, otherwise internally it will have to lookup the instance on every `WithLabels`.
+            _dispatchLatencySuccessMetric = Metrics.SyncDispatchLatency.WithLabels(Feed.GetType().Name, "success");
+            _dispatchLatencyFailedMetric = Metrics.SyncDispatchLatency.WithLabels(Feed.GetType().Name, "failed");
+            _dispatchLatencyTimeoutMetric = Metrics.SyncDispatchLatency.WithLabels(Feed.GetType().Name, "timeout");
+
+            _responseLatencySuccessMetric = Metrics.SyncResponseLatency.WithLabels(Feed.GetType().Name, "success");
+            _responseLatencyFailedMetric = Metrics.SyncResponseLatency.WithLabels(Feed.GetType().Name, "failed");
         }
 
         private TaskCompletionSource<object?>? _dormantStateTask = new();
@@ -98,40 +114,7 @@ namespace Nethermind.Synchronization.ParallelSync
                         if (allocatedPeer != null)
                         {
                             if (Logger.IsTrace) Logger.Trace($"SyncDispatcher request: {request}, AllocatedPeer {allocation.Current}");
-                            Task task = Dispatch(allocatedPeer, request, cancellationToken)
-                                .ContinueWith(t =>
-                            {
-                                if (t.IsFaulted)
-                                {
-                                    if (Logger.IsWarn) Logger.Warn($"Failure when executing request {t.Exception}");
-                                }
-
-                                try
-                                {
-                                    if (cancellationToken.IsCancellationRequested)
-                                    {
-                                        if (Logger.IsDebug) Logger.Debug("Ignoring sync response as shutdown is requested.");
-                                        return;
-                                    }
-
-                                    SyncResponseHandlingResult result = Feed.HandleResponse(request, allocatedPeer);
-                                    ReactToHandlingResult(request, result, allocatedPeer);
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    if (Logger.IsInfo) Logger.Info("Ignoring sync response as the DB has already closed.");
-                                }
-                                catch (Exception e)
-                                {
-                                    // possibly clear the response and handle empty response batch here (to avoid missing parts)
-                                    // this practically corrupts sync
-                                    if (Logger.IsError) Logger.Error("Error when handling response", e);
-                                }
-                                finally
-                                {
-                                    Free(allocation);
-                                }
-                            }, cancellationToken);
+                            Task task = RunFeed(cancellationToken, allocatedPeer, request, allocation);
 
                             if (!Feed.IsMultiFeed)
                             {
@@ -158,6 +141,57 @@ namespace Nethermind.Synchronization.ParallelSync
                     Feed.Finish();
                 }
             }
+        }
+
+        private async Task RunFeed(CancellationToken cancellationToken, PeerInfo? allocatedPeer, T request,
+            SyncPeerAllocation allocation)
+        {
+            Stopwatch sw = Stopwatch.StartNew();
+            try
+            {
+                await Dispatch(allocatedPeer, request, cancellationToken);
+                _dispatchLatencySuccessMetric.Observe(sw.ElapsedMilliseconds);
+            }
+            catch (TimeoutException e)
+            {
+                if (Logger.IsTrace) Logger.Warn($"Timeout when executing request {e}");
+                _dispatchLatencyTimeoutMetric.Observe(sw.ElapsedMilliseconds);
+            }
+            catch (Exception e)
+            {
+                if (Logger.IsWarn) Logger.Warn($"Failure when executing request {e}");
+                _dispatchLatencyFailedMetric.Observe(sw.ElapsedMilliseconds);
+            }
+
+            try
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    if (Logger.IsDebug) Logger.Debug("Ignoring sync response as shutdown is requested.");
+                    return;
+                }
+
+                sw.Restart();
+                SyncResponseHandlingResult result = Feed.HandleResponse(request, allocatedPeer);
+                ReactToHandlingResult(request, result, allocatedPeer);
+                _responseLatencySuccessMetric.Observe(sw.ElapsedMilliseconds);
+            }
+            catch (ObjectDisposedException)
+            {
+                if (Logger.IsInfo) Logger.Info("Ignoring sync response as the DB has already closed.");
+            }
+            catch (Exception e)
+            {
+                // possibly clear the response and handle empty response batch here (to avoid missing parts)
+                // this practically corrupts sync
+                if (Logger.IsError) Logger.Error("Error when handling response", e);
+                _responseLatencyFailedMetric.Observe(sw.ElapsedMilliseconds);
+            }
+            finally
+            {
+                Free(allocation);
+            }
+
         }
 
         protected virtual void Free(SyncPeerAllocation allocation)
