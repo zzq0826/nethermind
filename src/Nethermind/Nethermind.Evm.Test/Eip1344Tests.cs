@@ -48,7 +48,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_custom_0_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
 
@@ -60,7 +60,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_custom_custom_32000_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
 
@@ -72,7 +72,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_goerli_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
 
@@ -84,7 +84,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_mainnet_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
 
@@ -96,7 +96,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_rinkeby_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
 
@@ -108,7 +108,7 @@ namespace Nethermind.Evm.Test
             [Test]
             public void given_ropsten_network_chain_id_opcode_puts_expected_value_onto_the_stack()
             {
-                Test(SpecProvider.ChainId);
+                Test(SpecProvider.NetworkId);
             }
         }
     }

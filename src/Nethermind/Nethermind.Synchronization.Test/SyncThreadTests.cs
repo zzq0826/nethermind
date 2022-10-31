@@ -261,7 +261,7 @@ namespace Nethermind.Synchronization.Test
             ConsoleAsyncLogger logger = new(LogLevel.Debug, "PEER " + index + " ");
             //            var logManager = new OneLoggerLogManager(logger);
             SingleReleaseSpecProvider specProvider =
-                new(ConstantinopleFix.Instance, MainnetSpecProvider.Instance.ChainId);
+                new(ConstantinopleFix.Instance, MainnetSpecProvider.Instance.NetworkId);
 
             IDbProvider dbProvider = TestMemDbProvider.Init();
             IDb blockDb = dbProvider.BlocksDb;

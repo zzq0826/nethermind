@@ -631,7 +631,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             Context context = new();
             OverridableReleaseSpec releaseSpec = new(London.Instance);
             releaseSpec.Eip1559TransitionBlock = 1;
-            TestSpecProvider specProvider = new(releaseSpec) { ChainId = ChainId.Mainnet };
+            TestSpecProvider specProvider = new(releaseSpec) { NetworkId = ChainId.Mainnet };
             await context.Build(specProvider, isAura: true);
             TestRpcBlockchain blockchain = context.Blockchain;
             UInt256 currentNonceAddressC = blockchain.State.GetAccount(TestItem.AddressC).Nonce;

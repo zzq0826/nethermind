@@ -35,14 +35,15 @@ namespace Nethermind.Specs
 
         public ForkActivation? MergeBlockNumber => _theMergeBlock;
         public UInt256? TerminalTotalDifficulty { get; set; }
-        public ulong ChainId { get; }
+        public ulong NetworkId { get; }
+        public ulong ChainId => NetworkId;
         public ForkActivation[] TransitionBlocks { get; } = { 0 };
 
         private readonly IReleaseSpec _releaseSpec;
 
         public SingleReleaseSpecProvider(IReleaseSpec releaseSpec, ulong networkId)
         {
-            ChainId = networkId;
+            NetworkId = networkId;
             _releaseSpec = releaseSpec;
             if (_releaseSpec == Dao.Instance)
             {

@@ -70,12 +70,12 @@ namespace Nethermind.Network
                 case Protocol.Eth:
                 case Protocol.Les:
                     SyncPeerProtocolInitializedEventArgs syncPeerArgs = (SyncPeerProtocolInitializedEventArgs)eventArgs;
-                    if (!ValidateChainId(syncPeerArgs.ChainId))
+                    if (!ValidateNetworkId(syncPeerArgs.NetworkId))
                     {
-                        if (_logger.IsTrace) _logger.Trace($"Initiating disconnect with peer: {session.RemoteNodeId}, different chainId: {ChainId.GetChainName(syncPeerArgs.ChainId)}, our chainId: {ChainId.GetChainName(_blockTree.ChainId)}");
+                        if (_logger.IsTrace) _logger.Trace($"Initiating disconnect with peer: {session.RemoteNodeId}, different chainId: {ChainId.GetChainName(syncPeerArgs.NetworkId)}, our chainId: {ChainId.GetChainName(_blockTree.NetworkId)}");
                         _nodeStatsManager.ReportFailedValidation(session.Node, CompatibilityValidationType.ChainId);
-                        Disconnect(session, DisconnectReason.UselessPeer, $"invalid chain id - {syncPeerArgs.ChainId}");
-                        if (session.Node.IsStatic && _logger.IsWarn) _logger.Warn($"Disconnected an invalid static node: {session.Node.Host}:{session.Node.Port}, reason: {DisconnectReason.UselessPeer} (invalid chain id - {syncPeerArgs.ChainId})");
+                        Disconnect(session, DisconnectReason.UselessPeer, $"invalid chain id - {syncPeerArgs.NetworkId}");
+                        if (session.Node.IsStatic && _logger.IsWarn) _logger.Warn($"Disconnected an invalid static node: {session.Node.Host}:{session.Node.Port}, reason: {DisconnectReason.UselessPeer} (invalid network id - {syncPeerArgs.NetworkId})");
                         return false;
                     }
 
@@ -117,9 +117,9 @@ namespace Nethermind.Network
                     x.Version == 66));
         }
 
-        private bool ValidateChainId(ulong chainId)
+        private bool ValidateNetworkId(ulong networkId)
         {
-            return chainId == _blockTree.ChainId;
+            return networkId == _blockTree.NetworkId;
         }
     }
 }

@@ -122,7 +122,7 @@ namespace Nethermind.JsonRpc.Test.Modules
         protected override async Task<TestBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null)
         {
             BloomStorage bloomStorage = new(new BloomConfig(), new MemDb(), new InMemoryDictionaryFileStoreFactory());
-            specProvider ??= new TestSpecProvider(Berlin.Instance) { ChainId = ChainId.Mainnet };
+            specProvider ??= new TestSpecProvider(Berlin.Instance) { NetworkId = ChainId.Mainnet };
             await base.Build(specProvider, initialValues);
             IFilterStore filterStore = new FilterStore();
             IFilterManager filterManager = new FilterManager(filterStore, BlockProcessor, TxPool, LimboLogs.Instance);
@@ -143,7 +143,7 @@ namespace Nethermind.JsonRpc.Test.Modules
             GasPriceOracle ??= new GasPriceOracle(BlockFinder, SpecProvider, LogManager);
 
 
-            ITxSigner txSigner = new WalletTxSigner(TestWallet, specProvider?.ChainId ?? 0);
+            ITxSigner txSigner = new WalletTxSigner(TestWallet, specProvider?.NetworkId ?? 0);
             ITxSealer txSealer0 = new TxSealer(txSigner, Timestamper);
             ITxSealer txSealer1 = new NonceReservingTxSealer(txSigner, Timestamper, TxPool);
             TxSender ??= new TxPoolSender(TxPool, txSealer0, txSealer1);

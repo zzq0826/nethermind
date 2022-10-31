@@ -48,8 +48,13 @@ namespace Nethermind.Specs
         public IReleaseSpec SpecToReturn { get; set; }
 
         public long? DaoBlockNumber { get; set; }
+
+        public ulong NetworkId { get; set; }
+
         public ulong ChainId { get; set; }
+
         public ForkActivation[] TransitionBlocks { get; set; } = new ForkActivation[] { 0 };
+
         public bool AllowTestChainOverride { get; set; } = true;
 
         private TestSpecProvider() { }

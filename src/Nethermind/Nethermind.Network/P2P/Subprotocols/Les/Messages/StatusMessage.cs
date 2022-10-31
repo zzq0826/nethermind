@@ -45,7 +45,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les.Messages
         public override int PacketType { get; } = LesMessageCode.Status;
         public override string Protocol => P2P.Protocol.Les;
         public byte ProtocolVersion { get; set; }
-        public UInt256 ChainId { get; set; }
+        public UInt256 NetworkId { get; set; }
         public UInt256 TotalDifficulty { get; set; }
         public Keccak BestHash { get; set; }
         public long HeadBlockNo { get; set; }

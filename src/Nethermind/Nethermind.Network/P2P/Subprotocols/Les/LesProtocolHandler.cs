@@ -67,7 +67,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les
             StatusMessage statusMessage = new()
             {
                 ProtocolVersion = ProtocolVersion,
-                ChainId = (UInt256)SyncServer.ChainId,
+                NetworkId = (UInt256)SyncServer.NetworkId,
                 TotalDifficulty = head.TotalDifficulty ?? head.Difficulty,
                 BestHash = head.Hash,
                 HeadBlockNo = head.Number,
@@ -179,7 +179,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les
             if (Logger.IsTrace)
                 Logger.Trace($"LES received status from {Session.Node:c} with" +
                              Environment.NewLine + $" prot version\t{status.ProtocolVersion}" +
-                             Environment.NewLine + $" network ID\t{status.ChainId}," +
+                             Environment.NewLine + $" network ID\t{status.NetworkId}," +
                              Environment.NewLine + $" genesis hash\t{status.GenesisHash}," +
                              Environment.NewLine + $" best hash\t{status.BestHash}," +
                              Environment.NewLine + $" head blockno\t{status.HeadBlockNo}," +
@@ -200,7 +200,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les
             ReceivedProtocolInitMsg(status);
             SyncPeerProtocolInitializedEventArgs eventArgs = new(this)
             {
-                ChainId = (ulong)status.ChainId,
+                NetworkId = (ulong)status.NetworkId,
                 BestHash = status.BestHash,
                 GenesisHash = status.GenesisHash,
                 Protocol = status.Protocol,

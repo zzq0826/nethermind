@@ -552,7 +552,7 @@ public class InitializeNetwork : IStep
             _networkConfig,
             _api.LogManager);
 
-        string chainName = ChainId.GetChainName(_api.ChainSpec!.ChainId).ToLowerInvariant();
+        string chainName = ChainId.GetChainName(_api.ChainSpec!.NetworkId).ToLowerInvariant();
 #pragma warning disable CS4014
         enrDiscovery.SearchTree($"all.{chainName}.ethdisco.net").ContinueWith(t =>
 #pragma warning restore CS4014

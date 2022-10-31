@@ -103,7 +103,7 @@ namespace Nethermind.Network.Test
                 ITimerFactory timerFactory = Substitute.For<ITimerFactory>();
                 _nodeStatsManager = new NodeStatsManager(timerFactory, LimboLogs.Instance);
                 _blockTree = Substitute.For<IBlockTree>();
-                _blockTree.ChainId.Returns(1ul);
+                _blockTree.NetworkId.Returns(1ul);
                 _blockTree.Genesis.Returns(Build.A.Block.Genesis.TestObject.Header);
                 _protocolValidator = new ProtocolValidator(_nodeStatsManager, _blockTree, LimboLogs.Instance);
                 _peerStorage = Substitute.For<INetworkStorage>();
@@ -207,7 +207,7 @@ namespace Nethermind.Network.Test
             {
                 StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
-                msg.ChainId = 1;
+                msg.NetworkId = 1;
                 msg.GenesisHash = _blockTree.Genesis.Hash;
                 msg.BestHash = _blockTree.Genesis.Hash;
                 msg.ProtocolVersion = 66;
@@ -227,7 +227,7 @@ namespace Nethermind.Network.Test
             public Context VerifyEthInitialized()
             {
                 INodeStats stats = _nodeStatsManager.GetOrAdd(_currentSession.Node);
-                Assert.AreEqual(1, stats.EthNodeDetails.ChainId);
+                Assert.AreEqual(1, stats.EthNodeDetails.NetworkId);
                 Assert.AreEqual(_blockTree.Genesis.Hash, stats.EthNodeDetails.GenesisHash);
                 Assert.AreEqual(66, stats.EthNodeDetails.ProtocolVersion);
                 Assert.AreEqual(BigInteger.One, stats.EthNodeDetails.TotalDifficulty);
@@ -287,7 +287,7 @@ namespace Nethermind.Network.Test
             {
                 StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
-                msg.ChainId = 2;
+                msg.NetworkId = 2;
                 msg.GenesisHash = TestItem.KeccakA;
                 msg.BestHash = TestItem.KeccakA;
                 msg.ProtocolVersion = 66;
@@ -299,7 +299,7 @@ namespace Nethermind.Network.Test
             {
                 StatusMessage msg = new();
                 msg.TotalDifficulty = 1;
-                msg.ChainId = 1;
+                msg.NetworkId = 1;
                 msg.GenesisHash = TestItem.KeccakB;
                 msg.BestHash = TestItem.KeccakB;
                 msg.ProtocolVersion = 66;

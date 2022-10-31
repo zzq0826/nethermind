@@ -45,7 +45,8 @@ public class SepoliaSpecProvider : ISpecProvider
     public long? DaoBlockNumber => null;
 
 
-    public ulong ChainId => Core.ChainId.Rinkeby;
+    public ulong NetworkId => Core.ChainId.Rinkeby;
+    public ulong ChainId => NetworkId;
 
     public ForkActivation[] TransitionBlocks { get; } = { 1735371 };
 

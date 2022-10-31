@@ -1141,7 +1141,7 @@ public partial class EthRpcModuleTests
         public static async Task<Context> CreateWithLondonEnabled()
         {
             OverridableReleaseSpec releaseSpec = new(London.Instance) { Eip1559TransitionBlock = 1 };
-            TestSpecProvider specProvider = new(releaseSpec) { ChainId = ChainId.Mainnet };
+            TestSpecProvider specProvider = new(releaseSpec) { NetworkId = ChainId.Mainnet };
             return await Create(specProvider);
         }
 

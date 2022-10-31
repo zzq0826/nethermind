@@ -74,7 +74,7 @@ namespace Nethermind.Merge.Plugin.Test
                     .WithTo(to)
                     .WithValue(value.GWei())
                     .WithGasPrice(1.GWei())
-                    .WithChainId(chain.SpecProvider.ChainId)
+                    .WithChainId(chain.SpecProvider.NetworkId)
                     .WithSenderAddress(from.Address)
                     .SignedAndResolved(from)
                     .TestObject;
