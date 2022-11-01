@@ -82,6 +82,7 @@ public class NodeLifecycleManager : INodeLifecycleManager
     public void ProcessPingMsg(PingMsg pingMsg)
     {
         // _receivedPing = true;
+        _logger.Info("HIVE sending PONG");
         SendPong(pingMsg);
         if (pingMsg.EnrSequence is not null && pingMsg.EnrSequence > _lastEnrSequence)
         {
@@ -222,7 +223,7 @@ public class NodeLifecycleManager : INodeLifecycleManager
     {
         if (!IsBonded)
         {
-            if (_logger.IsDebug) _logger.Debug($"Sending FIND NODE on {ManagedNode} before bonding");
+            _logger.Info($"Sending FIND NODE on {ManagedNode} before bonding");
         }
 
         if (DateTime.UtcNow - _lastTimeSendFindNode < TimeSpan.FromSeconds(60))
@@ -230,6 +231,7 @@ public class NodeLifecycleManager : INodeLifecycleManager
             return;
         }
 
+        _logger.Info("HIVE sending FIND NODE");
         FindNodeMsg msg = new(ManagedNode.Address, CalculateExpirationTime(), searchedNodeId);
         _isNeighborsExpected = true;
         _discoveryManager.SendMessage(msg);

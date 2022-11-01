@@ -1,16 +1,16 @@
 //  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
-// 
+//
 //  The Nethermind library is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Nethermind library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //  GNU Lesser General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
@@ -92,10 +92,17 @@ public class DiscoveryManager : IDiscoveryManager
                     nodeManager.ProcessPongMsg((PongMsg)msg);
                     break;
                 case MsgType.Ping:
+                    _logger.Info("HIVE received ping");
                     PingMsg ping = (PingMsg)msg;
                     if (ValidatePingAddress(ping))
                     {
+                        _logger.Info("HIVE received ping - validated");
                         nodeManager.ProcessPingMsg(ping);
+                    }
+                    else
+                    {
+                        _logger.Info("HIVE received ping - INVALID");
+
                     }
                     break;
                 case MsgType.FindNode:
@@ -228,14 +235,14 @@ public class DiscoveryManager : IDiscoveryManager
             return false;
         }
 
-        #region 
+        #region
         // port will be different as we dynamically open ports for each socket connection
         // if (_nodeTable.MasterNode.Port != message.DestinationAddress?.Port)
         // {
         //     throw new NetworkingException($"Received message with incorrect destination port, message: {message}", NetworkExceptionType.Discovery);
         // }
 
-        // either an old Nethermind or other nodes that make the same mistake 
+        // either an old Nethermind or other nodes that make the same mistake
         // if (!Bytes.AreEqual(message.FarAddress?.Address.MapToIPv6().GetAddressBytes(), message.SourceAddress?.Address.MapToIPv6().GetAddressBytes()))
         // {
         //     // there is no sense to complain here as nodes sent a lot of garbage as their source addresses
