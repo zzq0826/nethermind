@@ -51,7 +51,8 @@ namespace Nethermind.Specs
 
         public ulong NetworkId { get; set; }
 
-        public ulong ChainId { get; set; }
+        public ulong? chainId;
+        public ulong ChainId { get { return chainId ?? (NetworkId); } set { chainId = value; } }
 
         public ForkActivation[] TransitionBlocks { get; set; } = new ForkActivation[] { 0 };
 

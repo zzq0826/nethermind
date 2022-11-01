@@ -207,6 +207,7 @@ namespace Nethermind.Mev.Test
         {
             var blockTree = Substitute.For<IBlockTree>();
             blockTree.NetworkId.Returns((ulong)ChainId.Mainnet);
+            blockTree.ChainId.Returns((ulong)ChainId.Mainnet);
             BlockHeader header = new(
                 Keccak.Zero,
                 Keccak.Zero,

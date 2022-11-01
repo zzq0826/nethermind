@@ -508,6 +508,7 @@ namespace Nethermind.Mev.Test
                 }
 
                 BlockTree.NetworkId.Returns((ulong)ChainId.Mainnet);
+                BlockTree.ChainId.Returns((ulong)ChainId.Mainnet);
 
                 if (timestamper != null)
                 {

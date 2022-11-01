@@ -25,7 +25,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les.Messages
         public static class KeyNames
         {
             public const string ProtocolVersion = "protocolVersion";
-            public const string ChainId = "networkId";
+            public const string NetworkId = "networkId";
             public const string TotalDifficulty = "headTd";
             public const string BestHash = "headHash";
             public const string HeadBlockNo = "headNum";
