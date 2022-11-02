@@ -73,9 +73,10 @@ namespace Nethermind.Hive
 
         private void OnPeerRefreshed(object? sender, PeerHeadRefreshedEventArgs e)
         {
-            if (_api.GossipPolicy.ShouldGossipBlock(e.Header)
+            if (_api.GossipPolicy.CanGossipBlocks                   // cheap check first
                 && e.Header.UnclesHash == Keccak.OfAnEmptySequenceRlp
-                && e.Header.TxRoot == Keccak.EmptyTreeHash)
+                && e.Header.TxRoot == Keccak.EmptyTreeHash
+                && _api.GossipPolicy.ShouldGossipBlock(e.Header))   // and expensive check at the end
             {
                 Block block = new(e.Header, new BlockBody());
                 _api.BlockTree!.SuggestBlock(block);
