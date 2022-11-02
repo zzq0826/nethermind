@@ -56,6 +56,7 @@ public class SnapServer : ISnapServer
 
     public List<byte[]>? GetTrieNodes(PathGroup[] pathSet, Keccak rootHash)
     {
+        _logger.Info("GetTrieNodes");
         // TODO: use cache to reduce node retrieval from disk
         int pathLength = pathSet.Length;
         List<byte[]> response = new(pathLength);
@@ -93,12 +94,13 @@ public class SnapServer : ISnapServer
                     break;
             }
         }
-
+        _logger.Info($"GetTrieNodes Response: {response.Count}");
         return response;
     }
 
     public List<byte[]> GetByteCodes(Keccak[] requestedHashes, long byteLimit)
     {
+        _logger.Info("GetByteCodes");
         long currentByteCount = 0;
         List<byte[]> response = new(requestedHashes.Length);
 
@@ -126,12 +128,13 @@ public class SnapServer : ISnapServer
             response.Add(code);
             currentByteCount += code.Length;
         }
-
+        _logger.Info($"GetByteCodes Response: {response.Count}");
         return response;
     }
 
     public (PathWithAccount[], byte[][]) GetAccountRanges(Keccak rootHash, Keccak startingHash, Keccak? limitHash, long byteLimit)
     {
+        _logger.Info("GetAccountRanges");
         (Dictionary<byte[], byte[]>? requiredNodes, long _, bool _) = GetNodesFromTrieVisitor(rootHash, startingHash,
             limitHash ?? Keccak.MaxValue, byteLimit, HardResponseByteLimit, isStorage: false);
         StateTree tree = new(_store, _logManager);
@@ -147,11 +150,13 @@ public class SnapServer : ISnapServer
 
         if (nodes.Length == 0) return (nodes, Array.Empty<byte[]>());
         byte[][]? proofs = GenerateRangeProof(tree, startingHash, nodes[^1].Path, rootHash);
+        _logger.Info($"GetAccountRanges Response: {nodes.Length} Proof: {proofs.Length}");
         return (nodes, proofs);
     }
 
     public (List<PathWithStorageSlot[]>, byte[][]?) GetStorageRanges(Keccak rootHash, PathWithAccount[] accounts, Keccak? startingHash, Keccak? limitHash, long byteLimit)
     {
+        _logger.Info("GetStorageRanges");
         long responseSize = 0;
         StateTree tree = new(_store, _logManager);
 
@@ -188,16 +193,19 @@ public class SnapServer : ISnapServer
             if (stopped || startingHash != Keccak.Zero)
             {
                 byte[][]? proofs = GenerateRangeProof(tree, startingHash, nodes[^1].Path, storageRoot);
+                _logger.Info($"GetStorageRanges Response: {responseNodes.Count} Proof: {proofs.Length}");
                 return (responseNodes, proofs);
             }
             responseSize += innerResponseSize;
         }
+        _logger.Info($"GetStorageRanges Response: {responseNodes.Count} Proof: 0");
         return (responseNodes, null);
     }
 
     private (Dictionary<byte[], byte[]>?, long, bool) GetNodesFromTrieVisitor(Keccak rootHash, Keccak startingHash, Keccak limitHash,
         long byteLimit, long hardByteLimit, bool isStorage = false)
     {
+        _logger.Info("GetNodesFromTrieVisitor");
         PatriciaTree tree = new(_store, _logManager);
         using RangeQueryVisitor visitor = new(startingHash.Bytes, limitHash.Bytes, !isStorage, byteLimit, hardByteLimit, HardResponseNodeLimit);
         VisitingOptions opt = new() { ExpectAccounts = false, KeepTrackOfAbsolutePath = true };
@@ -209,12 +217,14 @@ public class SnapServer : ISnapServer
 
     private Account? GetAccountByPath(StateTree tree, Keccak rootHash, byte[] accountPath)
     {
+        _logger.Info("GetAccountByPath");
         byte[]? bytes = tree.Get(accountPath, rootHash);
         return bytes is null ? null : _decoder.Decode(bytes.AsRlpStream());
     }
 
     private byte[][] GenerateRangeProof(PatriciaTree tree, Keccak start, Keccak end, Keccak rootHash)
     {
+        _logger.Info("GenerateRangeProof");
         VisitingOptions opt = new() { ExpectAccounts = false };
         ProofCollector accountProofCollector = new(start.Bytes);
         tree.Accept(accountProofCollector, rootHash, opt);
