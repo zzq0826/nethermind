@@ -122,8 +122,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                     if (!ServingEnabled)
                     {
                         Session.InitiateDisconnect(DisconnectReason.UselessPeer, DisconnectMessage);
-                            Logger.Info(
-                                $"Peer disconnected because of requesting Snap data (GetStorageRanges). Peer: {Session.Node.ClientId}");
+                        Logger.Info(
+                            $"Peer disconnected because of requesting Snap data (GetStorageRanges). Peer: {Session.Node.ClientId}");
                         break;
                     }
                     GetStorageRangeMessage getStorageRangesMessage = Deserialize<GetStorageRangeMessage>(message.Content);
@@ -139,8 +139,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                     if (!ServingEnabled)
                     {
                         Session.InitiateDisconnect(DisconnectReason.UselessPeer, DisconnectMessage);
-                            Logger.Info(
-                                $"Peer disconnected because of requesting Snap data (GetByteCodes). Peer: {Session.Node.ClientId}");
+                        Logger.Info(
+                            $"Peer disconnected because of requesting Snap data (GetByteCodes). Peer: {Session.Node.ClientId}");
                         break;
                     }
                     GetByteCodesMessage getByteCodesMessage = Deserialize<GetByteCodesMessage>(message.Content);
@@ -156,8 +156,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                     if (!ServingEnabled)
                     {
                         Session.InitiateDisconnect(DisconnectReason.UselessPeer, DisconnectMessage);
-                            Logger.Info(
-                                $"Peer disconnected because of requesting Snap data (GetTrieNodes). Peer: {Session.Node.ClientId}");
+                        Logger.Info(
+                            $"Peer disconnected because of requesting Snap data (GetTrieNodes). Peer: {Session.Node.ClientId}");
                         break;
                     }
                     GetTrieNodesMessage getTrieNodesMessage = Deserialize<GetTrieNodesMessage>(message.Content);

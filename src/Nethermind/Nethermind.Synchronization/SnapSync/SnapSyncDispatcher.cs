@@ -53,7 +53,7 @@ namespace Nethermind.Synchronization.SnapSync
                         {
                             if (t.IsFaulted)
                             {
-                                    Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
+                                Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
                             }
 
                             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
@@ -74,7 +74,7 @@ namespace Nethermind.Synchronization.SnapSync
                         {
                             if (t.IsFaulted)
                             {
-                                    Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
+                                Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
                             }
 
                             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
@@ -95,7 +95,7 @@ namespace Nethermind.Synchronization.SnapSync
                         {
                             if (t.IsFaulted)
                             {
-                                    Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
+                                Logger.Info($"DEBUG/ERROR Error after dispatching the snap sync request {t.Exception}");
                             }
 
                             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
@@ -116,7 +116,7 @@ namespace Nethermind.Synchronization.SnapSync
                         {
                             if (t.IsFaulted)
                             {
-                                    Logger.Info($"DEBUG/Info Info after dispatching the snap sync request {t.Exception}");
+                                Logger.Info($"DEBUG/Info Info after dispatching the snap sync request {t.Exception}");
                             }
 
                             SnapSyncBatch batchLocal = (SnapSyncBatch)state!;
