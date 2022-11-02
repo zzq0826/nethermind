@@ -73,7 +73,7 @@ namespace Nethermind.Hive
 
         private void OnPeerRefreshed(object? sender, PeerHeadRefreshedEventArgs e)
         {
-            if (_api.GossipPolicy.CanGossipBlocks
+            if (!_api.GossipPolicy.ShouldDiscardBlocks
                 && e.Header.UnclesHash == Keccak.OfAnEmptySequenceRlp
                 && e.Header.TxRoot == Keccak.EmptyTreeHash)
             {
