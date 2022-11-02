@@ -17,6 +17,7 @@
  */
 
 using System.Collections.Generic;
+using Nethermind.Core;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using NUnit.Framework;
@@ -34,7 +35,7 @@ namespace Ethereum.Difficulty.Test
         [TestCaseSource(nameof(LoadFrontierTests))]
         public void Test(DifficultyTests test)
         {
-            RunTest(test, new SingleReleaseSpecProvider(Homestead.Instance, 1));
+            RunTest(test, new SingleReleaseSpecProvider(Homestead.Instance, TestChainIds.NetworkId, TestChainIds.ChainId));
         }
     }
 }
