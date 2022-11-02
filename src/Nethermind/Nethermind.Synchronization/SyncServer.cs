@@ -297,7 +297,7 @@ namespace Nethermind.Synchronization
                             // if (_broadcastRandomizer.NextDouble() < broadcastRatio)
                             // {
                             //     NotifyOfNewBlock(peerInfo, peerInfo.SyncPeer, block, SendBlockMode.FullBlock);
-                            //     counter++;
+                            counter++;
                             //     minPeers--;
                             // }
                             // else if (allowHashes)
