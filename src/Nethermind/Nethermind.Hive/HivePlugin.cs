@@ -64,7 +64,10 @@ namespace Nethermind.Hive
 
                 if (_logger.IsInfo) _logger.Info("Hive is starting");
 
-                _api.SyncPeerPool.PeerRefreshed += OnPeerRefreshed;
+                if (_api.GossipPolicy.CanGossipBlocks)
+                {
+                    _api.SyncPeerPool.PeerRefreshed += OnPeerRefreshed;
+                }
 
                 await hiveRunner.Start(_disposeCancellationToken.Token);
             }
@@ -72,11 +75,10 @@ namespace Nethermind.Hive
 
         private void OnPeerRefreshed(object? sender, PeerHeadRefreshedEventArgs e)
         {
-            if (!e.Header.IsPostMerge
-                && e.Header.UnclesHash == Keccak.OfAnEmptySequenceRlp
-                && e.Header.TxRoot == Keccak.EmptyTreeHash)
+            BlockHeader header = e.Header;
+            if (header.UnclesHash == Keccak.OfAnEmptySequenceRlp && header.TxRoot == Keccak.EmptyTreeHash)
             {
-                Block block = new(e.Header, new BlockBody());
+                Block block = new(header, new BlockBody());
                 _api.BlockTree!.SuggestBlock(block);
             }
         }
