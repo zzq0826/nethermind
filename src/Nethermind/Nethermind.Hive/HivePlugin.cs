@@ -3,7 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Logging;
+using Nethermind.Synchronization.Peers;
 
 namespace Nethermind.Hive
 {
@@ -48,6 +51,7 @@ namespace Nethermind.Hive
                 if (_api.LogManager == null) throw new ArgumentNullException(nameof(_api.LogManager));
                 if (_api.FileSystem == null) throw new ArgumentNullException(nameof(_api.FileSystem));
                 if (_api.BlockValidator == null) throw new ArgumentNullException(nameof(_api.BlockValidator));
+                if (_api.SyncPeerPool == null) throw new ArgumentNullException(nameof(_api.SyncPeerPool));
 
                 HiveRunner hiveRunner = new(
                     _api.BlockTree,
@@ -60,7 +64,19 @@ namespace Nethermind.Hive
 
                 if (_logger.IsInfo) _logger.Info("Hive is starting");
 
+                _api.SyncPeerPool.PeerRefreshed += OnPeerRefreshed;
+
                 await hiveRunner.Start(_disposeCancellationToken.Token);
+            }
+        }
+
+        private void OnPeerRefreshed(object? sender, PeerHeadRefreshedEventArgs e)
+        {
+            BlockHeader header = e.Header;
+            if (header.UnclesHash == Keccak.OfAnEmptySequenceRlp && header.TxRoot == Keccak.EmptyTreeHash)
+            {
+                Block block = new(header, new BlockBody());
+                _api.BlockTree!.SuggestBlock(block);
             }
         }
 
