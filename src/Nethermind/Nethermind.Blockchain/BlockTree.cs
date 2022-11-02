@@ -229,7 +229,10 @@ namespace Nethermind.Blockchain
                              $"lowest sync inserted block number {LowestInsertedBeaconHeader?.Number}");
             ThisNodeInfo.AddInfo("Chain ID     :", $"{Core.ChainId.GetChainName(ChainId)}");
             ThisNodeInfo.AddInfo("Chain head   :", $"{Head?.Header.ToString(BlockHeader.Format.Short) ?? "0"}");
-            ThisNodeInfo.AddInfo("Network ID     :", $"{NetworkId}");
+            if(ChainId != NetworkId)
+            {
+                ThisNodeInfo.AddInfo("Network ID   :", $"{NetworkId}");
+            }
         }
 
         private void AttemptToFixCorruptionByMovingHeadBackwards()
