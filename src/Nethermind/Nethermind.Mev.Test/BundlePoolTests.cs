@@ -507,8 +507,8 @@ namespace Nethermind.Mev.Test
                     BlockTree.Head.Returns(Build.A.Block.WithNumber((long)blockTreeHead).TestObject);
                 }
 
-                BlockTree.NetworkId.Returns((ulong)ChainId.Mainnet);
-                BlockTree.ChainId.Returns((ulong)ChainId.Mainnet);
+                BlockTree.NetworkId.Returns((ulong)TestChainIds.NetworkId);
+                BlockTree.ChainId.Returns((ulong)TestChainIds.ChainId);
 
                 if (timestamper != null)
                 {

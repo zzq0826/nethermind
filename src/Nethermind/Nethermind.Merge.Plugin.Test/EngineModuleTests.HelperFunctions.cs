@@ -74,7 +74,7 @@ namespace Nethermind.Merge.Plugin.Test
                     .WithTo(to)
                     .WithValue(value.GWei())
                     .WithGasPrice(1.GWei())
-                    .WithChainId(chain.SpecProvider.NetworkId)
+                    .WithChainId(chain.SpecProvider.ChainId)
                     .WithSenderAddress(from.Address)
                     .SignedAndResolved(from)
                     .TestObject;
@@ -176,7 +176,7 @@ namespace Nethermind.Merge.Plugin.Test
 
         private async Task<TestRpcBlockchain> CreateTestRpc(MergeTestBlockchain chain)
         {
-            SingleReleaseSpecProvider spec = new(London.Instance, 1);
+            SingleReleaseSpecProvider spec = new(London.Instance, TestChainIds.NetworkId, TestChainIds.ChainId);
             TestRpcBlockchain testRpc = await TestRpcBlockchain.ForTest(SealEngineType.NethDev)
                 .WithBlockFinder(chain.BlockFinder)
                 .Build(spec);

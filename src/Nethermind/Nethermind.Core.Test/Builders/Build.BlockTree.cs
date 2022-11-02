@@ -15,12 +15,13 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using Nethermind.Core.Specs;
+using Nethermind.Specs;
 
 namespace Nethermind.Core.Test.Builders
 {
     public partial class Build
     {
-        public BlockTreeBuilder BlockTree() => new();
-        public BlockTreeBuilder BlockTree(Block genesisBlock, ISpecProvider? specProvider = null) => new(genesisBlock, specProvider);
+        public BlockTreeBuilder BlockTree(ISpecProvider? specProvider = null) => new(specProvider ?? MainnetSpecProvider.Instance);
+        public BlockTreeBuilder BlockTree(Block genesisBlock, ISpecProvider? specProvider = null) => new(genesisBlock, specProvider ?? MainnetSpecProvider.Instance);
     }
 }

@@ -86,4 +86,10 @@ namespace Nethermind.Core
             };
         }
     }
+
+    public static class TestChainIds
+    {
+        public const int NetworkId = 1;
+        public const int ChainId = 1;
+    }
 }

@@ -49,10 +49,11 @@ namespace Nethermind.Specs
 
         public long? DaoBlockNumber { get; set; }
 
-        public ulong NetworkId { get; set; }
+        public ulong? networkId;
+        public ulong NetworkId { get { return networkId ?? TestChainIds.NetworkId; } set { networkId = value; } }
 
         public ulong? chainId;
-        public ulong ChainId { get { return chainId ?? (NetworkId); } set { chainId = value; } }
+        public ulong ChainId { get { return chainId ?? TestChainIds.ChainId; } set { chainId = value; } }
 
         public ForkActivation[] TransitionBlocks { get; set; } = new ForkActivation[] { 0 };
 

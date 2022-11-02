@@ -62,7 +62,6 @@ namespace Nethermind.AccountAbstraction.Test
             TestSpecProvider testSpecProvider = releaseSpec is not null
                 ? new TestSpecProvider(releaseSpec)
                 : new TestSpecProvider(London.Instance);
-            testSpecProvider.NetworkId = 1;
             return TestRpcBlockchain.ForTest(testMevRpcBlockchain).Build(testSpecProvider);
         }
 
