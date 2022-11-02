@@ -52,6 +52,7 @@ namespace Nethermind.Hive
                 if (_api.FileSystem == null) throw new ArgumentNullException(nameof(_api.FileSystem));
                 if (_api.BlockValidator == null) throw new ArgumentNullException(nameof(_api.BlockValidator));
                 if (_api.SyncPeerPool == null) throw new ArgumentNullException(nameof(_api.SyncPeerPool));
+                if (_api.GossipPolicy == null) throw new ArgumentNullException(nameof(_api.GossipPolicy));
 
                 HiveRunner hiveRunner = new(
                     _api.BlockTree,
@@ -64,10 +65,7 @@ namespace Nethermind.Hive
 
                 if (_logger.IsInfo) _logger.Info("Hive is starting");
 
-                if (_api.GossipPolicy.CanGossipBlocks)
-                {
-                    _api.SyncPeerPool.PeerRefreshed += OnPeerRefreshed;
-                }
+                _api.SyncPeerPool.PeerRefreshed += OnPeerRefreshed;
 
                 await hiveRunner.Start(_disposeCancellationToken.Token);
             }
@@ -75,10 +73,11 @@ namespace Nethermind.Hive
 
         private void OnPeerRefreshed(object? sender, PeerHeadRefreshedEventArgs e)
         {
-            BlockHeader header = e.Header;
-            if (header.UnclesHash == Keccak.OfAnEmptySequenceRlp && header.TxRoot == Keccak.EmptyTreeHash)
+            if (_api.GossipPolicy.CanGossipBlocks
+                && e.Header.UnclesHash == Keccak.OfAnEmptySequenceRlp
+                && e.Header.TxRoot == Keccak.EmptyTreeHash)
             {
-                Block block = new(header, new BlockBody());
+                Block block = new(e.Header, new BlockBody());
                 _api.BlockTree!.SuggestBlock(block);
             }
         }
