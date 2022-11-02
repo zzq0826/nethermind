@@ -231,7 +231,7 @@ namespace Nethermind.Blockchain
         {
             if (_tryToRecoverFromHeaderBelowBodyCorruption && BestSuggestedHeader != null)
             {
-                ChainLevelInfo chainLevelInfo = LoadLevel(BestSuggestedHeader.Number);
+                ChainLevelInfo chainLevelInfo = LoadLevel(Math.Max(BestSuggestedHeader.Number - 1000, 0));
                 BlockInfo? canonicalBlock = chainLevelInfo?.MainChainBlock;
                 if (canonicalBlock is not null)
                 {
