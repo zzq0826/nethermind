@@ -292,22 +292,22 @@ namespace Nethermind.Synchronization
                     int counter = 0;
                     foreach (PeerInfo peerInfo in _pool.AllPeers)
                     {
-                        if (nodeWhoSentTheBlock != peerInfo.SyncPeer)
-                        {
-                            if (_broadcastRandomizer.NextDouble() < broadcastRatio)
-                            {
-                                NotifyOfNewBlock(peerInfo, peerInfo.SyncPeer, block, SendBlockMode.FullBlock);
-                                counter++;
-                                minPeers--;
-                            }
-                            else if (allowHashes)
-                            {
-                                NotifyOfNewBlock(peerInfo, peerInfo.SyncPeer, block, SendBlockMode.HashOnly);
-                            }
-
-                            peerCount--;
-                            broadcastRatio = CalculateBroadcastRatio(minPeers, peerCount);
-                        }
+                        // if (nodeWhoSentTheBlock != peerInfo.SyncPeer)
+                        // {
+                        //     if (_broadcastRandomizer.NextDouble() < broadcastRatio)
+                        //     {
+                        //         NotifyOfNewBlock(peerInfo, peerInfo.SyncPeer, block, SendBlockMode.FullBlock);
+                        //         counter++;
+                        //         minPeers--;
+                        //     }
+                        //     else if (allowHashes)
+                        //     {
+                        //         NotifyOfNewBlock(peerInfo, peerInfo.SyncPeer, block, SendBlockMode.HashOnly);
+                        //     }
+                        //
+                        //     peerCount--;
+                        //     broadcastRatio = CalculateBroadcastRatio(minPeers, peerCount);
+                        // }
                     }
 
                     if (counter > 0 && _logger.IsDebug) _logger.Debug($"Broadcasting block {block.ToString(Block.Format.Short)} to {counter} peers.");
