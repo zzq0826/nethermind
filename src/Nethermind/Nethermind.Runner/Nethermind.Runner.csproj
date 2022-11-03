@@ -102,6 +102,9 @@
     <None Remove="keystore\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="configs\eip4844_docker.cfg" />
+  </ItemGroup>
+  <ItemGroup>
     <_ContentIncludedByDefault Remove="Contracts\EntryPoint.json" />
   </ItemGroup>
 

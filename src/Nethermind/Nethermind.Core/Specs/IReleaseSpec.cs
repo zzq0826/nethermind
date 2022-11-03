@@ -272,6 +272,11 @@ namespace Nethermind.Core.Specs
         bool IsEip3855Enabled { get; }
 
         /// <summary>
+        /// Transient storage
+        /// </summary>
+        bool IsEip4844Enabled { get; }
+
+        /// <summary>
         /// Should transactions be validated against chainId.
         /// </summary>
         /// <remarks>Backward compatibility for early Kovan blocks.</remarks>
@@ -284,6 +289,8 @@ namespace Nethermind.Core.Specs
         bool ValidateReceipts => true;
 
         public long Eip1559TransitionBlock { get; }
+
+        public long Eip4844TransitionBlock { get; }
 
         // STATE related 
         public bool ClearEmptyAccountWhenTouched => IsEip158Enabled;
@@ -355,5 +362,7 @@ namespace Nethermind.Core.Specs
         public UInt256? Eip1559BaseFeeMinValue => null;
 
         public bool TransientStorageEnabled => IsEip1153Enabled;
+
+        public bool BlobsEnabled => IsEip4844Enabled;
     }
 }

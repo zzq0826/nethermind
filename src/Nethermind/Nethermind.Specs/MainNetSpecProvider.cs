@@ -54,7 +54,8 @@ namespace Nethermind.Specs
                 { BlockNumber: < ArrowGlacierBlockNumber } => London.Instance,
                 { BlockNumber: < GrayGlacierBlockNumber } => ArrowGlacier.Instance,
                 { Timestamp: null } or { Timestamp: < ShanghaiBlockTimestamp } => GrayGlacier.Instance,
-                _ => Shanghai.Instance
+                { BlockNumber: < ShardingBlockNumber } => Shanghai.Instance,
+                _ => ShardingFork.Instance
             };
 
         public const long HomesteadBlockNumber = 1_150_000;
@@ -70,6 +71,7 @@ namespace Nethermind.Specs
         public const long LondonBlockNumber = 12_965_000;
         public const long ArrowGlacierBlockNumber = 13_773_000;
         public const long GrayGlacierBlockNumber = 15_050_000;
+        public const long ShardingBlockNumber = long.MaxValue;
         public const ulong ShanghaiBlockTimestamp = ulong.MaxValue - 4;
         public const ulong CancunBlockTimestamp = ulong.MaxValue - 3;
         public const ulong PragueBlockTimestamp = ulong.MaxValue - 2;

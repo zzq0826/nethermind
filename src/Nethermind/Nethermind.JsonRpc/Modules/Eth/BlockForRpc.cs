@@ -68,6 +68,11 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 {
                     BaseFeePerGas = block.Header.BaseFeePerGas;
                 }
+
+                if (spec.IsEip4844Enabled)
+                {
+                    ExcessDataGas = block.Header.ExcessDataGas;
+                }
             }
 
             Number = block.Number;
@@ -123,5 +128,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
         public IEnumerable<object> Transactions { get; set; }
         public Keccak TransactionsRoot { get; set; }
         public IEnumerable<Keccak> Uncles { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public UInt256? ExcessDataGas { get; set; }
     }
 }

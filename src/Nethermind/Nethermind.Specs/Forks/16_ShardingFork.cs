@@ -15,13 +15,21 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 // 
 
-namespace Nethermind.Core
+using System.Threading;
+using Nethermind.Core.Specs;
+
+namespace Nethermind.Specs.Forks
 {
-    public enum TxType : byte
+    public class ShardingFork : GrayGlacier
     {
-        Legacy = 0,
-        AccessList = 1,
-        EIP1559 = 2,
-        Blob = 5,
+        private static IReleaseSpec _instance;
+
+        protected ShardingFork()
+        {
+            Name = "ShardingFork";
+            IsEip4844Enabled = true;
+        }
+
+        public new static IReleaseSpec Instance => LazyInitializer.EnsureInitialized(ref _instance, () => new ShardingFork());
     }
 }

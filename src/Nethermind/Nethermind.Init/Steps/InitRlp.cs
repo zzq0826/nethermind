@@ -47,6 +47,7 @@ namespace Nethermind.Init.Steps
             }
 
             HeaderDecoder.Eip1559TransitionBlock = _api.SpecProvider.GenesisSpec.Eip1559TransitionBlock;
+            HeaderDecoder.Eip4844TransitionBlock = _api.SpecProvider.GenesisSpec.Eip4844TransitionBlock;
 
             return Task.CompletedTask;
         }

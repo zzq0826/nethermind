@@ -104,6 +104,8 @@ public class TransactionForRpc
 
     public AccessListItemForRpc[]? AccessList { get; set; }
 
+    public UInt256? MaxFeePerDataGas { get; set; } // eip4844
+
     public UInt256? V { get; set; }
 
     public UInt256? S { get; set; }
@@ -137,6 +139,11 @@ public class TransactionForRpc
             tx.GasPrice = MaxPriorityFeePerGas ?? 0;
         }
 
+        if (tx.IsEip4844)
+        {
+            tx.MaxFeePerDataGas = MaxFeePerDataGas;
+        }
+
         return tx;
     }
 
@@ -155,13 +162,19 @@ public class TransactionForRpc
             Data = Data ?? Input,
             Type = Type,
             AccessList = TryGetAccessList(),
-            ChainId = chainId
+            ChainId = chainId,
+            MaxFeePerDataGas = MaxFeePerDataGas,
         };
 
         if (tx.IsEip1559)
         {
             tx.GasPrice = MaxPriorityFeePerGas ?? 0;
             tx.DecodedMaxFeePerGas = MaxFeePerGas ?? 0;
+        }
+
+        if (tx.IsEip4844)
+        {
+            tx.MaxFeePerDataGas = MaxFeePerDataGas;
         }
 
         return tx;

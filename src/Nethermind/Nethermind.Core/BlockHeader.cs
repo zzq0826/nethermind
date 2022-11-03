@@ -37,7 +37,8 @@ namespace Nethermind.Core
             long number,
             long gasLimit,
             ulong timestamp,
-            byte[] extraData)
+            byte[] extraData,
+            UInt256 parentExcessDataGas)
         {
             ParentHash = parentHash;
             UnclesHash = unclesHash;
@@ -47,6 +48,19 @@ namespace Nethermind.Core
             GasLimit = gasLimit;
             Timestamp = timestamp;
             ExtraData = extraData;
+            ParentExcessDataGas = parentExcessDataGas;
+        }
+
+        public BlockHeader(
+            Keccak parentHash,
+            Keccak unclesHash,
+            Address beneficiary,
+            in UInt256 difficulty,
+            long number,
+            long gasLimit,
+            ulong timestamp,
+            byte[] extraData): this(parentHash, unclesHash, beneficiary, difficulty, number, gasLimit, timestamp, extraData, UInt256.MaxValue)
+        {
         }
 
         public WeakReference<BlockHeader>? MaybeParent { get; set; }
@@ -76,12 +90,15 @@ namespace Nethermind.Core
         public byte[]? AuRaSignature { get; set; }
         public long? AuRaStep { get; set; }
         public UInt256 BaseFeePerGas { get; set; }
+        public UInt256? ExcessDataGas { get; set; }
 
         public bool HasBody => UnclesHash != Keccak.OfAnEmptySequenceRlp || TxRoot != Keccak.EmptyTreeHash;
         public string SealEngineType { get; set; } = Nethermind.Core.SealEngineType.Ethash;
 
         // ToDo we need to set this flag after reading block from db
         public bool IsPostMerge { get; set; }
+        // For blob gas calculation
+        public UInt256 ParentExcessDataGas { get; set; } = UInt256.MaxValue;
 
         public string ToString(string indent)
         {
@@ -102,6 +119,10 @@ namespace Nethermind.Core
             builder.AppendLine($"{indent}Receipts Root: {ReceiptsRoot}");
             builder.AppendLine($"{indent}State Root: {StateRoot}");
             builder.AppendLine($"{indent}BaseFeePerGas: {BaseFeePerGas}");
+            if (ExcessDataGas is not null)
+            {
+                builder.AppendLine($"{indent}ExcessDataGas: {ExcessDataGas}");
+            }
             builder.AppendLine($"{indent}IsPostMerge: {IsPostMerge}");
             builder.AppendLine($"{indent}TotalDifficulty: {TotalDifficulty}");
 
