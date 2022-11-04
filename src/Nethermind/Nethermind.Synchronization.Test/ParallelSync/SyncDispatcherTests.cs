@@ -136,7 +136,7 @@ namespace Nethermind.Synchronization.Test.ParallelSync
         private class TestDispatcher : SyncDispatcher<TestBatch>
         {
             public TestDispatcher(ISyncFeed<TestBatch> syncFeed, ISyncPeerPool syncPeerPool, IPeerAllocationStrategyFactory<TestBatch> peerAllocationStrategy)
-                : base(syncFeed, syncPeerPool, peerAllocationStrategy, LimboLogs.Instance)
+                : base(SyncMode.None, syncFeed, syncPeerPool, peerAllocationStrategy, LimboLogs.Instance)
             {
             }
 

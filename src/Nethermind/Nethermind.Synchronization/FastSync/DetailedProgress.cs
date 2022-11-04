@@ -19,6 +19,7 @@ using System;
 using Nethermind.Blockchain;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Synchronization.Reporting;
 
 namespace Nethermind.Synchronization.FastSync
 {

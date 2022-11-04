@@ -77,7 +77,7 @@ namespace Nethermind.Synchronization.Blocks
             IBetterPeerStrategy betterPeerStrategy,
             ILogManager? logManager,
             SyncBatchSize? syncBatchSize = null)
-            : base(feed, syncPeerPool, blockSyncPeerAllocationStrategyFactory, logManager)
+            : base(SyncMode.None, feed, syncPeerPool, blockSyncPeerAllocationStrategyFactory, logManager)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));

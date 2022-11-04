@@ -32,6 +32,7 @@ namespace Nethermind.Synchronization.Reporting
         public TimeSpan Duration => FinishTime is null
                                         ? DateTime.UtcNow - StartTime
                                         : FinishTime.Value - StartTime;
+        public SyncFeedState State { get; set; }
         public long? Current { get; set; }
         public long? Total { get; set; }
         public double? Progress => 100 * (double)Current / Total;

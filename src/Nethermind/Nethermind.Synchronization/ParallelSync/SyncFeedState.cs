@@ -20,6 +20,7 @@ namespace Nethermind.Synchronization.ParallelSync
     {
         Dormant,
         Active,
-        Finished
+        Finished,
+        Cancelled
     }
 }

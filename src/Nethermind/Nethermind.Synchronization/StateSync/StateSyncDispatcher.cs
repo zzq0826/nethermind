@@ -28,7 +28,7 @@ namespace Nethermind.Synchronization.StateSync
     public class StateSyncDispatcher : SyncDispatcher<StateSyncBatch>
     {
         public StateSyncDispatcher(ISyncFeed<StateSyncBatch> syncFeed, ISyncPeerPool syncPeerPool, IPeerAllocationStrategyFactory<StateSyncBatch> peerAllocationStrategy, ILogManager logManager)
-            : base(syncFeed, syncPeerPool, peerAllocationStrategy, logManager)
+            : base(SyncMode.StateNodes, syncFeed, syncPeerPool, peerAllocationStrategy, logManager)
         {
         }
 

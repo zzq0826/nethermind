@@ -18,7 +18,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Logging;
+using Nethermind.Stats.Model;
 using Nethermind.Synchronization.Peers;
+using Nethermind.Synchronization.Reporting;
 
 namespace Nethermind.Synchronization.ParallelSync
 {
@@ -29,11 +31,13 @@ namespace Nethermind.Synchronization.ParallelSync
 
         private IPeerAllocationStrategyFactory<T> PeerAllocationStrategyFactory { get; }
 
+        protected SyncMode Mode { get; }
         protected ILogger Logger { get; }
         protected ISyncFeed<T> Feed { get; }
         protected ISyncPeerPool SyncPeerPool { get; }
 
         protected SyncDispatcher(
+            SyncMode mode,
             ISyncFeed<T>? syncFeed,
             ISyncPeerPool? syncPeerPool,
             IPeerAllocationStrategyFactory<T>? peerAllocationStrategy,
@@ -43,7 +47,7 @@ namespace Nethermind.Synchronization.ParallelSync
             Feed = syncFeed ?? throw new ArgumentNullException(nameof(syncFeed));
             SyncPeerPool = syncPeerPool ?? throw new ArgumentNullException(nameof(syncPeerPool));
             PeerAllocationStrategyFactory = peerAllocationStrategy ?? throw new ArgumentNullException(nameof(peerAllocationStrategy));
-
+            Mode = mode;
             syncFeed.StateChanged += SyncFeedOnStateChanged;
         }
 
@@ -53,6 +57,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         public async Task Start(CancellationToken cancellationToken)
         {
+            UpdateReportSink(Mode);
             UpdateState(Feed.CurrentState);
             while (true)
             {
@@ -66,6 +71,7 @@ namespace Nethermind.Synchronization.ParallelSync
                         dormantTaskLocal = _dormantStateTask;
                     }
 
+                    UpdateReportSink(Mode, state: currentStateLocal);
                     if (currentStateLocal == SyncFeedState.Dormant)
                     {
                         if (Logger.IsDebug) Logger.Debug($"{GetType().Name} is going to sleep.");
@@ -156,6 +162,7 @@ namespace Nethermind.Synchronization.ParallelSync
                 catch (OperationCanceledException)
                 {
                     Feed.Finish();
+                    UpdateReportSink(Mode, state: SyncFeedState.Cancelled);
                 }
             }
         }
@@ -199,6 +206,31 @@ namespace Nethermind.Synchronization.ParallelSync
                         throw new ArgumentOutOfRangeException(nameof(result), result, null);
                 }
             }
+        }
+        private void UpdateReportSink(SyncMode mode, long? current = null, long? target = null, SyncFeedState state = SyncFeedState.Dormant)
+        {
+            if (mode == SyncMode.None) return;
+
+            var stage = new ProgressStage
+            {
+                SyncMode = mode.ToString(),
+                Current = current,
+                Total = target,
+            };
+
+            ReportSink.Progress.AddOrUpdate(
+                mode,
+                (_) => {
+                    stage.StartTime = DateTime.UtcNow;
+                    return stage;
+                },
+                (_, old) =>
+                {
+                    stage.StartTime = old.StartTime;
+                    stage.State = state;
+                    stage.FinishTime = state is SyncFeedState.Finished ? DateTime.UtcNow : null;
+                    return stage;
+                });
         }
 
         private void SyncFeedOnStateChanged(object? sender, SyncFeedStateEventArgs e)

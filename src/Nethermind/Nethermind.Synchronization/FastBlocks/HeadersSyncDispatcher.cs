@@ -32,7 +32,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncPeerPool syncPeerPool,
             IPeerAllocationStrategyFactory<FastBlocksBatch> peerAllocationStrategy,
             ILogManager logManager)
-            : base(syncFeed, syncPeerPool, peerAllocationStrategy, logManager)
+            : base(SyncMode.FastHeaders, syncFeed, syncPeerPool, peerAllocationStrategy, logManager)
         {
         }
 
