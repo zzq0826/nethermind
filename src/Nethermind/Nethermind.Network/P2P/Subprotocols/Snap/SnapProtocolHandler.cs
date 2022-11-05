@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNetty.Buffers;
@@ -235,30 +236,68 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         protected TrieNodesMessage FulfillTrieNodesMessage(GetTrieNodesMessage getTrieNodesMessage)
         {
+            var watch = Stopwatch.StartNew();
             var trieNodes = SyncServer.GetTrieNodes(getTrieNodesMessage.Paths, getTrieNodesMessage.RootHash);
+            watch.Stop();
+            Logger.Info(
+                $"SNAPMETRICS GetTrieNodes RootHash: {getTrieNodesMessage.RootHash.Bytes.ToHexString()} " +
+                $"RequestedPathCount: {getTrieNodesMessage.Paths.Length}" +
+                $"ResponseCount: {trieNodes!.Count}" +
+                $"ResponseTime: {watch.ElapsedMilliseconds}");
             return new TrieNodesMessage(trieNodes);
         }
 
         protected AccountRangeMessage FulfillAccountRangeMessage(GetAccountRangeMessage getAccountRangeMessage)
         {
-
+            var watch = Stopwatch.StartNew();
             AccountRange? accountRange = getAccountRangeMessage.AccountRange;
             (PathWithAccount[]? ranges, byte[][]? proofs) = SyncServer.GetAccountRanges(accountRange.RootHash, accountRange.StartingHash,
                 accountRange.LimitHash, getAccountRangeMessage.ResponseBytes);
+            watch.Stop();
+            Logger.Info(
+                $"SNAPMETRICS GetStorageRanges RootHash: {accountRange.RootHash.Bytes.ToHexString()} " +
+                $"RequestedBlockNumber: {accountRange.BlockNumber}" +
+                $"RequestedStartRange: {accountRange.StartingHash!.Bytes.ToHexString()}" +
+                $"RequestedLimitRange: {accountRange.LimitHash!.Bytes.ToHexString()}" +
+                $"ResponseProofCount: {proofs!.Length}" +
+                $"ResponseAccountCount: {ranges!.Length}" +
+                $"ResponseTime: {watch.ElapsedMilliseconds}");
             AccountRangeMessage? response = new() { Proofs = proofs, PathsWithAccounts = ranges };
             return response;
         }
         protected StorageRangeMessage FulfillStorageRangeMessage(GetStorageRangeMessage getStorageRangeMessage)
         {
+            var watch = Stopwatch.StartNew();
             StorageRange? storageRange = getStorageRangeMessage.StoragetRange;
             (List<PathWithStorageSlot[]>? ranges, byte[][]? proofs) = SyncServer.GetStorageRanges(storageRange.RootHash, storageRange.Accounts,
                 storageRange.StartingHash, storageRange.LimitHash, getStorageRangeMessage.ResponseBytes);
+            watch.Stop();
+            Logger.Info(
+                $"SNAPMETRICS GetStorageRanges RootHash: {storageRange.RootHash.Bytes.ToHexString()} " +
+                $"RequestedAccountCount: {storageRange.Accounts.Length}" +
+                $"RequestedStartRange: {storageRange.StartingHash!.Bytes.ToHexString()}" +
+                $"RequestedLimitRange: {storageRange.LimitHash!.Bytes.ToHexString()}" +
+                $"ResponseProofCount: {proofs!.Length}" +
+                $"ResponseAccountCount: {ranges!.Count}" +
+                $"ResponseStorageCount: {GetIndividualAccountNodeCount(ranges)}" +
+                $"ResponseTime: {watch.ElapsedMilliseconds}");
             StorageRangeMessage? response = new() { Proofs = proofs, Slots = ranges };
             return response;
         }
+
+        private string GetIndividualAccountNodeCount(List<PathWithStorageSlot[]>? ranges)
+        {
+            return ranges is null ? "" : ranges.Aggregate("", (current, range) => current + (range.Length + " "));
+        }
         protected ByteCodesMessage FulfillByteCodesMessage(GetByteCodesMessage getByteCodesMessage)
         {
+            var watch = Stopwatch.StartNew();
             var byteCodes = SyncServer.GetByteCodes(getByteCodesMessage.Hashes, getByteCodesMessage.Bytes);
+            watch.Stop();
+            Logger.Info(
+                $"SNAPMETRICS GetByteCodes RequestedPathCount: {getByteCodesMessage.Hashes.Length}" +
+                $"ResponseCount: {byteCodes.Count}" +
+                $"ResponseTime: {watch.ElapsedMilliseconds}");
             return new ByteCodesMessage(byteCodes);
         }
 
