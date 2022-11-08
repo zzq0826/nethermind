@@ -20,7 +20,7 @@ using Nethermind.Core.Specs;
 
 namespace Nethermind.Specs.Forks
 {
-    public class ShardingFork : GrayGlacier
+    public class ShardingFork : Shanghai
     {
         private static IReleaseSpec _instance;
 

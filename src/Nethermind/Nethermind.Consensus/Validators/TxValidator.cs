@@ -52,7 +52,7 @@ namespace Nethermind.Consensus.Validators
                    ValidateSignature(transaction.Signature, releaseSpec) &&
                    ValidateChainId(transaction) &&
                    Validate1559GasFields(transaction, releaseSpec) &&
-                   Validate4844GasFields(transaction, releaseSpec);
+                   Validate4844Fields(transaction, releaseSpec);
         }
 
         private bool ValidateTxType(Transaction transaction, IReleaseSpec releaseSpec)
@@ -123,9 +123,9 @@ namespace Nethermind.Consensus.Validators
             return !spec.ValidateChainId || (signature.V == 27 || signature.V == 28);
         }
 
-        private bool Validate4844GasFields(Transaction transaction, IReleaseSpec spec)
+        private bool Validate4844Fields(Transaction transaction, IReleaseSpec spec)
         {
-            return transaction.Type != TxType.Blob ||  spec.IsEip4844Enabled ^ transaction.MaxFeePerDataGas is null;
+            return transaction.Type != TxType.Blob || spec.IsEip4844Enabled ^ transaction.MaxFeePerDataGas is null;
         }
     }
 }

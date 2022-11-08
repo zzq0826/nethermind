@@ -138,6 +138,23 @@ namespace Nethermind.Evm.Test
                                     )
                             )))))).ToArray();
 
+        private static readonly Instruction[] ShardingForkInstructions =
+            FrontierInstructions.Union(
+                HomesteadInstructions.Union(
+                    ByzantiumInstructions.Union(
+                        ConstantinopleFixInstructions.Union(
+                            IstanbulInstructions.Union(
+                                BerlinInstructions.Union(
+                                    LondonInstructions.Union(
+                                        ShanghaiInstructions.Union(
+                                        new Instruction[]
+                                            {
+                                                // TODO: Add DATAHASH
+                                            }
+                                        )
+                                    )
+                            )))))).ToArray();
+
         private Dictionary<ForkActivation, Instruction[]> _validOpcodes
             = new()
             {
@@ -152,6 +169,7 @@ namespace Nethermind.Evm.Test
                 {MainnetSpecProvider.BerlinBlockNumber, BerlinInstructions},
                 {MainnetSpecProvider.LondonBlockNumber, LondonInstructions},
                 {MainnetSpecProvider.ShanghaiActivation, ShanghaiInstructions},
+                {MainnetSpecProvider.ShardingBlockNumber, ShardingForkInstructions},
                 {(long.MaxValue, ulong.MaxValue), ShanghaiInstructions}
             };
 
@@ -176,6 +194,7 @@ namespace Nethermind.Evm.Test
         [TestCase(MainnetSpecProvider.BerlinBlockNumber)]
         [TestCase(MainnetSpecProvider.LondonBlockNumber)]
         [TestCase(MainnetSpecProvider.GrayGlacierBlockNumber, MainnetSpecProvider.ShanghaiBlockTimestamp)]
+        [TestCase(MainnetSpecProvider.ShardingBlockNumber)]
         [TestCase(long.MaxValue, ulong.MaxValue)]
         public void Test(long blockNumber, ulong? timestamp = null)
         {
