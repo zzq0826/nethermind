@@ -1,0 +1,16 @@
+[Unit]
+Description=Nethermind Node
+Documentation=https://docs.nethermind.io
+After=network.target
+
+[Service]
+User=nethermind
+Group=nethermind
+EnvironmentFile=/home/nethermind/.env
+WorkingDirectory=/home/nethermind
+ExecStart=/usr/bin/nethermind --datadir /home/nethermind/data
+Restart=on-failure
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=default.target
