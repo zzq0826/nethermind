@@ -2,7 +2,7 @@
 set -e 
 
 #add nethermind user
-sudo useradd -m -s /bin/bash nethermind
+sudo useradd -m -s /bin/bash nethermind || echo "Skipping user creation, user already exists."
 
 #download new /usr/bin/nethermind
 sudo wget -q https://raw.githubusercontent.com/NethermindEth/nethermind/feature/nethermind_service/scripts/service/execution.sh -O /usr/bin/nethermind
