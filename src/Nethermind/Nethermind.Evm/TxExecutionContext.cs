@@ -25,12 +25,21 @@ namespace Nethermind.Evm
         public BlockHeader Header { get; }
         public Address Origin { get; }
         public UInt256 GasPrice { get; }
+        public byte[][]? BlobVersionedHashes { get; }
 
+        public TxExecutionContext(BlockHeader blockHeader, Address origin, in UInt256 gasPrice, byte[][] blobVersionedHashes)
+        {
+            Header = blockHeader;
+            Origin = origin;
+            GasPrice = gasPrice;
+            BlobVersionedHashes = blobVersionedHashes;
+        }
         public TxExecutionContext(BlockHeader blockHeader, Address origin, in UInt256 gasPrice)
         {
             Header = blockHeader;
             Origin = origin;
             GasPrice = gasPrice;
+            BlobVersionedHashes = null;
         }
     }
 }

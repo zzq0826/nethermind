@@ -144,14 +144,9 @@ namespace Nethermind.Core.Test.Builders
             return this;
         }
 
-        public TransactionBuilder<T> WithBlobHashes()
+        public TransactionBuilder<T> WithBlobHashes(byte [][] blobVersionedHashes)
         {
-            TestObjectInternal.BlobVersionedHashes = new byte[][]
-            {
-                Convert.FromHexString("013DABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD"),
-                Convert.FromHexString("012DABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD"),
-                Convert.FromHexString("011DABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD"),
-            };
+            TestObjectInternal.BlobVersionedHashes = blobVersionedHashes;
             return this;
         }
 

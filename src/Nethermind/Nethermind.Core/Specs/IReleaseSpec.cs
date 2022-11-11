@@ -362,7 +362,5 @@ namespace Nethermind.Core.Specs
         public UInt256? Eip1559BaseFeeMinValue => null;
 
         public bool TransientStorageEnabled => IsEip1153Enabled;
-
-        public bool BlobsEnabled => IsEip4844Enabled;
     }
 }
