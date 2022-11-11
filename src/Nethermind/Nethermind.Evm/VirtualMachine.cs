@@ -451,6 +451,7 @@ namespace Nethermind.Evm
                 [PairingPrecompile.Instance.Address] = new(PairingPrecompile.Instance),
                 [MapToG1Precompile.Instance.Address] = new(MapToG1Precompile.Instance),
                 [MapToG2Precompile.Instance.Address] = new(MapToG2Precompile.Instance),
+                [PointEvaluationPrecompile.Instance.Address] = new(PointEvaluationPrecompile.Instance),
             };
         }
 
