@@ -59,7 +59,7 @@ namespace Nethermind.Core
             long number,
             long gasLimit,
             ulong timestamp,
-            byte[] extraData): this(parentHash, unclesHash, beneficiary, difficulty, number, gasLimit, timestamp, extraData, UInt256.MaxValue)
+            byte[] extraData) : this(parentHash, unclesHash, beneficiary, difficulty, number, gasLimit, timestamp, extraData, UInt256.MaxValue)
         {
         }
 

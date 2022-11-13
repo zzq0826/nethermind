@@ -37,7 +37,7 @@ namespace Nethermind.Evm.Precompiles
         public Address Address { get; } = Address.FromNumber(0x14);
 
         public long BaseGasCost(IReleaseSpec releaseSpec) => 50000L;
-       
+
         public long DataGasCost(in ReadOnlyMemory<byte> inputData, IReleaseSpec releaseSpec) => 0;
 
         public (ReadOnlyMemory<byte>, bool) Run(in ReadOnlyMemory<byte> inputData, IReleaseSpec releaseSpec)
