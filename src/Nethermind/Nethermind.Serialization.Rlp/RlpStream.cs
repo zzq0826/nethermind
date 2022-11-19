@@ -756,6 +756,10 @@ namespace Nethermind.Serialization.Rlp
 
             return new UInt256(byteSpan, true);
         }
+        public UInt256 DecodeUInt256Being4ULongs()
+        {
+            return new UInt256(DecodeULong(), DecodeULong(), DecodeULong(), DecodeULong());
+        }
 
         public UInt256? DecodeNullableUInt256()
         {

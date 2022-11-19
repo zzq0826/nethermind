@@ -15,10 +15,14 @@
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using Nethermind.Core;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Eip2930;
 using Nethermind.Core.Extensions;
 using Nethermind.Core2.Types;
 using Nethermind.Int256;
@@ -83,11 +87,23 @@ namespace Nethermind.Serialization.Rlp
                 case TxType.EIP1559:
                     DecodeEip1559PayloadWithoutSig(transaction, rlpStream, rlpBehaviors);
                     break;
+                case TxType.Blob:
+                    DecodeEip4844PayloadWithoutSig(transaction, rlpStream, rlpBehaviors);
+                    break;
             }
 
             if (rlpStream.Position < lastCheck)
             {
-                DecodeSignature(rlpStream, rlpBehaviors, transaction);
+                switch (transaction.Type)
+                {
+                    case TxType.Blob:
+                        DecodeEip4844Signature(rlpStream, rlpBehaviors, transaction);
+                        break;
+                    default:
+                        DecodeSignature(rlpStream, rlpBehaviors, transaction);
+                        break;
+                }
+
             }
 
             if ((rlpBehaviors & RlpBehaviors.AllowExtraData) != RlpBehaviors.AllowExtraData)
@@ -119,6 +135,55 @@ namespace Nethermind.Serialization.Rlp
             transaction.Value = rlpStream.DecodeUInt256();
             transaction.Data = rlpStream.DecodeByteArray();
             transaction.AccessList = _accessListDecoder.Decode(rlpStream, rlpBehaviors);
+        }
+
+        private void DecodeEip4844PayloadWithoutSig(T transaction, RlpStream rlpStream, RlpBehaviors rlpBehaviors)
+        {
+            rlpStream.ReadPrefixAndContentLength();
+            transaction.ChainId = rlpStream.DecodeUInt256Being4ULongs().u0;
+            transaction.Nonce = rlpStream.DecodeULong();
+            transaction.GasPrice = rlpStream.DecodeUInt256Being4ULongs(); // gas premium
+            transaction.DecodedMaxFeePerGas = rlpStream.DecodeUInt256Being4ULongs();
+            transaction.GasLimit = rlpStream.DecodeLong();
+            rlpStream.ReadPrefixAndContentLength();
+            transaction.To = rlpStream.DecodeAddress();
+            transaction.Value = rlpStream.DecodeUInt256Being4ULongs();
+            transaction.Data = rlpStream.DecodeByteArray();
+
+
+            int length = rlpStream.PeekNextRlpLength();
+            int pairsCheck = rlpStream.Position + length;
+            rlpStream.SkipLength();
+            AccessListBuilder accessListBuilder = new();
+            while (rlpStream.Position < pairsCheck)
+            {
+                rlpStream.SkipLength();
+                accessListBuilder.AddAddress(rlpStream.DecodeAddress());
+
+                int slotsLength = rlpStream.PeekNextRlpLength();
+                int slotsCheck = rlpStream.Position + slotsLength;
+                rlpStream.SkipLength();
+
+                while (rlpStream.Position < slotsCheck)
+                {
+                    accessListBuilder.AddStorage(new UInt256(rlpStream.DecodeByteArray(), true));
+                }
+            }
+            if (length != 0)
+            {
+                transaction.AccessList = accessListBuilder.ToAccessList();
+            }
+            transaction.MaxFeePerDataGas = rlpStream.DecodeUInt256Being4ULongs();
+
+            int blobVersionedHashesLength = rlpStream.PeekNextRlpLength();
+            int blobVersionedHashesCheck = rlpStream.Position + blobVersionedHashesLength;
+            rlpStream.SkipLength();
+            List<byte[]> blobVersionedHashes = new();
+            while (rlpStream.Position < blobVersionedHashesCheck)
+            {
+                blobVersionedHashes.Add(rlpStream.DecodeByteArray());
+            }
+            transaction.BlobVersionedHashes = blobVersionedHashes.ToArray();
         }
 
         private void DecodeEip1559PayloadWithoutSig(T transaction, RlpStream rlpStream, RlpBehaviors rlpBehaviors)
@@ -331,6 +396,18 @@ namespace Nethermind.Serialization.Rlp
             ReadOnlySpan<byte> vBytes = rlpStream.DecodeByteArraySpan();
             ReadOnlySpan<byte> rBytes = rlpStream.DecodeByteArraySpan();
             ReadOnlySpan<byte> sBytes = rlpStream.DecodeByteArraySpan();
+            ApplySignature(transaction, vBytes, rBytes, sBytes, rlpBehaviors);
+        }
+
+        private static void DecodeEip4844Signature(
+            RlpStream rlpStream,
+            RlpBehaviors rlpBehaviors,
+            T transaction)
+        {
+            rlpStream.SkipLength();
+            byte[] vBytes = rlpStream.DecodeByteArray();
+            byte[] rBytes = rlpStream.DecodeUInt256Being4ULongs().ToBigEndian();
+            byte[] sBytes = rlpStream.DecodeUInt256Being4ULongs().ToBigEndian();
             ApplySignature(transaction, vBytes, rBytes, sBytes, rlpBehaviors);
         }
 
