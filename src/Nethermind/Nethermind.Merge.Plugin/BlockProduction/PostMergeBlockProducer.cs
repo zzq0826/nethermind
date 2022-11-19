@@ -16,6 +16,7 @@
 // 
 
 using System;
+using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Processing;
@@ -25,6 +26,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
+using Nethermind.Evm;
 using Nethermind.Logging;
 using Nethermind.State;
 
@@ -83,6 +85,8 @@ namespace Nethermind.Merge.Plugin.BlockProduction
         {
             Block block = base.PrepareBlock(parent, payloadAttributes);
             AmendHeader(block.Header);
+            block.Header.ExcessDataGas = IntrinsicGasCalculator.CalcExcessDataGas(parent.ExcessDataGas, block.Transactions.Sum(x => x.BlobVersionedHashes?.Length ?? 0));
+            block.Header.ParentExcessDataGas = parent.ParentExcessDataGas;
             return block;
         }
 

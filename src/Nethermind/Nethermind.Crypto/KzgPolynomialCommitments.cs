@@ -54,5 +54,14 @@ namespace Nethermind.Crypto
                 return Ckzg.Ckzg.VerifyKzgProof(commitmentPtr, xPtr, yPtr, proofPtr, CkzgSetup) == 0;
             }
         }
+
+        public static unsafe bool IsAggregatedProofValid(byte[] proof, byte[][] blobs, byte[][] commitments)
+        {
+            return true;
+            //fixed (byte* commitmentsPtr = commitments, blobsPtr = blobs, proofPtr = proof)
+            //{
+            //    return Ckzg.Ckzg.VerifyAggregateKzgProof(blobsPtr, commitmentsPtr, blobs.Length, proofPtr, CkzgSetup) == 0;
+            //}
+        }
     }
 }

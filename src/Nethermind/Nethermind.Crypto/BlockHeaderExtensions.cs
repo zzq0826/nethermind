@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using Microsoft.VisualBasic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
@@ -30,7 +31,17 @@ namespace Nethermind.Crypto
             KeccakRlpStream stream = new();
             _headerDecoder.Encode(stream, header, behaviors);
 
-            return stream.GetHash();
+
+            var a = stream.GetHash();
+            var b = a.ToString();
+
+            var stream2 = new RlpStream(new byte[2048]);
+            _headerDecoder.Encode(stream2, header, behaviors);
+            if (header.Number > 0)
+            {
+
+            }
+            return a;
         }
 
         public static Keccak CalculateHash(this Block block, RlpBehaviors behaviors = RlpBehaviors.None) => CalculateHash(block.Header, behaviors);

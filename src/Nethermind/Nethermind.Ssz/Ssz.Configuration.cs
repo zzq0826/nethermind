@@ -16,7 +16,7 @@
 
 namespace Nethermind.Ssz
 {
-    public partial class Ssz
+    public static partial class Ssz
     {
         public static int DepositContractTreeDepth { get; private set; }
         private static int JustificationBitsLength;

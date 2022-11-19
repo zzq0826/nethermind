@@ -279,7 +279,7 @@ namespace Nethermind.Facade
 
         public ulong GetChainId()
         {
-            return _processingEnv.BlockTree.NetworkId;
+            return _processingEnv.BlockTree.ChainId;
         }
 
         private UInt256 GetNonce(Keccak stateRoot, Address address)

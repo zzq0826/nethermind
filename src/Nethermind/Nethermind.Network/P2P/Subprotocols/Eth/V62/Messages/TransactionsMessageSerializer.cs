@@ -16,6 +16,7 @@
 
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Serialization;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages
@@ -33,13 +34,20 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages
             nettyRlpStream.StartSequence(contentLength);
             for (int i = 0; i < message.Transactions.Count; i++)
             {
-                nettyRlpStream.Encode(message.Transactions[i]);
+                nettyRlpStream.Encode(MixedEncoding.Encode<Transaction>(message.Transactions[i], RlpBehaviors.NetworkWrapper));
             }
         }
 
         public TransactionsMessage Deserialize(IByteBuffer byteBuffer)
         {
             NettyRlpStream rlpStream = new(byteBuffer);
+            Transaction[] txs = DeserializeTxs(rlpStream);
+            return new TransactionsMessage(txs);
+        }
+
+        public TransactionsMessage Deserialize(byte[] byteBuffer)
+        {
+            RlpStream rlpStream = new(byteBuffer);
             Transaction[] txs = DeserializeTxs(rlpStream);
             return new TransactionsMessage(txs);
         }
@@ -57,7 +65,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages
 
         public Transaction[] DeserializeTxs(RlpStream rlpStream)
         {
-            return Rlp.DecodeArray<Transaction>(rlpStream);
+            return MixedEncoding.DecodeArray<Transaction>(rlpStream, RlpBehaviors.SkipTypedWrapping | RlpBehaviors.NetworkWrapper);
         }
     }
 }

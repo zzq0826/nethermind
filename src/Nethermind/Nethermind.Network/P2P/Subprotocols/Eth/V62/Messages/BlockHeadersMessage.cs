@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System.Linq;
 using Nethermind.Core;
 using Nethermind.Network.P2P.Messages;
 
@@ -35,6 +36,6 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages
             BlockHeaders = blockHeaders;
         }
 
-        public override string ToString() => $"{nameof(BlockHeadersMessage)}({BlockHeaders?.Length ?? 0})";
+        public override string ToString() => $"{nameof(BlockHeadersMessage)}({BlockHeaders?.Length ?? 0}|{string.Join("/", BlockHeaders?.Select(bh => $"{bh.Number},{bh.TotalDifficulty},{bh.Hash}"))})";
     }
 }

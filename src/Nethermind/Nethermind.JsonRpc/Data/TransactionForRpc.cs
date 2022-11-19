@@ -52,6 +52,8 @@ public class TransactionForRpc
         ChainId = transaction.ChainId;
         Type = transaction.Type;
         AccessList = transaction.AccessList is null ? null : AccessListItemForRpc.FromAccessList(transaction.AccessList);
+        MaxFeePerDataGas = transaction.MaxFeePerDataGas;
+        BlobVersionedHashes = transaction.BlobVersionedHashes;
 
         Signature? signature = transaction.Signature;
         if (signature != null)
@@ -105,6 +107,7 @@ public class TransactionForRpc
     public AccessListItemForRpc[]? AccessList { get; set; }
 
     public UInt256? MaxFeePerDataGas { get; set; } // eip4844
+    public byte[][]? BlobVersionedHashes { get; set; } // eip4844
 
     public UInt256? V { get; set; }
 
@@ -142,6 +145,7 @@ public class TransactionForRpc
         if (tx.IsEip4844)
         {
             tx.MaxFeePerDataGas = MaxFeePerDataGas;
+            tx.BlobVersionedHashes = BlobVersionedHashes;
         }
 
         return tx;
@@ -163,7 +167,6 @@ public class TransactionForRpc
             Type = Type,
             AccessList = TryGetAccessList(),
             ChainId = chainId,
-            MaxFeePerDataGas = MaxFeePerDataGas,
         };
 
         if (tx.IsEip1559)
@@ -175,6 +178,7 @@ public class TransactionForRpc
         if (tx.IsEip4844)
         {
             tx.MaxFeePerDataGas = MaxFeePerDataGas;
+            tx.BlobVersionedHashes = BlobVersionedHashes;
         }
 
         return tx;

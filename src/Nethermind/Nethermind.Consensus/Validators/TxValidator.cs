@@ -14,6 +14,7 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.Numerics;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -43,6 +44,12 @@ namespace Nethermind.Consensus.Validators
            just before the execution of the block / tx. */
         public bool IsWellFormed(Transaction transaction, IReleaseSpec releaseSpec)
         {
+            Console.WriteLine(@$"ValidateTxType(transaction, releaseSpec) && // {ValidateTxType(transaction, releaseSpec)}
+                   transaction.GasLimit >= IntrinsicGasCalculator.Calculate(transaction, releaseSpec) && // {transaction.GasLimit}>{IntrinsicGasCalculator.Calculate(transaction, releaseSpec)} {transaction.GasLimit}>{IntrinsicGasCalculator.Calculate(transaction, releaseSpec)}
+                   ValidateSignature(transaction.Signature, releaseSpec) && // {ValidateSignature(transaction.Signature, releaseSpec)}
+                   ValidateChainId(transaction) && // {ValidateChainId(transaction)}
+                   Validate1559GasFields(transaction, releaseSpec) && // {Validate1559GasFields(transaction, releaseSpec)}
+                   Validate4844GasFields(transaction, releaseSpec); // {Validate4844Fields(transaction, releaseSpec)}");
             // validate type before calculating intrinsic gas to avoid exception
             return ValidateTxType(transaction, releaseSpec) &&
                    /* This is unnecessarily calculated twice - at validation and execution times. */
@@ -125,7 +132,10 @@ namespace Nethermind.Consensus.Validators
 
         private bool Validate4844Fields(Transaction transaction, IReleaseSpec spec)
         {
-            return transaction.Type != TxType.Blob || spec.IsEip4844Enabled ^ transaction.MaxFeePerDataGas is null;
+            return transaction.Type != TxType.Blob ||
+                (spec.IsEip4844Enabled &&
+                transaction.MaxFeePerDataGas is not null); //&&
+                //KzgPolynomialCommitments.IsAggregatedProofValid(transaction.Proof, transaction.Blobs, transaction.BlobKzgs));
         }
     }
 }

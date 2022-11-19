@@ -14,17 +14,19 @@
 //  You should have received a copy of the GNU Lesser General Public License
 //  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
 
+using System;
 using System.IO;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Eip2930;
 using Nethermind.Core.Specs;
+using Nethermind.Int256;
 
 namespace Nethermind.Evm
 {
     public static class IntrinsicGasCalculator
     {
-        public static long Calculate(Transaction transaction, IReleaseSpec releaseSpec)
+        public static long Calculate(Transaction transaction, IReleaseSpec releaseSpec/*, UInt256 parentExcessDataGas*/)
         {
             long result = GasCostOf.Transaction;
             result += DataCost(transaction, releaseSpec);
@@ -97,6 +99,55 @@ namespace Nethermind.Evm
             }
 
             return accessListCost;
+        }
+
+        static UInt256 DataGasPriceUpdateFraction = 8902606;
+        static UInt256 MinDataGasPrice = (long)10e8;
+
+        // FakeExponential
+        public static UInt256 BlobsGas(Transaction transaction, UInt256 parentExcessDataGas, IReleaseSpec releaseSpec)
+        {
+            if (!releaseSpec.IsEip4844Enabled || transaction.Type != TxType.Blob || transaction.BlobVersionedHashes?.Any() != true)
+            {
+                return 0;
+            }
+            if(parentExcessDataGas == UInt256.MaxValue)
+            {
+                throw new InvalidOperationException();
+            }
+
+            return (ulong)transaction.BlobVersionedHashes!.Length * CostPerBlob(parentExcessDataGas);
+        }
+
+        public static UInt256 CostPerBlob(UInt256 parentExcessDataGas)
+        {
+            UInt256 FakeExponential(UInt256 factor, UInt256 num, UInt256 denom)
+            {
+                UInt256 output = UInt256.Zero;
+
+                UInt256 numAccum = factor * denom;
+
+                for (UInt256 i = 1; numAccum > 0; i++)
+                {
+                    output += numAccum;
+                    numAccum *= num;
+                    numAccum /= i * denom;
+                }
+                return output / denom;
+            }
+
+            return FakeExponential(MinDataGasPrice, parentExcessDataGas, DataGasPriceUpdateFraction);
+        }
+
+        static UInt256 DataGasPerBlob = 1 << 17;
+        static UInt256 TargetDataGasPerBlock = 1 << 20;
+
+        public static UInt256 CalcExcessDataGas(UInt256? parentExcessDataGas, int newBlobs)
+        {
+            UInt256 excessDataGas = parentExcessDataGas.GetValueOrDefault();
+            UInt256 consumedGas = DataGasPerBlob * (UInt256)newBlobs;
+            excessDataGas += consumedGas;
+            return excessDataGas < TargetDataGasPerBlock ? UInt256.Zero : (excessDataGas - TargetDataGasPerBlock);
         }
     }
 }

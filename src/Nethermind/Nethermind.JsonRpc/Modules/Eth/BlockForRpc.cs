@@ -75,6 +75,15 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 }
             }
 
+            if (specProvider != null)
+            {
+                var spec = specProvider.GetSpec(block.Number);
+                if (spec.IsEip4844Enabled)
+                {
+                    ExcessDataGas = block.Header.ExcessDataGas;
+                }
+            }
+
             Number = block.Number;
             ParentHash = block.ParentHash;
             ReceiptsRoot = block.ReceiptsRoot;
