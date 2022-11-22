@@ -133,9 +133,11 @@ namespace Nethermind.Consensus.Validators
         private bool Validate4844Fields(Transaction transaction, IReleaseSpec spec)
         {
             return transaction.Type != TxType.Blob ||
-                (spec.IsEip4844Enabled &&
-                transaction.MaxFeePerDataGas is not null); //&&
-                //KzgPolynomialCommitments.IsAggregatedProofValid(transaction.Proof, transaction.Blobs, transaction.BlobKzgs));
+                (
+                    //spec.IsEip4844Enabled &&
+                    transaction.MaxFeePerDataGas is not null &&
+                    KzgPolynomialCommitments.IsAggregatedProofValid(transaction.Proof, transaction.Blobs, transaction.BlobKzgs)
+                );
         }
     }
 }

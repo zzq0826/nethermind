@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Nethermind.Core.Crypto;
 using Nethermind.Crypto.Properties;
 using Nethermind.Int256;
@@ -9,7 +10,7 @@ namespace Nethermind.Crypto
     public static class KzgPolynomialCommitments
     {
         public static readonly UInt256 BlsModulus = UInt256.Parse("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", System.Globalization.NumberStyles.HexNumber);
-        public static readonly ulong FieldElementsPerBlob = 4096;
+        public static readonly ulong FieldElementsPerBlob = Ckzg.Ckzg.BlobLength / Ckzg.Ckzg.BlobElementLength;
 
         private const byte KzgBlobHashVersionV1 = 1;
         private static IntPtr CkzgSetup = IntPtr.Zero;
@@ -57,11 +58,33 @@ namespace Nethermind.Crypto
 
         public static unsafe bool IsAggregatedProofValid(byte[] proof, byte[][] blobs, byte[][] commitments)
         {
-            return true;
-            //fixed (byte* commitmentsPtr = commitments, blobsPtr = blobs, proofPtr = proof)
-            //{
-            //    return Ckzg.Ckzg.VerifyAggregateKzgProof(blobsPtr, commitmentsPtr, blobs.Length, proofPtr, CkzgSetup) == 0;
-            //}
+            if(proof == null && blobs == null && commitments == null)
+            {
+                return true;
+            }
+            if (proof == null || blobs == null || commitments == null)
+            {
+                return false;
+            }
+            if (blobs.Length != commitments.Length)
+            {
+                return false;
+            }
+
+            byte[] flattenCommitments = new byte[commitments.Length * Ckzg.Ckzg.CommitmentLength];
+            for (int i = 0; i < commitments.Length; i++)
+            {
+                commitments[i].CopyTo(flattenCommitments, i * Ckzg.Ckzg.CommitmentLength);
+            }
+            byte[] flattenBlobs = new byte[blobs.Length * Ckzg.Ckzg.BlobLength];
+            for (int i = 0; i < blobs.Length; i++)
+            {
+                blobs[i].CopyTo(flattenBlobs, i * Ckzg.Ckzg.BlobLength);
+            }
+            fixed (byte* commitmentsPtr = flattenCommitments, blobsPtr = flattenBlobs, proofPtr = proof)
+            {
+                return Ckzg.Ckzg.VerifyAggregatedKzgProof(blobsPtr, commitmentsPtr, blobs.Length, proofPtr, CkzgSetup) == 0;
+            }
         }
     }
 }

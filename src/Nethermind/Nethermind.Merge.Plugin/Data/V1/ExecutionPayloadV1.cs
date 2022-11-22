@@ -140,10 +140,6 @@ namespace Nethermind.Merge.Plugin.Data.V1
             Transaction[] transactions = new Transaction[Transactions.Length];
             for (int i = 0; i < Transactions.Length; i++)
             {
-                Console.WriteLine("TX!:{0}", Convert.ToHexString(Transactions[i]));
-            }
-            for (int i = 0; i < Transactions.Length; i++)
-            {
                 transactions[i] = MixedEncoding.Decode<Transaction>(Transactions[i], RlpBehaviors.SkipTypedWrapping);
             }
 
