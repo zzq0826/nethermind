@@ -23,9 +23,13 @@ namespace Nethermind.Network.IP
         {
             if (_config.LocalIp is not null)
             {
+                if (_config.LocalIp == "auto")
+                {
+                    return Task.FromResult((false, IPAddress.None));
+                }
                 bool result = IPAddress.TryParse(_config.LocalIp, out IPAddress ipAddress);
 
-                if (result)
+                if (result && _config.LocalIp != "0.0.0.0")
                 {
                     if (_logger.IsWarn) _logger.Warn($"Using the local IP override: {nameof(NetworkConfig)}.{nameof(NetworkConfig.LocalIp)} = {_config.LocalIp}");
                 }
