@@ -467,7 +467,7 @@ namespace Nethermind.Consensus.Processing
                 TraceFailingBranch(
                     processingBranch,
                     options,
-                    new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace),
+                    new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace | ParityTraceTypes.VmTrace),
                     DumpOptions.Parity);
 
                 TraceFailingBranch(
