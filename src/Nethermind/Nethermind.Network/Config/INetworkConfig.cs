@@ -12,7 +12,7 @@ namespace Nethermind.Network.Config
         [ConfigItem(Description = "Use only if your node cannot resolve external IP automatically.", DefaultValue = "null")]
         string? ExternalIp { get; set; }
 
-        [ConfigItem(Description = "Specify local IP to bind P2P and discovery port. Use `auto` to resolve local ip that connect to internet. Default is `0.0.0.0` which binds to all local ip.", DefaultValue = "0.0.0.0")]
+        [ConfigItem(Description = "Specify local IP to bind P2P and discovery port. Use `auto` to resolve local ip that connect to internet. Default is `0.0.0.0` which binds to all local ip.", DefaultValue = "auto")]
         string? LocalIp { get; set; }
 
         [ConfigItem(Description = "List of nodes for which we will keep the connection on. Static nodes are not counted to the max number of nodes limit.", DefaultValue = "null")]
