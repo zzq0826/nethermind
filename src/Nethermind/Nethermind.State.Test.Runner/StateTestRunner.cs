@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Ethereum.Test.Base;
 using Ethereum.Test.Base.Interfaces;
 using Nethermind.Evm;
@@ -53,6 +54,8 @@ namespace Nethermind.State.Test.Runner
 
         public IEnumerable<EthereumTestResult> RunTests()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             List<EthereumTestResult> results = new();
             IEnumerable<GeneralStateTest> tests = (IEnumerable<GeneralStateTest>)_testsSource.LoadTests();
             foreach (GeneralStateTest test in tests)
@@ -81,6 +84,10 @@ namespace Nethermind.State.Test.Runner
             }
 
             WriteOut(results);
+
+            stopwatch.Stop();
+            Console.WriteLine($"EvmExceptions: {Metrics.EvmExceptions}");
+            Console.WriteLine($"execution time: {stopwatch.Elapsed.TotalMilliseconds}ms {stopwatch.Elapsed.TotalSeconds}s");
 
             Console.ReadLine();
             return results;

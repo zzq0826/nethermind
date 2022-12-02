@@ -111,7 +111,7 @@ namespace Nethermind.Evm
 
                         callResult = ExecutePrecompile(currentState, spec);
 
-                        if (!callResult.PrecompileSuccess.Value)
+                        if (callResult.PrecompileSuccess is null || !callResult.PrecompileSuccess.Value)
                         {
                             if (currentState.IsPrecompile && currentState.IsTopLevel)
                             {
@@ -560,13 +560,13 @@ namespace Nethermind.Evm
             if (!UpdateGas(baseGasCost, ref gasAvailable))
             {
                 Metrics.EvmExceptions++;
-                throw new OutOfGasException();
+                return CallResult.OutOfGasException;
             }
 
             if (!UpdateGas(dataGasCost, ref gasAvailable))
             {
                 Metrics.EvmExceptions++;
-                throw new OutOfGasException();
+                return CallResult.OutOfGasException;
             }
 
             state.GasAvailable = gasAvailable;
