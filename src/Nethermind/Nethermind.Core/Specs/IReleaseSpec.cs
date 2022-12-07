@@ -329,5 +329,7 @@ namespace Nethermind.Core.Specs
         public bool TransientStorageEnabled => IsEip1153Enabled;
 
         public bool VerkleTreeEnabled => IsVerkleTreeEipEnabled;
+
+        public ulong VerkleTreeTransitionTimeStamp { get; }
     }
 }

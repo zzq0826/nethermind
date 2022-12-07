@@ -133,6 +133,13 @@ namespace Nethermind.Specs.Test
             set => _overridenEip1559FeeCollector = value;
         }
 
+        private ulong? _overridenVerkleTreeTransitionTimeStamp;
+        public ulong VerkleTreeTransitionTimeStamp
+        {
+            get => _overridenVerkleTreeTransitionTimeStamp ?? _spec.VerkleTreeTransitionTimeStamp;
+            set => _overridenVerkleTreeTransitionTimeStamp = value;
+        }
+
         public bool IsEip1153Enabled => _spec.IsEip1153Enabled;
         public bool IsEip3651Enabled => _spec.IsEip3651Enabled;
         public bool IsEip3855Enabled => _spec.IsEip3855Enabled;
