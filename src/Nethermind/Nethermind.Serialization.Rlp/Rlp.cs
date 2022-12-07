@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
@@ -133,7 +134,7 @@ namespace Nethermind.Serialization.Rlp
             throw new RlpException($"{nameof(Rlp)} does not support decoding {typeof(T).Name}");
         }
 
-        public static T[] DecodeArray<T>(RlpStream rlpStream, IRlpStreamDecoder<T>? rlpDecoder, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+        public static T[] DecodeArray<T>(RlpStream rlpStream, IRlpStreamDecoder<T> rlpDecoder, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
         {
             int checkPosition = rlpStream.ReadSequenceLength() + rlpStream.Position;
             T[] result = new T[rlpStream.ReadNumberOfItemsRemaining(checkPosition)];
@@ -144,6 +145,49 @@ namespace Nethermind.Serialization.Rlp
 
             return result;
         }
+
+        public static T[] DecodeArray<T>(ValueDecoderContext rlpStream, IRlpValueDecoder<T> rlpDecoder, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+        {
+            int checkPosition = rlpStream.ReadSequenceLength() + rlpStream.Position;
+            T[] result = new T[rlpStream.ReadNumberOfItemsRemaining(checkPosition)];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = rlpDecoder.Decode(ref rlpStream, rlpBehaviors);
+            }
+
+            return result;
+        }
+
+        public static List<T> DecodeList<T>(ValueDecoderContext rlpStream, IRlpValueDecoder<T> rlpDecoder, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+        {
+            int checkPosition = rlpStream.ReadSequenceLength() + rlpStream.Position;
+            int count = rlpStream.ReadNumberOfItemsRemaining(checkPosition);
+            List<T> result = new(count);
+            for (int i = 0; i < count; i++)
+            {
+                result.Add(rlpDecoder.Decode(ref rlpStream, rlpBehaviors));
+            }
+
+            return result;
+        }
+
+        public static void EncodeArray<T>(RlpStream rlpStream, IReadOnlyCollection<T>? items, IRlpStreamDecoder<T> rlpDecoder, RlpBehaviors behaviors = RlpBehaviors.None)
+        {
+            if (items is null)
+            {
+                rlpStream.EncodeNullObject();
+            }
+            else
+            {
+                int length = items.Sum(i => rlpDecoder.GetLength(i, behaviors));
+                rlpStream.StartSequence(length);
+                foreach (T item in items)
+                {
+                    rlpDecoder.Encode(rlpStream, item, behaviors);
+                }
+            }
+        }
+
 
         public static IRlpValueDecoder<T>? GetValueDecoder<T>() => Decoders.ContainsKey(typeof(T)) ? Decoders[typeof(T)] as IRlpValueDecoder<T> : null;
         public static IRlpStreamDecoder<T>? GetStreamDecoder<T>() => Decoders.ContainsKey(typeof(T)) ? Decoders[typeof(T)] as IRlpStreamDecoder<T> : null;
@@ -945,7 +989,7 @@ namespace Nethermind.Serialization.Rlp
             }
 
             // This class was introduce to reduce allocations when deserializing receipts. In order to deserialize receipts we first try to deserialize it in new format and then in old format.
-            // If someone didn't do migration this will result in excessive allocations and GC of the not needed strings. 
+            // If someone didn't do migration this will result in excessive allocations and GC of the not needed strings.
             private class DecodeKeccakRlpException : RlpException
             {
                 private readonly int _prefix;
@@ -1038,7 +1082,7 @@ namespace Nethermind.Serialization.Rlp
 
                 if (prefix != 128 + 20)
                 {
-                    throw new RlpException($"Unexpected prefix of {prefix} when decoding {nameof(Keccak)} at position {Position} in the message of length {Data.Length} starting with {Data.Slice(0, Math.Min(DebugMessageContentLength, Data.Length)).ToHexString()}");
+                    throw new RlpException($"Unexpected prefix of {prefix} when decoding {nameof(Address)} at position {Position} in the message of length {Data.Length} starting with {Data.Slice(0, Math.Min(DebugMessageContentLength, Data.Length)).ToHexString()}");
                 }
 
                 byte[] buffer = Read(20).ToArray();
@@ -1054,7 +1098,7 @@ namespace Nethermind.Serialization.Rlp
                 }
                 else if (prefix != 128 + 20)
                 {
-                    throw new RlpException($"Unexpected prefix of {prefix} when decoding {nameof(Keccak)} at position {Position} in the message of length {Data.Length} starting with {Data.Slice(0, Math.Min(DebugMessageContentLength, Data.Length)).ToHexString()}");
+                    throw new RlpException($"Unexpected prefix of {prefix} when decoding {nameof(Address)} at position {Position} in the message of length {Data.Length} starting with {Data.Slice(0, Math.Min(DebugMessageContentLength, Data.Length)).ToHexString()}");
                 }
                 else
                 {
@@ -1087,7 +1131,7 @@ namespace Nethermind.Serialization.Rlp
                 // https://github.com/NethermindEth/nethermind/issues/113
                 if (Data[Position] == 249)
                 {
-                    Position += 5; // tks: skip 249 1 2 129 127 and read 256 bytes 
+                    Position += 5; // tks: skip 249 1 2 129 127 and read 256 bytes
                     bloomBytes = Read(256);
                 }
                 else
@@ -1115,7 +1159,7 @@ namespace Nethermind.Serialization.Rlp
                 // https://github.com/NethermindEth/nethermind/issues/113
                 if (Data[Position] == 249)
                 {
-                    Position += 5; // tks: skip 249 1 2 129 127 and read 256 bytes 
+                    Position += 5; // tks: skip 249 1 2 129 127 and read 256 bytes
                     bloomBytes = Read(256);
                 }
                 else
@@ -1564,7 +1608,7 @@ namespace Nethermind.Serialization.Rlp
             return LengthOfLength(array.Length) + 1 + array.Length;
         }
 
-        public static int LengthOf(string value)
+        public static int LengthOf(string? value)
         {
             if (string.IsNullOrEmpty(value))
             {

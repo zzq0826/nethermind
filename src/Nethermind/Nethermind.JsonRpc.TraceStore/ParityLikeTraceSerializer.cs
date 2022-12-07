@@ -4,7 +4,6 @@
 using System.IO.Compression;
 using Nethermind.Core.Collections;
 using Nethermind.Evm.Tracing.ParityStyle;
-using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 
@@ -12,9 +11,8 @@ namespace Nethermind.JsonRpc.TraceStore;
 
 public class ParityLikeTraceSerializer : ITraceSerializer<ParityLikeTxTrace>
 {
-    private static readonly byte[] _emptyBytes = { 0 };
     private static readonly List<ParityLikeTxTrace> _emptyTraces = new();
-
+    private static readonly byte[] _emptyBytes = { 0 };
     private readonly ILogger? _logger;
     private readonly IJsonSerializer _jsonSerializer;
     private readonly bool _verifySerialized;
@@ -62,7 +60,7 @@ public class ParityLikeTraceSerializer : ITraceSerializer<ParityLikeTxTrace>
             {
                 try
                 {
-                    Deserialize(result);
+                    ((ITraceSerializer<ParityLikeTxTrace>)this).Deserialize(result);
                 }
                 catch (Exception e)
                 {

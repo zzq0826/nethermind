@@ -15,7 +15,8 @@ namespace Nethermind.Serialization.Rlp
 
     public class TxDecoder<T> :
         IRlpStreamDecoder<T>,
-        IRlpValueDecoder<T>
+        IRlpValueDecoder<T>,
+        IRlpObjectDecoder<T>
         where T : Transaction, new()
     {
         private readonly AccessListDecoder _accessListDecoder = new();

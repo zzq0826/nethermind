@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.AccountAbstraction.Network;
 using Nethermind.Core;
@@ -7,7 +7,7 @@ using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.AccountAbstraction.Data
 {
-    public class UserOperationDecoder : IRlpValueDecoder<UserOperationWithEntryPoint>, IRlpStreamDecoder<UserOperationWithEntryPoint>
+    public class UserOperationDecoder : IRlpValueDecoder<UserOperationWithEntryPoint>, IRlpStreamDecoder<UserOperationWithEntryPoint>, IRlpObjectDecoder<UserOperationWithEntryPoint>
     {
         public Rlp Encode(UserOperationWithEntryPoint? item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
         {

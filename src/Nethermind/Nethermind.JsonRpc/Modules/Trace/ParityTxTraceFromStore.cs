@@ -58,10 +58,6 @@ namespace Nethermind.JsonRpc.Modules.Trace
             }
         }
 
-        private ParityTxTraceFromStore()
-        {
-        }
-
         public ParityTraceAction Action { get; set; }
 
         public Keccak BlockHash { get; set; }
@@ -69,7 +65,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
         [JsonConverter(typeof(LongConverter), NumberConversion.Raw)]
         public long BlockNumber { get; set; }
 
-        public ParityTraceResult Result { get; set; }
+        public ParityTraceResult? Result { get; set; }
 
         public int Subtraces { get; set; }
 

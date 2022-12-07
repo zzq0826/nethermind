@@ -6,7 +6,7 @@ using Nethermind.Core;
 
 namespace Nethermind.Serialization.Rlp
 {
-    public class BlockDecoder : IRlpValueDecoder<Block>, IRlpStreamDecoder<Block>
+    public class BlockDecoder : IRlpValueDecoder<Block>, IRlpStreamDecoder<Block>, IRlpObjectDecoder<Block>
     {
         private readonly HeaderDecoder _headerDecoder = new();
         private readonly TxDecoder _txDecoder = new();

@@ -7,7 +7,6 @@ namespace Nethermind.JsonRpc.TraceStore;
 
 public interface ITraceSerializer<TTrace>
 {
-    unsafe List<TTrace>? Deserialize(Span<byte> serialized);
-    List<TTrace>? Deserialize(Stream serialized);
+    List<TTrace>? Deserialize(Span<byte> serialized);
     byte[] Serialize(IReadOnlyCollection<TTrace> traces);
 }

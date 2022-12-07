@@ -9,7 +9,7 @@ using Nethermind.Int256;
 
 namespace Nethermind.Serialization.Rlp.Eip2930
 {
-    public class AccessListDecoder : IRlpStreamDecoder<AccessList?>, IRlpValueDecoder<AccessList?>
+    public class AccessListDecoder : IRlpStreamDecoder<AccessList?>, IRlpValueDecoder<AccessList?>, IRlpObjectDecoder<AccessList?>
     {
         /// <summary>
         /// We pay a high code quality tax for the performance optimization on RLP.

@@ -22,4 +22,7 @@ public interface ITraceStoreConfig : IConfig
 
     [ConfigItem(Description = "Depth to deserialize traces.", DefaultValue = "1024", HiddenFromDocs = true)]
     int MaxDepth { get; set; }
+
+    [ConfigItem(Description = "Mode of trace store, 'Simple' for enhancing performance of trace_filter, trace_block, trace_get, trace_transaction, 'Complex' for additionally enhancing performance of trace_replayTransaction, trace_replayBlockTransactions, but with higher resource usage", DefaultValue = "Simple")]
+    TraceStoreMode Mode { get; set; }
 }

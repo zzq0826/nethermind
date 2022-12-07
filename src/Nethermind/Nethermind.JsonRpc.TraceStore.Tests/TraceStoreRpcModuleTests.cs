@@ -124,7 +124,8 @@ public class TraceStoreRpcModuleTests
             BlockFinder = Build.A.BlockTree().OfChainLength(3).TestObject;
             ReceiptFinder = Substitute.For<IReceiptFinder>();
             ParityLikeTraceSerializer serializer = new(LimboLogs.Instance);
-            Module = new TraceStoreRpcModule(InnerModule, Store, BlockFinder, ReceiptFinder, serializer, LimboLogs.Instance);
+            ParityTxTraceFromStoreSerializer storeSerializer = new();
+            Module = new TraceStoreRpcModule(InnerModule, Store, BlockFinder, ReceiptFinder, serializer, storeSerializer, LimboLogs.Instance, TraceStoreMode.Complex);
             Keccak dbTransaction = Build.A.Transaction.TestObject.Hash!;
             Keccak dbBlock = BlockFinder.Head!.Hash!;
             DbTrace = new() { BlockHash = dbBlock, TransactionHash = dbTransaction };
