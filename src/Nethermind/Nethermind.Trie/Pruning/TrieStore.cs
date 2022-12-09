@@ -377,31 +377,35 @@ namespace Nethermind.Trie.Pruning
 
         public void Prune()
         {
+            bool ShouldPrune() => !_pruningTaskCancellationTokenSource.IsCancellationRequested && _pruningStrategy.ShouldPrune(MemoryUsedByDirtyCache);
+
             if (_pruningStrategy.ShouldPrune(MemoryUsedByDirtyCache) && _pruningTask.IsCompleted)
             {
                 _pruningTask = Task.Run(() =>
                 {
                     try
                     {
-                        lock (_dirtyNodes)
+                        while (ShouldPrune())
                         {
-                            using (_dirtyNodes.AllNodes.AcquireLock())
+                            lock (_dirtyNodes)
                             {
-                                if (_logger.IsDebug) _logger.Debug($"Locked {nameof(TrieStore)} for pruning.");
-
-                                while (!_pruningTaskCancellationTokenSource.IsCancellationRequested && _pruningStrategy.ShouldPrune(MemoryUsedByDirtyCache))
+                                using (_dirtyNodes.AllNodes.AcquireLock())
                                 {
-                                    PruneCache();
-
-                                    if (_pruningTaskCancellationTokenSource.IsCancellationRequested || !CanPruneCacheFurther())
+                                    if (ShouldPrune())
                                     {
-                                        break;
+                                        if (_logger.IsDebug) _logger.Debug($"Locked {nameof(TrieStore)} for pruning.");
+                                        PruneCache();
                                     }
+                                }
+
+                                if (_logger.IsDebug) _logger.Debug($"Pruning finished. Unlocked {nameof(TrieStore)}.");
+
+                                if (_pruningTaskCancellationTokenSource.IsCancellationRequested || !CanPruneCacheFurther())
+                                {
+                                    break;
                                 }
                             }
                         }
-
-                        if (_logger.IsDebug) _logger.Debug($"Pruning finished. Unlocked {nameof(TrieStore)}.");
                     }
                     catch (Exception e)
                     {
