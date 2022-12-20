@@ -136,7 +136,9 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
                     _api.EngineSigner,
                     _api.SpecProvider,
                     _api.GasPriceOracle,
-                    _api.ReportingContractValidatorCache, chainSpecAuRa.PosdaoTransition, true)
+                    _api.ReportingContractValidatorCache, chainSpecAuRa.PosdaoTransition,
+                    true,
+                    _auraConfig.InitValidatorsOverride)
                 .CreateValidatorProcessor(chainSpecAuRa.Validators, _api.BlockTree.Head?.Header);
 
             if (_validator is IDisposable disposableValidator)

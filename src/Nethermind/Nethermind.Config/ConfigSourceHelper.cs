@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Nethermind.Core;
 using Nethermind.Int256;
 using Newtonsoft.Json;
 
@@ -23,7 +24,7 @@ namespace Nethermind.Config
                     //supports Arrays, e.g int[] and generic IEnumerable<T>, IList<T>
                     var itemType = valueType.IsGenericType ? valueType.GetGenericArguments()[0] : valueType.GetElementType();
 
-                    //In case of collection of objects (more complex config models) we parse entire collection 
+                    //In case of collection of objects (more complex config models) we parse entire collection
                     if (itemType.IsClass && typeof(IConfigModel).IsAssignableFrom(itemType))
                     {
                         var objCollection = JsonConvert.DeserializeObject(valueString, valueType);
@@ -84,6 +85,11 @@ namespace Nethermind.Config
             if (valueType == typeof(UInt256))
             {
                 return UInt256.Parse(itemValue);
+            }
+
+            if (valueType == typeof(Address) && Address.TryParse(itemValue, out Address address))
+            {
+                return address;
             }
 
             if (valueType.IsEnum)

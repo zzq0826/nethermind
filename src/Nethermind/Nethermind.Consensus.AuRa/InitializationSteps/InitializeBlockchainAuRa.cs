@@ -141,7 +141,9 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
                     _api.EngineSigner,
                     _api.SpecProvider,
                     _api.GasPriceOracle,
-                    _api.ReportingContractValidatorCache, chainSpecAuRa.PosdaoTransition, false)
+                    _api.ReportingContractValidatorCache, chainSpecAuRa.PosdaoTransition,
+                    false,
+                    _auraConfig.InitValidatorsOverride)
                 .CreateValidatorProcessor(chainSpecAuRa.Validators, _api.BlockTree.Head?.Header);
 
             if (validator is IDisposable disposableValidator)
@@ -198,7 +200,7 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
             _auRaStepCalculator = auRaStepCalculator;
         }
 
-        // private IReadOnlyTransactionProcessorSource GetReadOnlyTransactionProcessorSource() => 
+        // private IReadOnlyTransactionProcessorSource GetReadOnlyTransactionProcessorSource() =>
         //     _readOnlyTransactionProcessorSource ??= new ReadOnlyTxProcessorSource(
         //         _api.DbProvider, _api.ReadOnlyTrieStore, _api.BlockTree, _api.SpecProvider, _api.LogManager);
 

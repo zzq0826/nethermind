@@ -32,6 +32,7 @@ namespace Nethermind.Consensus.AuRa.Validators
         private IAuRaBlockFinalizationManager _blockFinalizationManager;
         internal IBlockTree BlockTree { get; }
         private readonly IReceiptFinder _receiptFinder;
+        private readonly Address[]? _initValidatorsOverride;
 
         internal IValidatorContract ValidatorContract { get; }
         private PendingValidators CurrentPendingValidators => _currentPendingValidators;
@@ -47,10 +48,12 @@ namespace Nethermind.Consensus.AuRa.Validators
             ILogManager logManager,
             long startBlockNumber,
             long posdaoTransition = long.MaxValue,
-            bool forSealing = false) : base(validSealerStrategy, validatorStore, logManager, startBlockNumber, forSealing)
+            bool forSealing = false,
+            Address[]? initValidatorsOverride = null) : base(validSealerStrategy, validatorStore, logManager, startBlockNumber, forSealing)
         {
             BlockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
+            _initValidatorsOverride = initValidatorsOverride;
             _posdaoTransition = posdaoTransition;
             _logger = logManager?.GetClassLogger<ContractBasedValidator>() ?? throw new ArgumentNullException(nameof(logManager));
             ValidatorContract = validatorContract ?? throw new ArgumentNullException(nameof(validatorContract));
@@ -142,7 +145,7 @@ namespace Nethermind.Consensus.AuRa.Validators
                 else
                 {
                     // if we are not processing blocks we are not on consecutive blocks.
-                    // We need to initialize pending validators from db on each block being produced.  
+                    // We need to initialize pending validators from db on each block being produced.
                     SetPendingValidators(LoadPendingValidators());
                 }
             }
@@ -184,7 +187,16 @@ namespace Nethermind.Consensus.AuRa.Validators
 
             if (block.IsGenesis)
             {
-                ValidatorStore.SetValidators(block.Number, LoadValidatorsFromContract(block.Header));
+                if (_initValidatorsOverride is null)
+                {
+                    ValidatorStore.SetValidators(block.Number, LoadValidatorsFromContract(block.Header));
+                }
+                else
+                {
+                    //ValidatorContract.EnsureSystemAccount();
+                    // ValidatorContract.FinalizeChange(block.Header);
+                    ValidatorStore.SetValidators(block.Number, _initValidatorsOverride);
+                }
             }
 
             if (ValidatorContract.CheckInitiateChangeEvent(block.Header, receipts, out var potentialValidators))

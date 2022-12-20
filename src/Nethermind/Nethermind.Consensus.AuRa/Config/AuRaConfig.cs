@@ -17,5 +17,7 @@ namespace Nethermind.Consensus.AuRa.Config
         public string TxPriorityContractAddress { get; set; }
 
         public string TxPriorityConfigFilePath { get; set; }
+
+        public Address[]? InitValidatorsOverride { get; set; } = null;
     }
 }

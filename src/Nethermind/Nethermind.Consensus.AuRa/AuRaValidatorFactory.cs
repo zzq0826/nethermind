@@ -40,6 +40,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly ReportingContractBasedValidator.Cache _reportingValidatorCache;
         private readonly long _posdaoTransition;
         private readonly bool _forSealing;
+        private readonly Address[]? _initValidatorsOverride;
 
         public AuRaValidatorFactory(IAbiEncoder abiEncoder,
             IStateProvider stateProvider,
@@ -57,7 +58,9 @@ namespace Nethermind.Consensus.AuRa
             ISpecProvider specProvider,
             IGasPriceOracle gasPriceOracle,
             ReportingContractBasedValidator.Cache reportingValidatorCache,
-            long posdaoTransition, bool forSealing = false)
+            long posdaoTransition,
+            bool forSealing = false,
+            Address[]? initValidatorsOverride = null)
         {
             _stateProvider = stateProvider;
             _abiEncoder = abiEncoder;
@@ -76,6 +79,7 @@ namespace Nethermind.Consensus.AuRa
             _posdaoTransition = posdaoTransition;
             _gasPriceOracle = gasPriceOracle;
             _forSealing = forSealing;
+            _initValidatorsOverride = initValidatorsOverride;
             _specProvider = specProvider;
         }
 
@@ -99,7 +103,8 @@ namespace Nethermind.Consensus.AuRa
                     _logManager,
                     startBlockNumber,
                     _posdaoTransition,
-                    _forSealing);
+                    _forSealing,
+                    _initValidatorsOverride);
 
             return validator.ValidatorType switch
             {
