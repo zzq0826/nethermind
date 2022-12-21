@@ -3,6 +3,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nethermind.Core;
@@ -661,6 +662,51 @@ namespace Nethermind.Trie
             }
 
             action(this);
+        }
+
+        public void CallRecursivelyTrackPath(
+            Action<TrieNode, byte[]> action,
+            ITrieNodeResolver resolver,
+            bool skipPersisted,
+            ILogger logger,
+            byte[]? fullPath,
+            bool resolveStorageRoot = true)
+        {
+            if (skipPersisted && IsPersisted)
+            {
+                if (logger.IsTrace) logger.Trace($"Skipping {this} - already persisted");
+                return;
+            }
+
+            if (Path is not null)
+                fullPath = fullPath.Concat(Path).ToArray();
+
+            if (!IsLeaf)
+            {
+                if (_data is not null)
+                {
+                    for (int i = 0; i < _data.Length; i++)
+                    {
+                        object o = _data[i];
+                        if (o is TrieNode child)
+                        {
+                            if (logger.IsTrace) logger.Trace($"Persist recursively on child {i} {child} of {this}");
+                            child.CallRecursivelyTrackPath(action, resolver, skipPersisted, logger, fullPath.Append((byte)i).ToArray());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                TrieNode? storageRoot = _storageRoot;
+                if (storageRoot is not null || (resolveStorageRoot && TryResolveStorageRoot(resolver, out storageRoot)))
+                {
+                    if (logger.IsTrace) logger.Trace($"Persist recursively on storage root {_storageRoot} of {this}");
+                    storageRoot!.CallRecursivelyTrackPath(action, resolver, skipPersisted, logger, fullPath);
+                }
+            }
+
+            action(this, fullPath);
         }
 
         /// <summary>

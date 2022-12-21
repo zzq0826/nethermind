@@ -17,7 +17,7 @@ namespace Nethermind.Trie
 {
     public partial class TrieNode
     {
-        private class TrieNodeDecoder
+        public class TrieNodeDecoder
         {
             public byte[] Encode(ITrieNodeResolver tree, TrieNode? item)
             {
