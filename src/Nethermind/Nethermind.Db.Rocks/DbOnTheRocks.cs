@@ -192,7 +192,7 @@ public class DbOnTheRocks : IDbWithSpan
 
     protected static T? ReadConfig<T>(IDbConfig dbConfig, string propertyName, string tableName)
     {
-        string prefixed = string.Concat(tableName.StartsWith("State") ? string.Empty : string.Concat(tableName, "Db"),
+        string prefixed = string.Concat((tableName.StartsWith("State") || tableName.StartsWith("Accounts")) ? string.Empty : string.Concat(tableName, "Db"),
             propertyName);
         try
         {

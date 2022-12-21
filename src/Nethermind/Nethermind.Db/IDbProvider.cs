@@ -16,6 +16,7 @@ namespace Nethermind.Db
     {
         DbModeHint DbMode { get; }
         public IDb StateDb => GetDb<IDb>(DbNames.State);
+        public IDb AccountsDb => GetDb<IDb>(DbNames.Accounts);
         public IDb CodeDb => GetDb<IDb>(DbNames.Code);
         public IColumnsDb<ReceiptsColumns> ReceiptsDb => GetDb<IColumnsDb<ReceiptsColumns>>(DbNames.Receipts);
         public IDb BlocksDb => GetDb<IDb>(DbNames.Blocks);
