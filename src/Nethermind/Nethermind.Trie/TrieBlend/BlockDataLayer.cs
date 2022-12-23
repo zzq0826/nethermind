@@ -17,9 +17,11 @@ namespace Nethermind.Trie.TrieBlend
         private readonly ConcurrentDictionary<byte[], byte[]> _readCache;
         private readonly ConcurrentBag<byte[]> _dirty;
         private IBatch? _currentBatch;
+        private bool _isLogPersisted;
 
         public long? BlockNumber;
         public bool IsPersisted => _dirty.IsEmpty;
+        public bool IsLogPersisted => _dirty.IsEmpty;
 
         public int ElementCount => _rawData.Count;
 
@@ -43,6 +45,7 @@ namespace Nethermind.Trie.TrieBlend
             {
                 _rawData[key] = value;
                 _dirty.Add(key);
+                _isLogPersisted = false;
             }
         }
 
@@ -80,6 +83,9 @@ namespace Nethermind.Trie.TrieBlend
 
         private void PersistLog()
         {
+            if (_isLogPersisted)
+                return;
+
             if (BlockNumber == null)
                 throw new ArgumentNullException(nameof(BlockNumber));
 
@@ -93,9 +99,11 @@ namespace Nethermind.Trie.TrieBlend
             }
 
             contentLength += Rlp.LengthOf(BlockNumber?.ToBigEndianByteArray()) + Rlp.LengthOf(elementCount);
+            int sequenceLength = Rlp.LengthOfSequence(contentLength);
 
             RlpStream rlpStream = new(contentLength);
 
+            rlpStream.StartSequence(sequenceLength);
             rlpStream.Encode(BlockNumber.Value);
             rlpStream.Encode(elementCount);
 
@@ -106,6 +114,7 @@ namespace Nethermind.Trie.TrieBlend
             }
 
             _currentBatch[BlockNumber?.ToBigEndianByteArray()] = rlpStream.Data;
+            _isLogPersisted = true;
         }
 
         public void LoadLog(long blockNumber)
@@ -117,6 +126,7 @@ namespace Nethermind.Trie.TrieBlend
             BlockNumber = blockNumber;
 
             RlpStream rlpStream = new(rawBytes);
+            rlpStream.ReadSequenceLength();
             long blockNo = rlpStream.DecodeLong();
             int accountsNo = rlpStream.DecodeInt();
             for (int i = 0; i < accountsNo; i++)
