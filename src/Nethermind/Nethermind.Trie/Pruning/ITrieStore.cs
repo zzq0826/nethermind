@@ -18,5 +18,7 @@ namespace Nethermind.Trie.Pruning
         IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
 
         event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
+
+        void SaveNodeDirectly(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null);
     }
 }

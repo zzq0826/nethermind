@@ -11,6 +11,7 @@ using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Timers;
 using Nethermind.Db;
@@ -41,7 +42,7 @@ namespace Nethermind.Synchronization.Test.FastSync
         protected ILogger _logger;
         protected ILogManager _logManager;
 
-        public static (string Name, Action<StateTree, ITrieStore, IDb> Action)[] Scenarios => TrieScenarios.Scenarios;
+        public static (string Name, Action<IStateTree, ITrieStore, IDb> Action)[] Scenarios => TrieScenarios.Scenarios;
 
         [SetUp]
         public void Setup()
@@ -79,7 +80,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             SyncConfig syncConfig = new SyncConfig();
             syncConfig.FastSync = true;
             ctx.SyncModeSelector = StaticSelector.StateNodesWithFastBlocks;
-            ctx.TreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, blockTree, _logManager);
+            ctx.TreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, dbContext.LocalTrieStore, blockTree, _logManager);
             ctx.Feed = new StateSyncFeed(ctx.SyncModeSelector, ctx.TreeFeed, _logManager);
             ctx.StateSyncDispatcher =
                 new StateSyncDispatcher(ctx.Feed, ctx.Pool, new StateSyncAllocationStrategyFactory(), _logManager);
@@ -119,7 +120,7 @@ namespace Nethermind.Synchronization.Test.FastSync
         {
             private readonly ILogger _logger;
 
-            public DbContext(ILogger logger, ILogManager logManager)
+            public DbContext(ILogger logger, ILogManager logManager, bool useNewStateStore = false)
             {
                 _logger = logger;
                 RemoteDb = new MemDb();
@@ -127,22 +128,34 @@ namespace Nethermind.Synchronization.Test.FastSync
                 RemoteStateDb = RemoteDb;
                 LocalStateDb = LocalDb;
                 LocalCodeDb = new MemDb();
+                LocalAccountsDb = new MemDb();
                 RemoteCodeDb = new MemDb();
                 RemoteTrieStore = new TrieStore(RemoteStateDb, logManager);
-
                 RemoteStateTree = new StateTree(RemoteTrieStore, logManager);
-                LocalStateTree = new StateTree(new TrieStore(LocalStateDb, logManager), logManager);
+
+                if (useNewStateStore)
+                {
+                    LocalTrieStore = new TrieBlendStore(LocalStateDb, LocalAccountsDb, Trie.Pruning.No.Pruning, Persist.EveryBlock, logManager);
+                    LocalStateTree = new BlendStateTree(LocalTrieStore, logManager);
+                }
+                else
+                {
+                    LocalTrieStore = new TrieStore(LocalStateDb, logManager);
+                    LocalStateTree = new StateTree(LocalTrieStore, logManager);
+                }
             }
 
             public IDb RemoteCodeDb { get; }
             public IDb LocalCodeDb { get; }
+            public IDb LocalAccountsDb { get; }
             public MemDb RemoteDb { get; }
             public MemDb LocalDb { get; }
             public ITrieStore RemoteTrieStore { get; }
             public IDb RemoteStateDb { get; }
             public IDb LocalStateDb { get; }
-            public StateTree RemoteStateTree { get; }
-            public StateTree LocalStateTree { get; }
+            public IStateTree RemoteStateTree { get; }
+            public IStateTree LocalStateTree { get; }
+            public ITrieStore LocalTrieStore { get; }
 
             public void CompareTrees(string stage, bool skipLogs = false)
             {

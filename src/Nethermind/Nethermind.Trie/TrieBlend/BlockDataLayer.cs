@@ -15,7 +15,8 @@ namespace Nethermind.Trie.TrieBlend
         private readonly IKeyValueStoreWithBatching _keyValueStore;
         private readonly ConcurrentDictionary<byte[], byte[]> _rawData;
         private readonly ConcurrentDictionary<byte[], byte[]> _readCache;
-        private readonly ConcurrentDictionary<byte[], byte> _dirty;
+        private readonly ConcurrentBag<byte[]> _dirty;
+        private IBatch? _currentBatch;
 
         public long? BlockNumber;
         public bool IsPersisted => _dirty.IsEmpty;
@@ -27,21 +28,21 @@ namespace Nethermind.Trie.TrieBlend
             _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
             _rawData = new ConcurrentDictionary<byte[], byte[]>(Bytes.EqualityComparer);
             _readCache = new ConcurrentDictionary<byte[], byte[]>(Bytes.EqualityComparer);
-            _dirty = new ConcurrentDictionary<byte[], byte>(Bytes.EqualityComparer);
+            _dirty = new ConcurrentBag<byte[]>();
 
             BlockNumber = blockNumber;
         }
 
         public byte[]? this[byte[] key]
         {
-            get 
+            get
             {
                 return GetData(key);
             }
             set
             {
                 _rawData[key] = value;
-                _dirty[key] = 1;
+                _dirty.Add(key);
             }
         }
 
@@ -49,7 +50,14 @@ namespace Nethermind.Trie.TrieBlend
 
         public IBatch StartBatch()
         {
-            return _keyValueStore.StartBatch();
+            _currentBatch ??= _keyValueStore.StartBatch();
+            return _currentBatch;
+        }
+
+        public void DisposeBatch()
+        {
+            _currentBatch?.Dispose();
+            _currentBatch = null;
         }
 
         public void Persist(long? blockNumber, bool persistLog = true)
@@ -57,9 +65,12 @@ namespace Nethermind.Trie.TrieBlend
             long? useBlockNo = blockNumber ?? BlockNumber;
             BlockNumber = useBlockNo ?? throw new Exception("Can't persist layer without block number!");
 
-            foreach (byte[] dirtyKey in _dirty.Keys)
+            if (_currentBatch == null)
+                throw new Exception("Batch not started");
+
+            foreach (byte[] dirtyKey in _dirty)
             {
-                _keyValueStore[dirtyKey] = _rawData[dirtyKey];
+                _currentBatch[dirtyKey] = _rawData[dirtyKey];
             }
             _dirty.Clear();
 
@@ -67,22 +78,26 @@ namespace Nethermind.Trie.TrieBlend
                 PersistLog();
         }
 
-        public void PersistLog()
+        private void PersistLog()
         {
             if (BlockNumber == null)
                 throw new ArgumentNullException(nameof(BlockNumber));
 
-            int contentLength = Rlp.LengthOf(BlockNumber?.ToBigEndianByteArray()) + Rlp.LengthOf(_rawData.Count);
+            int contentLength = 0;
+            int elementCount = 0;
 
             foreach (KeyValuePair<byte[], byte[]> item in _rawData)
             {
                 contentLength += Rlp.LengthOfKeccakRlp + Rlp.LengthOf(item.Value);
+                elementCount++;
             }
+
+            contentLength += Rlp.LengthOf(BlockNumber?.ToBigEndianByteArray()) + Rlp.LengthOf(elementCount);
 
             RlpStream rlpStream = new(contentLength);
 
             rlpStream.Encode(BlockNumber.Value);
-            rlpStream.Encode(_rawData.Count);
+            rlpStream.Encode(elementCount);
 
             foreach (KeyValuePair<byte[], byte[]> item in _rawData)
             {
@@ -90,7 +105,7 @@ namespace Nethermind.Trie.TrieBlend
                 rlpStream.Encode(item.Value);
             }
 
-            _keyValueStore[BlockNumber?.ToBigEndianByteArray()] = rlpStream.Data;
+            _currentBatch[BlockNumber?.ToBigEndianByteArray()] = rlpStream.Data;
         }
 
         public void LoadLog(long blockNumber)

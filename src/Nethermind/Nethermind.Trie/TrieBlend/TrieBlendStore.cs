@@ -601,11 +601,10 @@ namespace Nethermind.Trie.Pruning
         {
             void PersistNode(TrieNode tn, byte[] fullPath) => Persist(tn, fullPath, commitSet.BlockNumber);
 
+            BlockDataLayer? dataLayer = GetLayer(commitSet.BlockNumber);
             try
             {
                 _currentBatch ??= _keyValueStore.StartBatch();
-
-                BlockDataLayer dataLayer = GetLayer(commitSet.BlockNumber);
                 _currentAccountBatch ??= dataLayer.StartBatch();
 
                 if (_logger.IsDebug) _logger.Debug($"Persisting from root {commitSet.Root} in {commitSet.BlockNumber}");
@@ -613,8 +612,7 @@ namespace Nethermind.Trie.Pruning
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 commitSet.Root?.CallRecursivelyTrackPath(PersistNode, this, true, _logger, Array.Empty<byte>());
 
-                dataLayer.Persist(commitSet.BlockNumber);
-                //_currentLayer = new BlockDataLayer(_accountNodeStore);
+                dataLayer.Persist(commitSet.BlockNumber, true);
 
                 stopwatch.Stop();
                 Metrics.SnapshotPersistenceTime = stopwatch.ElapsedMilliseconds;
@@ -630,7 +628,7 @@ namespace Nethermind.Trie.Pruning
                 _currentBatch?.Dispose();
                 _currentBatch = null;
 
-                _currentAccountBatch?.Dispose();
+                dataLayer?.DisposeBatch();
                 _currentAccountBatch = null;
             }
 
@@ -640,7 +638,9 @@ namespace Nethermind.Trie.Pruning
         private void Persist(TrieNode currentNode, byte[]? fullPath, long blockNumber)
         {
             _currentBatch ??= _keyValueStore.StartBatch();
-            //_currentAccountBatch ??= _accountNodeStore.StartBatch();
+            BlockDataLayer blockLayer = GetLayer(blockNumber);
+            _currentAccountBatch ??= blockLayer.StartBatch();
+
             if (currentNode is null)
             {
                 throw new ArgumentNullException(nameof(currentNode));
@@ -659,9 +659,10 @@ namespace Nethermind.Trie.Pruning
                 if (currentNode.IsLeaf && fullPath is not null)
                 {
                     byte[] fullPathKey = Nibbles.ToBytes(fullPath);
-                    //byte[] fullPathKey = fullPath;
                     _currentBatch[currentNode.Keccak.Bytes] = EncodeLeafNodePointer(currentNode.Key, fullPathKey, blockNumber);
-                    GetLayer(blockNumber)[fullPathKey] = currentNode.Value;
+
+                    blockLayer[fullPathKey] = currentNode.Value;
+                    blockLayer.Persist(blockNumber, false);
                 }
                 else
                 {
@@ -900,7 +901,7 @@ namespace Nethermind.Trie.Pruning
             }
         }
 
-        public void SaveNode(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null)
+        public void SaveNodeDirectly(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null)
         {
             Keccak? hash = trieNode.Keccak ?? nodeHash;
             if (hash is null)

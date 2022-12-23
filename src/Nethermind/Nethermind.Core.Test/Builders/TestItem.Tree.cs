@@ -61,7 +61,7 @@ namespace Nethermind.Core.Test.Builders
                 return stateTree;
             }
 
-            public static void FillStateTreeWithTestAccounts(StateTree stateTree)
+            public static void FillStateTreeWithTestAccounts(IStateTree stateTree)
             {
                 stateTree.Set(AccountsWithPaths[0].Path, AccountsWithPaths[0].Account);
                 stateTree.Set(AccountsWithPaths[1].Path, AccountsWithPaths[1].Account);

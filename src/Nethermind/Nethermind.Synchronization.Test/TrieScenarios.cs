@@ -56,14 +56,14 @@ namespace Nethermind.Synchronization.Test
             }
         }
 
-        private static (string Name, Action<StateTree, ITrieStore, IDb> Action)[] _scenarios;
+        private static (string Name, Action<IStateTree, ITrieStore, IDb> Action)[] _scenarios;
 
-        public static (string Name, Action<StateTree, ITrieStore, IDb> Action)[] Scenarios
+        public static (string Name, Action<IStateTree, ITrieStore, IDb> Action)[] Scenarios
             => LazyInitializer.EnsureInitialized(ref _scenarios, InitScenarios);
 
-        private static (string Name, Action<StateTree, ITrieStore, IDb> Action)[] InitScenarios()
+        private static (string Name, Action<IStateTree, ITrieStore, IDb> Action)[] InitScenarios()
         {
-            return new (string, Action<StateTree, ITrieStore, IDb>)[]
+            return new (string, Action<IStateTree, ITrieStore, IDb>)[]
             {
                 ("empty", (tree, stateDb, codeDb) =>
                 {

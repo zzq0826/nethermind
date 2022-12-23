@@ -53,5 +53,7 @@ namespace Nethermind.Trie.Pruning
         public bool IsPersisted(Keccak keccak) => _trieStore.IsPersisted(keccak);
 
         public byte[]? LoadRlp(Keccak hash) => _trieStore.LoadRlp(hash, _readOnlyStore);
+
+        public void SaveNodeDirectly(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null) { }
     }
 }

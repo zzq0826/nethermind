@@ -792,6 +792,15 @@ namespace Nethermind.Trie.Pruning
             });
         }
 
+        public void SaveNodeDirectly(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null)
+        {
+            Keccak? hash = trieNode.Keccak ?? nodeHash;
+            if (hash is null)
+                throw new ArgumentException("trieNode hash can't be null");
+
+            _keyValueStore[nodeHash.Bytes] = trieNode.FullRlp;
+        }
+
         public byte[]? this[byte[] key]
         {
             get => _pruningStrategy.PruningEnabled

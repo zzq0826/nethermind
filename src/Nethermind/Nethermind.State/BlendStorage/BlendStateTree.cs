@@ -19,7 +19,7 @@ using System.Buffers;
 
 namespace Nethermind.State
 {
-    public class BlendStateTree : PatriciaTree
+    public class BlendStateTree : PatriciaTree, IStateTree
     {
         private readonly AccountDecoder _decoder = new();
 
@@ -84,6 +84,11 @@ namespace Nethermind.State
             //TrieStore
             Set(keccak.Bytes, rlp);
             return rlp;
+        }
+
+        Account? IStateTree.Get(Keccak keccak)
+        {
+            return GetDirect(keccak);
         }
     }
 }

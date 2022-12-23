@@ -44,6 +44,8 @@ namespace Nethermind.Trie.Pruning
 
         public void Dispose() { }
 
+        public void SaveNodeDirectly(long blockNumber, byte[] fullPath, TrieNode trieNode, Keccak nodeHash = null) { }
+
         public byte[]? this[byte[] key] => null;
     }
 }
