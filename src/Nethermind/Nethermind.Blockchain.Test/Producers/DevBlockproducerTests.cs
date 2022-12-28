@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Threading;
 using FluentAssertions;
@@ -58,6 +58,7 @@ namespace Nethermind.Blockchain.Test.Producers
                 LimboLogs.Instance);
             StateReader stateReader = new(trieStore, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
             StorageProvider storageProvider = new(trieStore, stateProvider, LimboLogs.Instance);
+            WorldState worldState = new WorldState(stateProvider, storageProvider);
             BlockhashProvider blockhashProvider = new(blockTree, LimboLogs.Instance);
             VirtualMachine virtualMachine = new(
                 blockhashProvider,
@@ -73,9 +74,8 @@ namespace Nethermind.Blockchain.Test.Producers
                 specProvider,
                 Always.Valid,
                 NoBlockRewards.Instance,
-                new BlockProcessor.BlockValidationTransactionsExecutor(txProcessor, stateProvider),
-                stateProvider,
-                storageProvider,
+                new BlockProcessor.BlockValidationTransactionsExecutor(txProcessor, new WorldState(stateProvider, storageProvider)),
+                worldState,
                 NullReceiptStorage.Instance,
                 NullWitnessCollector.Instance,
                 LimboLogs.Instance);

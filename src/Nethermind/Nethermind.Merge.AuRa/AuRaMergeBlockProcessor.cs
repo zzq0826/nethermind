@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Receipts;
@@ -27,8 +27,7 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
         IBlockValidator blockValidator,
         IRewardCalculator rewardCalculator,
         IBlockProcessor.IBlockTransactionsExecutor blockTransactionsExecutor,
-        IStateProvider stateProvider,
-        IStorageProvider storageProvider,
+        IWorldState worldState,
         IReceiptStorage receiptStorage,
         ILogManager logManager,
         IBlockTree blockTree,
@@ -40,8 +39,7 @@ public class AuRaMergeBlockProcessor : AuRaBlockProcessor
             blockValidator,
             rewardCalculator,
             blockTransactionsExecutor,
-            stateProvider,
-            storageProvider,
+            worldState,
             receiptStorage,
             logManager,
             blockTree,

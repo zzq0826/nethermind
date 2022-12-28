@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Consensus;
 using Nethermind.Consensus.Producers;
@@ -46,7 +46,7 @@ namespace Nethermind.Merge.Plugin.BlockProduction
                 producerEnv.ChainProcessor,
                 producerEnv.BlockTree,
                 blockProductionTrigger,
-                producerEnv.ReadOnlyStateProvider,
+                producerEnv.ReadOnlyWorldState,
                 _gasLimitCalculator ?? new TargetAdjustedGasLimitCalculator(_specProvider, _blocksConfig),
                 _sealEngine,
                 _timestamper,

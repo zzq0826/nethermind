@@ -61,7 +61,7 @@ namespace Nethermind.Merge.Plugin
                 _postMergeBlockProducer = blockProducerFactory.Create(
                     blockProducerEnv,
                     _blockProductionTrigger,
-                    CreateTxSource(blockProducerEnv.ReadOnlyStateProvider)
+                    CreateTxSource(blockProducerEnv.ReadOnlyWorldState)
                 );
 
                 _api.BlockProducer = new MergeBlockProducer(blockProducer, _postMergeBlockProducer, _poSSwitcher);

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using System.Collections.Generic;
@@ -293,9 +293,8 @@ namespace Nethermind.AuRa.Test.Transactions
                     SpecProvider,
                     Always.Valid,
                     new RewardCalculator(SpecProvider),
-                    new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, State),
-                    State,
-                    Storage,
+                    new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, new WorldState(State, Storage)),
+                    WorldState,
                     ReceiptStorage,
                     LimboLogs.Instance,
                     BlockTree,
