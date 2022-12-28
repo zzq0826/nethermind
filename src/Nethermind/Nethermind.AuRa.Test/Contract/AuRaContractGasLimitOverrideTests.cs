@@ -15,6 +15,7 @@ using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Validators;
 using Nethermind.Core;
 using Nethermind.Logging;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using NUnit.Framework;
 
@@ -94,9 +95,8 @@ public class AuRaContractGasLimitOverrideTests
                 SpecProvider,
                 Always.Valid,
                 new RewardCalculator(SpecProvider),
-                new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, State),
-                State,
-                Storage,
+                new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, WorldState),
+                WorldState,
                 ReceiptStorage,
                 LimboLogs.Instance,
                 BlockTree,
