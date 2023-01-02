@@ -167,10 +167,22 @@ namespace Nethermind.State
         {
             return StateProvider.GetNonce(address);
         }
+
+        public UInt256 GetVersion(Address address)
+        {
+            return StateProvider.GetVersion(address);
+        }
+
         public UInt256 GetBalance(Address address)
         {
             return StateProvider.GetBalance(address);
         }
+
+        public UInt256 GetCodeSize(Address address)
+        {
+            return StateProvider.GetCodeSize(address);
+        }
+
         public Keccak GetStorageRoot(Address address)
         {
             return StateProvider.GetStorageRoot(address);
@@ -183,6 +195,12 @@ namespace Nethermind.State
         {
             return StateProvider.GetCode(codeHash);
         }
+
+        public byte[] GetCodeChunk(Address address, UInt256 chunkId)
+        {
+            return StateProvider.GetCodeChunk(address, chunkId);
+        }
+
         public Keccak GetCodeHash(Address address)
         {
             return StateProvider.GetCodeHash(address);

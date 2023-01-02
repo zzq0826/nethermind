@@ -33,7 +33,8 @@ namespace Nethermind.State
 
         void DecrementNonce(Address address);
 
-        Keccak UpdateCode(ReadOnlyMemory<byte> code);
+        void InsertCode(Address address, ReadOnlyMemory<byte> code, IReleaseSpec spec, bool isGenesis = false);
+        // Keccak UpdateCode(ReadOnlyMemory<byte> code);
 
         /* snapshots */
 

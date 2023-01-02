@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -12,17 +12,16 @@ namespace Nethermind.State
     {
         Keccak StateRoot { get; }
 
-        UInt256 GetNonce(Address address);
-
+        UInt256 GetVersion(Address address);
         UInt256 GetBalance(Address address);
-
-        Keccak GetStorageRoot(Address address);
+        UInt256 GetNonce(Address address);
+        Keccak GetCodeHash(Address address);
+        UInt256 GetCodeSize(Address address);
 
         byte[] GetCode(Address address);
+        byte[] GetCodeChunk(Address address, UInt256 chunkId);
 
-        byte[] GetCode(Keccak codeHash);
-
-        Keccak GetCodeHash(Address address);
+        Keccak GetStorageRoot(Address address);
 
         public bool IsContract(Address address) => GetCodeHash(address) != Keccak.OfAnEmptyString;
 

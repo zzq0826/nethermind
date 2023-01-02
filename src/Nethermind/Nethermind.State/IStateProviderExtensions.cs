@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using Nethermind.Core;
@@ -11,11 +11,6 @@ namespace Nethermind.State
 {
     public static class StateProviderExtensions
     {
-        public static byte[] GetCode(this IStateProvider stateProvider, Address address)
-        {
-            return stateProvider.GetCode(stateProvider.GetCodeHash(address));
-        }
-
         public static string DumpState(this IStateProvider stateProvider)
         {
             TreeDumper dumper = new();

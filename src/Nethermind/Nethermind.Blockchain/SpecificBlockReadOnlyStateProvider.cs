@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using Nethermind.Core;
@@ -26,9 +26,24 @@ namespace Nethermind.Blockchain
 
         public UInt256 GetNonce(Address address) => GetAccount(address).Nonce;
 
+        public UInt256 GetVersion(Address address)
+        {
+            throw new NotImplementedException();
+        }
+
         public UInt256 GetBalance(Address address) => GetAccount(address).Balance;
 
+        public byte[] GetCodeChunk(Address address, UInt256 chunkId)
+        {
+            throw new NotImplementedException();
+        }
+
         public Keccak? GetStorageRoot(Address address) => GetAccount(address).StorageRoot;
+
+        public UInt256 GetCodeSize(Address address)
+        {
+            throw new NotImplementedException();
+        }
 
         public byte[] GetCode(Address address) => _stateReader.GetCode(GetAccount(address).CodeHash);
 

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using System.Collections.Generic;
@@ -46,8 +46,7 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(TestItem.AddressC, 1.Ether());
-            Keccak deployedCodeHash = TestState.UpdateCode(deployedCode);
-            TestState.UpdateCodeHash(TestItem.AddressC, deployedCodeHash, Spec);
+            TestState.InsertCode(TestItem.AddressC, deployedCode, Spec);
 
             byte[] code = Prepare.EvmCode
                 .Call(TestItem.AddressC, 50000)
@@ -95,16 +94,14 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(externalContractAddress, 1.Ether());
-            Keccak externalContractDeployedCodeHash = TestState.UpdateCode(externalContractCalledByPaymasterCode);
-            TestState.UpdateCodeHash(externalContractAddress, externalContractDeployedCodeHash, Spec);
+            TestState.InsertCode(externalContractAddress, externalContractCalledByPaymasterCode, Spec);
 
             byte[] paymasterCode = Prepare.EvmCode
                 .Call(externalContractAddress, 70000)
                 .Done;
 
             TestState.CreateAccount(paymasterContractAddress, 1.Ether());
-            Keccak paymasterDeployedCodeHash = TestState.UpdateCode(paymasterCode);
-            TestState.UpdateCodeHash(paymasterContractAddress, paymasterDeployedCodeHash, Spec);
+            TestState.InsertCode(paymasterContractAddress, paymasterCode, Spec);
 
             byte[] code = Prepare.EvmCode
                 .Op(paymasterValidation ? Instruction.NUMBER : Instruction.BASEFEE) // switch to paymaster validation with NUMBER
@@ -137,16 +134,14 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(externalContractAddress, 1.Ether());
-            Keccak externalContractDeployedCodeHash = TestState.UpdateCode(externalContractCalledByPaymasterCode);
-            TestState.UpdateCodeHash(externalContractAddress, externalContractDeployedCodeHash, Spec);
+            TestState.InsertCode(externalContractAddress, externalContractCalledByPaymasterCode, Spec);
 
             byte[] paymasterCode = Prepare.EvmCode
                 .Call(externalContractAddress, 70000)
                 .Done;
 
             TestState.CreateAccount(paymasterContractAddress, 1.Ether());
-            Keccak paymasterDeployedCodeHash = TestState.UpdateCode(paymasterCode);
-            TestState.UpdateCodeHash(paymasterContractAddress, paymasterDeployedCodeHash, Spec);
+            TestState.InsertCode(paymasterContractAddress, paymasterCode, Spec);
 
             byte[] code = Prepare.EvmCode
                 .Op(paymasterValidation ? Instruction.NUMBER : Instruction.BASEFEE) // switch to paymaster validation with NUMBER
@@ -181,8 +176,7 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(externalContractAddress, 1.Ether());
-            Keccak externalContractDeployedCodeHash = TestState.UpdateCode(externalContractCalledByPaymasterCode);
-            TestState.UpdateCodeHash(externalContractAddress, externalContractDeployedCodeHash, Spec);
+            TestState.InsertCode(externalContractAddress, externalContractCalledByPaymasterCode, Spec);
 
             byte[] paymasterCode = Prepare.EvmCode
                 .Call(externalContractAddress, gasLimit)
@@ -194,8 +188,7 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(paymasterContractAddress, 1.Ether());
-            Keccak paymasterDeployedCodeHash = TestState.UpdateCode(paymasterCode);
-            TestState.UpdateCodeHash(paymasterContractAddress, paymasterDeployedCodeHash, Spec);
+            TestState.InsertCode(paymasterContractAddress, paymasterCode, Spec);
 
             byte[] code = Prepare.EvmCode
                 .Call(paymasterContractAddress, 100000)
@@ -232,8 +225,7 @@ namespace Nethermind.AccountAbstraction.Test
                 .Done;
 
             TestState.CreateAccount(TestItem.AddressC, 1.Ether());
-            Keccak deployedCodeHash = TestState.UpdateCode(deployedCode);
-            TestState.UpdateCodeHash(TestItem.AddressC, deployedCodeHash, Spec);
+            TestState.InsertCode(TestItem.AddressC, deployedCode, Spec);
 
             byte[] code = Prepare.EvmCode
                 .Call(TestItem.AddressC, 70000)
