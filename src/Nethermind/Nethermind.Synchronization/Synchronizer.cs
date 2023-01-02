@@ -33,7 +33,14 @@ namespace Nethermind.Synchronization
         private readonly IReceiptStorage _receiptStorage;
         private readonly IBlockDownloaderFactory _blockDownloaderFactory;
         private readonly INodeStatsManager _nodeStatsManager;
-        private readonly TaskScheduler SyncTaskScheduler = new QueuedTaskScheduler(threadCount: Environment.ProcessorCount, threadPriority: ThreadPriority.Lowest);
+
+        // Mainly used to prevent sync tasks from taking up threadpool queue from networking tasks.
+        // Create several dedicated low priority thread separate from the global threadpool. Note: use of
+        // Task.Run will allocate new task to global threadpool instead of ambient threadpool.
+        private readonly TaskScheduler _syncTaskScheduler = new QueuedTaskScheduler(
+            threadCount: Math.Min(1, Environment.ProcessorCount - 2),
+            threadPriority: ThreadPriority.Lowest
+        );
 
         protected readonly ILogger _logger;
         protected readonly IBlockTree _blockTree;
@@ -120,7 +127,7 @@ namespace Nethermind.Synchronization
         protected Task RunWithSyncScheduler<T>(SyncDispatcher<T> dispatcher)
         {
             return Task.Factory.StartNew(() => dispatcher.Start(_syncCancellation.Token), _syncCancellation.Token,
-                TaskCreationOptions.LongRunning, SyncTaskScheduler);
+                TaskCreationOptions.LongRunning, _syncTaskScheduler);
         }
 
         private void StartFullSyncComponents()
