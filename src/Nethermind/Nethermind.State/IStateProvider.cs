@@ -6,7 +6,6 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
-using Nethermind.Trie;
 
 namespace Nethermind.State
 {
@@ -34,7 +33,8 @@ namespace Nethermind.State
 
         void DecrementNonce(Address address);
 
-        Keccak UpdateCode(ReadOnlyMemory<byte> code);
+        void InsertCode(Address address, ReadOnlyMemory<byte> code, IReleaseSpec spec, bool isGenesis = false);
+        // Keccak UpdateCode(ReadOnlyMemory<byte> code);
 
         /* snapshots */
 
@@ -51,5 +51,9 @@ namespace Nethermind.State
         /// </summary>
         /// <param name="codeHash"></param>
         void TouchCode(Keccak codeHash);
+
+        int TakeSnapshot(bool newTransactionStart = false);
+
+        int IJournal<int>.TakeSnapshot() => TakeSnapshot();
     }
 }
