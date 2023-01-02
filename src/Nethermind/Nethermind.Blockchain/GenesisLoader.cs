@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only 
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using System.Collections.Generic;
@@ -68,8 +68,7 @@ namespace Nethermind.Blockchain
 
                 if (allocation.Code is not null)
                 {
-                    Keccak codeHash = _stateProvider.UpdateCode(allocation.Code);
-                    _stateProvider.UpdateCodeHash(address, codeHash, _specProvider.GenesisSpec, true);
+                    _stateProvider.InsertCode(address, allocation.Code, _specProvider.GenesisSpec, true);
                 }
 
                 if (allocation.Storage is not null)
