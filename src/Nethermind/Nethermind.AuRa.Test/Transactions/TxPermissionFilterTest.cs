@@ -26,6 +26,7 @@ using Nethermind.Int256;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using NSubstitute;
@@ -292,8 +293,8 @@ public class TxPermissionFilterTest
                 SpecProvider,
                 Always.Valid,
                 new RewardCalculator(SpecProvider),
-                new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, WorldState),
-                WorldState,
+                new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, new WorldState(TrieStore, CodeDb, LogManager)),
+                new WorldState(TrieStore, CodeDb, LogManager),
                 ReceiptStorage,
                 LimboLogs.Instance,
                 BlockTree,
