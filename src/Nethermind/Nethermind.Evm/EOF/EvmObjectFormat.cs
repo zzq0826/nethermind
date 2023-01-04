@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm;
 using Nethermind.Logging;
@@ -15,7 +17,7 @@ internal static class EvmObjectFormat
 {
     private interface IEofVersionHandler
     {
-        bool ValidateBody(ReadOnlySpan<byte> code, in EofHeader header);
+        bool ValidateBody(ReadOnlyMemory<byte> code, EofHeader header);
         bool TryParseEofHeader(ReadOnlySpan<byte> code, [NotNullWhen(true)] out EofHeader? header);
     }
 
@@ -40,21 +42,14 @@ internal static class EvmObjectFormat
     /// <returns></returns>
     public static bool IsEof(ReadOnlySpan<byte> container) => container.StartsWith(MAGIC);
 
-    public static bool IsValidEof(ReadOnlySpan<byte> container, out EofHeader? header)
+    public static bool IsValidEof(ReadOnlyMemory<byte> container, out EofHeader? header)
     {
-        if (container.Length >= VERSION_OFFSET
-            && _eofVersionHandlers.TryGetValue(container[VERSION_OFFSET], out IEofVersionHandler handler)
-            && handler.TryParseEofHeader(container, out header))
-        {
-            EofHeader h = header.Value;
-            if (handler.ValidateBody(container, in h))
-            {
-                return true;
-            }
-        }
-
         header = null;
-        return false;
+        ReadOnlySpan<byte> span = container.Span;
+        return container.Length >= VERSION_OFFSET
+               && _eofVersionHandlers.TryGetValue(span[VERSION_OFFSET], out IEofVersionHandler handler)
+               && handler.TryParseEofHeader(span, out header)
+               && handler.ValidateBody(container, header.Value);
     }
 
     public static bool TryExtractHeader(ReadOnlySpan<byte> container, [NotNullWhen(true)] out EofHeader? header)
@@ -248,14 +243,14 @@ internal static class EvmObjectFormat
         private const int MAX_STACK_HEIGHT_LENGTH = 2;
         private const ushort MAX_STACK_HEIGHT = 0x3FF;
 
-        public bool ValidateBody(ReadOnlySpan<byte> container, in EofHeader header)
+        public bool ValidateBody(ReadOnlyMemory<byte> container, EofHeader header)
         {
             int startOffset = CalculateHeaderSize(header.CodeSections.Length);
             int calculatedCodeLength = header.TypeSection.Size
                 + header.CodeSectionsSize
                 + header.DataSection.Size;
 
-            ReadOnlySpan<byte> contractBody = container[startOffset..];
+            ReadOnlyMemory<byte> contractBody = container[startOffset..];
 
             if (contractBody.Length != calculatedCodeLength)
             {
@@ -263,19 +258,20 @@ internal static class EvmObjectFormat
                 return false;
             }
 
-            for (int sectionIdx = 0; sectionIdx < header.CodeSections.Length; sectionIdx++)
+            int validSection = 0;
+            Parallel.For(0, header.CodeSections.Length, (sectionIdx) =>
             {
                 SectionHeader sectionHeader = header.CodeSections[sectionIdx];
                 (int codeSectionStartOffset, int codeSectionSize) = sectionHeader;
-                ReadOnlySpan<byte> code = container.Slice(codeSectionStartOffset, codeSectionSize);
+                ReadOnlySpan<byte> code = container.Slice(codeSectionStartOffset, codeSectionSize).Span;
                 if (!ValidateInstructions(code, header))
                 {
                     if (Logger.IsTrace) Logger.Trace($"EIP-3670 : CodeSection {sectionIdx} contains invalid body");
-                    return false;
                 }
-            }
+                Interlocked.Increment(ref validSection);
+            });
 
-            return true;
+            return validSection == header.CodeSections.Length;
         }
         bool ValidateInstructions(ReadOnlySpan<byte> code, in EofHeader header)
         {
