@@ -537,9 +537,16 @@ namespace Nethermind.Consensus.Processing
             bool suggestedBlockIsPostMerge = suggestedBlock.IsPostMerge;
 
             Block toBeProcessed = suggestedBlock;
+            long iterations = 0;
+            bool shallStoreBlocks = !options.ContainsFlag(ProcessingOptions.ForceProcessing);
+            bool notTraceMode = (options & ProcessingOptions.Trace) == ProcessingOptions.Trace;
+
             do
             {
-                blocksToBeAddedToMain.Add(toBeProcessed);
+                iterations++;
+                if (shallStoreBlocks)
+                    blocksToBeAddedToMain.Add(toBeProcessed);
+
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $"To be processed (of {suggestedBlock.ToString(Block.Format.Short)}) is {toBeProcessed?.ToString(Block.Format.Short)}");
@@ -586,7 +593,7 @@ namespace Nethermind.Consensus.Processing
                     // If we hit this condition, it means that something is wrong in MultiSyncModeSelector.
                     // MultiSyncModeSelector switched to full sync when it shouldn't
                     // In this case, it is better to stop searching for more blocks and failed during the processing than trying to build a branch up to the genesis point
-                    if (blocksToBeAddedToMain.Count > MaxBlocksDuringFastSyncTransition)
+                    if (iterations > MaxBlocksDuringFastSyncTransition)
                     {
                         if (_logger.IsWarn) _logger.Warn($"Too long branch to be processed during fast sync transition. Current block to be processed {toBeProcessed}, StateRoot: {toBeProcessed?.StateRoot}");
                         break;
@@ -611,7 +618,7 @@ namespace Nethermind.Consensus.Processing
                 // otherwise some nodes would be missing
                 bool notFoundTheBranchingPointYet = !_blockTree.IsMainChain(branchingPoint.Hash!);
                 bool notReachedTheReorgBoundary = branchingPoint.Number > (_blockTree.Head?.Header.Number ?? 0);
-                preMergeFinishBranchingCondition = (notFoundTheBranchingPointYet || notReachedTheReorgBoundary);
+                preMergeFinishBranchingCondition = (notFoundTheBranchingPointYet || (notTraceMode && notReachedTheReorgBoundary));
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $" Current branching point: {branchingPoint.Number}, {branchingPoint.Hash} TD: {branchingPoint.TotalDifficulty} Processing conditions notFoundTheBranchingPointYet {notFoundTheBranchingPointYet}, notReachedTheReorgBoundary: {notReachedTheReorgBoundary}, suggestedBlockIsPostMerge {suggestedBlockIsPostMerge}");
