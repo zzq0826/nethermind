@@ -295,10 +295,8 @@ namespace Ethereum.Test.Base
                 }
             }
 
-            stateProvider.Commit();
             stateProvider.Commit(specProvider.GenesisSpec);
 
-            stateProvider.CommitTrees(0);
             stateProvider.CommitTree(0);
 
             stateProvider.Reset();
