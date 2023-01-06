@@ -172,7 +172,6 @@ public partial class BlockProcessor : IBlockProcessor
     private void PreCommitBlock(Keccak newBranchStateRoot, long blockNumber)
     {
         if (_logger.IsTrace) _logger.Trace($"Committing the branch - {newBranchStateRoot}");
-        _worldState.CommitTrees(blockNumber);
         _worldState.CommitTree(blockNumber);
     }
 
