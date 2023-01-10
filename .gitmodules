@@ -10,3 +10,7 @@
 [submodule "src/ethereum-tests"]
 	path = src/ethereum-tests
 	url = https://github.com/NethermindEth/ethereum-tests.git
+[submodule "src/bandersnatch-sharp"]
+	path = src/bandersnatch-sharp
+  url = https://github.com/NethermindEth/bandersnatch-sharp.git
+  branch = client
