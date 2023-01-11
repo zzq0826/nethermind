@@ -38,7 +38,7 @@ namespace Nethermind.Synchronization
         // Create several dedicated low priority thread separate from the global threadpool. Note: use of
         // Task.Run will allocate new task to global threadpool instead of ambient threadpool.
         private readonly TaskScheduler _syncTaskScheduler = new QueuedTaskScheduler(
-            threadCount: Math.Min(1, Environment.ProcessorCount - 2),
+            threadCount: Math.Max(1, Environment.ProcessorCount - 2),
             threadPriority: ThreadPriority.Lowest
         );
 
