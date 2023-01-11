@@ -211,26 +211,26 @@ public class DbOnTheRocks : IDbWithSpan
     protected virtual DbOptions BuildOptions(IDbConfig dbConfig)
     {
         _maxThisDbSize = 0;
-        BlockBasedTableOptions tableOptions = new();
-        tableOptions.SetBlockSize(16 * 1024);
-        tableOptions.SetPinL0FilterAndIndexBlocksInCache(true);
-        tableOptions.SetCacheIndexAndFilterBlocks(GetCacheIndexAndFilterBlocks(dbConfig));
+        // BlockBasedTableOptions tableOptions = new();
+        // tableOptions.SetBlockSize(16 * 1024);
+        // tableOptions.SetPinL0FilterAndIndexBlocksInCache(true);
+        // tableOptions.SetCacheIndexAndFilterBlocks(GetCacheIndexAndFilterBlocks(dbConfig));
 
-        tableOptions.SetFilterPolicy(BloomFilterPolicy.Create());
-        tableOptions.SetFormatVersion(4);
+        // tableOptions.SetFilterPolicy(BloomFilterPolicy.Create());
+        // tableOptions.SetFormatVersion(4);
 
         ulong blockCacheSize = GetBlockCacheSize(dbConfig);
 
-        tableOptions.SetBlockCache(_cache);
+        // tableOptions.SetBlockCache(_cache);
 
         // IntPtr cache = RocksDbSharp.Native.Instance.rocksdb_cache_create_lru(new UIntPtr(blockCacheSize));
         // tableOptions.SetBlockCache(cache);
 
         DbOptions options = new();
-        options.SetCreateIfMissing();
-        options.SetAdviseRandomOnOpen(true);
-        options.OptimizeForPointLookup(
-            blockCacheSize); // I guess this should be the one option controlled by the DB size property - bind it to LRU cache size
+        // options.SetCreateIfMissing();
+        // options.SetAdviseRandomOnOpen(true);
+        // options.OptimizeForPointLookup(
+            // blockCacheSize); // I guess this should be the one option controlled by the DB size property - bind it to LRU cache size
         //options.SetCompression(CompressionTypeEnum.rocksdb_snappy_compression);
         //options.SetLevelCompactionDynamicLevelBytes(true);
 
@@ -242,14 +242,14 @@ public class DbOnTheRocks : IDbWithSpan
          * TKS: Observed 500MB/s compared to ~100MB/s between multithreaded and single thread compactions on my machine (processor count is returning 12 for 6 cores with hyperthreading)
          * TKS: CPU goes to insane 30% usage on idle - compacting only app
          */
-        options.SetMaxBackgroundCompactions(Environment.ProcessorCount);
+        // options.SetMaxBackgroundCompactions(Environment.ProcessorCount);
 
         //options.SetMaxOpenFiles(32);
         ulong writeBufferSize = GetWriteBufferSize(dbConfig);
-        options.SetWriteBufferSize(writeBufferSize);
+        // options.SetWriteBufferSize(writeBufferSize);
         int writeBufferNumber = (int)GetWriteBufferNumber(dbConfig);
-        options.SetMaxWriteBufferNumber(writeBufferNumber);
-        options.SetMinWriteBufferNumberToMerge(2);
+        // options.SetMaxWriteBufferNumber(writeBufferNumber);
+        // options.SetMinWriteBufferNumberToMerge(2);
 
         lock (_dbsByPath)
         {
@@ -262,18 +262,19 @@ public class DbOnTheRocks : IDbWithSpan
             ThisNodeInfo.AddInfo("Mem est DB   :", $"{_maxRocksSize / 1000 / 1000}MB".PadLeft(8));
         }
 
-        options.SetBlockBasedTableFactory(tableOptions);
+        // options.SetBlockBasedTableFactory(tableOptions);
 
-        options.SetMaxBackgroundFlushes(Environment.ProcessorCount);
-        options.IncreaseParallelism(Environment.ProcessorCount);
-        options.SetRecycleLogFileNum(dbConfig
-            .RecycleLogFileNum); // potential optimization for reusing allocated log files
+        // options.SetMaxBackgroundFlushes(Environment.ProcessorCount);
+        // options.IncreaseParallelism(Environment.ProcessorCount);
+        // options.SetRecycleLogFileNum(dbConfig
+            // .RecycleLogFileNum); // potential optimization for reusing allocated log files
 
         //            options.SetLevelCompactionDynamicLevelBytes(true); // only switch on on empty DBs
-        WriteOptions = new WriteOptions();
-        WriteOptions.SetSync(dbConfig
-            .WriteAheadLogSync); // potential fix for corruption on hard process termination, may cause performance degradation
+        // WriteOptions.SetSync(dbConfig
+            // .WriteAheadLogSync); // potential fix for corruption on hard process termination, may cause performance degradation
 
+
+        WriteOptions = new WriteOptions();
         if (dbConfig.EnableDbStatistics)
         {
             options.EnableStatistics();
