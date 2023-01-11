@@ -30,10 +30,10 @@ public class VerkleWorldState: IWorldState
     private Change?[] _changes = new Change?[StartCapacity];
     private int _currentPosition = Resettable.EmptyPosition;
 
-    private readonly VerkleTree _tree;
+    private readonly VerkleStateTree _tree;
     private readonly IStorageProvider _storageProvider;
 
-    public VerkleWorldState(VerkleTree verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
+    public VerkleWorldState(VerkleStateTree verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));

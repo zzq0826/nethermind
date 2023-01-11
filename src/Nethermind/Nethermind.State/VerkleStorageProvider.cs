@@ -12,7 +12,7 @@ public class VerkleStorageProvider : IStorageProvider
     private readonly VerklePersistentStorageProvider _persistentStorageProvider;
     private readonly VerkleTransientStorageProvider _transientStorageProvider;
 
-    public VerkleStorageProvider(VerkleTree tree, ILogManager? logManager)
+    public VerkleStorageProvider(VerkleStateTree tree, ILogManager? logManager)
     {
         _persistentStorageProvider = new VerklePersistentStorageProvider(tree, logManager);
         _transientStorageProvider = new VerkleTransientStorageProvider(logManager);

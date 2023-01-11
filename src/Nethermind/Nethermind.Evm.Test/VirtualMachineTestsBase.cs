@@ -82,7 +82,7 @@ namespace Nethermind.Evm.Test
             else
             {
                 IDbProvider provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-                WorldState = new VerkleWorldState(new VerkleTree(provider), codeDb, logManager);
+                WorldState = new VerkleWorldState(new VerkleStateTree(provider), codeDb, logManager);
             }
 
             WorldState = new WorldState(new TrieStore(stateDb, logManager), codeDb, logManager);

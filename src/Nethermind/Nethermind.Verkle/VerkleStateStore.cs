@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Nethermind.Db;
+using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.VerkleNodes;
 using Nethermind.Verkle.VerkleStateDb;
 
@@ -33,12 +34,18 @@ public class VerkleStateStore : IVerkleStore
 
     public VerkleStateStore(IDbProvider dbProvider)
     {
-        Storage = new DiskDb(dbProvider);
+        Storage = new VerkleStateDb.VerkleDb(dbProvider);
         Batch = new MemoryStateDb();
         Cache = new MemoryStateDb();
         ForwardDiff = new DiffLayer(DiffType.Forward);
         ReverseDiff = new DiffLayer(DiffType.Reverse);
         FullStateBlock = 0;
+        InitRootHash();
+    }
+
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore)
+    {
+        return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
@@ -54,6 +61,7 @@ public class VerkleStateStore : IVerkleStore
     {
         return ReverseDiff.MergeDiffs(fromBlock, toBlock);
     }
+    public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
     public void InitRootHash()
     {
@@ -247,9 +255,8 @@ public class VerkleStateStore : IVerkleStore
     }
 }
 
-public interface IVerkleStore
+public interface IVerkleStore: IStoreWithReorgBoundary
 {
-    void InitRootHash();
     byte[]? GetLeaf(byte[] key);
     SuffixTree? GetStem(byte[] key);
     InternalNode? GetBranch(byte[] key);
@@ -260,7 +267,10 @@ public interface IVerkleStore
     void ReverseState();
     void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks);
 
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore);
+
     public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock);
 
     public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock);
+
 }

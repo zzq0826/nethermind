@@ -16,7 +16,11 @@ public class VerkleTree
     public VerkleTree(IDbProvider dbProvider)
     {
         _stateDb = new VerkleStateStore(dbProvider);
-        _stateDb.InitRootHash();
+    }
+
+    public VerkleTree(IVerkleStore stateStore)
+    {
+        _stateDb = stateStore;
     }
 
     private static Banderwagon GetLeafDelta(byte[]? oldValue, byte[] newValue, byte index)

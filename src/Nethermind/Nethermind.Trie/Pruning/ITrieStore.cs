@@ -7,7 +7,7 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie.Pruning
 {
-    public interface ITrieStore : ITrieNodeResolver, IReadOnlyKeyValueStore, IDisposable
+    public interface ITrieStore : ITrieNodeResolver, IStoreWithReorgBoundary, IReadOnlyKeyValueStore, IDisposable
     {
         void CommitNode(long blockNumber, NodeCommitInfo nodeCommitInfo);
 
@@ -17,6 +17,11 @@ namespace Nethermind.Trie.Pruning
 
         IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
 
+        new event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
+    }
+
+    public interface IStoreWithReorgBoundary
+    {
         event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
     }
 }

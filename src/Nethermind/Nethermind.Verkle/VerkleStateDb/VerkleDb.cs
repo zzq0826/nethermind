@@ -7,14 +7,14 @@ using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleStateDb;
 
-public class DiskDb : IVerkleDb
+public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
 {
     private readonly IDbProvider _dbProvider;
 
     public IDb LeafDb => _dbProvider.LeafDb;
     public IDb StemDb => _dbProvider.StemDb;
     public IDb BranchDb => _dbProvider.BranchDb;
-    public DiskDb(IDbProvider dbProvider)
+    public VerkleDb(IDbProvider dbProvider)
     {
         _dbProvider = dbProvider;
     }
@@ -89,6 +89,33 @@ public class DiskDb : IVerkleDb
         foreach ((byte[] key, InternalNode? value) in branchLeaf)
         {
             SetBranch(key, value, batch);
+        }
+    }
+    public byte[]? this[byte[] key]
+    {
+        get
+        {
+            return key.Length switch
+            {
+                32 => LeafDb[key],
+                31 => StemDb[key],
+                _ => BranchDb[key]
+            };
+        }
+        set
+        {
+            switch (key.Length)
+            {
+                case 32:
+                    LeafDb[key] = value;
+                    break;
+                case 31:
+                    StemDb[key] = value;
+                    break;
+                default:
+                    BranchDb[key] = value;
+                    break;
+            }
         }
     }
 }

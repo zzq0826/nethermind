@@ -15,7 +15,7 @@ namespace Nethermind.State;
 
 public class VerklePersistentStorageProvider: PartialStorageProviderBase
 {
-    private readonly VerkleTree _verkleTree;
+    private readonly VerkleStateTree _verkleTree;
     private readonly ILogManager? _logManager;
     /// <summary>
     /// EIP-1283
@@ -23,7 +23,7 @@ public class VerklePersistentStorageProvider: PartialStorageProviderBase
     private readonly ResettableDictionary<StorageCell, byte[]> _originalValues = new ResettableDictionary<StorageCell, byte[]>();
     private readonly ResettableHashSet<StorageCell> _committedThisRound = new ResettableHashSet<StorageCell>();
 
-    public VerklePersistentStorageProvider(VerkleTree tree, ILogManager? logManager)
+    public VerklePersistentStorageProvider(VerkleStateTree tree, ILogManager? logManager)
         : base(logManager)
     {
         _verkleTree = tree;
