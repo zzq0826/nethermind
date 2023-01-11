@@ -16,7 +16,8 @@ using NUnit.Framework;
 
 namespace Nethermind.Evm.Test.Tracing
 {
-    [TestFixture]
+    [TestFixture(VirtualMachineTestsStateProvider.MerkleTrie)]
+    [TestFixture(VirtualMachineTestsStateProvider.VerkleTrie)]
     public class ParityLikeTxTracerTests : VirtualMachineTestsBase
     {
         [Test]
@@ -854,6 +855,9 @@ namespace Nethermind.Evm.Test.Tracing
             ParityLikeTxTracer tracer = new(block, transaction, ParityTraceTypes.Trace | ParityTraceTypes.StateDiff);
             _processor.Execute(transaction, block.Header, tracer);
             return (tracer.BuildResult(), block, transaction);
+        }
+        public ParityLikeTxTracerTests(VirtualMachineTestsStateProvider stateProvider) : base(stateProvider)
+        {
         }
     }
 }

@@ -15,7 +15,8 @@ using NUnit.Framework;
 
 namespace Nethermind.Evm.Test
 {
-    [TestFixture]
+    [TestFixture(VirtualMachineTestsStateProvider.MerkleTrie)]
+    [TestFixture(VirtualMachineTestsStateProvider.VerkleTrie)]
     public class Eip1014Tests : VirtualMachineTestsBase
     {
         protected override long BlockNumber => MainnetSpecProvider.ConstantinopleFixBlockNumber;
@@ -190,6 +191,9 @@ namespace Nethermind.Evm.Test
             Address expectedAddress = new(resultHex);
             AssertEip1014(expectedAddress, deployedCode);
             //            Assert.AreEqual(gas, trace.Entries.Single(e => e.Operation == Instruction.CREATE2.ToString()).GasCost);
+        }
+        public Eip1014Tests(VirtualMachineTestsStateProvider stateProvider) : base(stateProvider)
+        {
         }
     }
 }
