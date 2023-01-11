@@ -57,6 +57,7 @@ using Nethermind.Sockets;
 using Nethermind.State.Snap;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.Blocks;
+using Nethermind.Verkle;
 
 namespace Nethermind.Api
 {
@@ -126,6 +127,8 @@ namespace Nethermind.Api
 
         public IManualBlockProductionTrigger ManualBlockProductionTrigger { get; set; } =
             new BuildBlocksWhenRequested();
+        public VerkleStateStore VerkleTrieStore { get; set; }
+        public ReadOnlyVerkleStateStore ReadOnlyVerkleTrieStore { get; set; }
 
         public IIPResolver? IpResolver { get; set; }
         public IJsonSerializer EthereumJsonSerializer { get; set; }
