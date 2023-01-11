@@ -139,9 +139,6 @@ namespace Nethermind.Clique.Test
                 processor.Start();
 
                 IReadOnlyTrieStore minerTrieStore = trieStore.AsReadOnly();
-
-                StateProvider minerStateProvider = new(minerTrieStore, codeDb, nodeLogManager);
-                StorageProvider minerStorageProvider = new(minerTrieStore, minerStateProvider, nodeLogManager);
                 WorldState minerWorldState = new WorldState(minerTrieStore, codeDb, nodeLogManager);
                 VirtualMachine minerVirtualMachine = new(blockhashProvider, specProvider, nodeLogManager);
                 TransactionProcessor minerTransactionProcessor = new TransactionProcessor(goerliSpecProvider, minerWorldState, minerVirtualMachine, nodeLogManager);
@@ -171,7 +168,7 @@ namespace Nethermind.Clique.Test
                 CliqueBlockProducer blockProducer = new(
                     txPoolTxSource,
                     minerProcessor,
-                    minerStateProvider,
+                    minerWorldState,
                     blockTree,
                     _timestamper,
                     new CryptoRandom(),

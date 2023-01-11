@@ -52,8 +52,6 @@ namespace Nethermind.JsonRpc.Test.Modules.Trace
             MemDb stateDb = new();
             MemDb codeDb = new();
             ITrieStore trieStore = new TrieStore(stateDb, LimboLogs.Instance).AsReadOnly();
-            StateProvider stateProvider = new StateProvider(trieStore, codeDb, LimboLogs.Instance);
-            StorageProvider storageProvider = new StorageProvider(trieStore, stateProvider, LimboLogs.Instance);
             WorldState worldState = new WorldState(trieStore, codeDb, LimboLogs.Instance);
             StateReader stateReader = new StateReader(trieStore, codeDb, LimboLogs.Instance);
 
@@ -78,7 +76,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Trace
             _blockTree.SuggestBlock(genesis);
             _processor.Process(genesis, ProcessingOptions.None, NullBlockTracer.Instance);
 
-            _tracer = new Tracer(stateProvider, _processor);
+            _tracer = new Tracer(worldState, _processor);
         }
 
         [Test]
