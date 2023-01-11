@@ -10,6 +10,7 @@ using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Logging;
 using Nethermind.Stats.Model;
@@ -69,6 +70,11 @@ namespace Nethermind.Synchronization.FastBlocks
 
             if (_logger.IsInfo) _logger.Info($"Using pivot {_pivotNumber} and barrier {_barrier} in receipts sync");
 
+            ResetSyncStatusList();
+        }
+
+        private void ResetSyncStatusList()
+        {
             _syncStatusList = new SyncStatusList(
                 _blockTree,
                 _pivotNumber,
@@ -95,6 +101,7 @@ namespace Nethermind.Synchronization.FastBlocks
             {
                 if (ShouldFinish)
                 {
+                    ResetSyncStatusList();
                     Finish();
                     PostFinishCleanUp();
                 }
@@ -171,7 +178,8 @@ namespace Nethermind.Synchronization.FastBlocks
                 }
                 else
                 {
-                    IReleaseSpec releaseSpec = _specProvider.GetSpec(blockInfo.BlockNumber);
+                    // BlockInfo has no timestamp
+                    IReceiptSpec releaseSpec = _specProvider.GetReceiptSpec(blockInfo.BlockNumber);
                     preparedReceipts = receipts.GetReceiptsRoot(releaseSpec, header.ReceiptsRoot) != header.ReceiptsRoot
                         ? null
                         : receipts;
