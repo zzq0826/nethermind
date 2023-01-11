@@ -227,7 +227,7 @@ public class DbOnTheRocks : IDbWithSpan
         // tableOptions.SetBlockCache(cache);
 
         DbOptions options = new();
-        // options.SetCreateIfMissing();
+        options.SetCreateIfMissing();
         // options.SetAdviseRandomOnOpen(true);
         // options.OptimizeForPointLookup(
             // blockCacheSize); // I guess this should be the one option controlled by the DB size property - bind it to LRU cache size
