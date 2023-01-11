@@ -15,7 +15,7 @@ namespace Nethermind.Specs.Forks
             Name = "Shanghai";
             IsEip3651Enabled = true;
             IsEip3855Enabled = true;
-            IsEip3860Enabled = true;
+            // IsEip3860Enabled = true;
             IsEip3670Enabled = true;
             IsEip3540Enabled = true;
         }
