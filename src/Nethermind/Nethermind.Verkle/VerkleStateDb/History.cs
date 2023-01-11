@@ -1,6 +1,8 @@
 // Copyright 2022 Demerzel Solutions Limited
 // Licensed under Apache-2.0. For full terms, see LICENSE in the project root.
 
+using Nethermind.Verkle.VerkleNodes;
+
 namespace Nethermind.Verkle.VerkleStateDb;
 
 public enum DiffType
@@ -33,9 +35,18 @@ public class DiffLayer : IDiffLayer
                 {
                     byte[] currDiffBytes = FetchDiff(i);
                     MemoryStateDb reverseDiff = MemoryStateDb.Decode(currDiffBytes);
-                    Parallel.ForEach(reverseDiff.LeafTable, item => mergedDiff.LeafTable.TryAdd(item.Key, item.Value));
-                    Parallel.ForEach(reverseDiff.BranchTable, item => mergedDiff.BranchTable.TryAdd(item.Key, item.Value));
-                    Parallel.ForEach(reverseDiff.StemTable, item => mergedDiff.StemTable.TryAdd(item.Key, item.Value));
+                    foreach (KeyValuePair<byte[], byte[]?> item in reverseDiff.LeafTable)
+                    {
+                        mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
+                    }
+                    foreach (KeyValuePair<byte[], InternalNode?> item in reverseDiff.BranchTable)
+                    {
+                        mergedDiff.BranchTable.TryAdd(item.Key, item.Value);
+                    }
+                    foreach (KeyValuePair<byte[], SuffixTree?> item in reverseDiff.StemTable)
+                    {
+                        mergedDiff.StemTable.TryAdd(item.Key, item.Value);
+                    }
                 }
                 break;
             case DiffType.Forward:
@@ -43,9 +54,18 @@ public class DiffLayer : IDiffLayer
                 {
                     byte[] currDiffBytes = FetchDiff(i);
                     MemoryStateDb reverseDiff = MemoryStateDb.Decode(currDiffBytes);
-                    Parallel.ForEach(reverseDiff.LeafTable, item => mergedDiff.LeafTable.TryAdd(item.Key, item.Value));
-                    Parallel.ForEach(reverseDiff.BranchTable, item => mergedDiff.BranchTable.TryAdd(item.Key, item.Value));
-                    Parallel.ForEach(reverseDiff.StemTable, item => mergedDiff.StemTable.TryAdd(item.Key, item.Value));
+                    foreach (KeyValuePair<byte[], byte[]?> item in reverseDiff.LeafTable)
+                    {
+                        mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
+                    }
+                    foreach (KeyValuePair<byte[], InternalNode?> item in reverseDiff.BranchTable)
+                    {
+                        mergedDiff.BranchTable.TryAdd(item.Key, item.Value);
+                    }
+                    foreach (KeyValuePair<byte[], SuffixTree?> item in reverseDiff.StemTable)
+                    {
+                        mergedDiff.StemTable.TryAdd(item.Key, item.Value);
+                    }
                 }
                 break;
             default:
