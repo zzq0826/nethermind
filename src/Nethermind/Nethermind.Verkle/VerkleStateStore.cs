@@ -18,13 +18,13 @@ public class VerkleStateStore : IVerkleStore
     // This stores the key-value pairs that we need to insert into the storage. This is generally
     // used to batch insert changes for each block. This is also used to generate the forwardDiff.
     // This is flushed after every batch insert and cleared.
-    private IVerkleDiffDb Batch { get; set; }
+    private IVerkleMemoryDb Batch { get; set; }
 
     // This should store the top 3 layers of the trie, since these are the most accessed in
     // the trie on average, thus speeding up some operations. But right now every things is
     // stored in the cache - bad design.
     // TODO: modify the cache to only store the top 3 layers
-    private IVerkleDiffDb Cache { get; }
+    private IVerkleMemoryDb Cache { get; }
 
     // These database stores the forwardDiff and reverseDiff for each block. Diffs are generated when
     // the Flush(long blockNumber) method is called.
@@ -34,30 +34,30 @@ public class VerkleStateStore : IVerkleStore
 
     public VerkleStateStore(IDbProvider dbProvider)
     {
-        Storage = new VerkleStateDb.VerkleDb(dbProvider);
+        Storage = new VerkleDb(dbProvider);
         Batch = new MemoryStateDb();
         Cache = new MemoryStateDb();
-        ForwardDiff = new DiffLayer(DiffType.Forward);
-        ReverseDiff = new DiffLayer(DiffType.Reverse);
+        ForwardDiff = new DiffLayer(dbProvider.ForwardDiff, DiffType.Forward);
+        ReverseDiff = new DiffLayer(dbProvider.ReverseDiff, DiffType.Reverse);
         FullStateBlock = 0;
         InitRootHash();
     }
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore)
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock < toBlock - move forward in time
-    public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         return ForwardDiff.MergeDiffs(fromBlock, toBlock);
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock > toBlock - move back in time
-    public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         return ReverseDiff.MergeDiffs(fromBlock, toBlock);
     }
@@ -117,7 +117,7 @@ public class VerkleStateStore : IVerkleStore
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         MemoryStateDb reverseDiff = new MemoryStateDb();
 
-        foreach (KeyValuePair<byte[], byte[]?> entry in Batch.LeafNodes)
+        foreach (KeyValuePair<byte[], byte[]?> entry in Batch.LeafTable)
         {
             Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (Storage.GetLeaf(entry.Key, out byte[]? node)) reverseDiff.LeafTable[entry.Key] = node;
@@ -126,7 +126,7 @@ public class VerkleStateStore : IVerkleStore
             Storage.SetLeaf(entry.Key, entry.Value);
         }
 
-        foreach (KeyValuePair<byte[], SuffixTree?> entry in Batch.StemNodes)
+        foreach (KeyValuePair<byte[], SuffixTree?> entry in Batch.StemTable)
         {
             Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (Storage.GetStem(entry.Key, out SuffixTree? node)) reverseDiff.StemTable[entry.Key] = node;
@@ -135,7 +135,7 @@ public class VerkleStateStore : IVerkleStore
             Storage.SetStem(entry.Key, entry.Value);
         }
 
-        foreach (KeyValuePair<byte[], InternalNode?> entry in Batch.BranchNodes)
+        foreach (KeyValuePair<byte[], InternalNode?> entry in Batch.BranchTable)
         {
             Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (Storage.GetBranch(entry.Key, out InternalNode? node)) reverseDiff.BranchTable[entry.Key] = node;
@@ -154,8 +154,7 @@ public class VerkleStateStore : IVerkleStore
     // now the full state back in time by one block.
     public void ReverseState()
     {
-        byte[] reverseDiffByte = ReverseDiff.FetchDiff(FullStateBlock);
-        MemoryStateDb reverseDiff = MemoryStateDb.Decode(reverseDiffByte);
+        IVerkleMemoryDb reverseDiff = ReverseDiff.FetchDiff(FullStateBlock);
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
         {
@@ -205,8 +204,10 @@ public class VerkleStateStore : IVerkleStore
     }
 
     // use the batch diff to move the full state back in time to access historical state.
-    public void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks)
+    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
     {
+        if (fromBlock != FullStateBlock) throw new ArgumentException($"Cannot apply diff FullStateBlock:{FullStateBlock}!=fromBlock:{fromBlock}", nameof(fromBlock));
+
         MemoryStateDb reverseDiff = (MemoryStateDb)reverseBatch;
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
@@ -253,7 +254,7 @@ public class VerkleStateStore : IVerkleStore
                 Storage.SetBranch(entry.Key, node);
             }
         }
-        FullStateBlock -= numBlocks;
+        FullStateBlock = toBlock;
     }
 }
 
@@ -267,12 +268,12 @@ public interface IVerkleStore: IStoreWithReorgBoundary
     void SetBranch(byte[] branchKey, InternalNode internalNodeValue);
     void Flush(long blockNumber);
     void ReverseState();
-    void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks);
+    void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock);
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore);
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore);
 
-    public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock);
+    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock);
 
-    public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock);
+    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock);
 
 }

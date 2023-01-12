@@ -3,6 +3,7 @@
 
 using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Serializers;
 using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleStateDb;
@@ -10,7 +11,7 @@ using BranchStore = Dictionary<byte[], InternalNode?>;
 using LeafStore = Dictionary<byte[], byte[]?>;
 using SuffixStore = Dictionary<byte[], SuffixTree?>;
 
-public class MemoryStateDb : IVerkleDiffDb
+public class MemoryStateDb : IVerkleMemoryDb
 {
     public Dictionary<byte[], byte[]?> LeafTable { get; }
     public Dictionary<byte[], SuffixTree?> StemTable { get; }
@@ -46,9 +47,6 @@ public class MemoryStateDb : IVerkleDiffDb
         return MemoryStateDbSerializer.Instance.Decode(stream);
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> LeafNodes => LeafTable.AsEnumerable();
-    public IEnumerable<KeyValuePair<byte[], SuffixTree?>> StemNodes => StemTable.AsEnumerable();
-    public IEnumerable<KeyValuePair<byte[], InternalNode?>> BranchNodes => BranchTable.AsEnumerable();
     public bool GetLeaf(byte[] key, out byte[]? value) => LeafTable.TryGetValue(key, out value);
     public bool GetStem(byte[] key, out SuffixTree? value) => StemTable.TryGetValue(key, out value);
     public bool GetBranch(byte[] key, out InternalNode? value) => BranchTable.TryGetValue(key, out value);
@@ -91,39 +89,3 @@ public class MemoryStateDb : IVerkleDiffDb
     }
 }
 
-
-
-public class MemoryStateDbSerializer : IRlpStreamDecoder<MemoryStateDb>
-{
-    public static MemoryStateDbSerializer Instance => new MemoryStateDbSerializer();
-
-    public int GetLength(MemoryStateDb item, RlpBehaviors rlpBehaviors)
-    {
-        int length = 0;
-        length += Rlp.LengthOfSequence(LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None));
-        length += Rlp.LengthOfSequence(SuffixStoreSerializer.Instance.GetLength(item.StemTable, RlpBehaviors.None));
-        length += Rlp.LengthOfSequence(BranchStoreSerializer.Instance.GetLength(item.BranchTable, RlpBehaviors.None));
-        return length;
-    }
-
-    public int GetLength(MemoryStateDb item, RlpBehaviors rlpBehaviors, out int contentLength)
-    {
-        contentLength = GetLength(item, rlpBehaviors);
-        return Rlp.LengthOfSequence(contentLength);
-    }
-
-    public MemoryStateDb Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
-    {
-        return new MemoryStateDb(
-            LeafStoreSerializer.Instance.Decode(rlpStream),
-            SuffixStoreSerializer.Instance.Decode(rlpStream),
-            BranchStoreSerializer.Instance.Decode(rlpStream)
-        );
-    }
-    public void Encode(RlpStream stream, MemoryStateDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
-    {
-        LeafStoreSerializer.Instance.Encode(stream, item.LeafTable);
-        SuffixStoreSerializer.Instance.Encode(stream, item.StemTable);
-        BranchStoreSerializer.Instance.Encode(stream, item.BranchTable);
-    }
-}

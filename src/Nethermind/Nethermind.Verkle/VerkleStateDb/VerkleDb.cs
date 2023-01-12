@@ -3,11 +3,12 @@
 
 using Nethermind.Core;
 using Nethermind.Db;
+using Nethermind.Verkle.Serializers;
 using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleStateDb;
 
-public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
+public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
 {
     private readonly IDbProvider _dbProvider;
 
@@ -22,19 +23,15 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
 
     public SuffixTree? GetStem(byte[] key)
     {
-        return StemDb[key] is null ? null : SuffixTreeSerializer.Instance.Decode(StemDb[key]);
+        byte[]? value = StemDb[key];
+        return value is null ? null : SuffixTreeSerializer.Instance.Decode(value);
     }
 
     public InternalNode? GetBranch(byte[] key)
     {
-        return BranchDb[key] is null ? null : InternalNodeSerializer.Instance.Decode(BranchDb[key]);
+        byte[]? value = BranchDb[key];
+        return value is null ? null : InternalNodeSerializer.Instance.Decode(value);
     }
-
-    public void SetLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db) => db[leafKey] = leafValue;
-
-    public void SetStem(byte[] stemKey, SuffixTree? suffixTree, IKeyValueStore db) => db[stemKey] = SuffixTreeSerializer.Instance.Encode(suffixTree).Bytes;
-
-    public void SetBranch(byte[] branchKey, InternalNode? internalNodeValue, IKeyValueStore db) => db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
 
     public bool GetLeaf(byte[] key, out byte[]? value)
     {
@@ -51,9 +48,10 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
         value = GetBranch(key);
         return value is not null;
     }
-    public void SetLeaf(byte[] leafKey, byte[] leafValue) => SetLeaf(leafKey, leafValue, LeafDb);
-    public void SetStem(byte[] stemKey, SuffixTree suffixTree) => SetStem(stemKey, suffixTree, StemDb);
-    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => SetBranch(branchKey, internalNodeValue, BranchDb);
+    public void SetLeaf(byte[] leafKey, byte[] leafValue) => _setLeaf(leafKey, leafValue, LeafDb);
+    public void SetStem(byte[] stemKey, SuffixTree suffixTree) => _setStem(stemKey, suffixTree, StemDb);
+    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => _setBranch(branchKey, internalNodeValue, BranchDb);
+
     public void RemoveLeaf(byte[] leafKey)
     {
         LeafDb.Remove(leafKey);
@@ -72,7 +70,7 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
         using IBatch batch = LeafDb.StartBatch();
         foreach ((byte[] key, byte[]? value) in keyLeaf)
         {
-            SetLeaf(key, value, batch);
+            _setLeaf(key, value, batch);
         }
     }
     public void BatchStemInsert(IEnumerable<KeyValuePair<byte[], SuffixTree?>> suffixLeaf)
@@ -80,7 +78,7 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
         using IBatch batch = StemDb.StartBatch();
         foreach ((byte[] key, SuffixTree? value) in suffixLeaf)
         {
-            SetStem(key, value, batch);
+            _setStem(key, value, batch);
         }
     }
     public void BatchBranchInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> branchLeaf)
@@ -88,7 +86,7 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
         using IBatch batch = BranchDb.StartBatch();
         foreach ((byte[] key, InternalNode? value) in branchLeaf)
         {
-            SetBranch(key, value, batch);
+            _setBranch(key, value, batch);
         }
     }
     public byte[]? this[byte[] key]
@@ -117,5 +115,15 @@ public class VerkleDb : IVerkleDb, IReadOnlyKeyValueStore
                     break;
             }
         }
+    }
+
+    private static void _setLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db) => db[leafKey] = leafValue;
+    private static void _setStem(byte[] stemKey, SuffixTree? suffixTree, IKeyValueStore db)
+    {
+        if (suffixTree != null) db[stemKey] = SuffixTreeSerializer.Instance.Encode(suffixTree).Bytes;
+    }
+    private static void _setBranch(byte[] branchKey, InternalNode? internalNodeValue, IKeyValueStore db)
+    {
+        if (internalNodeValue != null) db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
     }
 }

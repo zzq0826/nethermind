@@ -11,9 +11,9 @@ namespace Nethermind.Verkle;
 public class ReadOnlyVerkleStateStore: IVerkleStore
 {
     private VerkleStateStore _verkleStateStore;
-    private IVerkleDiffDb _keyValueStore;
+    private IVerkleMemoryDb _keyValueStore;
 
-    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, IVerkleDiffDb keyValueStore)
+    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, IVerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
@@ -49,19 +49,19 @@ public class ReadOnlyVerkleStateStore: IVerkleStore
     public void Flush(long blockNumber) { }
 
     public void ReverseState() { }
-    public void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks) { }
+    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock) { }
 
-    public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
-    public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore)
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
     }

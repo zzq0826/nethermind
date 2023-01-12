@@ -246,12 +246,12 @@ public class VerkleTree
         return leafDeltaCommitment;
     }
 
-    public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         return _stateDb.GetForwardMergedDiff(fromBlock, toBlock);
     }
 
-    public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         return _stateDb.GetReverseMergedDiff(fromBlock, toBlock);
     }
@@ -265,9 +265,9 @@ public class VerkleTree
         _stateDb.ReverseState();
     }
 
-    public void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks)
+    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
     {
-        _stateDb.ReverseState(reverseBatch, numBlocks);
+        _stateDb.ApplyDiffLayer(reverseBatch, fromBlock, toBlock);
     }
 
     private ref struct TraverseContext
