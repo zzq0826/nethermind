@@ -55,7 +55,7 @@ public class VerkleWorldState: IWorldState
     public Keccak StateRoot
     {
         get => new Keccak(_tree.RootHash);
-        set => throw new InvalidOperationException();
+        set => _tree.RootHash = value.Bytes;
     }
 
 

@@ -107,7 +107,7 @@ namespace Nethermind.Init.Steps
             IKeyValueStore codeDb = getApi.DbProvider.CodeDb
                 .WitnessedBy(witnessCollector);
 
-            if (getApi.SpecProvider.GenesisSpec.VerkleTreeEnabled)
+            if (!getApi.SpecProvider.GenesisSpec.VerkleTreeEnabled)
             {
                 TrieStore trieStore;
                 CachingStore cachedStateDb = getApi.DbProvider.StateDb
@@ -356,7 +356,7 @@ namespace Nethermind.Init.Steps
                 _api.SpecProvider,
                 _api.BlockValidator,
                 _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
-                new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, new WorldState(_api.TrieStore, _api.DbProvider!.CodeDb, _api.LogManager)),
+                new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
                 _api.WorldState,
                 _api.ReceiptStorage,
                 _api.WitnessCollector,

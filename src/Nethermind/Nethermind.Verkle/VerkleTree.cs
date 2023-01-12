@@ -11,7 +11,19 @@ namespace Nethermind.Verkle;
 public class VerkleTree
 {
     private readonly IVerkleStore _stateDb;
-    public byte[] RootHash => _stateDb.GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+    private byte[] _stateRoot;
+    public byte[] RootHash
+    {
+        get
+        {
+            return _stateDb.GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+        }
+
+        set
+        {
+            _stateRoot = value;
+        }
+    }
 
     public VerkleTree(IDbProvider dbProvider)
     {
