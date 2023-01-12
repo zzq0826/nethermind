@@ -137,11 +137,11 @@ namespace Nethermind.Core
         {
             Dictionary<byte, byte[]> dict = new Dictionary<byte, byte[]>();
 
-            dict[0] = Version.ToBigEndian();
-            dict[1] = Balance.ToBigEndian();
-            dict[2] = Nonce.ToBigEndian();
+            dict[0] = Version.ToLittleEndian();
+            dict[1] = Balance.ToLittleEndian();
+            dict[2] = Nonce.ToLittleEndian();
             dict[3] = CodeHash.Bytes;
-            dict[4] = CodeSize.ToBigEndian();
+            dict[4] = CodeSize.ToLittleEndian();
 
             return dict;
 

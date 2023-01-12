@@ -18,7 +18,7 @@ public class VerkleStateStore : IVerkleStore
     // This stores the key-value pairs that we need to insert into the storage. This is generally
     // used to batch insert changes for each block. This is also used to generate the forwardDiff.
     // This is flushed after every batch insert and cleared.
-    private IVerkleDiffDb Batch { get; }
+    private IVerkleDiffDb Batch { get; set; }
 
     // This should store the top 3 layers of the trie, since these are the most accessed in
     // the trie on average, thus speeding up some operations. But right now every things is
@@ -147,6 +147,8 @@ public class VerkleStateStore : IVerkleStore
         ForwardDiff.InsertDiff(blockNumber, Batch);
         ReverseDiff.InsertDiff(blockNumber, reverseDiff);
         FullStateBlock = blockNumber;
+
+        Batch = new MemoryStateDb();
     }
 
     // now the full state back in time by one block.

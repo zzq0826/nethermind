@@ -16,8 +16,6 @@ namespace Nethermind.Trie.Pruning
         bool IsPersisted(Keccak keccak);
 
         IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
-
-        new event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
     }
 
     public interface IStoreWithReorgBoundary

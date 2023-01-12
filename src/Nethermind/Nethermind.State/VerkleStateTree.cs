@@ -28,17 +28,19 @@ public class VerkleStateTree: VerkleTree
     [DebuggerStepThrough]
     public Account? Get(Address address, Keccak? rootHash = null)
     {
+        Span<byte> key = new byte[32];
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        headerTreeKey[31] = AccountHeader.Version;
-        UInt256 version = new UInt256((Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.Balance;
-        UInt256 balance = new UInt256((Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.Nonce;
-        UInt256 nonce = new UInt256((Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.CodeHash;
-        byte[]? codeHash = (Get(headerTreeKey) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
-        headerTreeKey[31] = AccountHeader.CodeSize;
-        UInt256 codeSize = new UInt256((Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
+        headerTreeKey.CopyTo(key);
+        key[31] = AccountHeader.Version;
+        UInt256 version = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        key[31] = AccountHeader.Balance;
+        UInt256 balance = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        key[31] = AccountHeader.Nonce;
+        UInt256 nonce = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        key[31] = AccountHeader.CodeHash;
+        byte[]? codeHash = (Get(key.ToArray()) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
+        key[31] = AccountHeader.CodeSize;
+        UInt256 codeSize = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
 
         return new Account(balance, nonce, new Keccak(codeHash), codeSize, version);
     }
@@ -46,7 +48,7 @@ public class VerkleStateTree: VerkleTree
     public void Set(Address address, Account? account)
     {
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) InsertStemBatch(headerTreeKey, account.ToVerkleDict());
+        if (account != null) InsertStemBatch(headerTreeKey[..31], account.ToVerkleDict());
     }
 
     public byte[] Get(Address address, in UInt256 index, Keccak? storageRoot = null)

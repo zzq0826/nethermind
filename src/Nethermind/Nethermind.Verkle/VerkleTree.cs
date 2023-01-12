@@ -214,13 +214,13 @@ public class VerkleTree
     }
     private LeafUpdateDelta UpdateLeaf(Span<byte> stem, Dictionary<byte, byte[]> indexValuePairs)
     {
-        byte[] key = new byte[32];
+        Span<byte> key = new byte[32];
         stem.CopyTo(key);
         LeafUpdateDelta leafDelta = new LeafUpdateDelta();
         foreach ((byte index, byte[] value) in indexValuePairs)
         {
             key[31] = index;
-            leafDelta.UpdateDelta(_updateLeaf(key, value), key[31]);
+            leafDelta.UpdateDelta(_updateLeaf(key.ToArray(), value), key[31]);
         }
         return leafDelta;
     }
