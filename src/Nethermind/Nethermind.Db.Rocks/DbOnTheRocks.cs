@@ -51,6 +51,8 @@ public class DbOnTheRocks : IDbWithSpan
 
     private readonly RocksDbSharp.Native _rocksDbNative;
 
+    private readonly object _writeLock = new();
+
     private string CorruptMarkerPath => Path.Join(_fullPath, "corrupt.marker");
 
     protected static void InitCache(IDbConfig dbConfig)
@@ -344,13 +346,16 @@ public class DbOnTheRocks : IDbWithSpan
 
             try
             {
-                if (value is null)
+                lock (_writeLock)
                 {
-                    _db.Remove(key, null, WriteOptions);
-                }
-                else
-                {
-                    _db.Put(key, value, null, WriteOptions);
+                    if (value is null)
+                    {
+                        _db.Remove(key, null, WriteOptions);
+                    }
+                    else
+                    {
+                        _db.Put(key, value, null, WriteOptions);
+                    }
                 }
             }
             catch (RocksDbSharpException e)
@@ -408,7 +413,10 @@ public class DbOnTheRocks : IDbWithSpan
 
         try
         {
-            _db.Remove(key, null, WriteOptions);
+            lock (_writeLock)
+            {
+                _db.Remove(key, null, WriteOptions);
+            }
         }
         catch (RocksDbSharpException e)
         {
@@ -596,9 +604,12 @@ public class DbOnTheRocks : IDbWithSpan
 
             try
             {
-                _dbOnTheRocks._db.Write(_rocksBatch, _dbOnTheRocks.WriteOptions);
-                _dbOnTheRocks._currentBatches.TryRemove(this);
-                _rocksBatch.Dispose();
+                lock (_dbOnTheRocks._writeLock)
+                {
+                    _dbOnTheRocks._db.Write(_rocksBatch, _dbOnTheRocks.WriteOptions);
+                    _dbOnTheRocks._currentBatches.TryRemove(this);
+                    _rocksBatch.Dispose();
+                }
             }
             catch (RocksDbSharpException e)
             {
@@ -665,19 +676,22 @@ public class DbOnTheRocks : IDbWithSpan
     {
         try
         {
-            string fullPath = _fullPath!;
-            if (Directory.Exists(fullPath))
+            lock (_writeLock)
             {
-                // We want to keep the folder if it can have subfolders with copied databases from pruning
-                if (_settings.CanDeleteFolder)
+                string fullPath = _fullPath!;
+                if (Directory.Exists(fullPath))
                 {
-                    Directory.Delete(fullPath, true);
-                }
-                else
-                {
-                    foreach (string file in Directory.EnumerateFiles(fullPath))
+                    // We want to keep the folder if it can have subfolders with copied databases from pruning
+                    if (_settings.CanDeleteFolder)
                     {
-                        File.Delete(file);
+                        Directory.Delete(fullPath, true);
+                    }
+                    else
+                    {
+                        foreach (string file in Directory.EnumerateFiles(fullPath))
+                        {
+                            File.Delete(file);
+                        }
                     }
                 }
             }
