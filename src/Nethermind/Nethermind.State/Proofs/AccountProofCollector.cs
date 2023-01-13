@@ -79,12 +79,12 @@ namespace Nethermind.State.Proofs
 
                 _accountProof.StorageProofs[i] = new StorageProof();
                 // we don't know the key (index)
-                //_accountProof.StorageProofs[i].Key = storageKeys[i];  
+                //_accountProof.StorageProofs[i].Key = storageKeys[i];
                 _accountProof.StorageProofs[i].Value = new byte[] { 0 };
             }
         }
 
-        public AccountProofCollector(byte[] hashedAddress, params byte[][] storageKeys)
+        public AccountProofCollector(Span<byte> hashedAddress, params byte[][] storageKeys)
         {
             storageKeys ??= Array.Empty<byte[]>();
             _fullAccountPath = Nibbles.FromBytes(hashedAddress);

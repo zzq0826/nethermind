@@ -24,7 +24,7 @@ namespace Nethermind.Core.Crypto
         {
         }
 
-        public ValueKeccak(byte[] data)
+        public ValueKeccak(Span<byte> data)
         {
             data.CopyTo(BytesAsSpan);
         }
@@ -93,14 +93,26 @@ namespace Nethermind.Core.Crypto
 
         public Span<byte> Bytes => _innerKeccak.BytesAsSpan;
 
+        [ThreadStatic] private static byte[]? _byteArrayBuffer;
+
+        public byte[] GetThreadStaticByteBuffer
+        {
+            get
+            {
+                if (_byteArrayBuffer == null) _byteArrayBuffer = new byte[Size];
+                Bytes.CopyTo(_byteArrayBuffer);
+                return _byteArrayBuffer;
+            }
+        }
+
         public byte[] CreateByteArray => Bytes.ToArray();
 
-        public ValueKeccak _innerKeccak;
+        private ValueKeccak _innerKeccak;
 
         public Keccak(string hexString)
             : this(Core.Extensions.Bytes.FromHexString(hexString)) { }
 
-        public Keccak(byte[] bytes)
+        public Keccak(Span<byte> bytes)
         {
             if (bytes.Length != Size)
             {

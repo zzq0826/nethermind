@@ -24,7 +24,7 @@ namespace Nethermind.Network
             Forks = new (ForkActivation Activation, ForkId Id)[transitionActivations.Length + 1];
             byte[] blockNumberBytes = new byte[8];
             uint crc = 0;
-            byte[] hash = CalculateHash(ref crc, genesisHash.Bytes);
+            byte[] hash = CalculateHash(ref crc, genesisHash.GetThreadStaticByteBuffer);
             // genesis fork activation
             Forks[0] = ((0, null), new ForkId(hash, transitionActivations.Length > 0 ? transitionActivations[0].Activation : 0));
             for (int index = 0; index < transitionActivations.Length; index++)

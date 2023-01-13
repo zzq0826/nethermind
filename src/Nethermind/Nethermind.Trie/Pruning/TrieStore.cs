@@ -318,7 +318,7 @@ namespace Nethermind.Trie.Pruning
         internal byte[] LoadRlp(Keccak keccak, IKeyValueStore? keyValueStore)
         {
             keyValueStore ??= _keyValueStore;
-            byte[]? rlp = _currentBatch?[keccak.Bytes] ?? keyValueStore[keccak.Bytes];
+            byte[]? rlp = _currentBatch?[keccak.CreateByteArray] ?? keyValueStore[keccak.CreateByteArray];
 
             if (rlp is null)
             {
@@ -334,7 +334,7 @@ namespace Nethermind.Trie.Pruning
 
         public bool IsPersisted(Keccak keccak)
         {
-            byte[]? rlp = _currentBatch?[keccak.Bytes] ?? _keyValueStore[keccak.Bytes];
+            byte[]? rlp = _currentBatch?[keccak.CreateByteArray] ?? _keyValueStore[keccak.CreateByteArray];
 
             if (rlp is null)
             {
@@ -655,7 +655,7 @@ namespace Nethermind.Trie.Pruning
                 // to prevent it from being removed from cache and also want to have it persisted.
 
                 if (_logger.IsTrace) _logger.Trace($"Persisting {nameof(TrieNode)} {currentNode} in snapshot {blockNumber}.");
-                _currentBatch[currentNode.Keccak.Bytes] = currentNode.FullRlp;
+                _currentBatch[currentNode.Keccak.CreateByteArray] = currentNode.FullRlp;
                 currentNode.IsPersisted = true;
                 currentNode.LastSeen = Math.Max(blockNumber, currentNode.LastSeen ?? 0);
                 PersistedNodesCount++;
@@ -796,9 +796,9 @@ namespace Nethermind.Trie.Pruning
                 void PersistNode(TrieNode n)
                 {
                     Keccak? hash = n.Keccak;
-                    if (hash?.Bytes is not null)
+                    if (hash?.CreateByteArray is not null)
                     {
-                        store[hash.Bytes] = n.FullRlp;
+                        store[hash.CreateByteArray] = n.FullRlp;
                         int persistedNodesCount = Interlocked.Increment(ref persistedNodes);
                         if (_logger.IsInfo && persistedNodesCount % million == 0)
                         {

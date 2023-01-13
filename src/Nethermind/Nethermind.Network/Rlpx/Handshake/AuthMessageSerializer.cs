@@ -39,7 +39,7 @@ namespace Nethermind.Network.Rlpx.Handshake
             byte[] data = new byte[Length];
             Buffer.BlockCopy(msg.Signature.Bytes, 0, data, SigOffset, SigLength - 1);
             data[SigLength - 1] = msg.Signature.RecoveryId;
-            Buffer.BlockCopy(msg.EphemeralPublicHash.Bytes, 0, data, EphemeralHashOffset, EphemeralHashLength);
+            msg.EphemeralPublicHash.Bytes.CopyTo(data.AsSpan().Slice(EphemeralHashOffset, EphemeralHashLength));
             Buffer.BlockCopy(msg.PublicKey.Bytes, 0, data, PublicKeyOffset, PublicKeyLength);
             Buffer.BlockCopy(msg.Nonce, 0, data, NonceOffset, NonceLength);
             data[IsTokenUsedOffset] = msg.IsTokenUsed ? (byte)0x01 : (byte)0x00;

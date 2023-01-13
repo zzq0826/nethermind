@@ -433,6 +433,11 @@ namespace Nethermind.Serialization.Rlp
                 return position;
             }
 
+            return Encode(buffer, position, input);
+        }
+
+        public static int Encode(Span<byte> buffer, int position, Span<byte> input)
+        {
             if (input.Length == 1 && input[0] < 128)
             {
                 buffer[position++] = input[0];
@@ -452,7 +457,7 @@ namespace Nethermind.Serialization.Rlp
                 SerializeLength(buffer, position, input.Length);
             }
 
-            input.AsSpan().CopyTo(buffer.Slice(position, input.Length));
+            input.CopyTo(buffer.Slice(position, input.Length));
             position += input.Length;
 
             return position;
@@ -619,7 +624,7 @@ namespace Nethermind.Serialization.Rlp
 
             byte[] result = new byte[LengthOfKeccakRlp];
             result[0] = 160;
-            Buffer.BlockCopy(keccak.Bytes, 0, result, 1, 32);
+            keccak.Bytes.CopyTo(result.AsSpan().Slice(1, 32));
             return new Rlp(result);
         }
 

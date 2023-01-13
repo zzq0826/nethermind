@@ -31,7 +31,7 @@ namespace Nethermind.Db.Test
             MemDb memDb = new(10, 10);
             memDb.Set(TestItem.KeccakA, new byte[] { 1, 2, 3 });
             memDb.Get(TestItem.KeccakA);
-            KeyValuePair<byte[], byte[]>[] some = memDb[new[] { TestItem.KeccakA.Bytes }];
+            KeyValuePair<byte[], byte[]>[] some = memDb[new[] { TestItem.KeccakA.CreateByteArray }];
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace Nethermind.Db.Test
         {
             MemDb memDb = new();
             memDb.Set(TestItem.KeccakA, _sampleValue);
-            memDb.Remove(TestItem.KeccakA.Bytes);
+            memDb.Remove(TestItem.KeccakA.CreateByteArray);
             memDb.KeyExists(TestItem.KeccakA).Should().BeFalse();
         }
 
@@ -107,7 +107,7 @@ namespace Nethermind.Db.Test
             MemDb memDb = new();
             memDb.Set(TestItem.KeccakA, _sampleValue);
             memDb.Set(TestItem.KeccakB, _sampleValue);
-            KeyValuePair<byte[], byte[]>[] result = memDb[new[] { TestItem.KeccakB.Bytes, TestItem.KeccakB.Bytes, TestItem.KeccakC.Bytes }];
+            KeyValuePair<byte[], byte[]>[] result = memDb[new[] { TestItem.KeccakB.CreateByteArray, TestItem.KeccakB.CreateByteArray, TestItem.KeccakC.CreateByteArray }];
             result.Should().HaveCount(3);
             result[0].Value.Should().NotBeNull();
             result[1].Value.Should().NotBeNull();

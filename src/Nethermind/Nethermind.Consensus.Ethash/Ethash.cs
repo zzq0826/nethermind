@@ -96,7 +96,7 @@ namespace Nethermind.Consensus.Ethash
         }
 
         /// <summary>
-        /// Improvement from @AndreaLanfranchi 
+        /// Improvement from @AndreaLanfranchi
         /// </summary>
         /// <param name="number"></param>
         /// <returns></returns>
@@ -122,7 +122,7 @@ namespace Nethermind.Consensus.Ethash
 
         public static Keccak GetSeedHash(uint epoch)
         {
-            byte[] seed = new byte[32];
+            Span<byte> seed = stackalloc byte[32];
             for (uint i = 0; i < epoch; i++)
             {
                 seed = Keccak.Compute(seed).Bytes; // TODO: optimize
@@ -305,7 +305,7 @@ namespace Nethermind.Consensus.Ethash
                 return (null, null, false);
             }
 
-            return (cmix, Keccak.Compute(Bytes.Concat(headerAndNonceHashed, cmix)).Bytes, true); // this tests fine
+            return (cmix, Keccak.Compute(Bytes.Concat(headerAndNonceHashed, cmix)).CreateByteArray, true); // this tests fine
         }
     }
 }

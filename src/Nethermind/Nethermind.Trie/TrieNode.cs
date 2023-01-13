@@ -201,6 +201,11 @@ namespace Nethermind.Trie
             }
         }
 
+        public TrieNode(NodeType nodeType, Keccak keccak, Span<byte> rlp)
+            : this(nodeType, keccak, rlp.ToArray())
+        {
+        }
+
         public override string ToString()
         {
 #if DEBUG

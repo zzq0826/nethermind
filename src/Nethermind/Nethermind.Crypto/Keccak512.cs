@@ -62,9 +62,9 @@ namespace Nethermind.Crypto
             return InternalCompute(input);
         }
 
-        public static uint[] ComputeToUInts(byte[] input)
+        public static uint[] ComputeToUInts(Span<byte> input)
         {
-            if (input is null || input.Length == 0)
+            if (input.Length == 0)
             {
                 throw new NotSupportedException();
             }

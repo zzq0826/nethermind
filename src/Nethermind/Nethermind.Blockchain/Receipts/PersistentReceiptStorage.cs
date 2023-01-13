@@ -226,7 +226,7 @@ namespace Nethermind.Blockchain.Receipts
             using IBatch batch = _transactionDb.StartBatch();
             foreach (TxReceipt txReceipt in receipts)
             {
-                batch[txReceipt.TxHash.Bytes] = block.Hash.Bytes;
+                batch[txReceipt.TxHash.CreateByteArray] = block.Hash.CreateByteArray;
             }
         }
     }

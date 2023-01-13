@@ -290,7 +290,7 @@ namespace Nethermind.Synchronization.SnapSync
         {
             MoreAccountsToRight = false;
             NextAccountPath = Keccak.MaxValue;
-            _db.Set(ACC_PROGRESS_KEY, NextAccountPath.Bytes);
+            _db.Set(ACC_PROGRESS_KEY, NextAccountPath.CreateByteArray);
         }
 
         private void LogRequest(string reqType)

@@ -1588,7 +1588,7 @@ namespace Nethermind.Evm
                             stack.PopUInt256(out UInt256 a);
                             long number = a > long.MaxValue ? long.MaxValue : (long)a;
                             Keccak blockHash = _blockhashProvider.GetBlockhash(txCtx.Header, number);
-                            stack.PushBytes(blockHash?.Bytes ?? BytesZero32);
+                            stack.PushBytes(blockHash != null ? blockHash.Bytes : BytesZero32);
 
                             if (isTrace)
                             {
@@ -1621,7 +1621,7 @@ namespace Nethermind.Evm
 
                             if (txCtx.Header.IsPostMerge)
                             {
-                                byte[] random = txCtx.Header.Random.Bytes;
+                                Span<byte> random = txCtx.Header.Random.Bytes;
                                 stack.PushBytes(random);
                             }
                             else

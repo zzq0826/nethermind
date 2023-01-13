@@ -61,7 +61,7 @@ namespace Nethermind.Crypto
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="tx"></param>
@@ -73,7 +73,7 @@ namespace Nethermind.Crypto
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="tx"></param>
         /// <param name="useSignatureChainId"></param>
@@ -120,7 +120,7 @@ namespace Nethermind.Crypto
             Span<byte> publicKey = stackalloc byte[65];
             bool success = Proxy.RecoverKeyFromCompact(
                 publicKey,
-                message.Bytes,
+                message.GetThreadStaticByteBuffer,
                 signatureBytes.Slice(0, 64),
                 signatureBytes[64],
                 false);

@@ -1620,19 +1620,19 @@ namespace Nethermind.Blockchain
             else
             {
                 if (_logger.IsInfo) _logger.Info($"Deleting an invalid block or its descendant {hash}");
-                _blockInfoDb.Set(DeletePointerAddressInDb, hash.Bytes);
+                _blockInfoDb.Set(DeletePointerAddressInDb, hash.CreateByteArray);
             }
         }
 
         public void UpdateHeadBlock(Keccak blockHash)
         {
             if (_logger.IsError) _logger.Error($"Block tree override detected - updating head block to {blockHash}.");
-            _blockInfoDb.Set(HeadAddressInDb, blockHash.Bytes);
+            _blockInfoDb.Set(HeadAddressInDb, blockHash.CreateByteArray);
             BlockHeader? header = FindHeader(blockHash, BlockTreeLookupOptions.None);
             if (header is not null)
             {
                 if (_logger.IsError) _logger.Error($"Block tree override detected - updating head block to {blockHash}.");
-                _blockInfoDb.Set(HeadAddressInDb, blockHash.Bytes);
+                _blockInfoDb.Set(HeadAddressInDb, blockHash.CreateByteArray);
                 BestPersistedState = header.Number;
             }
             else
@@ -1654,7 +1654,7 @@ namespace Nethermind.Blockchain
             }
 
             Head = block;
-            _blockInfoDb.Set(HeadAddressInDb, block.Hash.Bytes);
+            _blockInfoDb.Set(HeadAddressInDb, block.Hash.CreateByteArray);
             NewHeadBlock?.Invoke(this, new BlockEventArgs(block));
         }
 
