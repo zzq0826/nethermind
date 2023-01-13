@@ -217,7 +217,7 @@ namespace Nethermind.Synchronization.FastSync
 
                         /* node sent data that is not consistent with its hash - it happens surprisingly often */
                         if (!ValueKeccak.Compute(currentResponseItem).BytesAsSpan
-                                .SequenceEqual(currentStateSyncItem.Hash.Bytes))
+                                .SequenceEqual(currentStateSyncItem.Hash.BytesAsSpan))
                         {
                             AddNodeToPending(currentStateSyncItem, null, "missing", true);
                             if (_logger.IsTrace)
