@@ -742,7 +742,7 @@ namespace Nethermind.Synchronization.FastSync
                 _codeDbLock.EnterWriteLock();
                 try
                 {
-                    _codeDb[_fastSyncProgressKey.CreateByteArray] = serializedData;
+                    _codeDb[_fastSyncProgressKey.Bytes] = serializedData;
                 }
                 finally
                 {

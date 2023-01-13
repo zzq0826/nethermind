@@ -56,7 +56,7 @@ namespace Nethermind.State.Proofs
         /// <summary>
         /// Only for testing
         /// </summary>
-        public AccountProofCollector(byte[] hashedAddress, Keccak[] keccakStorageKeys)
+        public AccountProofCollector(Span<byte> hashedAddress, Keccak[] keccakStorageKeys)
         {
             keccakStorageKeys ??= Array.Empty<Keccak>();
 

@@ -69,7 +69,7 @@ namespace Nethermind.Blockchain.FullPruning
             if (node.Keccak is not null)
             {
                 // simple copy of nodes RLP
-                _pruningContext[node.Keccak.CreateByteArray] = node.FullRlp;
+                _pruningContext[node.Keccak.Bytes] = node.FullRlp;
                 Interlocked.Increment(ref _persistedNodes);
 
                 // log message every 1 mln nodes

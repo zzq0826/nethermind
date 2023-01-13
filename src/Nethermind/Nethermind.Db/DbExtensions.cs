@@ -21,7 +21,7 @@ namespace Nethermind.Db
 
         public static void Set(this IDb db, Keccak key, byte[] value)
         {
-            db[key.CreateByteArray] = value;
+            db[key.Bytes] = value;
         }
 
         public static byte[]? Get(this IDb db, Keccak key)
@@ -33,7 +33,7 @@ namespace Nethermind.Db
             }
 #endif
 
-            return db[key.CreateByteArray];
+            return db[key.Bytes];
         }
 
         public static KeyValuePair<byte[], byte[]>[] MultiGet(this IDb db, IEnumerable<Keccak> keys)
@@ -58,7 +58,7 @@ namespace Nethermind.Db
             }
 #endif
 
-            return db.GetSpan(key.CreateByteArray);
+            return db.GetSpan(key.GetThreadStaticByteBuffer);
         }
 
         public static bool KeyExists(this IDb db, Keccak key)
@@ -70,7 +70,7 @@ namespace Nethermind.Db
             }
 #endif
 
-            return db.KeyExists(key.CreateByteArray);
+            return db.KeyExists(key.Bytes);
         }
 
         public static bool KeyExists(this IDb db, long key)
@@ -80,7 +80,7 @@ namespace Nethermind.Db
 
         public static void Delete(this IDb db, Keccak key)
         {
-            db.Remove(key.CreateByteArray);
+            db.Remove(key.Bytes);
         }
 
         public static void Set(this IDb db, byte[] key, byte[] value)

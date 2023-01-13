@@ -56,7 +56,7 @@ namespace Nethermind.State
                 return Array.Empty<byte>();
             }
 
-            return _codeDb[codeHash.CreateByteArray];
+            return _codeDb[codeHash.Bytes];
         }
 
         public void RunTreeVisitor(ITreeVisitor treeVisitor, Keccak rootHash, VisitingOptions? visitingOptions = null)
