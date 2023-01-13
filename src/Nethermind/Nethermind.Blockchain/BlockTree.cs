@@ -172,7 +172,7 @@ namespace Nethermind.Blockchain
                                         throw new ArgumentNullException(nameof(chainLevelInfoRepository));
 
             byte[]? deletePointer = _blockInfoDb.Get(DeletePointerAddressInDb);
-            if (deletePointer is not null)
+            if (deletePointer is not null && deletePointer.Length == Keccak.Size)
             {
                 DeleteBlocks(new Keccak(deletePointer));
             }
