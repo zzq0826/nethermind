@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Crypto;
 using Nethermind.Db;
+using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.VerkleNodes;
 using Nethermind.Verkle.VerkleStateDb;
 
 namespace Nethermind.Verkle;
 
-public class ReadOnlyVerkleStateStore: IVerkleStore
+public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
     private IVerkleMemoryDb _keyValueStore;
@@ -64,5 +66,9 @@ public class ReadOnlyVerkleStateStore: IVerkleStore
     public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
+    }
+    public bool IsFullySynced(Keccak stateRoot)
+    {
+        return _verkleStateStore.IsFullySynced(stateRoot);
     }
 }

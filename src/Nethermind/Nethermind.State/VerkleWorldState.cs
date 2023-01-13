@@ -400,7 +400,7 @@ public class VerkleWorldState: IWorldState
         Db.Metrics.StateTreeWrites++;
 
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) _tree.InsertStemBatch(headerTreeKey, account.ToVerkleDict());
+        if (account != null) _tree.InsertStemBatch(headerTreeKey[..31], account.ToVerkleDict());
     }
 
     private readonly HashSet<Address> _readsForTracing = new HashSet<Address>();

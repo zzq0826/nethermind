@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nethermind.Db;
 using Nethermind.Field.Montgomery.FrEElement;
@@ -60,6 +61,7 @@ public class VerkleTree
 
     public void InsertStemBatch(Span<byte> stem, Dictionary<byte, byte[]> leafIndexValueMap)
     {
+        Debug.Assert(stem.Length == 31);
         LeafUpdateDelta leafDelta = UpdateLeaf(stem, leafIndexValueMap);
         UpdateTreeCommitments(stem, leafDelta);
     }

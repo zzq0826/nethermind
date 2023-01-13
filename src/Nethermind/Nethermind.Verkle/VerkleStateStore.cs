@@ -1,12 +1,14 @@
 using System.Diagnostics;
+using Nethermind.Core.Crypto;
 using Nethermind.Db;
+using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.VerkleNodes;
 using Nethermind.Verkle.VerkleStateDb;
 
 namespace Nethermind.Verkle;
 
-public class VerkleStateStore : IVerkleStore
+public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 {
     // the blockNumber for with the fullState exists.
     private long FullStateBlock { get; set; }
@@ -255,6 +257,10 @@ public class VerkleStateStore : IVerkleStore
             }
         }
         FullStateBlock = toBlock;
+    }
+    public bool IsFullySynced(Keccak stateRoot)
+    {
+        return false;
     }
 }
 
