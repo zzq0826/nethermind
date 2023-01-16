@@ -10,7 +10,7 @@ public class AccountHeaderTests
     public void SetAccountWithCode()
     {
         byte[] code = { 1, 2, 3, 4 };
-        AccountHeader.CodeChunkEnumerator codeEnumerator = new AccountHeader.CodeChunkEnumerator(code);
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
 
         codeEnumerator.TryGetNextChunk(out byte[] value);
         value.Should().NotBeNull();
@@ -24,7 +24,7 @@ public class AccountHeaderTests
     public void SetAccountWithCodePushOpcodes()
     {
         byte[] code1 = { 97, 1, 2, 3, 4 };
-        AccountHeader.CodeChunkEnumerator codeEnumerator = new AccountHeader.CodeChunkEnumerator(code1);
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code1);
 
         codeEnumerator.TryGetNextChunk(out byte[] value);
         value.Should().NotBeNull();
@@ -46,7 +46,7 @@ public class AccountHeaderTests
             4, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45
         };
 
-        codeEnumerator = new AccountHeader.CodeChunkEnumerator(code2);
+        codeEnumerator = new CodeChunkEnumerator(code2);
 
         codeEnumerator.TryGetNextChunk(out value);
         value.Should().NotBeNull();
@@ -82,7 +82,7 @@ public class AccountHeaderTests
         {
             1, 62, 63, 64, 65
         };
-        AccountHeader.CodeChunkEnumerator codeEnumerator = new AccountHeader.CodeChunkEnumerator(code);
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
 
         codeEnumerator.TryGetNextChunk(out byte[] value);
         value.Should().BeEquivalentTo(firstCodeChunk);
@@ -118,7 +118,7 @@ public class AccountHeaderTests
             0, 62, 63, 64, 65
         };
 
-        AccountHeader.CodeChunkEnumerator codeEnumerator = new AccountHeader.CodeChunkEnumerator(code);
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
 
         codeEnumerator.TryGetNextChunk(out byte[] value);
         value.Should().BeEquivalentTo(firstCodeChunk);
@@ -155,7 +155,7 @@ public class AccountHeaderTests
             0, 62, 63, 64, 65
         };
 
-        AccountHeader.CodeChunkEnumerator codeEnumerator = new AccountHeader.CodeChunkEnumerator(code);
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
 
         codeEnumerator.TryGetNextChunk(out byte[] value);
         value.Should().BeEquivalentTo(firstCodeChunk);

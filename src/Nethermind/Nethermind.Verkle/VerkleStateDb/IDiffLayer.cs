@@ -5,9 +5,9 @@ namespace Nethermind.Verkle.VerkleStateDb;
 
 public interface IDiffLayer
 {
-    public void InsertDiff(long blockNumber, IVerkleDiffDb diff);
+    public void InsertDiff(long blockNumber, IVerkleMemoryDb memory);
 
-    public byte[] FetchDiff(long blockNumber);
+    public IVerkleMemoryDb FetchDiff(long blockNumber);
 
-    public IVerkleDiffDb MergeDiffs(long fromBlock, long toBlock);
+    public IVerkleMemoryDb MergeDiffs(long fromBlock, long toBlock);
 }

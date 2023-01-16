@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Crypto;
 using Nethermind.Db;
+using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.VerkleNodes;
 using Nethermind.Verkle.VerkleStateDb;
 
 namespace Nethermind.Verkle;
 
-public class ReadOnlyVerkleStateStore: IVerkleStore
+public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
-    private IVerkleDiffDb _keyValueStore;
+    private IVerkleMemoryDb _keyValueStore;
 
-    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, IVerkleDiffDb keyValueStore)
+    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, IVerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
@@ -36,7 +38,7 @@ public class ReadOnlyVerkleStateStore: IVerkleStore
     }
     public void SetLeaf(byte[] leafKey, byte[] leafValue)
     {
-        _keyValueStore.SetLeaf(leafValue, leafValue);
+        _keyValueStore.SetLeaf(leafKey, leafValue);
     }
     public void SetStem(byte[] stemKey, SuffixTree suffixTree)
     {
@@ -49,20 +51,32 @@ public class ReadOnlyVerkleStateStore: IVerkleStore
     public void Flush(long blockNumber) { }
 
     public void ReverseState() { }
-    public void ReverseState(IVerkleDiffDb reverseBatch, long numBlocks) { }
+    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock) { }
+    public byte[] GetStateRoot()
+    {
+        return _verkleStateStore.GetStateRoot();
+    }
+    public void MoveToStateRoot(byte[] stateRoot)
+    {
+        _verkleStateStore.MoveToStateRoot(stateRoot);
+    }
 
-    public IVerkleDiffDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
-    public IVerkleDiffDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleDiffDb keyValueStore)
+    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
+    }
+    public bool IsFullySynced(Keccak stateRoot)
+    {
+        return _verkleStateStore.IsFullySynced(stateRoot);
     }
 }

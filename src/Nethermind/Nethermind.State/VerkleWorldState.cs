@@ -43,7 +43,7 @@ public class VerkleWorldState: IWorldState
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)
     {
-        throw new NotImplementedException();
+        _tree.Accept(visitor, stateRoot, visitingOptions);
     }
 
     public void RecalculateStateRoot()
@@ -400,7 +400,7 @@ public class VerkleWorldState: IWorldState
         Db.Metrics.StateTreeWrites++;
 
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) _tree.InsertStemBatch(headerTreeKey, account.ToVerkleDict());
+        if (account != null) _tree.InsertStemBatch(headerTreeKey[..31], account.ToVerkleDict());
     }
 
     private readonly HashSet<Address> _readsForTracing = new HashSet<Address>();

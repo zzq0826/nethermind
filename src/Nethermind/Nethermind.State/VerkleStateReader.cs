@@ -57,7 +57,7 @@ public class VerkleStateReader : IStateReader
 
     public void RunTreeVisitor(ITreeVisitor treeVisitor, Keccak rootHash, VisitingOptions? visitingOptions = null)
     {
-        throw new NotImplementedException();
+        _state.Accept(treeVisitor, rootHash, visitingOptions);
     }
 
     public byte[] GetCode(Keccak stateRoot, Address address)

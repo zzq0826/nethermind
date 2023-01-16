@@ -75,9 +75,19 @@ namespace Nethermind.Api
         {
             ReadOnlyBlockTree readOnlyTree = BlockTree.AsReadOnly();
             LazyInitializer.EnsureInitialized(ref _readOnlyDbProvider, () => new ReadOnlyDbProvider(DbProvider, false));
+            IReadOnlyTxProcessorSourceExt readOnlyTxProcessingEnv;
+            switch (SpecProvider.GenesisSpec.VerkleTreeEnabled)
+            {
+                case true:
+                    // TODO: reuse the same trie cache here
+                    readOnlyTxProcessingEnv = new ReadOnlyTxProcessingEnv(_readOnlyDbProvider, ReadOnlyVerkleTrieStore, readOnlyTree, SpecProvider, LogManager);
+                    break;
+                case false:
+                    // TODO: reuse the same trie cache here
+                    readOnlyTxProcessingEnv = new ReadOnlyTxProcessingEnv(_readOnlyDbProvider, ReadOnlyTrieStore, readOnlyTree, SpecProvider, LogManager);
+                    break;
+            }
 
-            // TODO: reuse the same trie cache here
-            IReadOnlyTxProcessorSourceExt readOnlyTxProcessingEnv = new ReadOnlyTxProcessingEnv(_readOnlyDbProvider, ReadOnlyTrieStore, readOnlyTree, SpecProvider, LogManager);
 
             IMiningConfig miningConfig = ConfigProvider.GetConfig<IMiningConfig>();
             IBlocksConfig blocksConfig = ConfigProvider.GetConfig<IBlocksConfig>();

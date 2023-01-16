@@ -1,14 +1,14 @@
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
+
 using FluentAssertions;
 using Nethermind.Db;
-using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.VerkleStateDb;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;
 
-
-[TestFixture, Parallelizable(ParallelScope.All)]
-public class VerkleTreeTests
+public class HistoryTests
 {
     private readonly byte[] _array1To32 =
     {
@@ -160,211 +160,9 @@ public class VerkleTreeTests
         }
     }
 
-
-    [TestCase(DbMode.MemDb)]
+        [TestCase(DbMode.MemDb)]
     [TestCase(DbMode.PersistantDb)]
-    public void TestInsertKey0Value0(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] key = _emptyArray;
-
-        tree.Insert(key, key);
-        AssertRootNode(tree.RootHash,
-            "ff00a9f3f2d4f58fc23bceebf6b2310419ceac2c30445e2f374e571487715015");
-
-        tree.Get(key).Should().BeEquivalentTo(key);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertKey1Value1(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] key = _array1To32;
-
-        tree.Insert(key, key);
-        AssertRootNode(tree.RootHash,
-            "029b6c4c8af9001f0ac76472766c6579f41eec84a73898da06eb97ebdab80a09");
-
-        tree.Get(key).Should().BeEquivalentTo(key);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertSameStemTwoLeaves(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] keyA = _array1To32;
-
-        byte[] keyB = _array1To32Last128;
-
-        tree.Insert(keyA, keyA);
-        AssertRootNode(tree.RootHash,
-            "029b6c4c8af9001f0ac76472766c6579f41eec84a73898da06eb97ebdab80a09");
-        tree.Insert(keyB, keyB);
-        AssertRootNode(tree.RootHash,
-            "51e3b2b1b4e4fa85098c91c269af56b06a4474b69128dce99846f0549267fd09");
-
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertKey1Val1Key2Val2(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] keyA = _emptyArray;
-        byte[] keyB = _arrayAll1;
-
-        tree.Insert(keyA, keyA);
-        AssertRootNode(tree.RootHash,
-            "ff00a9f3f2d4f58fc23bceebf6b2310419ceac2c30445e2f374e571487715015");
-        tree.Insert(keyB, keyB);
-        AssertRootNode(tree.RootHash,
-            "83ef6d10568d0ac4abbc5fdc17fe7172638803545fd2866aa1d9d204792a2c09");
-
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertLongestPath(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] keyA = _emptyArray;
-        byte[] keyB = (byte[])_emptyArray.Clone();
-        keyB[30] = 1;
-
-        tree.Insert(keyA, keyA);
-        AssertRootNode(tree.RootHash,
-            "ff00a9f3f2d4f58fc23bceebf6b2310419ceac2c30445e2f374e571487715015");
-        tree.Insert(keyB, keyB);
-        AssertRootNode(tree.RootHash,
-            "fe2e17833b90719eddcad493c352ccd491730643ecee39060c7c1fff5fcc621a");
-
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertAndTraverseLongestPath(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] keyA = _emptyArray;
-        tree.Insert(keyA, keyA);
-        AssertRootNode(tree.RootHash,
-            "ff00a9f3f2d4f58fc23bceebf6b2310419ceac2c30445e2f374e571487715015");
-
-        byte[] keyB = (byte[])_emptyArray.Clone();
-        keyB[30] = 1;
-        tree.Insert(keyB, keyB);
-        AssertRootNode(tree.RootHash,
-            "fe2e17833b90719eddcad493c352ccd491730643ecee39060c7c1fff5fcc621a");
-
-        byte[] keyC = (byte[])_emptyArray.Clone();
-        keyC[29] = 1;
-        tree.Insert(keyC, keyC);
-        AssertRootNode(tree.RootHash,
-            "74ff8821eca20188de49340124f249dac94404efdb3838bb6b4d298e483cc20e");
-
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
-        tree.Get(keyC).Should().BeEquivalentTo(keyC);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestEmptyTrie(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        tree.RootHash.Should().BeEquivalentTo(FrE.Zero.ToBytes().ToArray());
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestSimpleUpdate(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-        byte[] key = _array1To32;
-        byte[] value = _emptyArray;
-        tree.Insert(key, value);
-        AssertRootNode(tree.RootHash,
-            "77a0747bd526d9d9af60bd5665d24d6cb421f5c8e726b1de62f914f3ff9a361c");
-        tree.Get(key).Should().BeEquivalentTo(value);
-
-        tree.Insert(key, key);
-        AssertRootNode(tree.RootHash,
-            "029b6c4c8af9001f0ac76472766c6579f41eec84a73898da06eb97ebdab80a09");
-        tree.Get(key).Should().BeEquivalentTo(key);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertGet(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-
-        tree.Insert(_keyVersion, _emptyArray);
-        AssertRootNode(tree.RootHash,
-            "012cc5c81083b484e578390ca619725ff8597753a8da7f26676459e2ab543b08");
-
-        tree.Insert(_keyBalance, _arrayAll0Last2);
-        AssertRootNode(tree.RootHash,
-            "1b3e9d60e1e510defdca6a382bbc6249c98870e341744a99906a230d9193350d");
-
-        tree.Insert(_keyNonce, _emptyArray);
-        AssertRootNode(tree.RootHash,
-            "5bcb12efaf7f407743ea0258d2b1fc12b0856a423c3fe268c10d53b89a43771c");
-
-        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
-        AssertRootNode(tree.RootHash,
-            "828983030205ddd526a2444f707f63f187d079872d33e5fba334f77fe8bb301c");
-
-        tree.Insert(_keyCodeSize, _emptyArray);
-        AssertRootNode(tree.RootHash,
-            "1f470a52c36f350d24aba63cf5de6d676deff21fbd3f844150841197c1c6af19");
-
-        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
-        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
-        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestValueSameBeforeAndAfterFlush(DbMode dbMode)
-    {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
-
-
-        tree.Insert(_keyVersion, _emptyArray);
-        tree.Insert(_keyBalance, _emptyArray);
-        tree.Insert(_keyNonce, _emptyArray);
-        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
-        tree.Insert(_keyCodeSize, _emptyArray);
-
-        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
-        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
-
-        tree.Flush(0);
-
-        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
-        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
-    }
-
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestInsertGetMultiBlock(DbMode dbMode)
+    public void TestInsertGetMultiBlockReverseState(DbMode dbMode)
     {
         VerkleTree tree = GetVerkleTreeForTest(dbMode);
 
@@ -393,11 +191,177 @@ public class VerkleTreeTests
         tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last2);
         tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
         tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
+
+        tree.Insert(_keyVersion, _arrayAll0Last3);
+        tree.Insert(_keyBalance, _arrayAll0Last3);
+        tree.Insert(_keyNonce, _arrayAll0Last3);
+        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
+        tree.Insert(_keyCodeSize, _arrayAll0Last3);
+        tree.Flush(2);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last3);
+
+        tree.ReverseState();
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
+
+        tree.ReverseState();
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
     }
 
-    private static void AssertRootNode(byte[] realRootHash, string expectedRootHash)
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestInsertGetBatchMultiBlockReverseState(DbMode dbMode)
     {
-        Convert.ToHexString(realRootHash).Should()
-            .BeEquivalentTo(expectedRootHash);
+        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+
+        tree.Insert(_keyVersion, _emptyArray);
+        tree.Insert(_keyBalance, _emptyArray);
+        tree.Insert(_keyNonce, _emptyArray);
+        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
+        tree.Insert(_keyCodeSize, _emptyArray);
+        tree.Flush(0);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
+
+        tree.Insert(_keyVersion, _arrayAll0Last2);
+        tree.Insert(_keyBalance, _arrayAll0Last2);
+        tree.Insert(_keyNonce, _arrayAll0Last2);
+        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
+        tree.Insert(_keyCodeSize, _arrayAll0Last2);
+        tree.Flush(1);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
+
+        tree.Insert(_keyVersion, _arrayAll0Last3);
+        tree.Insert(_keyBalance, _arrayAll0Last3);
+        tree.Insert(_keyNonce, _arrayAll0Last3);
+        tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
+        tree.Insert(_keyCodeSize, _arrayAll0Last3);
+        tree.Flush(2);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last3);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last3);
+
+        IVerkleMemoryDb memory = tree.GetReverseMergedDiff(2, 1);
+
+        tree.ApplyDiffLayer(memory, 2,1);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
     }
+
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestReverseDiffThenForwardDiff(DbMode dbMode)
+    {
+        VerkleTree tree = GetFilledVerkleTreeForTest(dbMode);
+
+        IVerkleMemoryDb memory = tree.GetReverseMergedDiff(3,1);
+
+        tree.ApplyDiffLayer(memory, 3, 1);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
+
+        IVerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(1, 3);
+
+        tree.ApplyDiffLayer(forwardMemory, 1, 3);
+
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last4);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last4);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last4);
+        tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last4);
+
+    }
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestReverseStateOneBlock(DbMode dbMode)
+    {
+        VerkleTree tree = GetFilledVerkleTreeForTest(dbMode);
+        DateTime start = DateTime.Now;
+        tree.ReverseState();
+        DateTime end = DateTime.Now;
+        Console.WriteLine($"ReverseState() 1 Block: {(end - start).TotalMilliseconds}");
+    }
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestForwardStateOneBlock(DbMode dbMode)
+    {
+        VerkleTree tree = GetFilledVerkleTreeForTest(dbMode);
+        tree.ReverseState();
+        IVerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(2, 3);
+        DateTime start = DateTime.Now;
+        tree.ApplyDiffLayer(forwardMemory, 2, 3);
+        DateTime end = DateTime.Now;
+        Console.WriteLine($"ForwardState() 1 Block Insert: {(end - start).TotalMilliseconds}");
+    }
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestBatchReverseDiffs(DbMode dbMode)
+    {
+       // VerkleTree tree = GetHugeVerkleTreeForTest(dbMode);
+       // for (int i = 2;i <= 1000;i++) {
+       //     DateTime start = DateTime.Now;
+       //     IVerkleDiffDb reverseDiff = tree.GetReverseMergedDiff(1, i);
+       //     DateTime check1 = DateTime.Now;
+       //     tree.ReverseState(reverseDiff, (i -1));
+       //     DateTime check2 = DateTime.Now;
+       //     Console.WriteLine($"Batch Reverse Diff Fetch(1, {i}): {(check1 - start).TotalMilliseconds}");
+       //     Console.WriteLine($"Batch Reverse State(2, {i-1}): {(check2 - check1).TotalMilliseconds}");
+       //}
+    }
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void TestBatchForwardDiffs(DbMode dbMode)
+    {
+       // VerkleTree tree = GetHugeVerkleTreeForTest(dbMode);
+       // for (int i = 2;i <= 1000;i++) {
+       //     DateTime start = DateTime.Now;
+       //     IVerkleDiffDb forwardDiff = tree.GetForwardMergedDiff(1, i);
+       //     DateTime check1 = DateTime.Now;
+       //     tree.ForwardState(reverseDiff, (i -1));
+       //     DateTime check2 = DateTime.Now;
+       //     Console.WriteLine($"Batch Forward Diff Fetch(1, {i}): {(check1 - start).TotalMilliseconds}");
+       //     Console.WriteLine($"Batch Forward State(2, {i-1}): {(check2 - check1).TotalMilliseconds}");
+       //}
+    }
+
+
 }
