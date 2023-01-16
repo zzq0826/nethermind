@@ -38,7 +38,7 @@ public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
     }
     public void SetLeaf(byte[] leafKey, byte[] leafValue)
     {
-        _keyValueStore.SetLeaf(leafValue, leafValue);
+        _keyValueStore.SetLeaf(leafKey, leafValue);
     }
     public void SetStem(byte[] stemKey, SuffixTree suffixTree)
     {
@@ -52,6 +52,14 @@ public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
 
     public void ReverseState() { }
     public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock) { }
+    public byte[] GetStateRoot()
+    {
+        return _verkleStateStore.GetStateRoot();
+    }
+    public void MoveToStateRoot(byte[] stateRoot)
+    {
+        _verkleStateStore.MoveToStateRoot(stateRoot);
+    }
 
     public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {

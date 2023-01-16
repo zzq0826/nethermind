@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
@@ -10,6 +11,11 @@ namespace Nethermind.Verkle;
 
 public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 {
+    public byte[] RootHash
+    {
+        get => GetStateRoot();
+        set => MoveToStateRoot(value);
+    }
     // the blockNumber for with the fullState exists.
     private long FullStateBlock { get; set; }
 
@@ -34,6 +40,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     private DiffLayer ForwardDiff { get; }
     private DiffLayer ReverseDiff { get; }
 
+    private IDb StateRootToBlocks { get; }
+
     public VerkleStateStore(IDbProvider dbProvider)
     {
         Storage = new VerkleDb(dbProvider);
@@ -41,6 +49,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         Cache = new MemoryStateDb();
         ForwardDiff = new DiffLayer(dbProvider.ForwardDiff, DiffType.Forward);
         ReverseDiff = new DiffLayer(dbProvider.ReverseDiff, DiffType.Reverse);
+        StateRootToBlocks = dbProvider.StateRootToBlocks;
         FullStateBlock = 0;
         InitRootHash();
     }
@@ -65,8 +74,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     }
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-    public void InitRootHash()
+    private void InitRootHash()
     {
+        if(Batch.GetBranch(Array.Empty<byte>(), out InternalNode? _)) return;
         Batch.SetBranch(Array.Empty<byte>(), new BranchNode());
     }
 
@@ -149,6 +159,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         ForwardDiff.InsertDiff(blockNumber, Batch);
         ReverseDiff.InsertDiff(blockNumber, reverseDiff);
         FullStateBlock = blockNumber;
+        StateRootToBlocks.Set(GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException(), blockNumber.ToBigEndianByteArrayWithoutLeadingZeros());
 
         Batch = new MemoryStateDb();
     }
@@ -262,6 +273,31 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         return false;
     }
+
+    public byte[] GetStateRoot()
+    {
+        return GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+    }
+
+    public void MoveToStateRoot(byte[] stateRoot)
+    {
+        byte[] currentRoot = GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+
+        if (currentRoot.SequenceEqual(stateRoot)) return;
+        if (Keccak.EmptyTreeHash.Equals(stateRoot)) return;
+
+        byte[]? fromBlockBytes = StateRootToBlocks[currentRoot];
+        byte[]? toBlockBytes = StateRootToBlocks[stateRoot];
+        if (fromBlockBytes is null) return;
+        if (toBlockBytes is null) return;
+
+        long fromBlock = fromBlockBytes.ToLongFromBigEndianByteArrayWithoutLeadingZeros();
+        long toBlock = toBlockBytes.ToLongFromBigEndianByteArrayWithoutLeadingZeros();
+
+        ApplyDiffLayer(fromBlock > toBlock ? ReverseDiff.MergeDiffs(fromBlock, toBlock) : ForwardDiff.MergeDiffs(fromBlock, toBlock), fromBlock, toBlock);
+
+        Debug.Assert(GetStateRoot().Equals(stateRoot));
+    }
 }
 
 public interface IVerkleStore: IStoreWithReorgBoundary
@@ -275,6 +311,9 @@ public interface IVerkleStore: IStoreWithReorgBoundary
     void Flush(long blockNumber);
     void ReverseState();
     void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock);
+
+    byte[] GetStateRoot();
+    void MoveToStateRoot(byte[] stateRoot);
 
     public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore);
 

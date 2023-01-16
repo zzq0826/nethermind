@@ -39,6 +39,8 @@ namespace Nethermind.Db
         public IDb ForwardDiff => GetDb<IDb>(DbNames.ForwardDiff);
         public IDb ReverseDiff => GetDb<IDb>(DbNames.ReverseDiff);
 
+        public IDb StateRootToBlocks => GetDb<IDb>(DbNames.StateRootToBlock);
+
         T GetDb<T>(string dbName) where T : class, IDb;
 
         void RegisterDb<T>(string dbName, T db) where T : class, IDb;

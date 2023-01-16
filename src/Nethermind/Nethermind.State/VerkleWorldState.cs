@@ -43,7 +43,7 @@ public class VerkleWorldState: IWorldState
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)
     {
-        throw new NotImplementedException();
+        _tree.Accept(visitor, stateRoot, visitingOptions);
     }
 
     public void RecalculateStateRoot()
