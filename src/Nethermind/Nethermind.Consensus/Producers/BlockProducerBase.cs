@@ -233,7 +233,9 @@ namespace Nethermind.Consensus.Producers
         {
             bool HasState(Keccak stateRoot)
             {
-                return StateProvider.StateRoot.Equals(stateRoot);
+                RootCheckVisitor visitor = new RootCheckVisitor();
+                StateProvider.Accept(visitor, stateRoot);
+                return visitor.HasRoot;
             }
 
             if (parentStateRoot is not null && HasState(parentStateRoot))

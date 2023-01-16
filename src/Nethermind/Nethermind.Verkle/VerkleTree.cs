@@ -286,6 +286,10 @@ public class VerkleTree
         {
             _stateDb.MoveToStateRoot(rootHash.Bytes);
         }
+        else
+        {
+            return;
+        }
 
         if (visitor is RootCheckVisitor)
         {
