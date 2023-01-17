@@ -2,25 +2,29 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core.Crypto;
-using Nethermind.Db;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.VerkleDb;
 using Nethermind.Verkle.VerkleNodes;
-using Nethermind.Verkle.VerkleStateDb;
 
 namespace Nethermind.Verkle;
 
 public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
-    private IVerkleMemoryDb _keyValueStore;
+    private VerkleMemoryDb _keyValueStore;
 
-    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, IVerkleMemoryDb keyValueStore)
+    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
     }
 
+    public byte[] RootHash
+    {
+        get => _verkleStateStore.RootHash;
+        set => throw new ArgumentException();
+    }
     public byte[]? GetLeaf(byte[] key)
     {
         if (_keyValueStore.GetLeaf(key, out byte[]? value)) return value;
@@ -51,7 +55,9 @@ public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
     public void Flush(long blockNumber) { }
 
     public void ReverseState() { }
-    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock) { }
+    public void ApplyDiffLayer(BatchChangeSet changeSet)
+    {
+    }
     public byte[] GetStateRoot()
     {
         return _verkleStateStore.GetStateRoot();
@@ -61,17 +67,17 @@ public class ReadOnlyVerkleStateStore: IVerkleStore, ISyncTrieStore
         _verkleStateStore.MoveToStateRoot(stateRoot);
     }
 
-    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
-    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         throw new NotImplementedException();
     }
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
+    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
     }

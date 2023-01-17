@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Concurrent;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.Serializers;
-using BranchStore = Dictionary<byte[], InternalNode?>;
-using LeafStore = Dictionary<byte[], byte[]?>;
-using SuffixStore = Dictionary<byte[], SuffixTree?>;
+using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;
+using LeafStore = ConcurrentDictionary<byte[], byte[]?>;
+using StemStore = ConcurrentDictionary<byte[], SuffixTree?>;
 
 
 public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>

@@ -4,8 +4,8 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.VerkleDb;
 using Nethermind.Verkle.VerkleNodes;
-using Nethermind.Verkle.VerkleStateDb;
 
 namespace Nethermind.Verkle;
 
@@ -21,56 +21,44 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     // The underlying key value database
     // We try to avoid fetching from this, and we only store at the end of a batch insert
-    private IVerkleDb Storage { get; }
+    private VerkleKeyValueDb Storage { get; }
 
     // This stores the key-value pairs that we need to insert into the storage. This is generally
     // used to batch insert changes for each block. This is also used to generate the forwardDiff.
     // This is flushed after every batch insert and cleared.
-    private IVerkleMemoryDb Batch { get; set; }
+    private VerkleMemoryDb Batch { get; set; }
 
-    // This should store the top 3 layers of the trie, since these are the most accessed in
-    // the trie on average, thus speeding up some operations. But right now every things is
-    // stored in the cache - bad design.
-    // TODO: modify the cache to only store the top 3 layers
-    private IVerkleMemoryDb Cache { get; }
-
-    // These database stores the forwardDiff and reverseDiff for each block. Diffs are generated when
-    // the Flush(long blockNumber) method is called.
-    // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber) is called multiple times for the same block number
-    private DiffLayer ForwardDiff { get; }
-    private DiffLayer ReverseDiff { get; }
+    private VerkleHistoryStore History { get; }
 
     private IDb StateRootToBlocks { get; }
 
     public VerkleStateStore(IDbProvider dbProvider)
     {
-        Storage = new VerkleDb(dbProvider);
-        Batch = new MemoryStateDb();
-        Cache = new MemoryStateDb();
-        ForwardDiff = new DiffLayer(dbProvider.ForwardDiff, DiffType.Forward);
-        ReverseDiff = new DiffLayer(dbProvider.ReverseDiff, DiffType.Reverse);
+        Storage = new VerkleKeyValueDb(dbProvider);
+        Batch = new VerkleMemoryDb();
+        History = new VerkleHistoryStore(dbProvider);
         StateRootToBlocks = dbProvider.StateRootToBlocks;
         FullStateBlock = 0;
         InitRootHash();
     }
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore)
+    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock < toBlock - move forward in time
-    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
-        return ForwardDiff.MergeDiffs(fromBlock, toBlock);
+        return History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock > toBlock - move back in time
-    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
-        return ReverseDiff.MergeDiffs(fromBlock, toBlock);
+        return History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
     }
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
@@ -82,40 +70,34 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public byte[]? GetLeaf(byte[] key)
     {
-        if (Cache.GetLeaf(key, out byte[]? value)) return value;
-        if (Batch.GetLeaf(key, out value)) return value;
+        if (Batch.GetLeaf(key, out byte[]? value)) return value;
         return Storage.GetLeaf(key, out value) ? value : null;
     }
 
     public SuffixTree? GetStem(byte[] key)
     {
-        if (Cache.GetStem(key, out SuffixTree? value)) return value;
-        if (Batch.GetStem(key, out value)) return value;
+        if (Batch.GetStem(key, out SuffixTree? value)) return value;
         return Storage.GetStem(key, out value) ? value : null;
     }
 
     public InternalNode? GetBranch(byte[] key)
     {
-        if (Cache.GetBranch(key, out InternalNode? value)) return value;
-        if (Batch.GetBranch(key, out value)) return value;
+        if (Batch.GetBranch(key, out InternalNode? value)) return value;
         return Storage.GetBranch(key, out value) ? value : null;
     }
 
     public void SetLeaf(byte[] leafKey, byte[] leafValue)
     {
-        Cache.SetLeaf(leafKey, leafValue);
         Batch.SetLeaf(leafKey, leafValue);
     }
 
     public void SetStem(byte[] stemKey, SuffixTree suffixTree)
     {
-        Cache.SetStem(stemKey, suffixTree);
         Batch.SetStem(stemKey, suffixTree);
     }
 
     public void SetBranch(byte[] branchKey, InternalNode internalNodeValue)
     {
-        Cache.SetBranch(branchKey, internalNodeValue);
         Batch.SetBranch(branchKey, internalNodeValue);
     }
 
@@ -127,7 +109,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
-        MemoryStateDb reverseDiff = new MemoryStateDb();
+        VerkleMemoryDb reverseDiff = new VerkleMemoryDb();
 
         foreach (KeyValuePair<byte[], byte[]?> entry in Batch.LeafTable)
         {
@@ -156,30 +138,27 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             Storage.SetBranch(entry.Key, entry.Value);
         }
 
-        ForwardDiff.InsertDiff(blockNumber, Batch);
-        ReverseDiff.InsertDiff(blockNumber, reverseDiff);
+        History.InsertDiff(blockNumber, Batch, reverseDiff);
         FullStateBlock = blockNumber;
         StateRootToBlocks.Set(GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException(), blockNumber.ToBigEndianByteArrayWithoutLeadingZeros());
 
-        Batch = new MemoryStateDb();
+        Batch = new VerkleMemoryDb();
     }
 
     // now the full state back in time by one block.
     public void ReverseState()
     {
-        IVerkleMemoryDb reverseDiff = ReverseDiff.FetchDiff(FullStateBlock);
+        VerkleMemoryDb reverseDiff = History.GetBatchDiff(FullStateBlock, FullStateBlock - 1).DiffLayer;
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
         {
             reverseDiff.GetLeaf(entry.Key, out byte[]? node);
             if (node is null)
             {
-                Cache.RemoveLeaf(entry.Key);
                 Storage.RemoveLeaf(entry.Key);
             }
             else
             {
-                Cache.SetLeaf(entry.Key, node);
                 Storage.SetLeaf(entry.Key, node);
             }
         }
@@ -189,12 +168,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             reverseDiff.GetStem(entry.Key, out SuffixTree? node);
             if (node is null)
             {
-                Cache.RemoveStem(entry.Key);
                 Storage.RemoveStem(entry.Key);
             }
             else
             {
-                Cache.SetStem(entry.Key, node);
                 Storage.SetStem(entry.Key, node);
             }
         }
@@ -204,12 +181,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             reverseDiff.GetBranch(entry.Key, out InternalNode? node);
             if (node is null)
             {
-                Cache.RemoveBranch(entry.Key);
                 Storage.RemoveBranch(entry.Key);
             }
             else
             {
-                Cache.SetBranch(entry.Key, node);
                 Storage.SetBranch(entry.Key, node);
             }
         }
@@ -217,23 +192,21 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     }
 
     // use the batch diff to move the full state back in time to access historical state.
-    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
+    public void ApplyDiffLayer(BatchChangeSet changeSet)
     {
-        if (fromBlock != FullStateBlock) throw new ArgumentException($"Cannot apply diff FullStateBlock:{FullStateBlock}!=fromBlock:{fromBlock}", nameof(fromBlock));
+        if (changeSet.FromBlockNumber != FullStateBlock) throw new ArgumentException($"Cannot apply diff FullStateBlock:{FullStateBlock}!=fromBlock:{changeSet.FromBlockNumber}", nameof(changeSet.FromBlockNumber));
 
-        MemoryStateDb reverseDiff = (MemoryStateDb)reverseBatch;
+        VerkleMemoryDb reverseDiff = changeSet.DiffLayer;
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
         {
             reverseDiff.GetLeaf(entry.Key, out byte[]? node);
             if (node is null)
             {
-                Cache.RemoveLeaf(entry.Key);
                 Storage.RemoveLeaf(entry.Key);
             }
             else
             {
-                Cache.SetLeaf(entry.Key, node);
                 Storage.SetLeaf(entry.Key, node);
             }
         }
@@ -243,12 +216,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             reverseDiff.GetStem(entry.Key, out SuffixTree? node);
             if (node is null)
             {
-                Cache.RemoveStem(entry.Key);
                 Storage.RemoveStem(entry.Key);
             }
             else
             {
-                Cache.SetStem(entry.Key, node);
                 Storage.SetStem(entry.Key, node);
             }
         }
@@ -258,16 +229,14 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             reverseDiff.GetBranch(entry.Key, out InternalNode? node);
             if (node is null)
             {
-                Cache.RemoveBranch(entry.Key);
                 Storage.RemoveBranch(entry.Key);
             }
             else
             {
-                Cache.SetBranch(entry.Key, node);
                 Storage.SetBranch(entry.Key, node);
             }
         }
-        FullStateBlock = toBlock;
+        FullStateBlock = changeSet.ToBlockNumber;
     }
     public bool IsFullySynced(Keccak stateRoot)
     {
@@ -294,7 +263,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         long fromBlock = fromBlockBytes.ToLongFromBigEndianByteArrayWithoutLeadingZeros();
         long toBlock = toBlockBytes.ToLongFromBigEndianByteArrayWithoutLeadingZeros();
 
-        ApplyDiffLayer(fromBlock > toBlock ? ReverseDiff.MergeDiffs(fromBlock, toBlock) : ForwardDiff.MergeDiffs(fromBlock, toBlock), fromBlock, toBlock);
+        ApplyDiffLayer(History.GetBatchDiff(fromBlock, toBlock));
 
         Debug.Assert(GetStateRoot().Equals(stateRoot));
     }
@@ -302,6 +271,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
 public interface IVerkleStore: IStoreWithReorgBoundary
 {
+    public byte[] RootHash { get; set; }
     byte[]? GetLeaf(byte[] key);
     SuffixTree? GetStem(byte[] key);
     InternalNode? GetBranch(byte[] key);
@@ -310,15 +280,15 @@ public interface IVerkleStore: IStoreWithReorgBoundary
     void SetBranch(byte[] branchKey, InternalNode internalNodeValue);
     void Flush(long blockNumber);
     void ReverseState();
-    void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock);
+    void ApplyDiffLayer(BatchChangeSet changeSet);
 
     byte[] GetStateRoot();
     void MoveToStateRoot(byte[] stateRoot);
 
-    public ReadOnlyVerkleStateStore AsReadOnly(IVerkleMemoryDb keyValueStore);
+    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore);
 
-    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock);
+    public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock);
 
-    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock);
+    public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock);
 
 }

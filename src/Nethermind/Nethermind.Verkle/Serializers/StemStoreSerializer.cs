@@ -1,22 +1,23 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Concurrent;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.Serializers;
-using BranchStore = Dictionary<byte[], InternalNode?>;
-using LeafStore = Dictionary<byte[], byte[]?>;
-using SuffixStore = Dictionary<byte[], SuffixTree?>;
+using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;
+using LeafStore = ConcurrentDictionary<byte[], byte[]?>;
+using StemStore = ConcurrentDictionary<byte[], SuffixTree?>;
 
 
-public class SuffixStoreSerializer : IRlpStreamDecoder<Dictionary<byte[], SuffixTree?>>
+public class StemStoreSerializer : IRlpStreamDecoder<StemStore>
 {
     private static SuffixTreeSerializer SuffixTreeSerializer => SuffixTreeSerializer.Instance;
 
-    public static SuffixStoreSerializer Instance => new SuffixStoreSerializer();
+    public static StemStoreSerializer Instance => new StemStoreSerializer();
 
-    public int GetLength(SuffixStore item, RlpBehaviors rlpBehaviors)
+    public int GetLength(StemStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
         foreach (KeyValuePair<byte[], SuffixTree?> pair in item)
@@ -27,9 +28,9 @@ public class SuffixStoreSerializer : IRlpStreamDecoder<Dictionary<byte[], Suffix
         return length;
     }
 
-    public SuffixStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public StemStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        SuffixStore item = new SuffixStore();
+        StemStore item = new StemStore();
         int length = rlpStream.DecodeInt();
         for (int i = 0; i < length; i++)
         {
@@ -46,7 +47,7 @@ public class SuffixStoreSerializer : IRlpStreamDecoder<Dictionary<byte[], Suffix
         }
         return item;
     }
-    public void Encode(RlpStream stream, SuffixStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public void Encode(RlpStream stream, StemStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Encode(item.Count);
         foreach (KeyValuePair<byte[], SuffixTree?> pair in item)

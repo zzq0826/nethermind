@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Nethermind.Db;
 using Nethermind.Field.Montgomery.FrEElement;
-using Nethermind.Verkle.VerkleStateDb;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;

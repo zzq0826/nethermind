@@ -6,8 +6,8 @@ using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Utils;
+using Nethermind.Verkle.VerkleDb;
 using Nethermind.Verkle.VerkleNodes;
-using Nethermind.Verkle.VerkleStateDb;
 using VerkleUtils = Nethermind.Verkle.Utils.VerkleUtils;
 
 namespace Nethermind.Verkle;
@@ -15,6 +15,8 @@ namespace Nethermind.Verkle;
 public class VerkleTree
 {
     private readonly IVerkleStore _stateDb;
+
+    private readonly VerkleMemoryDb _batchDb = new VerkleMemoryDb();
     public byte[] RootHash
     {
         get => _stateDb.GetStateRoot();
@@ -243,12 +245,12 @@ public class VerkleTree
         return leafDeltaCommitment;
     }
 
-    public IVerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
         return _stateDb.GetForwardMergedDiff(fromBlock, toBlock);
     }
 
-    public IVerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
+    public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
         return _stateDb.GetReverseMergedDiff(fromBlock, toBlock);
     }
@@ -262,9 +264,9 @@ public class VerkleTree
         _stateDb.ReverseState();
     }
 
-    public void ApplyDiffLayer(IVerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
+    public void ApplyDiffLayer(VerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
     {
-        _stateDb.ApplyDiffLayer(reverseBatch, fromBlock, toBlock);
+        _stateDb.ApplyDiffLayer(new BatchChangeSet(fromBlock, toBlock, reverseBatch));
     }
 
     public void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null)

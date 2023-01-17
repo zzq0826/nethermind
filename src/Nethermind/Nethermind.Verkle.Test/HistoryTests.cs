@@ -3,7 +3,7 @@
 
 using FluentAssertions;
 using Nethermind.Db;
-using Nethermind.Verkle.VerkleStateDb;
+using Nethermind.Verkle.VerkleDb;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;
@@ -267,15 +267,15 @@ public class HistoryTests
         tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
         tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last3);
 
-        IVerkleMemoryDb memory = tree.GetReverseMergedDiff(2, 1);
+        VerkleMemoryDb memory = tree.GetReverseMergedDiff(2, 1);
 
         tree.ApplyDiffLayer(memory, 2,1);
 
-        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last2);
         tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
-        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
     }
 
 
@@ -285,17 +285,17 @@ public class HistoryTests
     {
         VerkleTree tree = GetFilledVerkleTreeForTest(dbMode);
 
-        IVerkleMemoryDb memory = tree.GetReverseMergedDiff(3,1);
+        VerkleMemoryDb memory = tree.GetReverseMergedDiff(3,1);
 
         tree.ApplyDiffLayer(memory, 3, 1);
 
-        tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
-        tree.Get(_keyNonce).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
+        tree.Get(_keyNonce).Should().BeEquivalentTo(_arrayAll0Last2);
         tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
-        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_emptyArray);
+        tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
 
-        IVerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(1, 3);
+        VerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(1, 3);
 
         tree.ApplyDiffLayer(forwardMemory, 1, 3);
 
@@ -324,7 +324,7 @@ public class HistoryTests
     {
         VerkleTree tree = GetFilledVerkleTreeForTest(dbMode);
         tree.ReverseState();
-        IVerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(2, 3);
+        VerkleMemoryDb forwardMemory = tree.GetForwardMergedDiff(2, 3);
         DateTime start = DateTime.Now;
         tree.ApplyDiffLayer(forwardMemory, 2, 3);
         DateTime end = DateTime.Now;

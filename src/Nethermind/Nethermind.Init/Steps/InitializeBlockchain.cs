@@ -39,7 +39,7 @@ using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle;
-using Nethermind.Verkle.VerkleStateDb;
+using Nethermind.Verkle.VerkleDb;
 using Nethermind.Wallet;
 
 namespace Nethermind.Init.Steps
@@ -161,7 +161,7 @@ namespace Nethermind.Init.Steps
             else
             {
                 VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider);
-                ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new MemoryStateDb());
+                ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
 
                 worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore), codeDb, getApi.LogManager);
                 stateReader = setApi.StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyVerkleStateStore), codeDb, getApi.LogManager);

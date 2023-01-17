@@ -27,11 +27,11 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
         switch (nodeType)
         {
             case NodeType.BranchNode:
-                InternalNode node = new InternalNode(NodeType.BranchNode);
+                BranchNode node = new BranchNode();
                 node.UpdateCommitment(new Banderwagon(rlpStream.Read(32).ToArray()));
                 return node;
             case NodeType.StemNode:
-                return new InternalNode(NodeType.StemNode, rlpStream.Read(31).ToArray(), new Commitment(new Banderwagon(rlpStream.Read(32).ToArray())));
+                return new StemNode(rlpStream.Read(31).ToArray(), new Commitment(new Banderwagon(rlpStream.Read(32).ToArray())));
             default:
                 throw new ArgumentOutOfRangeException();
         }

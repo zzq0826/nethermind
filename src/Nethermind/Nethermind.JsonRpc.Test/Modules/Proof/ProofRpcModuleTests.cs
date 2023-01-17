@@ -28,7 +28,7 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using Nethermind.Consensus.Processing;
 using Nethermind.Verkle;
-using Nethermind.Verkle.VerkleStateDb;
+using Nethermind.Verkle.VerkleDb;
 using NSubstitute;
 
 namespace Nethermind.JsonRpc.Test.Modules.Proof
@@ -68,7 +68,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Proof
             {
                 TreeType.MerkleTree => new(_dbProvider, _blockTree, new TrieStore(_dbProvider.StateDb, LimboLogs.Instance).AsReadOnly(),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), receiptStorage, _specProvider, LimboLogs.Instance),
-                TreeType.VerkleTree => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new MemoryStateDb()),
+                TreeType.VerkleTree => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new VerkleMemoryDb()),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), receiptStorage, _specProvider, LimboLogs.Instance),
                 _ => throw new ArgumentOutOfRangeException()
             };
@@ -213,7 +213,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Proof
             {
                 TreeType.MerkleTree => new(_dbProvider, _blockTree, new TrieStore(_dbProvider.StateDb, LimboLogs.Instance).AsReadOnly(),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), _receiptFinder, _specProvider, LimboLogs.Instance),
-                TreeType.VerkleTree => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new MemoryStateDb()),
+                TreeType.VerkleTree => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new VerkleMemoryDb()),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(ChainId.Mainnet, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), _receiptFinder, _specProvider, LimboLogs.Instance),
                 _ => throw new ArgumentOutOfRangeException()
             };

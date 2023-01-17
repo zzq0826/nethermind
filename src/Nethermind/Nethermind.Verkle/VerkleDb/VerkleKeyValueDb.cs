@@ -1,26 +1,27 @@
-// Copyright 2022 Demerzel Solutions Limited
-// Licensed under Apache-2.0. For full terms, see LICENSE in the project root.
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Verkle.Serializers;
 using Nethermind.Verkle.VerkleNodes;
 
-namespace Nethermind.Verkle.VerkleStateDb;
+namespace Nethermind.Verkle.VerkleDb;
 
-public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
+public class VerkleKeyValueDb: IVerkleStore, IVerkleKeyValueDb, IKeyValueStore
 {
     private readonly IDbProvider _dbProvider;
 
     public IDb LeafDb => _dbProvider.LeafDb;
     public IDb StemDb => _dbProvider.StemDb;
     public IDb BranchDb => _dbProvider.BranchDb;
-    public VerkleDb(IDbProvider dbProvider)
+
+    public VerkleKeyValueDb(IDbProvider dbProvider)
     {
         _dbProvider = dbProvider;
     }
-    public byte[]? GetLeaf(byte[] key) => LeafDb[key];
 
+    public byte[]? GetLeaf(byte[] key) => LeafDb.Get(key);
     public SuffixTree? GetStem(byte[] key)
     {
         byte[]? value = StemDb[key];
@@ -48,6 +49,7 @@ public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
         value = GetBranch(key);
         return value is not null;
     }
+
     public void SetLeaf(byte[] leafKey, byte[] leafValue) => _setLeaf(leafKey, leafValue, LeafDb);
     public void SetStem(byte[] stemKey, SuffixTree suffixTree) => _setStem(stemKey, suffixTree, StemDb);
     public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => _setBranch(branchKey, internalNodeValue, BranchDb);
@@ -64,6 +66,7 @@ public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
     {
         BranchDb.Remove(branchKey);
     }
+
 
     public void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf)
     {
@@ -89,6 +92,7 @@ public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
             _setBranch(key, value, batch);
         }
     }
+
     public byte[]? this[byte[] key]
     {
         get
@@ -126,4 +130,6 @@ public class VerkleDb : IVerkleKeyValueDb, IReadOnlyKeyValueStore
     {
         if (internalNodeValue != null) db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
     }
+
+
 }

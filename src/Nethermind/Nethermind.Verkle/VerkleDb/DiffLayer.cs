@@ -1,11 +1,13 @@
-// Copyright 2022 Demerzel Solutions Limited
-// Licensed under Apache-2.0. For full terms, see LICENSE in the project root.
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
 using Nethermind.Db;
+using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Serializers;
 using Nethermind.Verkle.VerkleNodes;
 
-namespace Nethermind.Verkle.VerkleStateDb;
+namespace Nethermind.Verkle.VerkleDb;
 
 public enum DiffType
 {
@@ -13,7 +15,8 @@ public enum DiffType
     Reverse
 }
 
-public class DiffLayer : IDiffLayer
+
+public class DiffLayer
 {
     private readonly DiffType _diffType;
     private IDb DiffDb { get; }
@@ -22,27 +25,30 @@ public class DiffLayer : IDiffLayer
         DiffDb = diffDb;
         _diffType = diffType;
     }
-    public void InsertDiff(long blockNumber, IVerkleMemoryDb memory)
+    public void InsertDiff(long blockNumber, VerkleMemoryDb memory)
     {
-        DiffDb.Set(blockNumber, memory.Encode());
+        RlpStream stream = new RlpStream(VerkleMemoryDbSerializer.Instance.GetLength(memory, RlpBehaviors.None));
+        VerkleMemoryDbSerializer.Instance.Encode(stream, memory);
+        if (stream.Data != null) DiffDb.Set(blockNumber, stream.Data);
     }
-    public IVerkleMemoryDb FetchDiff(long blockNumber)
+
+    public VerkleMemoryDb FetchDiff(long blockNumber)
     {
         byte[]? diff = DiffDb.Get(blockNumber);
         if (diff is null) throw new ArgumentException(null, nameof(blockNumber));
-        return MemoryStateDb.Decode(diff);
+        return VerkleMemoryDbSerializer.Instance.Decode(diff.AsRlpStream());
     }
 
-    public IVerkleMemoryDb MergeDiffs(long fromBlock, long toBlock)
+    public VerkleMemoryDb MergeDiffs(long fromBlock, long toBlock)
     {
-        MemoryStateDb mergedDiff = new MemoryStateDb();
+        VerkleMemoryDb mergedDiff = new VerkleMemoryDb();
         switch (_diffType)
         {
             case DiffType.Reverse:
                 Debug.Assert(fromBlock > toBlock);
-                for (long i = toBlock; i <= fromBlock; i++)
+                for (long i = toBlock + 1; i <= fromBlock; i++)
                 {
-                    IVerkleMemoryDb reverseDiff = FetchDiff(i);
+                    VerkleMemoryDb reverseDiff = FetchDiff(i);
                     foreach (KeyValuePair<byte[], byte[]?> item in reverseDiff.LeafTable)
                     {
                         mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
@@ -61,7 +67,7 @@ public class DiffLayer : IDiffLayer
                 Debug.Assert(fromBlock < toBlock);
                 for (long i = toBlock; i >= fromBlock; i--)
                 {
-                    IVerkleMemoryDb forwardDiff = FetchDiff(i);
+                    VerkleMemoryDb forwardDiff = FetchDiff(i);
                     foreach (KeyValuePair<byte[], byte[]?> item in forwardDiff.LeafTable)
                     {
                         mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
