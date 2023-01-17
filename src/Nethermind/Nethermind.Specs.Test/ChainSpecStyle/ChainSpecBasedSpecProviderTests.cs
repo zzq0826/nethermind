@@ -612,7 +612,7 @@ namespace Nethermind.Specs.Test.ChainSpecStyle
                 r.Eip1559TransitionBlock = 15590L;
                 r.IsTimeAdjustmentPostOlympic = true;
                 r.MaximumUncleCount = 2;
-                r.VerkleTreeTransitionTimeStamp = ulong.MaxValue;
+                r.VerkleTreeTransitionTimeStamp = 1000000030;
             });
 
             TestTransitions((ForkActivation)1L, r =>

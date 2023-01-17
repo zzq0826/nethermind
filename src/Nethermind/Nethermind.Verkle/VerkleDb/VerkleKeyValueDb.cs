@@ -8,7 +8,7 @@ using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleDb;
 
-public class VerkleKeyValueDb: IVerkleStore, IVerkleKeyValueDb, IKeyValueStore
+public class VerkleKeyValueDb: IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
 {
     private readonly IDbProvider _dbProvider;
 

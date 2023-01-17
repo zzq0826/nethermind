@@ -16,7 +16,6 @@ public class VerkleTree
 {
     private readonly IVerkleStore _stateDb;
 
-    private readonly VerkleMemoryDb _batchDb = new VerkleMemoryDb();
     public byte[] RootHash
     {
         get => _stateDb.GetStateRoot();
@@ -25,12 +24,13 @@ public class VerkleTree
 
     public VerkleTree(IDbProvider dbProvider)
     {
-        _stateDb = new VerkleStateStore(dbProvider);
+        VerkleStateStore stateDb = new VerkleStateStore(dbProvider);
+        _stateDb = new CompositeVerkleStateStore(stateDb);
     }
 
     public VerkleTree(IVerkleStore stateStore)
     {
-        _stateDb = stateStore;
+        _stateDb = new CompositeVerkleStateStore(stateStore);
     }
 
     private static Banderwagon GetLeafDelta(byte[]? oldValue, byte[] newValue, byte index)

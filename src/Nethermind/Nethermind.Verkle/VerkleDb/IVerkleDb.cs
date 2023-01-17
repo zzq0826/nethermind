@@ -5,7 +5,7 @@ using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleDb;
 
-public interface IVerkleStore
+public interface IVerkleDb
 {
     bool GetLeaf(byte[] key, out byte[]? value);
     bool GetStem(byte[] key, out SuffixTree? value);

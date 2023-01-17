@@ -10,7 +10,7 @@ using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;
 using LeafStore = ConcurrentDictionary<byte[], byte[]?>;
 using StemStore = ConcurrentDictionary<byte[], SuffixTree?>;
 
-public class VerkleMemoryDb: IVerkleStore, IVerkleMemDb
+public class VerkleMemoryDb: IVerkleDb, IVerkleMemDb
 {
     public LeafStore LeafTable { get; }
     public StemStore StemTable { get; }
