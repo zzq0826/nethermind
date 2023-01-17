@@ -540,10 +540,12 @@ namespace Nethermind.Consensus.Processing
 
             Block toBeProcessed = suggestedBlock;
             long iterations = 0;
+            bool shallStoreBlocks = !options.ContainsFlag(ProcessingOptions.ForceProcessing);
+            bool notTraceMode = (options & ProcessingOptions.Trace) == ProcessingOptions.Trace;
             do
             {
                 iterations++;
-                if (!options.ContainsFlag(ProcessingOptions.ForceProcessing))
+                if (shallStoreBlocks)
                 {
                     blocksToBeAddedToMain.Add(toBeProcessed);
                 }
@@ -618,9 +620,8 @@ namespace Nethermind.Consensus.Processing
                 // we need to dig deeper to go all the way to the false (reorg boundary) head
                 // otherwise some nodes would be missing
                 bool notFoundTheBranchingPointYet = !_blockTree.IsMainChain(branchingPoint.Hash!);
-                bool notReachedTheReorgBoundary = (options & ProcessingOptions.Trace) == ProcessingOptions.Trace
-                && (branchingPoint.Number > (_blockTree.Head?.Header.Number ?? 0));
-                preMergeFinishBranchingCondition = (notFoundTheBranchingPointYet || notReachedTheReorgBoundary);
+                bool notReachedTheReorgBoundary = branchingPoint.Number > (_blockTree.Head?.Header.Number ?? 0);
+                preMergeFinishBranchingCondition = (notFoundTheBranchingPointYet || (notTraceMode && notReachedTheReorgBoundary));
                 if (_logger.IsTrace)
                     _logger.Trace(
                         $" Current branching point: {branchingPoint.Number}, {branchingPoint.Hash} TD: {branchingPoint.TotalDifficulty} Processing conditions notFoundTheBranchingPointYet {notFoundTheBranchingPointYet}, notReachedTheReorgBoundary: {notReachedTheReorgBoundary}, suggestedBlockIsPostMerge {suggestedBlockIsPostMerge}");
