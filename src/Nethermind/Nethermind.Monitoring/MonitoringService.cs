@@ -89,6 +89,7 @@ namespace Nethermind.Monitoring
             }
             await Task.Factory.StartNew(() => _metricsController.StartUpdating(), TaskCreationOptions.LongRunning);
             if (_logger.IsInfo) _logger.Info($"Started monitoring for the group: {_options.Group}, instance: {_options.Instance}");
+            new LOHListener();
         }
 
         public void RegisterMetrics(Type type)
