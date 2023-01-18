@@ -541,7 +541,7 @@ namespace Nethermind.Consensus.Processing
             Block toBeProcessed = suggestedBlock;
             long iterations = 0;
             bool shallStoreBlocks = !options.ContainsFlag(ProcessingOptions.ForceProcessing);
-            bool notTraceMode = (options & ProcessingOptions.Trace) == ProcessingOptions.Trace;
+            bool notTraceMode = (options & ProcessingOptions.Trace) != ProcessingOptions.Trace;
             do
             {
                 iterations++;
