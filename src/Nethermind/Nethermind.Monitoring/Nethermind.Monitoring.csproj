@@ -11,8 +11,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
-    <PackageReference Include="prometheus-net" Version="7.0.0" />
-    <PackageReference Include="prometheus-net.AspNetCore" Version="7.0.0" />
+    <PackageReference Include="prometheus-net" Version="8.0.0-pre-230119065217-312c2e9" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.0.0-pre-230119065217-312c2e9" />
     <PackageReference Include="System.Text.Encodings.Web" Version="7.0.0" />
   </ItemGroup>
 
