@@ -28,13 +28,17 @@ public class VerkleTree
         _stateDb = new CompositeVerkleStateStore(stateDb);
     }
 
-    public VerkleTree(IVerkleStore stateStore)
+    protected VerkleTree(IVerkleStore stateStore)
     {
         _stateDb = new CompositeVerkleStateStore(stateStore);
     }
 
     private static Banderwagon GetLeafDelta(byte[]? oldValue, byte[] newValue, byte index)
     {
+#if DEBUG
+        if (oldValue is not null && oldValue.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(oldValue));
+        if (newValue.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(oldValue));
+#endif
         (FrE newValLow, FrE newValHigh) = VerkleUtils.BreakValueInLowHigh(newValue);
         (FrE oldValLow, FrE oldValHigh) = VerkleUtils.BreakValueInLowHigh(oldValue);
 
@@ -50,6 +54,10 @@ public class VerkleTree
     public void Insert(Span<byte> key, byte[] value)
     {
         if (value is null) throw new ArgumentNullException(nameof(value));
+#if DEBUG
+        if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
+        if (value.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(value));
+#endif
         LeafUpdateDelta leafDelta = UpdateLeaf(key, value);
         UpdateTreeCommitments(key[..31], leafDelta);
     }
@@ -58,7 +66,9 @@ public class VerkleTree
 
     public void InsertStemBatch(Span<byte> stem, Dictionary<byte, byte[]> leafIndexValueMap)
     {
-        Debug.Assert(stem.Length == 31);
+#if DEBUG
+        if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
+#endif
         LeafUpdateDelta leafDelta = UpdateLeaf(stem, leafIndexValueMap);
         UpdateTreeCommitments(stem, leafDelta);
     }

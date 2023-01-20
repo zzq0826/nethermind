@@ -70,14 +70,20 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public byte[]? GetLeaf(byte[] key)
     {
+#if DEBUG
+        if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
+#endif
         if (Batch.GetLeaf(key, out byte[]? value)) return value;
         return Storage.GetLeaf(key, out value) ? value : null;
     }
 
-    public SuffixTree? GetStem(byte[] key)
+    public SuffixTree? GetStem(byte[] stemKey)
     {
-        if (Batch.GetStem(key, out SuffixTree? value)) return value;
-        return Storage.GetStem(key, out value) ? value : null;
+#if DEBUG
+        if (stemKey.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stemKey));
+#endif
+        if (Batch.GetStem(stemKey, out SuffixTree? value)) return value;
+        return Storage.GetStem(stemKey, out value) ? value : null;
     }
 
     public InternalNode? GetBranch(byte[] key)
@@ -88,11 +94,18 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public void SetLeaf(byte[] leafKey, byte[] leafValue)
     {
+#if DEBUG
+        if (leafKey.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(leafKey));
+        if (leafValue.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(leafValue));
+#endif
         Batch.SetLeaf(leafKey, leafValue);
     }
 
     public void SetStem(byte[] stemKey, SuffixTree suffixTree)
     {
+#if DEBUG
+        if (stemKey.Length != 31) throw new ArgumentException("stem must be 32 bytes", nameof(stemKey));
+#endif
         Batch.SetStem(stemKey, suffixTree);
     }
 

@@ -85,9 +85,6 @@ namespace Nethermind.Evm.Test
                 WorldState = new VerkleWorldState(new VerkleStateTree(provider), codeDb, logManager);
             }
 
-            WorldState = new WorldState(new TrieStore(stateDb, logManager), codeDb, logManager);
-
-
             _ethereumEcdsa = new EthereumEcdsa(SpecProvider.ChainId, logManager);
             IBlockhashProvider blockhashProvider = TestBlockhashProvider.Instance;
             Machine = new VirtualMachine(blockhashProvider, SpecProvider, logManager);

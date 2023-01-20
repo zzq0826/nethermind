@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
@@ -382,7 +383,9 @@ public class VerkleWorldState: IWorldState
         Db.Metrics.StateTreeReads++;
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
         headerTreeKey[31] = AccountHeader.Version;
-        UInt256 version = new UInt256((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
+        IEnumerable<byte>? versionVal = _tree.Get(headerTreeKey);
+        if (versionVal is null)  return null;
+        UInt256 version = new UInt256((versionVal ?? Array.Empty<byte>()).ToArray());
         headerTreeKey[31] = AccountHeader.Balance;
         UInt256 balance = new UInt256((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
         headerTreeKey[31] = AccountHeader.Nonce;
@@ -489,19 +492,19 @@ public class VerkleWorldState: IWorldState
     }
     public byte[] Get(StorageCell storageCell)
     {
-        return _storageProvider.Get(storageCell);
+        return _storageProvider.Get(storageCell).WithoutLeadingZeros().ToArray();
     }
     public void Set(StorageCell storageCell, byte[] newValue)
     {
-        _storageProvider.Set(storageCell, newValue);
+        _storageProvider.Set(storageCell, newValue.PadLeft(32));
     }
     public byte[] GetTransientState(StorageCell storageCell)
     {
-        return _storageProvider.GetTransientState(storageCell);
+        return _storageProvider.GetTransientState(storageCell).WithoutLeadingZeros().ToArray();
     }
     public void SetTransientState(StorageCell storageCell, byte[] newValue)
     {
-        _storageProvider.SetTransientState(storageCell, newValue);
+        _storageProvider.SetTransientState(storageCell, newValue.PadLeft(32));
     }
     public void Reset()
     {

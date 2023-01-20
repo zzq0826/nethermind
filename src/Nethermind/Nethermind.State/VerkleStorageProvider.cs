@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Logging;
 using Nethermind.Verkle;
@@ -75,11 +76,13 @@ public class VerkleStorageProvider : IStorageProvider
 
     public void Set(StorageCell storageCell, byte[] newValue)
     {
+        Debug.Assert(newValue.Length == 32);
         _persistentStorageProvider.Set(storageCell, newValue);
     }
 
     public void SetTransientState(StorageCell storageCell, byte[] newValue)
     {
+        Debug.Assert(newValue.Length == 32);
         _transientStorageProvider.Set(storageCell, newValue);
     }
 

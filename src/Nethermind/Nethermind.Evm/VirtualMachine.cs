@@ -252,7 +252,7 @@ namespace Nethermind.Evm
                                 {
                                     currentState.GasAvailable -= gasAvailableForCodeDeposit;
                                     worldState.Restore(previousState.Snapshot);
-                                    if (!previousState.IsCreateOnPreExistingAccount)
+                                    if (!previousState.IsCreateOnPreExistingAccount && _worldState is WorldState)
                                     {
                                         _worldState.DeleteAccount(callCodeOwner);
                                     }
@@ -2430,13 +2430,16 @@ namespace Nethermind.Evm
                                 break;
                             }
 
-                            if (accountExists)
+                            if (_worldState is WorldState)
                             {
-                                _worldState.UpdateStorageRoot(contractAddress, Keccak.EmptyTreeHash);
-                            }
-                            else if (_worldState.IsDeadAccount(contractAddress))
-                            {
-                                _worldState.ClearStorage(contractAddress);
+                                if (accountExists)
+                                {
+                                    _worldState.UpdateStorageRoot(contractAddress, Keccak.EmptyTreeHash);
+                                }
+                                else if (_worldState.IsDeadAccount(contractAddress))
+                                {
+                                    _worldState.ClearStorage(contractAddress);
+                                }
                             }
 
                             _worldState.SubtractFromBalance(env.ExecutingAccount, value, spec);

@@ -111,8 +111,14 @@ namespace Nethermind.Evm.Test
             WorldState.Commit(Spec);
             WorldState.CommitTree(0);
 
-            Keccak storageRoot = WorldState.GetAccount(expectedAddress).StorageRoot;
-            storageRoot.Should().NotBe(PatriciaTree.EmptyTreeHash);
+            WorldState.Get(new StorageCell(expectedAddress, 1)).Should().BeEquivalentTo(new byte[] { 1, 2, 3, 4, 5 });
+
+            Keccak storageRoot = Keccak.EmptyTreeHash;
+            if (_stateProvider == VirtualMachineTestsStateProvider.MerkleTrie)
+            {
+                storageRoot = WorldState.GetAccount(expectedAddress).StorageRoot;
+                storageRoot.Should().NotBe(PatriciaTree.EmptyTreeHash);
+            }
 
             WorldState.CreateAccount(TestItem.AddressC, 1.Ether());
 
@@ -126,7 +132,7 @@ namespace Nethermind.Evm.Test
 
             WorldState.GetAccount(expectedAddress).Should().NotBeNull();
             WorldState.GetAccount(expectedAddress).Balance.Should().Be(1.Ether());
-            WorldState.GetAccount(expectedAddress).StorageRoot.Should().Be(storageRoot);
+            if(_stateProvider == VirtualMachineTestsStateProvider.MerkleTrie) WorldState.GetAccount(expectedAddress).StorageRoot.Should().Be(storageRoot);
             AssertEip1014(expectedAddress, Array.Empty<byte>());
         }
 
