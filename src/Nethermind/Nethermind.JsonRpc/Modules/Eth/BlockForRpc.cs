@@ -68,7 +68,8 @@ public class BlockForRpc
         Transactions = includeFullTransactionData ? block.Transactions.Select((t, idx) => new TransactionForRpc(block.Hash, block.Number, idx, t, block.BaseFeePerGas)).ToArray() : block.Transactions.Select(t => t.Hash).OfType<object>().ToArray();
         TransactionsRoot = block.TxRoot;
         Uncles = block.Uncles.Select(o => o.Hash);
-        Withdrawals = block.Withdrawals;
+        if (includeFullTransactionData)
+            Withdrawals = block.Withdrawals;
         WithdrawalsRoot = block.Header.WithdrawalsRoot;
     }
 
