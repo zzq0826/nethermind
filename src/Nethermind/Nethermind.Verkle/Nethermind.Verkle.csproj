@@ -7,10 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Nethermind.Verkle.Curve" Version="0.0.3-alpha" />
-      <PackageReference Include="Nethermind.Verkle.Polynomial" Version="0.0.3-alpha" />
-      <PackageReference Include="Nethermind.Verkle.Proofs" Version="0.0.3-alpha" />
-      <PackageReference Include="Nethermind.Verkle.Utils" Version="0.0.3-alpha" />
+      <PackageReference Include="Nethermind.Verkle.Curve" Version="0.0.1-alpha" />
+      <PackageReference Include="Nethermind.Verkle.Polynomial" Version="0.0.1-alpha" />
+      <PackageReference Include="Nethermind.Verkle.Proofs" Version="0.0.1-alpha" />
+      <PackageReference Include="Nethermind.Verkle.Utils" Version="0.0.2-alpha" />
     </ItemGroup>
 
     <ItemGroup>
