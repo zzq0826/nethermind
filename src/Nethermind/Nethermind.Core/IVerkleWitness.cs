@@ -26,8 +26,5 @@ public interface IVerkleWitness : IJournal<int>
 
     public long AccessCompleteAccount(Address address, bool isWrite = false);
 
-    public long AccessAccount(Address address, bool[] bitVector, bool isWrite = false);
-    public long AccessKey(byte[] key, bool isWrite = false);
-
     public long AccessForTransaction(Address originAddress, Address destinationAddress, bool isValueTransfer);
 }

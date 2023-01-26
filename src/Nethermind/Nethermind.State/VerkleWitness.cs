@@ -1,12 +1,15 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Int256;
 using Nethermind.Trie;
+using Nethermind.Verkle;
 
 namespace Nethermind.State;
 
@@ -14,24 +17,29 @@ namespace Nethermind.State;
 //       already calculate keys in StateProvider - or we maintain pre images?
 public class VerkleWitness : IVerkleWitness
 {
-    // const int VersionLeafKey = 0;
-    // const int BalanceLeafKey = 1;
-    // const int NonceLeafKey = 2;
-    // const int CodeKeccakLeafKey = 3;
-    // const int CodeSizeLeafKey = 4;
+    [Flags]
+    private enum AccountHeaderAccess
+    {
+        Version = 1,
+        Balance = 2,
+        Nonce = 4,
+        CodeHash = 8,
+        CodeSize = 16
+    }
+
     private readonly JournalSet<byte[]> _accessedSubtrees;
     private readonly JournalSet<byte[]> _accessedLeaves;
     private readonly JournalSet<byte[]> _modifiedSubtrees;
     private readonly JournalSet<byte[]> _modifiedLeaves;
 
     // TODO: add these in GasPrices List
-    public const long WitnessChunkRead = 200; // verkle-trie
-    public const long WitnessChunkWrite = 500; // verkle-trie
-    public const long WitnessChunkFill = 6200; // verkle-trie
-    public const long WitnessBranchRead = 1900; // verkle-trie
-    public const long WitnessBranchWrite = 3000; // verkle-trie
+    private const long WitnessChunkRead = 200; // verkle-trie
+    private const long WitnessChunkWrite = 500; // verkle-trie
+    private const long WitnessChunkFill = 6200; // verkle-trie
+    private const long WitnessBranchRead = 1900; // verkle-trie
+    private const long WitnessBranchWrite = 3000; // verkle-trie
 
-    private readonly Dictionary<int, int[]> _snapshots = new();
+    private readonly Dictionary<int, int[]> _snapshots = new Dictionary<int, int[]>();
     private int NextSnapshot = 0;
 
     public VerkleWitness()
@@ -49,13 +57,7 @@ public class VerkleWitness : IVerkleWitness
     /// </summary>
     /// <param name="caller"></param>
     /// <returns></returns>
-    public long AccessForCodeOpCodes(Address caller)
-    {
-        // (address, 0, VERSION_LEAF_KEY)
-        // (address, 0, CODE_SIZE_LEAF_KEY)
-        bool[] accountAccess = { true, false, false, false, true };
-        return AccessAccount(caller, accountAccess);
-    }
+    public long AccessForCodeOpCodes(Address caller) => AccessAccount(caller, AccountHeaderAccess.Version | AccountHeaderAccess.CodeSize);
 
     /// <summary>
     /// Use this in two scenarios:
@@ -67,15 +69,8 @@ public class VerkleWitness : IVerkleWitness
     /// </summary>
     /// <param name="caller"></param>
     /// <param name="callee"></param>
-    /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessValueTransfer(Address caller, Address callee)
-    {
-        // (caller_address, 0, BALANCE_LEAF_KEY)
-        // (callee_address, 0, BALANCE_LEAF_KEY)
-        bool[] accountAccess = { false, true, false, false, false };
-        return AccessAccount(caller, accountAccess, true) + AccessAccount(callee, accountAccess, true);
-    }
+    public long AccessValueTransfer(Address caller, Address callee) => AccessAccount(caller, AccountHeaderAccess.Balance, true) + AccessAccount(callee, AccountHeaderAccess.Balance, true);
 
     /// <summary>
     /// When a contract creation is initialized.
@@ -85,15 +80,9 @@ public class VerkleWitness : IVerkleWitness
     /// <returns></returns>
     public long AccessForContractCreationInit(Address contractAddress, bool isValueTransfer)
     {
-        // (contract_address, 0, VERSION_LEAF_KEY)
-        // (contract_address, 0, NONCE_LEAF_KEY)
-        bool[] accountAccess = { true, false, true, false, false };
-        if (isValueTransfer)
-        {
-            // (contract_address, 0, BALANCE_LEAF_KEY)
-            accountAccess[1] = true;
-        }
-        return AccessAccount(contractAddress, accountAccess, true);
+        return isValueTransfer
+            ? AccessAccount(contractAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Nonce | AccountHeaderAccess.Balance, true)
+            : AccessAccount(contractAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Nonce, true);
     }
 
     /// <summary>
@@ -101,39 +90,21 @@ public class VerkleWitness : IVerkleWitness
     /// </summary>
     /// <param name="contractAddress"></param>
     /// <returns></returns>
-    public long AccessContractCreated(Address contractAddress)
-    {
-        // (contract_address, 0, VERSION_LEAF_KEY)
-        // (contract_address, 0, NONCE_LEAF_KEY)
-        // (contract_address, 0, BALANCE_LEAF_KEY)
-        // (contract_address, 0, CODE_KECCAK_LEAF_KEY)
-        // (contract_address, 0, CODE_SIZE_LEAF_KEY)
-        return AccessCompleteAccount(contractAddress, true);
-    }
+    public long AccessContractCreated(Address contractAddress) => AccessCompleteAccount(contractAddress, true);
 
     /// <summary>
     /// If the BALANCE opcode is called targeting some address.
     /// </summary>
     /// <param name="address"></param>
     /// <returns></returns>
-    public long AccessBalance(Address address)
-    {
-        // (address, 0, BALANCE_LEAF_KEY)
-        bool[] accountAccess = { false, true, false, false, false };
-        return AccessAccount(address, accountAccess);
-    }
+    public long AccessBalance(Address address) => AccessAccount(address, AccountHeaderAccess.Balance);
 
     /// <summary>
     /// If the EXTCODEHASH opcode is called targeting some address.
     /// </summary>
     /// <param name="address"></param>
     /// <returns></returns>
-    public long AccessCodeHash(Address address)
-    {
-
-        bool[] accountAccess = { false, false, false, true, false };
-        return AccessAccount(address, accountAccess);
-    }
+    public long AccessCodeHash(Address address) => AccessAccount(address, AccountHeaderAccess.CodeHash);
 
     /// <summary>
     /// When SLOAD and SSTORE opcodes are called with a given address
@@ -143,10 +114,7 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="key"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessStorage(Address address, UInt256 key, bool isWrite)
-    {
-        return AccessKey(VerkleUtils.GetTreeKeyForStorageSlot(address, key), isWrite);
-    }
+    public long AccessStorage(Address address, UInt256 key, bool isWrite) => AccessKey(VerkleUtils.GetTreeKeyForStorageSlot(address, key), isWrite);
 
     /// <summary>
     /// When the code chunk chunk_id is accessed is accessed
@@ -155,10 +123,7 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="chunkId"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessCodeChunk(Address address, byte chunkId, bool isWrite)
-    {
-        return AccessKey(VerkleUtils.GetTreeKeyForCodeChunk(address, chunkId), isWrite);
-    }
+    public long AccessCodeChunk(Address address, byte chunkId, bool isWrite) => AccessKey(VerkleUtils.GetTreeKeyForCodeChunk(address, chunkId), isWrite);
 
     /// <summary>
     /// When you are starting to execute a transaction.
@@ -166,7 +131,6 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="originAddress"></param>
     /// <param name="destinationAddress"></param>
     /// <param name="isValueTransfer"></param>
-    /// <param name="isWrite"></param>
     /// <returns></returns>
     public long AccessForTransaction(Address originAddress, Address destinationAddress, bool isValueTransfer)
     {
@@ -174,8 +138,7 @@ public class VerkleWitness : IVerkleWitness
         long gasCost = AccessCompleteAccount(originAddress) + AccessCompleteAccount(destinationAddress);
 
         // when you are executing a transaction, you are writing to the nonce of the origin address
-        bool[] accountAccess = { false, false, true, false, false };
-        gasCost += AccessAccount(originAddress, accountAccess, true);
+        gasCost += AccessAccount(originAddress, AccountHeaderAccess.Nonce, true);
         if (isValueTransfer)
         {
             // when you are executing a transaction with value transfer,
@@ -192,82 +155,73 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="address"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessCompleteAccount(Address address, bool isWrite = false)
-    {
-        bool[] accountAccess = { true, true, true, true, true };
-        return AccessAccount(address, accountAccess, isWrite);
-    }
+    public long AccessCompleteAccount(Address address, bool isWrite = false) => AccessAccount(address,
+        AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce | AccountHeaderAccess.CodeHash | AccountHeaderAccess.CodeSize,
+        isWrite);
 
     /// <summary>
     /// When you have to access the certain keys for the account
-    /// you can specify the keys you want to access using the bitVector.
-    /// set the bits to true if you want to access the key.
-    /// bitVector[0] for VersionLeafKey
-    /// bitVector[1] for BalanceLeafKey
-    /// bitVector[2] for NonceLeafKey
-    /// bitVector[3] for CodeKeccakLeafKey
-    /// bitVector[4] for CodeSizeLeafKey
+    /// you can specify the keys you want to access using the AccountHeaderAccess.
     /// </summary>
     /// <param name="address"></param>
-    /// <param name="bitVector"></param>
+    /// <param name="accessOptions"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessAccount(Address address, bool[] bitVector, bool isWrite = false)
+    private long AccessAccount(Address address, AccountHeaderAccess accessOptions, bool isWrite = false)
     {
-
         long gasUsed = 0;
-        for (int i = 0; i < bitVector.Length; i++)
-        {
-            if (bitVector[i])
-            {
-                gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, (byte)i), isWrite);
-            }
-        }
-
+        if ((accessOptions & AccountHeaderAccess.Version) == AccountHeaderAccess.Version) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Version), isWrite);
+        if ((accessOptions & AccountHeaderAccess.Balance) == AccountHeaderAccess.Balance) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Balance), isWrite);
+        if ((accessOptions & AccountHeaderAccess.Nonce) == AccountHeaderAccess.Nonce) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Nonce), isWrite);
+        if ((accessOptions & AccountHeaderAccess.CodeHash) == AccountHeaderAccess.CodeHash) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.CodeHash), isWrite);
+        if ((accessOptions & AccountHeaderAccess.CodeSize) == AccountHeaderAccess.CodeSize) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.CodeSize), isWrite);
         return gasUsed;
     }
 
-    public long AccessKey(byte[] key, bool isWrite = false)
+    private long AccessKey(byte[] key, bool isWrite = false, bool leafExist = false)
     {
+        Debug.Assert(key.Length == 32);
         bool newSubTreeAccess = false;
-        bool newSubTreeWrite = false;
         bool newLeafAccess = false;
-        bool newLeafWrite = false;
+
+        bool newSubTreeUpdate = false;
+        bool newLeafUpdate = false;
+
         bool newLeafFill = false;
 
-        if (!_accessedLeaves.Contains((key)))
+
+        if (_accessedLeaves.Add((key)))
         {
             newLeafAccess = true;
-            _accessedLeaves.Add((key));
         }
 
-        if (!_accessedSubtrees.Add(key[..31]))
+        if (_accessedSubtrees.Add(key[..31]))
         {
             newSubTreeAccess = true;
-            _accessedSubtrees.Add(key[..31]);
         }
 
-        if (isWrite)
+        long accessCost =
+            (newLeafAccess ? WitnessChunkRead : 0) +
+            (newSubTreeAccess ? WitnessBranchRead : 0);
+        if (!isWrite)
+            return accessCost;
+
+        if (_modifiedLeaves.Add((key)))
         {
-            if (!_modifiedLeaves.Contains((key)))
-            {
-                newLeafWrite = true;
-                _modifiedLeaves.Add((key));
-                // are we just writing or filling the chunk? - implement the difference
-            }
-
-            if (!_modifiedSubtrees.Add(key[..31]))
-            {
-                newSubTreeWrite = true;
-                _modifiedSubtrees.Add(key[..31]);
-            }
+            newLeafFill = !leafExist;
+            newLeafUpdate = true;
         }
 
-        return (newLeafAccess ? WitnessChunkRead : 0) +
-               (newLeafWrite ? WitnessChunkWrite : 0) +
-               (newLeafFill ? WitnessChunkFill : 0) +
-               (newSubTreeAccess ? WitnessBranchRead : 0) +
-               (newSubTreeWrite ? WitnessBranchWrite : 0);
+        if (_modifiedSubtrees.Add(key[..31]))
+        {
+            newSubTreeUpdate = true;
+        }
+        long writeCost =
+            (newLeafUpdate ? WitnessChunkWrite : 0) +
+            (newLeafFill ? WitnessChunkFill : 0) +
+            (newSubTreeUpdate ? WitnessBranchWrite : 0);
+
+        return writeCost + accessCost;
     }
 
     public byte[][] GetAccessedKeys()
@@ -286,9 +240,8 @@ public class VerkleWitness : IVerkleWitness
 
     public void Restore(int snapshot)
     {
-        int[] Snapshot = _snapshots[snapshot];
-        _accessedSubtrees.Restore(Snapshot[0]);
-        _accessedLeaves.Restore(Snapshot[1]);
+        int[] witnessSnapshot = _snapshots[snapshot];
+        _accessedSubtrees.Restore(witnessSnapshot[0]);
+        _accessedLeaves.Restore(witnessSnapshot[1]);
     }
-
 }
