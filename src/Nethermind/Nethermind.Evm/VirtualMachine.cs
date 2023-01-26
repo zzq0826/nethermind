@@ -448,29 +448,73 @@ namespace Nethermind.Evm
             gasAvailable += refund;
         }
 
-        private bool ChargeAccountAccessGas(ref long gasAvailable, EvmState vmState, Address address, IReleaseSpec spec, bool chargeForWarm = true)
+        private bool ChargeAccountAccessGas(ref long gasAvailable, EvmState vmState, Address address, IReleaseSpec spec, bool chargeForWarm = true, bool valueTransfer = false, Instruction opCode = Instruction.STOP)
         {
-            // Console.WriteLine($"Accessing {address}");
-
             bool result = true;
-            if (spec.UseHotAndColdStorage)
+            if (spec.IsVerkleTreeEipEnabled)
             {
-                if (_txTracer.IsTracingAccess) // when tracing access we want cost as if it was warmed up from access list
+                bool isAddressPreCompile = address.IsPrecompile(spec);
+                switch (opCode)
                 {
-                    vmState.WarmUp(address);
-                }
+                    case Instruction.BALANCE:
+                    {
+                        result = UpdateGas(vmState.VerkleTreeWitness.AccessBalance(address), ref gasAvailable);
+                        break;
+                    }
+                    case Instruction.EXTCODESIZE:
+                    case Instruction.EXTCODECOPY:
+                    case Instruction.SELFDESTRUCT:
+                    case Instruction.CALL:
+                    case Instruction.CALLCODE:
+                    case Instruction.DELEGATECALL:
+                    case Instruction.STATICCALL:
+                    {
+                        if (!isAddressPreCompile)
+                        {
+                            result = UpdateGas(vmState.VerkleTreeWitness.AccessForCodeOpCodes(address), ref gasAvailable);
+                            if (!result)
+                            {
+                                break;
+                            }
+                        }
 
-                if (vmState.IsCold(address) && !address.IsPrecompile(spec))
-                {
-                    result = UpdateGas(GasCostOf.ColdAccountAccess, ref gasAvailable);
-                    vmState.WarmUp(address);
+                        if (valueTransfer)
+                        {
+                            result = UpdateGas(
+                                vmState.VerkleTreeWitness.AccessBalance(address), ref gasAvailable);
+                        }
+                        break;
+                    }
+                    case Instruction.EXTCODEHASH:
+                    {
+                        result = UpdateGas(
+                            vmState.VerkleTreeWitness.AccessCodeHash(address), ref gasAvailable);
+                        break;
+                    }
+                    default:
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(opCode), opCode, null);
+                    }
                 }
-                else if (chargeForWarm)
-                {
-                    result = UpdateGas(GasCostOf.WarmStateRead, ref gasAvailable);
-                }
+                return result;
             }
 
+            if (!spec.UseHotAndColdStorage) return true;
+            if (_txTracer.IsTracingAccess) // when tracing access we want cost as if it was warmed up from access list
+            {
+                vmState.WarmUp(address);
+            }
+
+
+            if (vmState.IsCold(address) && !address.IsPrecompile(spec))
+            {
+                result = UpdateGas(GasCostOf.ColdAccountAccess, ref gasAvailable);
+                vmState.WarmUp(address);
+            }
+            else if (chargeForWarm)
+            {
+                result = UpdateGas(GasCostOf.WarmStateRead, ref gasAvailable);
+            }
             return result;
         }
 
@@ -490,23 +534,28 @@ namespace Nethermind.Evm
             // Console.WriteLine($"Accessing {storageCell} {storageAccessType}");
 
             bool result = true;
-            if (spec.UseHotAndColdStorage)
+            if (spec.IsVerkleTreeEipEnabled)
             {
-                if (_txTracer.IsTracingAccess) // when tracing access we want cost as if it was warmed up from access list
-                {
-                    vmState.WarmUp(storageCell);
-                }
+                result = UpdateGas(
+                    vmState.VerkleTreeWitness.AccessStorage(storageCell.Address, storageCell.Index,
+                        storageAccessType == StorageAccessType.SSTORE), ref gasAvailable);
+                return result;
+            }
+            if (!spec.UseHotAndColdStorage) return true;
+            if (_txTracer.IsTracingAccess) // when tracing access we want cost as if it was warmed up from access list
+            {
+                vmState.WarmUp(storageCell);
+            }
 
-                if (vmState.IsCold(storageCell))
-                {
-                    result = UpdateGas(GasCostOf.ColdSLoad, ref gasAvailable);
-                    vmState.WarmUp(storageCell);
-                }
-                else if (storageAccessType == StorageAccessType.SLOAD)
-                {
-                    // we do not charge for WARM_STORAGE_READ_COST in SSTORE scenario
-                    result = UpdateGas(GasCostOf.WarmStateRead, ref gasAvailable);
-                }
+            if (vmState.IsCold(storageCell))
+            {
+                result = UpdateGas(GasCostOf.ColdSLoad, ref gasAvailable);
+                vmState.WarmUp(storageCell);
+            }
+            else if (storageAccessType == StorageAccessType.SLOAD)
+            {
+                // we do not charge for WARM_STORAGE_READ_COST in SSTORE scenario
+                result = UpdateGas(GasCostOf.WarmStateRead, ref gasAvailable);
             }
 
             return result;

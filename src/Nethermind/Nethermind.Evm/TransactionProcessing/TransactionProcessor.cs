@@ -128,6 +128,7 @@ namespace Nethermind.Evm.TransactionProcessing
             // we commit only after all block is constructed
             bool notSystemTransaction = !transaction.IsSystem();
             bool deleteCallerAccount = false;
+            VerkleWitness witness = new VerkleWitness();
 
             if (!notSystemTransaction)
             {
@@ -160,6 +161,7 @@ namespace Nethermind.Evm.TransactionProcessing
                 return;
             }
 
+            // TODO: do we need to check Intrinsic Gas before this?
             if (!noValidation && _worldState.IsInvalidContractSender(spec, caller))
             {
                 TraceLogInvalidTx(transaction, "SENDER_IS_CONTRACT");
@@ -187,7 +189,8 @@ namespace Nethermind.Evm.TransactionProcessing
             }
 
             long intrinsicGas = IntrinsicGasCalculator.Calculate(transaction, spec);
-            if (_logger.IsTrace) _logger.Trace($"Intrinsic gas calculated for {transaction.Hash}: " + intrinsicGas);
+            if (spec.IsVerkleTreeEipEnabled) intrinsicGas += witness.AccessForTransaction(caller, transaction.To!, !transaction.Value.IsZero);
+            if (_logger.IsTrace) _logger.Trace($"Intrinsic gas calculated for {transaction.Hash}: {intrinsicGas}");
 
             if (notSystemTransaction)
             {
@@ -296,34 +299,42 @@ namespace Nethermind.Evm.TransactionProcessing
                 if (transaction.IsContractCreation)
                 {
                     // if transaction is a contract creation then recipient address is the contract deployment address
-                    Address contractAddress = recipient;
-                    PrepareAccountForContractDeployment(contractAddress!, spec);
+                    if (spec.IsVerkleTreeEipEnabled)
+                    {
+                        long gasContractCreationInit = witness.AccessForContractCreationInit(recipient, !transaction.Value.IsZero);
+                        if (unspentGas < gasContractCreationInit)
+                        {
+                            TraceLogInvalidTx(transaction,
+                                $"INSUFFICIENT_GAS: UNSPENT_GAS = {unspentGas}");
+                            QuickFail(transaction, block, txTracer, eip658NotEnabled, "insufficient unspent gas");
+                            return;
+                        }
+                        unspentGas -= gasContractCreationInit;
+                    }
+
+                    PrepareAccountForContractDeployment(recipient!, spec);
                 }
 
-                if (recipient is null)
+                recipientOrNull = recipient ?? throw new InvalidDataException("Recipient has not been resolved properly before tx execution");
+
+                ExecutionEnvironment env = new ExecutionEnvironment
                 {
-                    // this transaction is not a contract creation so it should have the recipient known and not null
-                    throw new InvalidDataException("Recipient has not been resolved properly before tx execution");
-                }
-
-                recipientOrNull = recipient;
-
-                ExecutionEnvironment env = new();
-                env.TxExecutionContext = new TxExecutionContext(block, caller, effectiveGasPrice);
-                env.Value = value;
-                env.TransferValue = value;
-                env.Caller = caller;
-                env.CodeSource = recipient;
-                env.ExecutingAccount = recipient;
-                env.InputData = data ?? Array.Empty<byte>();
-                env.CodeInfo = machineCode is null
-                    ? _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec)
-                    : new CodeInfo(machineCode);
+                    TxExecutionContext = new TxExecutionContext(block, caller, effectiveGasPrice),
+                    Value = value,
+                    TransferValue = value,
+                    Caller = caller,
+                    CodeSource = recipient,
+                    ExecutingAccount = recipient,
+                    InputData = data ?? Array.Empty<byte>(),
+                    CodeInfo = machineCode is null
+                        ? _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec)
+                        : new CodeInfo(machineCode),
+                    VerkleWitness = witness
+                };
 
                 ExecutionType executionType =
                     transaction.IsContractCreation ? ExecutionType.Create : ExecutionType.Transaction;
-                using (EvmState state =
-                    new(unspentGas, env, executionType, true, snapshot, false))
+                using (EvmState state = new EvmState(unspentGas, env, executionType, true, snapshot, false))
                 {
                     if (spec.UseTxAccessLists)
                     {
@@ -399,7 +410,7 @@ namespace Nethermind.Evm.TransactionProcessing
                 _worldState.Restore(snapshot);
             }
 
-            if (_logger.IsTrace) _logger.Trace("Gas spent: " + spentGas);
+            if (_logger.IsTrace) _logger.Trace($"Gas spent: {spentGas}");
 
             Address gasBeneficiary = block.GasBeneficiary;
             bool gasBeneficiaryNotDestroyed = substate?.DestroyList.Contains(gasBeneficiary) != true;
@@ -535,7 +546,7 @@ namespace Nethermind.Evm.TransactionProcessing
                         substate.Refund + substate.DestroyList.Count * RefundOf.Destroy(spec.IsEip3529Enabled), spec);
 
                 if (_logger.IsTrace)
-                    _logger.Trace("Refunding unused gas of " + unspentGas + " and refund of " + refund);
+                    _logger.Trace($"Refunding unused gas of {unspentGas} and refund of {refund}");
                 _worldState.AddToBalance(sender, (ulong)(unspentGas + refund) * gasPrice, spec);
                 spentGas -= refund;
             }

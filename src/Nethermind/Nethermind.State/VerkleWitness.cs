@@ -132,10 +132,10 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="destinationAddress"></param>
     /// <param name="isValueTransfer"></param>
     /// <returns></returns>
-    public long AccessForTransaction(Address originAddress, Address destinationAddress, bool isValueTransfer)
+    public long AccessForTransaction(Address originAddress, Address? destinationAddress, bool isValueTransfer)
     {
 
-        long gasCost = AccessCompleteAccount(originAddress) + AccessCompleteAccount(destinationAddress);
+        long gasCost = AccessCompleteAccount(originAddress) + (destinationAddress == null ? 0: AccessCompleteAccount(destinationAddress));
 
         // when you are executing a transaction, you are writing to the nonce of the origin address
         gasCost += AccessAccount(originAddress, AccountHeaderAccess.Nonce, true);
