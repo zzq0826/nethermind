@@ -1,4 +1,7 @@
 using FluentAssertions;
+using Nethermind.Core.Extensions;
+using Nethermind.Int256;
+using Nethermind.Verkle.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;
@@ -6,6 +9,25 @@ namespace Nethermind.Verkle.Test;
 [TestFixture]
 public class AccountHeaderTests
 {
+
+    [Test]
+    public void TestGetTreeKey()
+    {
+        Span<byte> addr = new byte[32];
+        for (int i = 0; i < 16; i++)
+        {
+            addr[1 + 2 * i] = 255;
+        }
+
+        UInt256 n = 1;
+        n = n << 129;
+        n = n + 3;
+        byte[] key = PedersenHash.Hash(addr, n);
+        key[31] = 1;
+
+        key.ToHexString().Should().BeEquivalentTo("f42f932f43faf5d14b292b9009c45c28da61dbf66e20dbedc2e02dfd64ff5a01");
+    }
+
     [Test]
     public void SetAccountWithCode()
     {
