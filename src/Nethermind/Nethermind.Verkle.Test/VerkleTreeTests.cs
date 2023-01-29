@@ -69,7 +69,7 @@ public class VerkleTreeTests
     private static string GetDbPathForTest()
     {
         string tempDir = Path.GetTempPath();
-        string dbname = "VerkleTrie_TestID_" + TestContext.CurrentContext.Test.ID;
+        string dbname = $"VerkleTrie_TestID_{TestContext.CurrentContext.Test.ID}";
         return Path.Combine(tempDir, dbname);
     }
 

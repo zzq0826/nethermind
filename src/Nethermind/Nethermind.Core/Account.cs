@@ -127,10 +127,13 @@ namespace Nethermind.Core
             return new(Nonce, Balance, newStorageRoot, CodeHash, IsTotallyEmpty && newStorageRoot == Keccak.EmptyTreeHash);
         }
 
-        public Account WithChangedCodeHash(Keccak newCodeHash)
+        public Account WithChangedCodeHash(Keccak newCodeHash, byte[]? code = null)
         {
             // TODO: does the code and codeHash match?
-            return new(Nonce, Balance, StorageRoot, newCodeHash, IsTotallyEmpty && newCodeHash == Keccak.OfAnEmptyString);
+            return new(Nonce, Balance, StorageRoot, newCodeHash, IsTotallyEmpty && newCodeHash == Keccak.OfAnEmptyString)
+            {
+                Code = code
+            };
         }
 
         public  Dictionary<byte, byte[]> ToVerkleDict()

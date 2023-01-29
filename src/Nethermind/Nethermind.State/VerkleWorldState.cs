@@ -132,7 +132,7 @@ public class VerkleWorldState: IWorldState
         if (account.CodeHash != codeHash)
         {
             if (_logger.IsTrace) _logger.Trace($"  Update {address} C {account.CodeHash} -> {codeHash}");
-            Account changedAccount = account.WithChangedCodeHash(codeHash);
+            Account changedAccount = account.WithChangedCodeHash(codeHash, _codeDb[codeHash.Bytes]);
             PushUpdate(address, changedAccount);
         }
         else if (releaseSpec.IsEip158Enabled && !isGenesis)
@@ -403,7 +403,15 @@ public class VerkleWorldState: IWorldState
         Db.Metrics.StateTreeWrites++;
 
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) _tree.InsertStemBatch(headerTreeKey[..31], account.ToVerkleDict());
+        if (account != null) _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
+        if (account!.Code is null) return;
+        UInt256 chunkId = 0;
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(account.Code);
+        while (codeEnumerator.TryGetNextChunk(out byte[] chunk))
+        {
+            _tree.Insert(AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId), chunk);
+            chunkId += 1;
+        }
     }
 
     private readonly HashSet<Address> _readsForTracing = new HashSet<Address>();

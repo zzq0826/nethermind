@@ -114,7 +114,7 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="key"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessStorage(Address address, UInt256 key, bool isWrite) => AccessKey(VerkleUtils.GetTreeKeyForStorageSlot(address, key), isWrite);
+    public long AccessStorage(Address address, UInt256 key, bool isWrite) => AccessKey(AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, key), isWrite);
 
     /// <summary>
     /// When the code chunk chunk_id is accessed is accessed
@@ -123,7 +123,7 @@ public class VerkleWitness : IVerkleWitness
     /// <param name="chunkId"></param>
     /// <param name="isWrite"></param>
     /// <returns></returns>
-    public long AccessCodeChunk(Address address, byte chunkId, bool isWrite) => AccessKey(VerkleUtils.GetTreeKeyForCodeChunk(address, chunkId), isWrite);
+    public long AccessCodeChunk(Address address, byte chunkId, bool isWrite) => AccessKey(AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId), isWrite);
 
     /// <summary>
     /// When you are starting to execute a transaction.
@@ -170,11 +170,11 @@ public class VerkleWitness : IVerkleWitness
     private long AccessAccount(Address address, AccountHeaderAccess accessOptions, bool isWrite = false)
     {
         long gasUsed = 0;
-        if ((accessOptions & AccountHeaderAccess.Version) == AccountHeaderAccess.Version) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Version), isWrite);
-        if ((accessOptions & AccountHeaderAccess.Balance) == AccountHeaderAccess.Balance) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Balance), isWrite);
-        if ((accessOptions & AccountHeaderAccess.Nonce) == AccountHeaderAccess.Nonce) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.Nonce), isWrite);
-        if ((accessOptions & AccountHeaderAccess.CodeHash) == AccountHeaderAccess.CodeHash) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.CodeHash), isWrite);
-        if ((accessOptions & AccountHeaderAccess.CodeSize) == AccountHeaderAccess.CodeSize) gasUsed += AccessKey(VerkleUtils.GetTreeKey(address, UInt256.Zero, AccountHeader.CodeSize), isWrite);
+        if ((accessOptions & AccountHeaderAccess.Version) == AccountHeaderAccess.Version) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.Version), isWrite);
+        if ((accessOptions & AccountHeaderAccess.Balance) == AccountHeaderAccess.Balance) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.Balance), isWrite);
+        if ((accessOptions & AccountHeaderAccess.Nonce) == AccountHeaderAccess.Nonce) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.Nonce), isWrite);
+        if ((accessOptions & AccountHeaderAccess.CodeHash) == AccountHeaderAccess.CodeHash) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.CodeHash), isWrite);
+        if ((accessOptions & AccountHeaderAccess.CodeSize) == AccountHeaderAccess.CodeSize) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.CodeSize), isWrite);
         return gasUsed;
     }
 
