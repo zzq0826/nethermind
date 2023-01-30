@@ -1,9 +1,6 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Field.Montgomery.FrEElement;
-using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Utils;
 using Nethermind.Verkle.VerkleDb;
@@ -12,7 +9,7 @@ using VerkleUtils = Nethermind.Verkle.Utils.VerkleUtils;
 
 namespace Nethermind.Verkle;
 
-public class VerkleTree
+public partial class VerkleTree
 {
     private readonly IVerkleStore _stateDb;
 
@@ -277,45 +274,6 @@ public class VerkleTree
     public void ApplyDiffLayer(VerkleMemoryDb reverseBatch, long fromBlock, long toBlock)
     {
         _stateDb.ApplyDiffLayer(new BatchChangeSet(fromBlock, toBlock, reverseBatch));
-    }
-
-    public void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null)
-    {
-        if (visitor is null) throw new ArgumentNullException(nameof(visitor));
-        if (rootHash is null) throw new ArgumentNullException(nameof(rootHash));
-        visitingOptions ??= VisitingOptions.Default;
-
-        using TrieVisitContext trieVisitContext = new()
-        {
-            // hacky but other solutions are not much better, something nicer would require a bit of thinking
-            // we introduced a notion of an account on the visit context level which should have no knowledge of account really
-            // but we know that we have multiple optimizations and assumptions on trees
-            ExpectAccounts = visitingOptions.ExpectAccounts,
-            MaxDegreeOfParallelism = visitingOptions.MaxDegreeOfParallelism
-        };
-
-        if (!rootHash.Equals(Keccak.EmptyTreeHash))
-        {
-            _stateDb.MoveToStateRoot(rootHash.Bytes);
-        }
-        else
-        {
-            return;
-        }
-
-        if (visitor is RootCheckVisitor)
-        {
-            if (!rootHash.Bytes.SequenceEqual(_stateDb.GetStateRoot())) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
-        }
-        else
-        {
-            throw new Exception();
-        }
-    }
-
-    public void Recurse(ITreeVisitor visitor, Keccak rootHash, TrieVisitContext trieVisitContext)
-    {
-
     }
 
     private ref struct TraverseContext
