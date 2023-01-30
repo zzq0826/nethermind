@@ -13,7 +13,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Int256;
-using Nethermind.Evm.Precompiles; 
+using Nethermind.Evm.Precompiles;
 using Nethermind.Evm.Precompiles.Bls.Shamatar;
 using Nethermind.Evm.Precompiles.Snarks.Shamatar;
 using Nethermind.Evm.Tracing;
@@ -658,7 +658,7 @@ namespace Nethermind.Evm
             }
 
             vmState.InitStacks();
-            EvmStack stack = new(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
+            EvmStack stack = new EvmStack(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
             long gasAvailable = vmState.GasAvailable;
             int programCounter = vmState.ProgramCounter;
             Span<byte> code = env.CodeInfo.MachineCode.AsSpan();
@@ -2756,7 +2756,9 @@ namespace Nethermind.Evm
                                 return CallResult.OutOfGasException;
                             }
 
-                            vmState.DestroyList.Add(env.ExecutingAccount);
+                            // TODO: replace this by EIP-4758
+                            if(!spec.IsVerkleTreeEipEnabled)
+                                vmState.DestroyList.Add(env.ExecutingAccount);
 
                             UInt256 ownerBalance = _worldState.GetBalance(env.ExecutingAccount);
                             if (_txTracer.IsTracingActions) _txTracer.ReportSelfDestruct(env.ExecutingAccount, ownerBalance, inheritor);

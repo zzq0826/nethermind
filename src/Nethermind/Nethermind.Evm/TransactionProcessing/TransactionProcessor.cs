@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.IdentityModel.Tokens;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
@@ -230,7 +231,7 @@ namespace Nethermind.Evm.TransactionProcessing
                     TraceLogInvalidTx(transaction, $"SENDER_ACCOUNT_DOES_NOT_EXIST {caller}");
                     if (!commit || noValidation || effectiveGasPrice == UInt256.Zero)
                     {
-                        deleteCallerAccount = !commit || restore;
+                        deleteCallerAccount = (!commit || restore) && !spec.IsVerkleTreeEipEnabled;
                         _worldState.CreateAccount(caller, UInt256.Zero);
                     }
                 }
@@ -389,6 +390,9 @@ namespace Nethermind.Evm.TransactionProcessing
                             unspentGas -= codeDepositGasCost;
                         }
                     }
+
+                    if (spec.IsVerkleTreeEipEnabled && !substate.DestroyList.IsNullOrEmpty())
+                        throw new NotSupportedException("DestroyList should be empty for Verkle Trees");
 
                     foreach (Address toBeDestroyed in substate.DestroyList)
                     {
