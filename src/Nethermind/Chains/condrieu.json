@@ -2,8 +2,17 @@
   "name": "Kaustinen",
   "dataDir": "Kaustinen",
   "engine": {
-    "EthHash": {
+    "Ethash": {
       "params": {
+        "minimumDifficulty": "0x20000",
+        "difficultyBoundDivisor": "0x800",
+        "durationLimit": "0xd",
+        "blockReward": {
+          "0x0": "0x1BC16D674EC80000"
+        },
+        "homesteadTransition": "0x0",
+        "eip100bTransition": "0x0",
+        "difficultyBombDelays": {}
       }
     }
   },
@@ -58,6 +67,7 @@
     "gasLimit": "0x2fefd8"
   },
   "nodes": [
+    "enode://3da5fa6fb683a747a7258f93880ec5a28128e0c9a6272d9b0fa5aa27d182a6088b0d53f5fed214d5922d75220a6f31b56232273d48ded990db69e027fae8acfd@178.62.227.218:30303"
   ],
   "accounts": {
     "0xf97e180c050e5Ab072211Ad2C213Eb5AEE4DF134": {
