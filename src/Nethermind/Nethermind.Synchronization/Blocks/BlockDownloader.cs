@@ -654,9 +654,7 @@ namespace Nethermind.Synchronization.Blocks
                         if (_logger.IsDebug) _logger.Error($"DEBUG/ERROR Block download from {peerInfo} failed. {t.Exception}");
                         // ReSharper disable once RedundantAssignment
                         reason = $"sync fault";
-#if DEBUG
                         reason = $"sync fault| {t.Exception}";
-#endif
                     }
 
                     if (peerInfo is not null) // fix this for node data sync
