@@ -6,11 +6,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.Network.P2P.EventArg;
 using Nethermind.Network.P2P.Messages;
+using Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages;
 using Nethermind.Network.Rlpx;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Specs;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
 
@@ -80,7 +83,25 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         {
             Interlocked.Increment(ref Counter);
             if (Logger.IsTrace) Logger.Trace($"{Counter} Sending {typeof(T).Name}");
-            if (NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, message.ToString());
+            if (NetworkDiagTracer.IsEnabled)
+            {
+                NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, message.ToString());
+                if (message is BlockBodiesMessage blockBodiesMessage)
+                {
+                    IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+                    BlockBodiesMessageSerializer serializer = new();
+                    serializer.Serialize(buffer, blockBodiesMessage);
+                    NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, buffer.Array.ToHexString());
+                }
+                if (message is ReceiptsMessage receiptsMessage)
+                {
+                    IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+                    Subprotocols.Eth.V63.Messages.ReceiptsMessageSerializer serializer63 = new Subprotocols.Eth.V63.Messages.ReceiptsMessageSerializer(MainnetSpecProvider.Instance);
+                    ReceiptsMessageSerializer serializer = new(serializer63);
+                    serializer.Serialize(buffer, receiptsMessage);
+                    NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, buffer.Array.ToHexString());
+                }
+            }
             Session.DeliverMessage(message);
         }
 
