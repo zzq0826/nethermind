@@ -1,0 +1,23 @@
+FROM ubuntu:22.04
+
+COPY . /nethermind
+WORKDIR /nethermind
+
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG BUILDPLATFORM
+ARG BUILD_TIMESTAMP
+ARG COMMIT_HASH
+
+RUN apt-get update && apt-get install wget libicu-dev libsnappy-dev libc6-dev libc6 -y
+
+ENV DOTNET_ROOT=/dotnet
+
+RUN if [ "$TARGETARCH" = "amd64" ] ; \
+    then wget https://aka.ms/dotnet/7.0.3xx/daily/dotnet-sdk-linux-x64.tar.gz && mkdir /dotnet && tar -xzvf *.tar.gz -C /dotnet && \
+         /dotnet/dotnet publish src/Nethermind/Nethermind.Runner -r linux-x64 -c release -p:Commit=$COMMIT_HASH -p:BuildTimestamp=$BUILD_TIMESTAMP -o /out ; \
+    else echo "-"; \
+    fi
+
+ENTRYPOINT ["/out/Nethermind.Runner"]
