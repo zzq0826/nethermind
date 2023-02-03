@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Nethermind.Verkle.Curve" Version="0.0.6-alpha" />
+    <PackageReference Include="Nethermind.Verkle.Polynomial" Version="0.0.6-alpha" />
+  </ItemGroup>
+
+</Project>

@@ -11,7 +11,7 @@ namespace Nethermind.Verkle;
 
 public partial class VerkleTree
 {
-    private readonly IVerkleStore _stateDb;
+    public readonly IVerkleStore _stateDb;
 
     public byte[] RootHash
     {
@@ -66,6 +66,15 @@ public partial class VerkleTree
 #if DEBUG
         if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
 #endif
+        Span<byte> key = new byte[32];
+        foreach (KeyValuePair<byte, byte[]> keyVal in leafIndexValueMap)
+        {
+            stem.CopyTo(key);
+            key[31] = keyVal.Key;
+            Console.WriteLine("K: " + string.Join(", ", key.ToArray()));
+            Console.WriteLine("V: " + string.Join(", ", keyVal.Value.ToArray()));
+        }
+
         LeafUpdateDelta leafDelta = UpdateLeaf(stem, leafIndexValueMap);
         UpdateTreeCommitments(stem, leafDelta);
     }
@@ -287,6 +296,22 @@ public partial class VerkleTree
             Stem = stem;
             CurrentIndex = 0;
             LeafUpdateDelta = delta;
+        }
+    }
+
+    public void GenerateVerkleProof(List<byte[]> keys)
+    {
+        foreach (byte[] key in keys)
+        {
+
+        }
+    }
+
+    public void FindKeyPath(byte[] key)
+    {
+        for (int i = 0; i < key.Length; i++)
+        {
+
         }
     }
 }

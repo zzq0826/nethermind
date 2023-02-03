@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
 
@@ -144,10 +145,10 @@ namespace Nethermind.Core
             dict[1] = Balance.ToLittleEndian();
             dict[2] = Nonce.ToLittleEndian();
             dict[3] = CodeHash.Bytes;
-            dict[4] = CodeSize.ToLittleEndian();
+            if(!CodeHash.Bytes.SequenceEqual(Keccak.EmptyTreeHash.Bytes))
+                dict[4] = CodeSize.ToLittleEndian();
 
             return dict;
-
         }
     }
 }
