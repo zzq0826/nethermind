@@ -5,7 +5,7 @@ using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Utils;
 
-namespace Nethermind.Verkle.VerkleNodes;
+namespace Nethermind.Verkle.Nodes;
 
 public class SuffixTree
 {

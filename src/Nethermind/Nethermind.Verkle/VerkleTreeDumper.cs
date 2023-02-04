@@ -5,7 +5,7 @@ using System.Text;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Trie;
-using Nethermind.Verkle.VerkleNodes;
+using Nethermind.Verkle.Nodes;
 
 namespace Nethermind.Verkle;
 

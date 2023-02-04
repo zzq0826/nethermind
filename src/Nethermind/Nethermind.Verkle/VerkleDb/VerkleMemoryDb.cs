@@ -3,7 +3,7 @@
 
 using System.Collections.Concurrent;
 using Nethermind.Core.Extensions;
-using Nethermind.Verkle.VerkleNodes;
+using Nethermind.Verkle.Nodes;
 
 namespace Nethermind.Verkle.VerkleDb;
 using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;

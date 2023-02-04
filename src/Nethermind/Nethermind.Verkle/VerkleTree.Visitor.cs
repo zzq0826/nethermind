@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
-using Nethermind.Verkle.VerkleNodes;
-using NodeType = Nethermind.Verkle.VerkleNodes.NodeType;
+using Nethermind.Verkle.Nodes;
+using NodeType = Nethermind.Verkle.Nodes.NodeType;
 
 namespace Nethermind.Verkle;
 

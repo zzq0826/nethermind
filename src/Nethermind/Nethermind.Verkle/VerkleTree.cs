@@ -2,9 +2,9 @@ using System.Runtime.CompilerServices;
 using Nethermind.Db;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.Utils;
 using Nethermind.Verkle.VerkleDb;
-using Nethermind.Verkle.VerkleNodes;
 using VerkleUtils = Nethermind.Verkle.Utils.VerkleUtils;
 
 namespace Nethermind.Verkle;

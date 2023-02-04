@@ -9,10 +9,10 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.Polynomial;
 using Nethermind.Verkle.Proofs;
 using Nethermind.Verkle.Utils;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle;
 

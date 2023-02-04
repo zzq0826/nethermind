@@ -3,8 +3,8 @@
 
 using Nethermind.Core;
 using Nethermind.Db;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.Serializers;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.VerkleDb;
 

@@ -1,5 +1,5 @@
 
-namespace Nethermind.Verkle.VerkleNodes;
+namespace Nethermind.Verkle.Nodes;
 
 public enum NodeType : byte
 {

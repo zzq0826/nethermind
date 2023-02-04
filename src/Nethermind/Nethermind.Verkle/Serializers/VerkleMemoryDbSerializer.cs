@@ -3,8 +3,8 @@
 
 using System.Collections.Concurrent;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.VerkleDb;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.Serializers;
 using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;

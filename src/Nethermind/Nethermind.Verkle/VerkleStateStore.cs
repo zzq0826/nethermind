@@ -4,8 +4,8 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.VerkleDb;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle;
 

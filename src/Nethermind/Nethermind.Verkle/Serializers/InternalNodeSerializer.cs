@@ -3,8 +3,8 @@
 
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.Utils;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle.Serializers;
 

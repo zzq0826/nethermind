@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.VerkleDb;
-using Nethermind.Verkle.VerkleNodes;
 
 namespace Nethermind.Verkle;
 
