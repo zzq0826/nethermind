@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Buffers.Binary;
 using System.Text;
+using FastEnumUtility;
+using Nethermind.Core.Collections;
+using Nethermind.Core.Extensions;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
 
@@ -29,6 +33,22 @@ public struct VerkleProof
         stringBuilder.Append(Proof.ToString());
         return stringBuilder.ToString();
     }
+
+    public byte[] Encode()
+    {
+        List<byte> encoded = new List<byte>();
+        encoded.AddRange(VerifyHint.Encode());
+
+        encoded.AddRange(CommsSorted.Length.ToByteArrayLittleEndian());
+        foreach (Banderwagon comm in CommsSorted)
+        {
+            encoded.AddRange(comm.ToBytesLittleEndian().Reverse());
+        }
+
+        encoded.AddRange(Proof.Encode());
+
+        return encoded.ToArray();
+    }
 }
 
 public struct VerificationHint
@@ -51,6 +71,27 @@ public struct VerificationHint
         }
         return stringBuilder.ToString();
     }
+
+    public byte[] Encode()
+    {
+        List<byte> encoded = new List<byte>();
+
+        encoded.AddRange(DifferentStemNoProof.Length.ToByteArrayLittleEndian());
+        foreach (byte[] stem in DifferentStemNoProof)
+        {
+            encoded.AddRange(stem);
+        }
+
+        encoded.AddRange(Depths.Length.ToByteArrayLittleEndian());
+
+        foreach ((byte depth, ExtPresent extPresent) in Depths.Zip(ExtensionPresent))
+        {
+            byte extPresentByte = (byte)(extPresent.ToByte() | (depth << 3));
+            encoded.Add(extPresentByte);
+        }
+
+        return encoded.ToArray();
+    }
 }
 
 public struct UpdateHint
@@ -60,11 +101,11 @@ public struct UpdateHint
     public SortedDictionary<List<byte>, byte[]> DifferentStemNoProof;
 }
 
-public enum ExtPresent
+public enum ExtPresent: byte
 {
-    None,
-    DifferentStem,
-    Present
+    None = 0,
+    DifferentStem = 1,
+    Present = 2
 }
 
 public struct SuffixPoly

@@ -49,6 +49,7 @@ public class VerkleProofTest
 
         VerkleProver prover = new VerkleProver(tree._stateDb);
         VerkleProof proof = prover.CreateVerkleProof(new List<byte[]>(keys), out Banderwagon root);
+        Console.WriteLine(proof.Encode().ToHexString());
         // Console.WriteLine(proof.ToString());
         (bool, UpdateHint?) verified = Verifier.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root);
         Console.WriteLine(verified.Item1);

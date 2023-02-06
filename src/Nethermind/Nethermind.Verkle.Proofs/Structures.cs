@@ -5,6 +5,7 @@ using System.Text;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Polynomial;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Verkle.Proofs
 {
@@ -36,6 +37,25 @@ namespace Nethermind.Verkle.Proofs
             _l = l;
             _a = a;
             _r = r;
+        }
+
+        public byte[] Encode()
+        {
+            List<byte> encoded = new List<byte>();
+
+            foreach (Banderwagon l in _l)
+            {
+                encoded.AddRange(l.ToBytesLittleEndian().Reverse().ToArray());
+            }
+
+            foreach (Banderwagon r in _r)
+            {
+                encoded.AddRange(r.ToBytesLittleEndian().Reverse().ToArray());
+            }
+
+            encoded.AddRange(_a.ToBytes().ToArray());
+
+            return encoded.ToArray();
         }
 
         public override string ToString()
@@ -96,6 +116,17 @@ namespace Nethermind.Verkle.Proofs
             stringBuilder.Append("\n##[_d]##\n");
             stringBuilder.AppendJoin(", ", _d.ToBytesLittleEndian().Reverse().ToArray());
             return stringBuilder.ToString();
+        }
+
+        public byte[] Encode()
+        {
+            List<byte> encoded = new List<byte>();
+
+            encoded.AddRange(_d.ToBytesLittleEndian().Reverse().ToArray());
+            Console.WriteLine(_d.ToBytesLittleEndian().Reverse().ToArray().ToHexString());
+            encoded.AddRange(_ipaProof.Encode());
+
+            return encoded.ToArray();
         }
     }
 

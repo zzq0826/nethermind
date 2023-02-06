@@ -109,14 +109,14 @@ public class VerkleProver
 
         VerkleProverQuery root = queries.First();
 
-        for (int i = 0; i < queries.Count; i++)
-        {
-            Console.WriteLine($"Prover Query {i}");
-            VerkleProverQuery query = queries[i];
-            Console.WriteLine(string.Join(", ", query._nodeCommitPoint.ToBytesLittleEndian().Reverse().ToArray()));
-            Console.WriteLine(string.Join(", ", query._childHash.ToBytes().ToArray()));
-            Console.WriteLine(query._childIndex.u0);
-        }
+        // for (int i = 0; i < queries.Count; i++)
+        // {
+        //     Console.WriteLine($"Prover Query {i}");
+        //     VerkleProverQuery query = queries[i];
+        //     Console.WriteLine(string.Join(", ", query._nodeCommitPoint.ToBytesLittleEndian().Reverse().ToArray()));
+        //     Console.WriteLine(string.Join(", ", query._childHash.ToBytes().ToArray()));
+        //     Console.WriteLine(query._childIndex.u0);
+        // }
 
         rootPoint = root._nodeCommitPoint;
         foreach (VerkleProverQuery query in queries.Where(query => root._nodeCommitPoint != query._nodeCommitPoint))
