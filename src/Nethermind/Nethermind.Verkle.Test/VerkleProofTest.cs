@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core.Extensions;
+using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Proofs;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;
@@ -22,7 +24,7 @@ public class VerkleProofTest
 
         VerkleProver prover = new VerkleProver(tree._stateDb);
         prover.CreateVerkleProof(new List<byte[]>(new[]
-            {VerkleTestUtils._keyVersion, VerkleTestUtils._keyNonce, VerkleTestUtils._keyBalance, VerkleTestUtils._keyCodeCommitment}));
+            {VerkleTestUtils._keyVersion, VerkleTestUtils._keyNonce, VerkleTestUtils._keyBalance, VerkleTestUtils._keyCodeCommitment}), out var root);
 
     }
 
@@ -46,8 +48,10 @@ public class VerkleProofTest
         tree.Flush(0);
 
         VerkleProver prover = new VerkleProver(tree._stateDb);
-        prover.CreateVerkleProof(new List<byte[]>(keys));
-
+        VerkleProof proof = prover.CreateVerkleProof(new List<byte[]>(keys), out Banderwagon root);
+        Console.WriteLine(proof.ToString());
+        (bool, UpdateHint?) verified = Verifier.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root);
+        Console.WriteLine(verified.Item1);
     }
 
     [Test]
@@ -70,7 +74,7 @@ public class VerkleProofTest
         prover.CreateVerkleProof(new List<byte[]>(new[]
         {
             ffx32KeyTest
-        }));
+        }), out var root);
 
     }
 }

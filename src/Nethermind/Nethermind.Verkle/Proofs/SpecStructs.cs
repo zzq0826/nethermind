@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Proofs;
 
-namespace Nethermind.Verkle;
+namespace Nethermind.Verkle.Proofs;
 
 public struct VProof
 {

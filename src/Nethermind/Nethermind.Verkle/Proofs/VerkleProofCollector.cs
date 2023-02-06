@@ -4,7 +4,7 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
 
-namespace Nethermind.Verkle;
+namespace Nethermind.Verkle.Proofs;
 
 public class VerkleProofCollector: ITreeVisitor
 {
