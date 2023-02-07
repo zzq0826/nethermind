@@ -62,7 +62,7 @@ namespace Nethermind.Verkle.Proofs
         {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.Append("\n#[_l]#\n");
-            foreach (var l in _l)
+            foreach (Banderwagon l in _l)
             {
                 stringBuilder.AppendJoin(", ", l.ToBytesLittleEndian().Reverse().ToArray());
                 stringBuilder.Append('\n');
@@ -70,7 +70,7 @@ namespace Nethermind.Verkle.Proofs
             stringBuilder.Append("\n#[_a]#\n");
             stringBuilder.AppendJoin(", ", _a.ToBytes().ToArray());
             stringBuilder.Append("\n#[_r]#\n");
-            foreach (var l in _r)
+            foreach (Banderwagon l in _r)
             {
                 stringBuilder.AppendJoin(", ", l.ToBytesLittleEndian().Reverse().ToArray());
                 stringBuilder.Append('\n');
@@ -123,7 +123,6 @@ namespace Nethermind.Verkle.Proofs
             List<byte> encoded = new List<byte>();
 
             encoded.AddRange(_d.ToBytesLittleEndian().Reverse().ToArray());
-            Console.WriteLine(_d.ToBytesLittleEndian().Reverse().ToArray().ToHexString());
             encoded.AddRange(_ipaProof.Encode());
 
             return encoded.ToArray();

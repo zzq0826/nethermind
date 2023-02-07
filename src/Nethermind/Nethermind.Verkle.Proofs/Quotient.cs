@@ -1,3 +1,4 @@
+using Nethermind.Core.Extensions;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Polynomial;
 
@@ -14,7 +15,7 @@ namespace Nethermind.Verkle.Proofs
             FrE[] aPrimeDomain = preComp._aPrimeDomain;
             FrE[] aPrimeDomainInv = preComp._aPrimeDomainInv;
 
-            int indexI = (int)index.u0;
+            int indexI = index.ToBytes()[0];
 
             FrE[] q = new FrE[domainSize];
             for (int i = 0; i < domainSize; i++)
@@ -22,6 +23,7 @@ namespace Nethermind.Verkle.Proofs
                 q[i] = FrE.Zero;
             }
             FrE y = f.Evaluations[indexI];
+
 
             for (int i = 0; i < domainSize; i++)
             {

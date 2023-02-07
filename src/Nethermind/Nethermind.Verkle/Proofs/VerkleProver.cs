@@ -109,15 +109,6 @@ public class VerkleProver
 
         VerkleProverQuery root = queries.First();
 
-        // for (int i = 0; i < queries.Count; i++)
-        // {
-        //     Console.WriteLine($"Prover Query {i}");
-        //     VerkleProverQuery query = queries[i];
-        //     Console.WriteLine(string.Join(", ", query._nodeCommitPoint.ToBytesLittleEndian().Reverse().ToArray()));
-        //     Console.WriteLine(string.Join(", ", query._childHash.ToBytes().ToArray()));
-        //     Console.WriteLine(query._childIndex.u0);
-        // }
-
         rootPoint = root._nodeCommitPoint;
         foreach (VerkleProverQuery query in queries.Where(query => root._nodeCommitPoint != query._nodeCommitPoint))
         {
@@ -161,7 +152,7 @@ public class VerkleProver
         List<VerkleProverQuery> queries = new List<VerkleProverQuery>();
         if(!_proofBranchPolynomialCache.TryGetValue(branchPath, out FrE[] poly)) throw new EvaluateException();
         InternalNode? node = _stateDb.GetBranch(branchPath);
-        queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!._internalCommitment.Point, childIndex, poly[childIndex])));
+        queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!._internalCommitment.Point, FrE.SetElement(childIndex), poly[childIndex])));
         return queries;
     }
 
@@ -208,8 +199,8 @@ public class VerkleProver
                     throw new Exception("unreachable");
             }
 
-            VerkleProverQuery openAtValLow = new VerkleProverQuery(new LagrangeBasis(poly), commitment, (ulong)valueLowerIndex, valueLow);
-            VerkleProverQuery openAtValUpper = new VerkleProverQuery(new LagrangeBasis(poly), commitment, (ulong)valueUpperIndex, valueHigh);
+            VerkleProverQuery openAtValLow = new VerkleProverQuery(new LagrangeBasis(poly), commitment, FrE.SetElement(valueLowerIndex), valueLow);
+            VerkleProverQuery openAtValUpper = new VerkleProverQuery(new LagrangeBasis(poly), commitment, FrE.SetElement(valueUpperIndex), valueHigh);
 
             queries.Add(openAtValLow);
             queries.Add(openAtValUpper);
@@ -227,7 +218,7 @@ public class VerkleProver
         {
             if(!_proofBranchPolynomialCache.TryGetValue(proofData.Key, out FrE[] poly)) throw new EvaluateException();
             InternalNode? node = _stateDb.GetBranch(proofData.Key);
-            queries.AddRange(proofData.Value.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!._internalCommitment.Point, childIndex, poly[childIndex])));
+            queries.AddRange(proofData.Value.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!._internalCommitment.Point, FrE.SetElement(childIndex), poly[childIndex])));
         }
         return queries;
     }
@@ -277,8 +268,8 @@ public class VerkleProver
                         throw new Exception("unreachable");
                 }
 
-                VerkleProverQuery openAtValLow = new VerkleProverQuery(new LagrangeBasis(poly), commitment, (ulong)valueLowerIndex, valueLow);
-                VerkleProverQuery openAtValUpper = new VerkleProverQuery(new LagrangeBasis(poly), commitment, (ulong)valueUpperIndex, valueHigh);
+                VerkleProverQuery openAtValLow = new VerkleProverQuery(new LagrangeBasis(poly), commitment, FrE.SetElement(valueLowerIndex), valueLow);
+                VerkleProverQuery openAtValUpper = new VerkleProverQuery(new LagrangeBasis(poly), commitment, FrE.SetElement(valueUpperIndex), valueHigh);
 
                 queries.Add(openAtValLow);
                 queries.Add(openAtValUpper);
@@ -292,13 +283,18 @@ public class VerkleProver
     private IEnumerable<VerkleProverQuery> AddExtensionCommitmentOpenings(byte[] stem, IEnumerable<byte> value, SuffixTree? suffix)
     {
         List<VerkleProverQuery> queries = new List<VerkleProverQuery>();
-        FrE[] extPoly =
+        FrE[] extPoly = new FrE[256];
+        for (int i = 0; i < 256; i++)
         {
-            FrE.One, FrE.FromBytesReduced(stem.Reverse().ToArray()), suffix.C1.PointAsField, suffix.C2.PointAsField
-        };
+            extPoly[i] = FrE.Zero;
+        }
+        extPoly[0] = FrE.One;
+        extPoly[1] = FrE.FromBytesReduced(stem.Reverse().ToArray());
+        extPoly[2] = suffix.C1.PointAsField;
+        extPoly[3] = suffix.C2.PointAsField;
 
-        VerkleProverQuery openAtOne = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, 0, FrE.One);
-        VerkleProverQuery openAtStem = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, 1, FrE.FromBytesReduced(stem.Reverse().ToArray()));
+        VerkleProverQuery openAtOne = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, FrE.SetElement(0), FrE.One);
+        VerkleProverQuery openAtStem = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, FrE.SetElement(1), FrE.FromBytesReduced(stem.Reverse().ToArray()));
         queries.Add(openAtOne);
         queries.Add(openAtStem);
 
@@ -312,13 +308,13 @@ public class VerkleProver
 
         if (openC1)
         {
-            VerkleProverQuery openAtC1 = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, 2, suffix.C1.PointAsField);
+            VerkleProverQuery openAtC1 = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, FrE.SetElement(2), suffix.C1.PointAsField);
             queries.Add(openAtC1);
         }
 
         if (openC2)
         {
-            VerkleProverQuery openAtC2 = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, 3, suffix.C2.PointAsField);
+            VerkleProverQuery openAtC2 = new VerkleProverQuery(new LagrangeBasis(extPoly), suffix.ExtensionCommitment.Point, FrE.SetElement(3), suffix.C2.PointAsField);
             queries.Add(openAtC2);
         }
 

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Security.Cryptography;
+using Nethermind.Core.Extensions;
 using Nethermind.Field.Montgomery.FrEElement;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Polynomial;
@@ -39,8 +40,12 @@ namespace Nethermind.Verkle.Proofs
 
             FrE powerOfR = FrE.One;
 
-            foreach (FrE[] quotient in from query in queries let f = query._childHashPoly let index = query._childIndex select Quotient.ComputeQuotientInsideDomain(_preComp, f, index))
+            foreach (VerkleProverQuery query in queries)
             {
+                LagrangeBasis f = query._childHashPoly;
+                FrE index = query._childIndex;
+                FrE[] quotient = Quotient.ComputeQuotientInsideDomain(_preComp, f, index);
+
                 for (int i = 0; i < quotient.Length; i++)
                 {
                     g[i] += powerOfR * quotient[i];
@@ -63,7 +68,7 @@ namespace Nethermind.Verkle.Proofs
 
             foreach (VerkleProverQuery query in queries)
             {
-                int index = (int)query._childIndex.u0;
+                int index = query._childIndex.ToBytes()[0];
                 FrE.Inverse(t - _preComp._domain[index], out FrE denominatorInv);
                 LagrangeBasis f = query._childHashPoly;
                 for (int i = 0; i < f.Evaluations.Length; i++)
