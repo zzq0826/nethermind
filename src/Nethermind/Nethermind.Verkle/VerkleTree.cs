@@ -71,8 +71,6 @@ public partial class VerkleTree
         {
             stem.CopyTo(key);
             key[31] = keyVal.Key;
-            Console.WriteLine("K: " + string.Join(", ", key.ToArray()));
-            Console.WriteLine("V: " + string.Join(", ", keyVal.Value.ToArray()));
         }
 
         LeafUpdateDelta leafDelta = UpdateLeaf(stem, leafIndexValueMap);

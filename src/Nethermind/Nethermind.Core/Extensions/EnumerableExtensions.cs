@@ -17,7 +17,7 @@ namespace Nethermind.Core.Extensions
         {
             StringBuilder builder = new StringBuilder();
             builder.Append('[');
-            builder.AppendJoin(" ", enumerable);
+            builder.AppendJoin(", ", enumerable);
             builder.Append(']');
             return builder.ToString();
         }

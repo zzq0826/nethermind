@@ -81,7 +81,7 @@ public class CompositeVerkleStateStore: IVerkleStore
     }
     public byte[] GetStateRoot()
     {
-        return GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+        return GetBranch(Array.Empty<byte>())?._internalCommitment.Point.ToBytes().ToArray() ?? throw new InvalidOperationException();
     }
     public void MoveToStateRoot(byte[] stateRoot)
     {

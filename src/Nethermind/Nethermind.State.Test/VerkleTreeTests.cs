@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Int256;
@@ -52,6 +54,17 @@ public class VerkleTreeTests
 
         Account accountRestored = stateTree.Get(TestItem.AddressA);
         Assert.AreEqual((UInt256)2, accountRestored.Balance);
+    }
+
+    [Test]
+    public void TestGenesis()
+    {
+        Account account = new(1);
+        IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
+        VerkleStateTree stateTree = new VerkleStateTree(dbProvider);
+        stateTree.Set(new Address("0x0000000000000000000000000000000000000000"), account);
+        stateTree.Flush(0);
+        Console.WriteLine(EnumerableExtensions.ToString(stateTree.RootHash));
     }
 
     // [Test]

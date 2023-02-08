@@ -105,7 +105,7 @@ namespace Nethermind.Core
 
         public UInt256 Nonce { get; }
         public UInt256 Balance { get; }
-        public UInt256 CodeSize { get; }
+        public UInt256 CodeSize { get; set; }
         public UInt256 Version { get; }
         public Keccak StorageRoot { get; }
         public Keccak CodeHash { get; }
@@ -133,7 +133,8 @@ namespace Nethermind.Core
             // TODO: does the code and codeHash match?
             return new(Nonce, Balance, StorageRoot, newCodeHash, IsTotallyEmpty && newCodeHash == Keccak.OfAnEmptyString)
             {
-                Code = code
+                Code = code,
+                CodeSize = new UInt256((ulong) (code?.Length ?? 0))
             };
         }
 
@@ -145,7 +146,7 @@ namespace Nethermind.Core
             dict[1] = Balance.ToLittleEndian();
             dict[2] = Nonce.ToLittleEndian();
             dict[3] = CodeHash.Bytes;
-            if(!CodeHash.Bytes.SequenceEqual(Keccak.EmptyTreeHash.Bytes))
+            if(!CodeHash.Bytes.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
                 dict[4] = CodeSize.ToLittleEndian();
 
             return dict;

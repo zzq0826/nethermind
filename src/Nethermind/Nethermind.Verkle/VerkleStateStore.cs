@@ -258,7 +258,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public byte[] GetStateRoot()
     {
-        return GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException();
+        return GetBranch(Array.Empty<byte>())?._internalCommitment.Point.ToBytes().ToArray() ?? throw new InvalidOperationException();
     }
 
     public InternalNode? GetRootNode()
