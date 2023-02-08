@@ -124,7 +124,7 @@ namespace Nethermind.Verkle.Proofs
             foreach (VerkleVerifierQuery query in queries)
             {
                 Banderwagon c = query._nodeCommitPoint;
-                int z = (int)query._childIndex.u0;
+                int z = query._childIndex.ToBytes()[0];
                 FrE y = query._childHash;
                 FrE eCoefficient = powerOfR / t - _preComp._domain[z];
                 byte[] cSerialized = c.ToBytes();

@@ -203,7 +203,7 @@ public static class Verifier
 
         SortedDictionary<(List<byte>, byte), Banderwagon>.ValueCollection cs = commByPathAndZ.Values;
 
-        IEnumerable<FrE> zs = allPathsAndZs.Select(elem => new FrE(elem.Item2));
+        IEnumerable<FrE> zs = allPathsAndZs.Select(elem => FrE.SetElement(elem.Item2));
         SortedDictionary<(List<byte>, byte), FrE>.ValueCollection ys = ysByPathAndZ.Values;
 
         List<VerkleVerifierQuery> queries = new List<VerkleVerifierQuery>(cs.Count);
