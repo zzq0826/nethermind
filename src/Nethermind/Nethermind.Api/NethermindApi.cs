@@ -58,6 +58,7 @@ using Nethermind.State.Snap;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.Blocks;
 using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.Api
 {

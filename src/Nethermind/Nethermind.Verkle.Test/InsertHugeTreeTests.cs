@@ -4,6 +4,7 @@
 using System.Net.Mime;
 using System.Reflection;
 using Nethermind.Db;
+using Nethermind.Verkle.Tree;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;

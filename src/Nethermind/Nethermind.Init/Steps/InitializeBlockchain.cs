@@ -38,8 +38,8 @@ using Nethermind.Synchronization.Witness;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
-using Nethermind.Verkle;
-using Nethermind.Verkle.VerkleDb;
+using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.VerkleDb;
 using Nethermind.Wallet;
 
 namespace Nethermind.Init.Steps

@@ -4,7 +4,8 @@
 using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Proofs;
+using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Proofs;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;

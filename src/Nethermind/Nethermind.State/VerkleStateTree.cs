@@ -10,7 +10,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
-using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.State;
 

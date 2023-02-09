@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
+using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Utils;
 using NUnit.Framework;
 

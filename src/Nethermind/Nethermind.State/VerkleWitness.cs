@@ -9,7 +9,7 @@ using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Int256;
 using Nethermind.Trie;
-using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.State;
 

@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Logging;
-using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.State;
 

@@ -28,7 +28,8 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using Nethermind.Consensus.Processing;
 using Nethermind.Verkle;
-using Nethermind.Verkle.VerkleDb;
+using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.VerkleDb;
 using NSubstitute;
 
 namespace Nethermind.JsonRpc.Test.Modules.Proof

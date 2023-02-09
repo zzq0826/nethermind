@@ -13,7 +13,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State.Witnesses;
 using Nethermind.Trie;
-using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.State;
 

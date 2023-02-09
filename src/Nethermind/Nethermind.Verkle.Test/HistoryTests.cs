@@ -3,7 +3,8 @@
 
 using FluentAssertions;
 using Nethermind.Db;
-using Nethermind.Verkle.VerkleDb;
+using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.VerkleDb;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Test;

@@ -18,6 +18,7 @@ using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.Consensus.Producers
 {
