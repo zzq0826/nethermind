@@ -506,16 +506,34 @@ namespace Nethermind.Synchronization.FastBlocks
                     // response does not carry expected data
                     if (header.Number == lowestInserted?.Number && header.Hash != lowestInserted?.Hash)
                     {
-                        if (batch.ResponseSourcePeer is not null)
+                        if (header.Hash == LowestInsertedBlockHeader?.ParentHash)
                         {
-                            if (_logger.IsDebug) _logger.Debug($"{batch} - reporting INVALID hash");
-                            _syncPeerPool.ReportBreachOfProtocol(
-                                batch.ResponseSourcePeer,
-                                InitiateDisconnectReason.UnexpectedHeaderHash,
-                                "first hash inconsistent with request");
+                            // Sometimes the LowestInsertedBlockHeader was updated before _nextHeaderHash
+                            // It'll normally just redownload the header, so its not getting stuck, but it tends to
+                            // disconnect user.
+                            for (int j = 0; j < 100; j++)
+                            {
+                                Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                                if (header.Hash == _nextHeaderHash)
+                                {
+                                    break;
+                                };
+                            }
                         }
 
-                        break;
+                        if (header.Hash != _nextHeaderHash)
+                        {
+                            if (batch.ResponseSourcePeer is not null)
+                            {
+                                if (_logger.IsDebug) _logger.Debug($"{batch} - reporting INVALID hash");
+                                _syncPeerPool.ReportBreachOfProtocol(
+                                    batch.ResponseSourcePeer,
+                                    InitiateDisconnectReason.UnexpectedHeaderHash,
+                                    "first hash inconsistent with request");
+                            }
+
+                            break;
+                        }
                     }
 
                     // response needs to be cached until predecessors arrive
