@@ -29,6 +29,8 @@ RUN apt-get update && apt-get -y install libsnappy-dev libc6-dev libc6
 WORKDIR /nethermind
 
 COPY --from=build /out .
+COPY ./src/libspeedb.so.2.2.1 ./runtimes/linux-x64/native/librocksdb.so
+COPY ./src/libspeedb.so.2.2.1 ./librocksdb.so
 
 LABEL git_commit=$COMMIT_HASH
 
