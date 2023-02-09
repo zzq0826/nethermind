@@ -7,9 +7,6 @@ using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.VerkleDb;
 
 namespace Nethermind.Verkle.Serializers;
-using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;
-using LeafStore = ConcurrentDictionary<byte[], byte[]?>;
-using StemStore = ConcurrentDictionary<byte[], SuffixTree?>;
 
 public class VerkleMemoryDbSerializer: IRlpStreamDecoder<VerkleMemoryDb>
 {

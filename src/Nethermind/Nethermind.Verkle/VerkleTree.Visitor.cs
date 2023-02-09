@@ -3,7 +3,6 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
 using Nethermind.Verkle.Nodes;
-using NodeType = Nethermind.Verkle.Nodes.NodeType;
 
 namespace Nethermind.Verkle;
 

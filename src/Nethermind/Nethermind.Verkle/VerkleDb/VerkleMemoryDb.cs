@@ -6,9 +6,6 @@ using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Nodes;
 
 namespace Nethermind.Verkle.VerkleDb;
-using BranchStore = ConcurrentDictionary<byte[], InternalNode?>;
-using LeafStore = ConcurrentDictionary<byte[], byte[]?>;
-using StemStore = ConcurrentDictionary<byte[], SuffixTree?>;
 
 public class VerkleMemoryDb: IVerkleDb, IVerkleMemDb
 {

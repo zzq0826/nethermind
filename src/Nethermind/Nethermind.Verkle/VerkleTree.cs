@@ -5,7 +5,6 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Nodes;
 using Nethermind.Verkle.Utils;
 using Nethermind.Verkle.VerkleDb;
-using VerkleUtils = Nethermind.Verkle.Utils.VerkleUtils;
 
 namespace Nethermind.Verkle;
 
