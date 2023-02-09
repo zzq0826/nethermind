@@ -65,7 +65,7 @@ public class VerkleProver
                             continue;
                         case NodeType.StemNode:
                             byte[] keyStem = key[..31];
-                            depthsByStem.Add(keyStem, (byte)i);
+                            depthsByStem.TryAdd(keyStem, (byte)i);
                             CreateStemProofPolynomialIfNotExist(keyStem);
                             neededOpenings.TryAdd(keyStem, new SortedSet<byte>());
                             if (keyStem.SequenceEqual(node.Stem))
