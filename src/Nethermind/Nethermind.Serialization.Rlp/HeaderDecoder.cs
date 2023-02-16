@@ -77,30 +77,30 @@ namespace Nethermind.Serialization.Rlp
                 blockHeader.BaseFeePerGas = decoderContext.DecodeUInt256();
             }
 
-            if (blockHeader.Timestamp >= VerkleTreeTransitionTimestamp)
-            {
-                blockHeader.VerkleProof = decoderContext.DecodeByteArray();
-                if (blockHeader.VerkleProof.IsZero())
-                {
-                    blockHeader.VerkleProof = null;
-                }
-
-                int verkleWitnessSequenceLength = decoderContext.ReadSequenceLength();
-                int verkleWitnessCheck = decoderContext.Position + verkleWitnessSequenceLength;
-                blockHeader.VerkleWitnesses = new();
-                while (decoderContext.Position < verkleWitnessCheck)
-                {
-                    int witnessSequenceLength = decoderContext.ReadSequenceLength();
-                    int witnessCheck = decoderContext.Position + witnessSequenceLength;
-                    blockHeader.VerkleWitnesses.Add(new[] { decoderContext.DecodeByteArray(), decoderContext.DecodeByteArray() });
-                    decoderContext.Check(witnessCheck);
-                }
-                decoderContext.Check(verkleWitnessCheck);
-                if (blockHeader.VerkleWitnesses.Capacity == 0)
-                {
-                    blockHeader.VerkleWitnesses = null;
-                }
-            }
+            // if (blockHeader.Timestamp >= VerkleTreeTransitionTimestamp)
+            // {
+            //     blockHeader.VerkleProof = decoderContext.DecodeByteArray();
+            //     if (blockHeader.VerkleProof.IsZero())
+            //     {
+            //         blockHeader.VerkleProof = null;
+            //     }
+            //
+            //     int verkleWitnessSequenceLength = decoderContext.ReadSequenceLength();
+            //     int verkleWitnessCheck = decoderContext.Position + verkleWitnessSequenceLength;
+            //     blockHeader.VerkleWitnesses = new();
+            //     while (decoderContext.Position < verkleWitnessCheck)
+            //     {
+            //         int witnessSequenceLength = decoderContext.ReadSequenceLength();
+            //         int witnessCheck = decoderContext.Position + witnessSequenceLength;
+            //         blockHeader.VerkleWitnesses.Add(new[] { decoderContext.DecodeByteArray(), decoderContext.DecodeByteArray() });
+            //         decoderContext.Check(witnessCheck);
+            //     }
+            //     decoderContext.Check(verkleWitnessCheck);
+            //     if (blockHeader.VerkleWitnesses.Capacity == 0)
+            //     {
+            //         blockHeader.VerkleWitnesses = null;
+            //     }
+            // }
 
             if ((rlpBehaviors & RlpBehaviors.AllowExtraData) != RlpBehaviors.AllowExtraData)
             {
@@ -170,30 +170,30 @@ namespace Nethermind.Serialization.Rlp
                 blockHeader.BaseFeePerGas = rlpStream.DecodeUInt256();
             }
 
-            if (blockHeader.Timestamp >= VerkleTreeTransitionTimestamp)
-            {
-                blockHeader.VerkleProof = rlpStream.DecodeByteArray();
-                if (blockHeader.VerkleProof.IsZero())
-                {
-                    blockHeader.VerkleProof = null;
-                }
-
-                int verkleWitnessSequenceLength = rlpStream.ReadSequenceLength();
-                int verkleWitnessCheck = rlpStream.Position + verkleWitnessSequenceLength;
-                blockHeader.VerkleWitnesses = new();
-                while (rlpStream.Position < verkleWitnessCheck)
-                {
-                    int witnessSequenceLength = rlpStream.ReadSequenceLength();
-                    int witnessCheck = rlpStream.Position + witnessSequenceLength;
-                    blockHeader.VerkleWitnesses.Add(new[] { rlpStream.DecodeByteArray(), rlpStream.DecodeByteArray() });
-                    rlpStream.Check(witnessCheck);
-                }
-                rlpStream.Check(verkleWitnessCheck);
-                if (blockHeader.VerkleWitnesses.Capacity == 0)
-                {
-                    blockHeader.VerkleWitnesses = null;
-                }
-            }
+            // if (blockHeader.Timestamp >= VerkleTreeTransitionTimestamp)
+            // {
+            //     blockHeader.VerkleProof = rlpStream.DecodeByteArray();
+            //     if (blockHeader.VerkleProof.IsZero())
+            //     {
+            //         blockHeader.VerkleProof = null;
+            //     }
+            //
+            //     int verkleWitnessSequenceLength = rlpStream.ReadSequenceLength();
+            //     int verkleWitnessCheck = rlpStream.Position + verkleWitnessSequenceLength;
+            //     blockHeader.VerkleWitnesses = new();
+            //     while (rlpStream.Position < verkleWitnessCheck)
+            //     {
+            //         int witnessSequenceLength = rlpStream.ReadSequenceLength();
+            //         int witnessCheck = rlpStream.Position + witnessSequenceLength;
+            //         blockHeader.VerkleWitnesses.Add(new[] { rlpStream.DecodeByteArray(), rlpStream.DecodeByteArray() });
+            //         rlpStream.Check(witnessCheck);
+            //     }
+            //     rlpStream.Check(verkleWitnessCheck);
+            //     if (blockHeader.VerkleWitnesses.Capacity == 0)
+            //     {
+            //         blockHeader.VerkleWitnesses = null;
+            //     }
+            // }
 
             if ((rlpBehaviors & RlpBehaviors.AllowExtraData) != RlpBehaviors.AllowExtraData)
             {
