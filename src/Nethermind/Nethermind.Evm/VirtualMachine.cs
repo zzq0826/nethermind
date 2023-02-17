@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FastEnumUtility;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
@@ -315,7 +316,7 @@ namespace Nethermind.Evm
                 }
                 catch (Exception ex) when (ex is EvmException or OverflowException)
                 {
-                    if (_logger.IsTrace) _logger.Trace($"exception ({ex.GetType().Name}) in {currentState.ExecutionType} at depth {currentState.Env.CallDepth} - restoring snapshot");
+                    _logger.Info($"exception ({ex.GetType().Name}) in {currentState.ExecutionType} at depth {currentState.Env.CallDepth} - restoring snapshot");
 
                     _worldState.Restore(currentState.Snapshot);
 
@@ -450,6 +451,7 @@ namespace Nethermind.Evm
 
         private bool ChargeAccountAccessGas(ref long gasAvailable, EvmState vmState, Address address, IReleaseSpec spec, bool chargeForWarm = true, bool valueTransfer = false, Instruction opCode = Instruction.STOP)
         {
+            _logger.Info($"GasAvailable: {gasAvailable} Instruction: {opCode.ToName()}");
             bool result = true;
             if (spec.IsVerkleTreeEipEnabled)
             {
@@ -496,6 +498,7 @@ namespace Nethermind.Evm
                         throw new ArgumentOutOfRangeException(nameof(opCode), opCode, null);
                     }
                 }
+                _logger.Info($"GasNowAvailable: {gasAvailable} Instruction: {opCode.ToName()}");
                 return result;
             }
 
@@ -531,7 +534,7 @@ namespace Nethermind.Evm
             StorageAccessType storageAccessType,
             IReleaseSpec spec)
         {
-            // Console.WriteLine($"Accessing {storageCell} {storageAccessType}");
+            _logger.Info($"Accessing {storageCell} {storageAccessType}");
 
             bool result = true;
             if (spec.IsVerkleTreeEipEnabled)
@@ -621,7 +624,7 @@ namespace Nethermind.Evm
             }
             catch (Exception exception)
             {
-                if (_logger.IsDebug) _logger.Error($"Precompiled contract ({precompile.GetType()}) execution exception", exception);
+                _logger.Error($"Precompiled contract ({precompile.GetType()}) execution exception", exception);
                 CallResult callResult = new(Array.Empty<byte>(), false, true);
                 return callResult;
             }
@@ -634,11 +637,28 @@ namespace Nethermind.Evm
             bool traceOpcodes = _txTracer.IsTracingInstructions;
             ExecutionEnvironment env = vmState.Env;
             TxExecutionContext txCtx = env.TxExecutionContext;
+            vmState.InitStacks();
+            EvmStack stack = new EvmStack(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
+            long gasAvailable = vmState.GasAvailable;
+            int programCounter = vmState.ProgramCounter;
+            Span<byte> code = env.CodeInfo.MachineCode.AsSpan();
 
             if (!vmState.IsContinuation)
             {
                 if (!_worldState.AccountExists(env.ExecutingAccount))
                 {
+                    // TODO: completely and definitely wrong - just to be similar to geth
+                    _logger.Info($"Transfer Value {env.TransferValue} {env.TransferValue.IsZero}");
+                    if (env.TransferValue.IsZero)
+                    {
+                        long gasProofOfAbsence = vmState.VerkleTreeWitness.AccessForProofOfAbsence(env.Caller);
+                        _logger.Info($"Gas Proof of Absence {gasProofOfAbsence}");
+                        if (!UpdateGas(gasProofOfAbsence, ref gasAvailable))
+                        {
+                            EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                            return CallResult.OutOfGasException;
+                        }
+                    }
                     _worldState.CreateAccount(env.ExecutingAccount, env.TransferValue);
                 }
                 else
@@ -654,14 +674,9 @@ namespace Nethermind.Evm
 
             if (vmState.Env.CodeInfo.MachineCode.Length == 0)
             {
+                UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
                 return CallResult.Empty;
             }
-
-            vmState.InitStacks();
-            EvmStack stack = new EvmStack(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
-            long gasAvailable = vmState.GasAvailable;
-            int programCounter = vmState.ProgramCounter;
-            Span<byte> code = env.CodeInfo.MachineCode.AsSpan();
 
 
             static void UpdateCurrentState(EvmState state, in int pc, in long gas, in int stackHead)
@@ -770,8 +785,27 @@ namespace Nethermind.Evm
                 //                if(_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long)localPreviousDest, previousCallOutput);
             }
 
+            _logger.Info($"Code: {code.ToHexString()}");
             while (programCounter < code.Length)
             {
+
+                if (spec.IsVerkleTreeEipEnabled)
+                {
+                    int chunkId = programCounter / 31;
+                    if (programCounter % 31 != 0)
+                    {
+                        chunkId += 1;
+                    }
+
+                    _logger.Info($"Counter: {programCounter} ChunkID: {chunkId}");
+
+                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, (byte)chunkId, false);
+                    if (!UpdateGas(gas, ref gasAvailable))
+                    {
+                        EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                        return CallResult.OutOfGasException;
+                    }
+                }
                 Instruction instruction = (Instruction)code[programCounter];
                 // Console.WriteLine(instruction);
                 if (traceOpcodes)
@@ -1366,7 +1400,7 @@ namespace Nethermind.Evm
                             }
 
                             Address address = stack.PopAddress();
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
@@ -1516,7 +1550,7 @@ namespace Nethermind.Evm
                             }
 
                             Address address = stack.PopAddress();
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
@@ -1542,7 +1576,7 @@ namespace Nethermind.Evm
                                 return CallResult.OutOfGasException;
                             }
 
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
@@ -2406,14 +2440,16 @@ namespace Nethermind.Evm
                             }
 
                             long gasCost = GasCostOf.Create +
-                                (spec.IsEip3860Enabled ? GasCostOf.InitCodeWord * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0) +
-                                (instruction == Instruction.CREATE2 ? GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0);
+                                           (spec.IsEip3860Enabled ? GasCostOf.InitCodeWord * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0) +
+                                           (instruction == Instruction.CREATE2 ? GasCostOf.Sha3Word * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0);
 
                             if (!UpdateGas(gasCost, ref gasAvailable))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
                             }
+
+
 
                             UpdateMemoryCost(in memoryPositionOfInitCode, initCodeLength);
 
@@ -2459,6 +2495,17 @@ namespace Nethermind.Evm
                                 ? ContractAddress.From(env.ExecutingAccount, _worldState.GetNonce(env.ExecutingAccount))
                                 : ContractAddress.From(env.ExecutingAccount, salt, initCode);
 
+                            if (spec.IsVerkleTreeEipEnabled)
+                            {
+                                long gasWitness = vmState.VerkleTreeWitness.AccessForContractCreationInit(contractAddress, !vmState.Env.Value.IsZero);
+                                if (!UpdateGas(gasWitness, ref gasAvailable))
+                                {
+                                    EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                    return CallResult.OutOfGasException;
+                                }
+                            }
+
+
                             if (spec.UseHotAndColdStorage)
                             {
                                 // EIP-2929 assumes that warm-up cost is included in the costs of CREATE and CREATE2
@@ -2473,7 +2520,7 @@ namespace Nethermind.Evm
                             if (accountExists && (GetCachedCodeInfo(_worldState, contractAddress, spec).MachineCode.Length != 0 || _worldState.GetNonce(contractAddress) != 0))
                             {
                                 /* we get the snapshot before this as there is a possibility with that we will touch an empty account and remove it even if the REVERT operation follows */
-                                if (isTrace) _logger.Trace($"Contract collision at {contractAddress}");
+                                _logger.Info($"Contract collision at {contractAddress}");
                                 _returnDataBuffer = Array.Empty<byte>();
                                 stack.PushZero();
                                 break;
@@ -2549,7 +2596,7 @@ namespace Nethermind.Evm
                             Address codeSource = stack.PopAddress();
 
                             // Console.WriteLine($"CALLIN {codeSource}");
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, codeSource, spec))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, codeSource, spec, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
@@ -2584,14 +2631,11 @@ namespace Nethermind.Evm
                             Address caller = instruction == Instruction.DELEGATECALL ? env.Caller : env.ExecutingAccount;
                             Address target = instruction == Instruction.CALL || instruction == Instruction.STATICCALL ? codeSource : env.ExecutingAccount;
 
-                            if (isTrace)
-                            {
-                                _logger.Trace($"caller {caller}");
-                                _logger.Trace($"code source {codeSource}");
-                                _logger.Trace($"target {target}");
-                                _logger.Trace($"value {callValue}");
-                                _logger.Trace($"transfer value {transferValue}");
-                            }
+                            _logger.Info($"caller {caller}");
+                            _logger.Info($"code source {codeSource}");
+                            _logger.Info($"target {target}");
+                            _logger.Info($"value {callValue}");
+                            _logger.Info($"transfer value {transferValue}");
 
                             long gasExtra = 0L;
 
@@ -2653,7 +2697,7 @@ namespace Nethermind.Evm
                                     _txTracer.ReportMemoryChange(dataOffset, memoryTrace.Span);
                                 }
 
-                                if (isTrace) _logger.Trace("FAIL - call depth");
+                                _logger.Info("FAIL - call depth");
                                 if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationRemainingGas(gasAvailable);
                                 if (_txTracer.IsTracingInstructions) _txTracer.ReportOperationError(EvmExceptionType.NotEnoughBalance);
 
@@ -2678,7 +2722,7 @@ namespace Nethermind.Evm
                             callEnv.InputData = callData;
                             callEnv.CodeInfo = GetCachedCodeInfo(_worldState, codeSource, spec);
 
-                            if (isTrace) _logger.Trace($"Tx call gas {gasLimitUl}");
+                            _logger.Info($"Tx call gas {gasLimitUl}");
                             if (outputLength == 0)
                             {
                                 // TODO: when output length is 0 outputOffset can have any value really
@@ -2750,7 +2794,7 @@ namespace Nethermind.Evm
                             Metrics.SelfDestructs++;
 
                             Address inheritor = stack.PopAddress();
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, false))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, false, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;
@@ -2906,7 +2950,7 @@ namespace Nethermind.Evm
                             }
 
                             Address address = stack.PopAddress();
-                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec))
+                            if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec, opCode: instruction))
                             {
                                 EndInstructionTraceError(EvmExceptionType.OutOfGas);
                                 return CallResult.OutOfGasException;

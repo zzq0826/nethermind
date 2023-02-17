@@ -153,7 +153,7 @@ namespace Nethermind.Evm.TransactionProcessing
             byte[] data = transaction.IsMessageCall ? transaction.Data : Array.Empty<byte>();
 
             Address? caller = transaction.SenderAddress;
-            if (_logger.IsTrace) _logger.Trace($"Executing tx {transaction.Hash}");
+            _logger.Info($"Executing tx {transaction.Hash}");
 
             if (caller is null)
             {
@@ -190,8 +190,9 @@ namespace Nethermind.Evm.TransactionProcessing
             }
 
             long intrinsicGas = IntrinsicGasCalculator.Calculate(transaction, spec);
+            _logger.Info($"Intrinsic gas calculated for {transaction.Hash}: {intrinsicGas}");
             if (spec.IsVerkleTreeEipEnabled) intrinsicGas += witness.AccessForTransaction(caller, transaction.To!, !transaction.Value.IsZero);
-            if (_logger.IsTrace) _logger.Trace($"Intrinsic gas calculated for {transaction.Hash}: {intrinsicGas}");
+            _logger.Info($"Intrinsic gas calculated for {transaction.Hash}: {intrinsicGas}");
 
             if (notSystemTransaction)
             {
@@ -221,8 +222,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
                 if (caller != transaction.SenderAddress)
                 {
-                    if (_logger.IsWarn)
-                        _logger.Warn(
+                    _logger.Info(
                             $"TX recovery issue fixed - tx was coming with sender {caller} and the now it recovers to {transaction.SenderAddress}");
                     caller = transaction.SenderAddress;
                 }
@@ -364,7 +364,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
                 if (substate.ShouldRevert || substate.IsError)
                 {
-                    if (_logger.IsTrace) _logger.Trace("Restoring state from before transaction");
+                    _logger.Info("Restoring state from before transaction");
                     _worldState.Restore(snapshot);
                 }
                 else
@@ -396,7 +396,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
                     foreach (Address toBeDestroyed in substate.DestroyList)
                     {
-                        if (_logger.IsTrace) _logger.Trace($"Destroying account {toBeDestroyed}");
+                        _logger.Info($"Destroying account {toBeDestroyed}");
                         _worldState.ClearStorage(toBeDestroyed);
                         _worldState.DeleteAccount(toBeDestroyed);
                         if (txTracer.IsTracingRefunds) txTracer.ReportRefund(RefundOf.Destroy(spec.IsEip3529Enabled));
@@ -410,11 +410,11 @@ namespace Nethermind.Evm.TransactionProcessing
             catch (Exception ex) when (
                 ex is EvmException || ex is OverflowException) // TODO: OverflowException? still needed? hope not
             {
-                if (_logger.IsTrace) _logger.Trace($"EVM EXCEPTION: {ex.GetType().Name}");
+                _logger.Info($"EVM EXCEPTION: {ex.GetType().Name}");
                 _worldState.Restore(snapshot);
             }
 
-            if (_logger.IsTrace) _logger.Trace($"Gas spent: {spentGas}");
+            _logger.Info($"Gas spent: {spentGas}");
 
             Address gasBeneficiary = block.GasBeneficiary;
             bool gasBeneficiaryNotDestroyed = substate?.DestroyList.Contains(gasBeneficiary) != true;
@@ -519,12 +519,9 @@ namespace Nethermind.Evm.TransactionProcessing
                 // (but this would generally be a hash collision)
                 if (codeIsNotEmpty || accountNonceIsNotZero)
                 {
-                    if (_logger.IsTrace)
-                    {
-                        _logger.Trace($"Contract collision at {contractAddress}");
-                    }
+                    _logger.Info($"Contract collision at {contractAddress}");
 
-                    throw new TransactionCollisionException();
+                        throw new TransactionCollisionException();
                 }
 
                 // we clean any existing storage (in case of a previously called self destruct)
@@ -534,7 +531,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
         private void TraceLogInvalidTx(Transaction transaction, string reason)
         {
-            if (_logger.IsTrace) _logger.Trace($"Invalid tx {transaction.Hash} ({reason})");
+            _logger.Info($"Invalid tx {transaction.Hash} ({reason})");
         }
 
         private long Refund(long gasLimit, long unspentGas, TransactionSubstate substate, Address sender,
@@ -549,8 +546,7 @@ namespace Nethermind.Evm.TransactionProcessing
                     : RefundHelper.CalculateClaimableRefund(spentGas,
                         substate.Refund + substate.DestroyList.Count * RefundOf.Destroy(spec.IsEip3529Enabled), spec);
 
-                if (_logger.IsTrace)
-                    _logger.Trace($"Refunding unused gas of {unspentGas} and refund of {refund}");
+                _logger.Info($"Refunding unused gas of {unspentGas} and refund of {refund}");
                 _worldState.AddToBalance(sender, (ulong)(unspentGas + refund) * gasPrice, spec);
                 spentGas -= refund;
             }
