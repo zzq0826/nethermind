@@ -263,7 +263,7 @@ namespace Nethermind.Evm
                 _accessedStorageCells = new JournalSet<StorageCell>();
                 _destroyList = new JournalSet<Address>();
                 _logs = new JournalCollection<LogEntry>();
-                _verkleWitness = new VerkleWitness();
+                _verkleWitness = env.VerkleWitness;
             }
 
             _accessedAddressesSnapshot = _accessedAddresses.TakeSnapshot();
