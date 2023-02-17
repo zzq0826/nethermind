@@ -151,8 +151,10 @@ public class VerklePersistentStorageProvider: PartialStorageProviderBase
 
                     Db.Metrics.StorageTreeWrites++;
                     byte[]? key = AccountHeader.GetTreeKeyForStorageSlot(change.StorageCell.Address.Bytes, change.StorageCell.Index);
+#if DEBUG
                     Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
                     Console.WriteLine("V: " + EnumerableExtensions.ToString(change.Value));
+#endif
                     _verkleTree.Insert(key, change.Value);
                     if (isTracing)
                     {

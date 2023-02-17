@@ -410,8 +410,10 @@ public class VerkleWorldState: IWorldState
         while (codeEnumerator.TryGetNextChunk(out byte[] chunk))
         {
             byte[]? key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
+#if DEBUG
             Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
             Console.WriteLine("V: " + EnumerableExtensions.ToString(chunk));
+#endif
             _tree.Insert(key, chunk);
             chunkId += 1;
         }
