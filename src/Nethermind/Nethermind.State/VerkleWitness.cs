@@ -16,7 +16,7 @@ namespace Nethermind.State;
 
 // TODO: this can be definitely optimized by caching the keys from StateProvider - because for every access we
 //       already calculate keys in StateProvider - or we maintain pre images?
-public class VerkleWitness : IVerkleWitness
+public struct VerkleWitness : IVerkleWitness
 {
     private ILogger _logger = SimpleConsoleLogger.Instance;
     [Flags]
