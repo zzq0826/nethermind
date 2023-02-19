@@ -788,14 +788,9 @@ namespace Nethermind.Evm
                 //                if(_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long)localPreviousDest, previousCallOutput);
             }
 
-            byte CalculateChunkId(int pc)
+            byte CalculateChunkIdFromPc(int pc)
             {
                 int chunkId = pc / 31;
-                if (pc % 31 != 0)
-                {
-                    chunkId += 1;
-                }
-
                 _logger.Info($"Counter: {pc} ChunkID: {chunkId}");
                 return (byte)chunkId;
             }
@@ -806,7 +801,7 @@ namespace Nethermind.Evm
 
                 if (spec.IsVerkleTreeEipEnabled)
                 {
-                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkId(programCounter), false);
+                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounter), false);
                     if (!UpdateGas(gas, ref gasAvailable))
                     {
                         EndInstructionTraceError(EvmExceptionType.OutOfGas);
@@ -2316,8 +2311,8 @@ namespace Nethermind.Evm
                             programCounter += length;
 
                             // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
-                            var startChunkId = CalculateChunkId(programCounterInt);
-                            var endChunkId = CalculateChunkId(programCounter);
+                            var startChunkId = CalculateChunkIdFromPc(programCounterInt);
+                            var endChunkId = CalculateChunkIdFromPc(programCounter);
 
                             for (byte ch= startChunkId; ch < endChunkId; ch++)
                             {
