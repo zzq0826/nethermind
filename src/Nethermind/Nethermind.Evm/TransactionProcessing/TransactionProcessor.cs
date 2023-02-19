@@ -389,6 +389,11 @@ namespace Nethermind.Evm.TransactionProcessing
                             _worldState.InsertCode(recipient, substate.Output, spec);
                             unspentGas -= codeDepositGasCost;
                         }
+                        // TODO: when contract creation completed - AccessContractCreated
+                        if (spec.IsVerkleTreeEipEnabled)
+                        {
+                            unspentGas -= witness.AccessContractCreated(recipient);
+                        }
                     }
 
                     if (spec.IsVerkleTreeEipEnabled && !substate.DestroyList.IsNullOrEmpty())
