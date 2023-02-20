@@ -794,6 +794,16 @@ namespace Nethermind.Evm
                 return (byte)chunkId;
             }
 
+            // byte CalculateChunkIdFrom256(UInt256 pc)
+            // {
+            //     UInt256 chunkId = pc / 31;
+            //     _logger.Info($"Counter: {pc} ChunkID: {chunkId}");
+            //     return (byte)chunkId;
+            // }
+
+
+
+
             _logger.Info($"Code: {code.ToHexString()}");
             while (programCounter < code.Length)
             {
@@ -1533,6 +1543,27 @@ namespace Nethermind.Evm
                                 ZeroPaddedSpan codeSlice = code.SliceWithZeroPadding(src, (int)length);
                                 vmState.Memory.Save(in dest, codeSlice);
                                 if (_txTracer.IsTracingInstructions) _txTracer.ReportMemoryChange((long)dest, codeSlice);
+
+                                if (spec.IsVerkleTreeEipEnabled)
+                                {
+                                    // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
+                                    if (src > length)
+                                    {
+                                        src = length;
+                                    }
+                                    var startChunkId = CalculateChunkIdFromPc((int)src);
+                                    var endChunkId = CalculateChunkIdFromPc((int)src + codeSlice.Length);
+
+                                    for (byte ch= startChunkId; ch <= endChunkId; ch++)
+                                    {
+                                        long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, ch, false);
+                                        if (!UpdateGas(gas, ref gasAvailable))
+                                        {
+                                            EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                            return CallResult.OutOfGasException;
+                                        }
+                                    }
+                                }
                             }
 
                             break;
@@ -1602,8 +1633,28 @@ namespace Nethermind.Evm
                                 {
                                     _txTracer.ReportMemoryChange((long)dest, callDataSlice);
                                 }
-                            }
 
+                                if (spec.IsVerkleTreeEipEnabled)
+                                {
+                                    // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
+                                    if (src > length)
+                                    {
+                                        src = length;
+                                    }
+                                    var startChunkId = CalculateChunkIdFromPc((int)src);
+                                    var endChunkId = CalculateChunkIdFromPc((int)src + callDataSlice.Length);
+
+                                    for (byte ch= startChunkId; ch <= endChunkId; ch++)
+                                    {
+                                        long gas = vmState.VerkleTreeWitness.AccessCodeChunk(address, ch, false);
+                                        if (!UpdateGas(gas, ref gasAvailable))
+                                        {
+                                            EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                            return CallResult.OutOfGasException;
+                                        }
+                                    }
+                                }
+                            }
                             break;
                         }
                     case Instruction.RETURNDATASIZE:
@@ -1952,7 +2003,7 @@ namespace Nethermind.Evm
                             }
 
                             Span<byte> currentValue = _worldState.Get(storageCell);
-                            // Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
+                            Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
                             bool currentIsZero = currentValue.IsZero();
 
                             bool newSameAsCurrent = (newIsZero && currentIsZero) || Bytes.AreEqual(currentValue, newValue);
@@ -1991,10 +2042,22 @@ namespace Nethermind.Evm
                                 {
                                     Span<byte> originalValue = _worldState.GetOriginal(storageCell);
                                     bool originalIsZero = originalValue.IsZero();
+                                    _logger.Info($"{EnumerableExtensions.ToString(originalValue.ToArray())}");
+                                    _logger.Info($"{EnumerableExtensions.ToString(currentValue.ToArray())}");
+                                    _logger.Info($"{originalIsZero}");
+                                    _logger.Info($"{currentIsZero}");
 
-                                    bool currentSameAsOriginal = Bytes.AreEqual(originalValue, currentValue);
+                                    bool currentSameAsOriginal = originalValue.WithoutLeadingZeros().SequenceEqual(currentValue.WithoutLeadingZeros());
+                                    if (originalValue.Length == 0 && currentIsZero)
+                                    {
+                                        currentSameAsOriginal = true;
+                                    }
+                                    _logger.Info($"{currentSameAsOriginal}");
                                     if (currentSameAsOriginal)
                                     {
+                                        _logger.Info("currentSameAsOriginal");
+                                        _logger.Info($"{originalIsZero}");
+                                        _logger.Info($"{currentIsZero}");
                                         if (currentIsZero)
                                         {
                                             if (!UpdateGas(GasCostOf.SSet, ref gasAvailable))
@@ -2331,8 +2394,8 @@ namespace Nethermind.Evm
                             if (spec.IsVerkleTreeEipEnabled)
                             {
                                 // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
-                                var startChunkId = CalculateChunkIdFromPc(programCounterInt);
-                                var endChunkId = CalculateChunkIdFromPc(programCounter);
+                                var startChunkId = CalculateChunkIdFromPc(programCounterInt + 1);
+                                var endChunkId = CalculateChunkIdFromPc(programCounterInt + usedFromCode);
 
                                 for (byte ch= startChunkId; ch <= endChunkId; ch++)
                                 {

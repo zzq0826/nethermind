@@ -355,6 +355,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
                     substate = _virtualMachine.Run(state, _worldState, txTracer);
                     unspentGas = state.GasAvailable;
+                    _logger.Info($"Gas unspent Run: {unspentGas}");
 
                     if (txTracer.IsTracingAccess)
                     {
@@ -410,6 +411,8 @@ namespace Nethermind.Evm.TransactionProcessing
                     statusCode = StatusCode.Success;
                 }
 
+
+                _logger.Info($"Gas unspent Run: {unspentGas}");
                 spentGas = Refund(gasLimit, unspentGas, substate, caller, effectiveGasPrice, spec);
             }
             catch (Exception ex) when (
