@@ -132,7 +132,7 @@ namespace Nethermind.Evm.Test
 
             WorldState.GetAccount(expectedAddress).Should().NotBeNull();
             WorldState.GetAccount(expectedAddress).Balance.Should().Be(1.Ether());
-            if(_stateProvider == VirtualMachineTestsStateProvider.MerkleTrie) WorldState.GetAccount(expectedAddress).StorageRoot.Should().Be(storageRoot);
+            if (_stateProvider == VirtualMachineTestsStateProvider.MerkleTrie) WorldState.GetAccount(expectedAddress).StorageRoot.Should().Be(storageRoot);
             AssertEip1014(expectedAddress, Array.Empty<byte>());
         }
 

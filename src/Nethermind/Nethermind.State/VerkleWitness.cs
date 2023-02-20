@@ -61,8 +61,7 @@ public struct VerkleWitness : IVerkleWitness
     /// <returns></returns>
     public long AccessForCodeOpCodes(Address caller)
     {
-        long gas =  AccessAccount(caller, AccountHeaderAccess.Version | AccountHeaderAccess.CodeSize);
-        _logger.Info($"AccessForCodeOpCodes: {caller.Bytes.ToHexString()} {gas}");
+        long gas = AccessAccount(caller, AccountHeaderAccess.Version | AccountHeaderAccess.CodeSize);
         return gas;
     }
 
@@ -81,7 +80,6 @@ public struct VerkleWitness : IVerkleWitness
     {
 
         var gas = AccessAccount(caller, AccountHeaderAccess.Balance, true) + AccessAccount(callee, AccountHeaderAccess.Balance, true);
-        _logger.Info($"AccessForCodeOpCodes: {caller.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -93,10 +91,9 @@ public struct VerkleWitness : IVerkleWitness
     /// <returns></returns>
     public long AccessForContractCreationInit(Address contractAddress, bool isValueTransfer)
     {
-        long gas =  isValueTransfer
+        long gas = isValueTransfer
             ? AccessAccount(contractAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Nonce | AccountHeaderAccess.Balance | AccountHeaderAccess.CodeHash, true)
             : AccessAccount(contractAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Nonce | AccountHeaderAccess.CodeHash, true);
-        _logger.Info($"AccessForContractCreationInit: {contractAddress.Bytes.ToHexString()} {isValueTransfer} {gas}");
 
         return gas;
     }
@@ -110,7 +107,6 @@ public struct VerkleWitness : IVerkleWitness
     {
 
         var gas = AccessCompleteAccount(contractAddress, true);
-        _logger.Info($"AccessContractCreated: {contractAddress.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -123,7 +119,6 @@ public struct VerkleWitness : IVerkleWitness
     {
 
         var gas = AccessAccount(address, AccountHeaderAccess.Balance);
-        _logger.Info($"AccessBalance: {address.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -136,7 +131,6 @@ public struct VerkleWitness : IVerkleWitness
     {
 
         var gas = AccessAccount(address, AccountHeaderAccess.CodeHash);
-        _logger.Info($"AccessCodeHash: {address.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -151,7 +145,6 @@ public struct VerkleWitness : IVerkleWitness
     public long AccessStorage(Address address, UInt256 key, bool isWrite)
     {
         var gas = AccessKey(AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, key), isWrite);
-        _logger.Info($"AccessStorage: {address.Bytes.ToHexString()} {key.ToBigEndian().ToHexString()} {isWrite} {gas}");
         return gas;
     }
 
@@ -165,9 +158,7 @@ public struct VerkleWitness : IVerkleWitness
     public long AccessCodeChunk(Address address, byte chunkId, bool isWrite)
     {
         var key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
-        _logger.Info($"AccessCodeChunkKey: {EnumerableExtensions.ToString(key)}");
-        var gas =  AccessKey(key, isWrite);
-        _logger.Info($"AccessCodeChunk: {address.Bytes.ToHexString()} {chunkId} {isWrite} {gas}");
+        var gas = AccessKey(key, isWrite);
         return gas;
     }
 
@@ -183,7 +174,7 @@ public struct VerkleWitness : IVerkleWitness
 
         // TODO: does not seem right - not upto spec
         long gasCost = AccessAccount(originAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce)
-                       + (destinationAddress == null ? 0: AccessCompleteAccount(destinationAddress));
+                       + (destinationAddress == null ? 0 : AccessCompleteAccount(destinationAddress));
 
         // when you are executing a transaction, you are writing to the nonce of the origin address
         gasCost += AccessAccount(originAddress, AccountHeaderAccess.Nonce, true);
@@ -197,13 +188,11 @@ public struct VerkleWitness : IVerkleWitness
         {
             gasCost += AccessAccount(originAddress, AccountHeaderAccess.Balance, true);
         }
-        _logger.Info($"AccessForTransaction: {originAddress.Bytes.ToHexString()} {destinationAddress?.Bytes.ToHexString()} {isValueTransfer} {gasCost}");
         return gasCost;
     }
     public long AccessForProofOfAbsence(Address address)
     {
         long gas = AccessCompleteAccount(address);
-        _logger.Info($"AccessForProofOfAbsence: {address.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -219,7 +208,6 @@ public struct VerkleWitness : IVerkleWitness
         var gas = AccessAccount(address,
             AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce | AccountHeaderAccess.CodeHash | AccountHeaderAccess.CodeSize,
             isWrite);
-        _logger.Info($"AccessCompleteAccount: {address.Bytes.ToHexString()} {isWrite} {gas}");
         return gas;
     }
 
@@ -240,7 +228,6 @@ public struct VerkleWitness : IVerkleWitness
         if ((accessOptions & AccountHeaderAccess.Nonce) == AccountHeaderAccess.Nonce) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.Nonce), isWrite);
         if ((accessOptions & AccountHeaderAccess.CodeHash) == AccountHeaderAccess.CodeHash) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.CodeHash), isWrite);
         if ((accessOptions & AccountHeaderAccess.CodeSize) == AccountHeaderAccess.CodeSize) gasUsed += AccessKey(AccountHeader.GetTreeKey(address.Bytes, UInt256.Zero, AccountHeader.CodeSize), isWrite);
-        _logger.Info($"AccessAccount: {address.Bytes.ToHexString()} {accessOptions} {isWrite} {gasUsed}");
         return gasUsed;
     }
 

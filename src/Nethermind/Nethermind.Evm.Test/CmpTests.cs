@@ -24,7 +24,7 @@ namespace Nethermind.Evm.Test
             AssertCodeHash(address, Keccak.Compute(code));
         }
 
-        public CmpTests(bool simdDisabled, VirtualMachineTestsStateProvider stateProvider): base(stateProvider)
+        public CmpTests(bool simdDisabled, VirtualMachineTestsStateProvider stateProvider) : base(stateProvider)
         {
             _simdDisabled = simdDisabled;
         }

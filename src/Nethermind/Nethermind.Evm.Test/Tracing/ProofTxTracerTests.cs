@@ -18,7 +18,7 @@ namespace Nethermind.Evm.Test.Tracing
     {
         private readonly bool _treatSystemAccountDifferently;
 
-        public ProofTxTracerTests(bool treatSystemAccountDifferently, VirtualMachineTestsStateProvider stateProviderType): base(stateProviderType)
+        public ProofTxTracerTests(bool treatSystemAccountDifferently, VirtualMachineTestsStateProvider stateProviderType) : base(stateProviderType)
         {
             _treatSystemAccountDifferently = treatSystemAccountDifferently;
         }

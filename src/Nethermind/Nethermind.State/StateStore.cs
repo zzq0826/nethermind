@@ -33,7 +33,7 @@ public class StateStore
 
     public Account? GetState(Address address) => _tree.Get(address);
 
-    public void SetState(Address address, Account? account) =>  _tree.Set(address, account);
+    public void SetState(Address address, Account? account) => _tree.Set(address, account);
 
     public StorageTree GetOrCreateStorage(Address address) => new StorageTree(_trieStore, GetStorageRoot(address), _logManager);
 

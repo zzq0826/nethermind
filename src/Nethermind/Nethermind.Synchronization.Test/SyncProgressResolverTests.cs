@@ -206,7 +206,7 @@ namespace Nethermind.Synchronization.Test
             blockTree.LowestInsertedBodyNumber.Returns(2);
             receiptStorage.LowestInsertedReceiptBlockNumber.Returns(1);
 
-            SyncProgressResolver syncProgressResolver = new(blockTree, receiptStorage,  NullTrieStore.Instance, progressTracker, syncConfig, LimboLogs.Instance);
+            SyncProgressResolver syncProgressResolver = new(blockTree, receiptStorage, NullTrieStore.Instance, progressTracker, syncConfig, LimboLogs.Instance);
             Assert.True(syncProgressResolver.IsFastBlocksBodiesFinished());
         }
 
@@ -228,7 +228,7 @@ namespace Nethermind.Synchronization.Test
             receiptStorage.LowestInsertedReceiptBlockNumber.Returns(2);
 
             SyncProgressResolver syncProgressResolver = new(
-                blockTree, receiptStorage,  NullTrieStore.Instance, progressTracker, syncConfig, LimboLogs.Instance);
+                blockTree, receiptStorage, NullTrieStore.Instance, progressTracker, syncConfig, LimboLogs.Instance);
             Assert.True(syncProgressResolver.IsFastBlocksReceiptsFinished());
         }
     }

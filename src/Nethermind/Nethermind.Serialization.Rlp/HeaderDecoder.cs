@@ -307,8 +307,8 @@ namespace Nethermind.Serialization.Rlp
                                 + Rlp.LengthOf(item.Timestamp)
                                 + Rlp.LengthOf(item.ExtraData)
                                 + (item.Number < Eip1559TransitionBlock ? 0 : Rlp.LengthOf(item.BaseFeePerGas));
-                                // + (item.Timestamp < VerkleTreeTransitionTimestamp ? 0 : Rlp.LengthOf(item.VerkleProof))
-                                // + (item.Timestamp < VerkleTreeTransitionTimestamp ? 0 : Rlp.LengthOfSequence(GetWitnessLength(item, rlpBehaviors)));
+            // + (item.Timestamp < VerkleTreeTransitionTimestamp ? 0 : Rlp.LengthOf(item.VerkleProof))
+            // + (item.Timestamp < VerkleTreeTransitionTimestamp ? 0 : Rlp.LengthOfSequence(GetWitnessLength(item, rlpBehaviors)));
 
             if (notForSealing)
             {

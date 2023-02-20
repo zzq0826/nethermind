@@ -396,7 +396,7 @@ public class VerkleTreeTests
         tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last2);
     }
 
-        [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.MemDb)]
     [TestCase(DbMode.PersistantDb)]
     public void TestBeverlyHillGenesis(DbMode dbMode)
     {
