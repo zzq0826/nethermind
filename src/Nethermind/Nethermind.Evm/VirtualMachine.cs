@@ -539,10 +539,9 @@ namespace Nethermind.Evm
             bool result = true;
             if (spec.IsVerkleTreeEipEnabled)
             {
-                result = UpdateGas(
-                    vmState.VerkleTreeWitness.AccessStorage(storageCell.Address, storageCell.Index,
-                        storageAccessType == StorageAccessType.SSTORE), ref gasAvailable);
-                return result;
+                if (!UpdateGas(
+                        vmState.VerkleTreeWitness.AccessStorage(storageCell.Address, storageCell.Index,
+                            storageAccessType == StorageAccessType.SSTORE), ref gasAvailable)) return false;
             }
             if (!spec.UseHotAndColdStorage) return true;
             if (_txTracer.IsTracingAccess) // when tracing access we want cost as if it was warmed up from access list
@@ -799,13 +798,21 @@ namespace Nethermind.Evm
             while (programCounter < code.Length)
             {
 
+                _logger.Info($"Gas Available Current: {gasAvailable}");
                 if (spec.IsVerkleTreeEipEnabled)
                 {
-                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounter), false);
-                    if (!UpdateGas(gas, ref gasAvailable))
+                    if (vmState.ExecutionType is ExecutionType.Create or ExecutionType.Create2)
                     {
-                        EndInstructionTraceError(EvmExceptionType.OutOfGas);
-                        return CallResult.OutOfGasException;
+                        _logger.Info("Dont Charge Witness Cost in Create or Create2 InitCode");
+                    }
+                    else
+                    {
+                        long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounter), false);
+                        if (!UpdateGas(gas, ref gasAvailable))
+                        {
+                            EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                            return CallResult.OutOfGasException;
+                        }
                     }
                 }
                 Instruction instruction = (Instruction)code[programCounter];
@@ -1931,7 +1938,7 @@ namespace Nethermind.Evm
                                 newValue = new byte[] { 0 };
                             }
 
-                            StorageCell storageCell = new(env.ExecutingAccount, storageIndex);
+                            StorageCell storageCell = new StorageCell(env.ExecutingAccount, storageIndex);
 
                             if (!ChargeStorageAccessGas(
                                 ref gasAvailable,
@@ -2262,6 +2269,17 @@ namespace Nethermind.Evm
                             }
 
                             programCounter++;
+
+                            if (spec.IsVerkleTreeEipEnabled && programCounterInt % 31 == 0)
+                            {
+                                // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
+                                long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounter), false);
+                                if (!UpdateGas(gas, ref gasAvailable))
+                                {
+                                    EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                    return CallResult.OutOfGasException;
+                                }
+                            }
                             break;
                         }
                     case Instruction.PUSH2:
@@ -2310,17 +2328,20 @@ namespace Nethermind.Evm
 
                             programCounter += length;
 
-                            // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
-                            var startChunkId = CalculateChunkIdFromPc(programCounterInt);
-                            var endChunkId = CalculateChunkIdFromPc(programCounter);
-
-                            for (byte ch= startChunkId; ch < endChunkId; ch++)
+                            if (spec.IsVerkleTreeEipEnabled)
                             {
-                                long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, ch, false);
-                                if (!UpdateGas(gas, ref gasAvailable))
+                                // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
+                                var startChunkId = CalculateChunkIdFromPc(programCounterInt);
+                                var endChunkId = CalculateChunkIdFromPc(programCounter);
+
+                                for (byte ch= startChunkId; ch <= endChunkId; ch++)
                                 {
-                                    EndInstructionTraceError(EvmExceptionType.OutOfGas);
-                                    return CallResult.OutOfGasException;
+                                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, ch, false);
+                                    if (!UpdateGas(gas, ref gasAvailable))
+                                    {
+                                        EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                        return CallResult.OutOfGasException;
+                                    }
                                 }
                             }
                             break;
