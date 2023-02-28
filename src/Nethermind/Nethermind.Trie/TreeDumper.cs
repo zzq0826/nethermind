@@ -23,7 +23,7 @@ namespace Nethermind.Trie
             string leafDescription = isStorage ? "LEAF " : "ACCOUNT ";
             _logger.Info($"COLLECTING {leafDescription}");
             if (isStorage) key = key[64..];
-            File.AppendAllLines($"/media/sherlock/__root1/gnosisStateDump/{rootHash.ToHexString()}.txt", new []{$"{Nibbles.ToBytes(key).ToHexString()}:{value.ToHexString()}"});
+            File.AppendAllLines($"/media/sherlock/__root1/gnosisStateDump/state.txt", new []{$"{rootHash.ToHexString()}:{Nibbles.ToBytes(key).ToHexString()}:{value.ToHexString()}"});
             return true;
         }
 
