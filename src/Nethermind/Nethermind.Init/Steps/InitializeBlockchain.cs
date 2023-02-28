@@ -164,6 +164,10 @@ namespace Nethermind.Init.Steps
             Account.AccountStartNonce = getApi.ChainSpec.Parameters.AccountStartNonce;
 
             stateProvider.StateRoot = getApi.BlockTree!.Head?.StateRoot ?? Keccak.EmptyTreeHash;
+            _logger.Info($"{getApi.BlockTree!.Head?.ToString(Block.Format.Full)}");
+            _logger.Info($"{stateProvider.StateRoot.Bytes.ToHexString()}");
+            Console.ReadKey();
+            stateProvider.DumpState();
 
             if (_api.Config<IInitConfig>().DiagnosticMode == DiagnosticMode.VerifyTrie)
             {
