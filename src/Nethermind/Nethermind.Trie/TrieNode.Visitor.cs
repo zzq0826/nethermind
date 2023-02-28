@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie.Pruning;
 
@@ -175,6 +176,8 @@ namespace Nethermind.Trie
                                     trieVisitContext.IsStorage = true;
                                     trieVisitContext.Level++;
                                     trieVisitContext.BranchChildIndex = null;
+                                    Keccak currentRoot = trieVisitContext.RootHash;
+                                    trieVisitContext.RootHash = account.StorageRoot;
 
                                     if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
                                     {
@@ -185,6 +188,7 @@ namespace Nethermind.Trie
                                         visitor.VisitMissingNode(account.StorageRoot, trieVisitContext);
                                     }
 
+                                    trieVisitContext.RootHash = currentRoot;
                                     trieVisitContext.Level--;
                                     trieVisitContext.IsStorage = false;
                                 }

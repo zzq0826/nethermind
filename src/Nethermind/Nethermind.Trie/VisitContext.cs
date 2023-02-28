@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie
 {
@@ -14,6 +15,7 @@ namespace Nethermind.Trie
         private readonly int _maxDegreeOfParallelism = 1;
         private int _visitedNodes;
 
+        public Keccak RootHash { get; set; }
         public int Level { get; internal set; }
         public bool IsStorage { get; internal set; }
         public int? BranchChildIndex { get; internal set; }

@@ -1,21 +1,34 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
+using System.IO;
 using System.Text;
+using System.Threading;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Nethermind.Trie
 {
     public class TreeDumper : ITreeVisitor
     {
-        private StringBuilder _builder = new();
+        private SimpleConsoleLogger _logger => SimpleConsoleLogger.Instance;
+
+        private bool CollectLeafs(byte[] rootHash, byte[] key, byte[] value, bool isStorage)
+        {
+            string leafDescription = isStorage ? "LEAF " : "ACCOUNT ";
+            _logger.Info($"COLLECTING {leafDescription}");
+            if (isStorage) key = key[64..];
+            File.AppendAllLines($"/media/sherlock/__root1/gnosisStateDump/{rootHash.ToHexString()}.txt", new []{$"{Nibbles.ToBytes(key).ToHexString()}:{value.ToHexString()}"});
+            return true;
+        }
 
         public void Reset()
         {
-            _builder.Clear();
         }
 
         public bool ShouldVisit(Keccak nextNode)
@@ -27,11 +40,11 @@ namespace Nethermind.Trie
         {
             if (rootHash == Keccak.EmptyTreeHash)
             {
-                _builder.AppendLine("EMPTY TREEE");
+                _logger.Info("EMPTY TREEE");
             }
             else
             {
-                _builder.AppendLine(trieVisitContext.IsStorage ? "STORAGE TREE" : "STATE TREE");
+                _logger.Info(trieVisitContext.IsStorage ? "STORAGE TREE" : "STATE TREE");
             }
         }
 
@@ -42,46 +55,35 @@ namespace Nethermind.Trie
 
         public void VisitMissingNode(Keccak nodeHash, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeHash}");
+            _logger.Info($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeHash}");
+            throw new ArgumentException("node not found");
         }
 
         public void VisitBranch(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}BRANCH | -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
+            // _logger.Info($"{GetPrefix(trieVisitContext)}BRANCH | -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
         }
 
         public void VisitExtension(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}EXTENSION {Nibbles.FromBytes(node.Key).ToPackedByteArray().ToHexString(false)} -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
+            // _logger.Info($"{GetPrefix(trieVisitContext)}EXTENSION {Nibbles.FromBytes(node.Key).ToPackedByteArray().ToHexString(false)} -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
         }
-
-        private AccountDecoder decoder = new();
 
         public void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[] value = null)
         {
-            string leafDescription = trieVisitContext.IsStorage ? "LEAF " : "ACCOUNT ";
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}{leafDescription} {Nibbles.FromBytes(node.Key).ToPackedByteArray().ToHexString(false)} -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
-            if (!trieVisitContext.IsStorage)
-            {
-                Account account = decoder.Decode(new RlpStream(value));
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  NONCE: {account.Nonce}");
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  BALANCE: {account.Balance}");
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  IS_CONTRACT: {account.IsContract}");
-            }
-            else
-            {
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  VALUE: {new RlpStream(value).DecodeByteArray().ToHexString(true, true)}");
-            }
+            CollectLeafs(trieVisitContext.RootHash.Bytes, trieVisitContext.AbsolutePathNibbles.ToArray(), value, trieVisitContext.IsStorage);
+            // string leafDescription = trieVisitContext.IsStorage ? "LEAF " : "ACCOUNT ";
+            // _logger.Info($"{leafDescription}");
         }
 
         public void VisitCode(Keccak codeHash, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}CODE {codeHash}");
+            // _logger.Info($"{GetPrefix(trieVisitContext)}CODE {codeHash}");
         }
 
         public override string ToString()
         {
-            return _builder.ToString();
+            return "";
         }
     }
 }
