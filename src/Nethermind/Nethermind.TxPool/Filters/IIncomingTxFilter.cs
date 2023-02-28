@@ -13,4 +13,13 @@ namespace Nethermind.TxPool.Filters
     {
         AcceptTxResult Accept(Transaction tx, TxFilteringState state, TxHandlingOptions txHandlingOptions);
     }
+
+    /// <summary>
+    /// Filter used for discarding inbound transactions in the TX pool.
+    /// Name used to differentiate from filters from Consensus namespace.
+    /// </summary>
+    public interface IIncomingTxFilterAgnosticToState
+    {
+        AcceptTxResult Accept(Transaction tx, TxHandlingOptions txHandlingOptions);
+    }
 }

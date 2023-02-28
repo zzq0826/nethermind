@@ -9,7 +9,7 @@ namespace Nethermind.TxPool.Filters
     /// <summary>
     /// Filters out transactions that sender has any code deployed. If <see cref="IReleaseSpec.IsEip3607Enabled"/> is enabled.
     /// </summary>
-    internal class DeployedCodeFilter : IIncomingTxFilter
+    internal class DeployedCodeFilter : IIncomingTxFilterAgnosticToState
     {
         private readonly IChainHeadSpecProvider _specProvider;
         private readonly IAccountStateProvider _stateProvider;
@@ -19,7 +19,7 @@ namespace Nethermind.TxPool.Filters
             _specProvider = specProvider;
             _stateProvider = stateProvider;
         }
-        public AcceptTxResult Accept(Transaction tx, TxFilteringState state, TxHandlingOptions txHandlingOptions) =>
+        public AcceptTxResult Accept(Transaction tx, TxHandlingOptions txHandlingOptions) =>
             _stateProvider.IsInvalidContractSender(_specProvider.GetCurrentHeadSpec(), tx.SenderAddress!)
                 ? AcceptTxResult.SenderIsContract
                 : AcceptTxResult.Accepted;

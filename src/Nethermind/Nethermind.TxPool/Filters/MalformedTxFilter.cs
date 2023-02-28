@@ -10,7 +10,7 @@ namespace Nethermind.TxPool.Filters
     /// <summary>
     /// Filters out transactions that are not well formed (not conforming with the yellowpaper and EIPs)
     /// </summary>
-    internal class MalformedTxFilter : IIncomingTxFilter
+    internal class MalformedTxFilter : IIncomingTxFilterAgnosticToState
     {
         private readonly ITxValidator _txValidator;
         private readonly IChainHeadSpecProvider _specProvider;
@@ -23,7 +23,7 @@ namespace Nethermind.TxPool.Filters
             _logger = logger;
         }
 
-        public AcceptTxResult Accept(Transaction tx, TxFilteringState state, TxHandlingOptions txHandlingOptions)
+        public AcceptTxResult Accept(Transaction tx, TxHandlingOptions txHandlingOptions)
         {
             IReleaseSpec spec = _specProvider.GetCurrentHeadSpec();
             if (!_txValidator.IsWellFormed(tx, spec))

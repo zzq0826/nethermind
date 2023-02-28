@@ -32,7 +32,11 @@ namespace Nethermind.TxPool
     {
         private readonly object _locker = new();
 
-        private readonly List<IIncomingTxFilter> _filterPipeline = new();
+        // 0th stage of filtering, state agnostic
+        private readonly List<IIncomingTxFilterAgnosticToState> _filterPipeline0 = new();
+
+        // 1st stage of filtering, state aware
+        private readonly List<IIncomingTxFilter> _filterPipeline1 = new();
 
         private readonly HashCache _hashCache = new();
 
@@ -94,23 +98,26 @@ namespace Nethermind.TxPool
 
             _headInfo.HeadChanged += OnHeadChange;
 
-            _filterPipeline.Add(new NullHashTxFilter());
-            _filterPipeline.Add(new AlreadyKnownTxFilter(_hashCache, _logger));
-            _filterPipeline.Add(new MalformedTxFilter(_specProvider, validator, _logger));
-            _filterPipeline.Add(new GasLimitTxFilter(_headInfo, txPoolConfig, _logger));
-            _filterPipeline.Add(new UnknownSenderFilter(ecdsa, _logger));
-            _filterPipeline.Add(new LowNonceFilter(_logger)); // has to be after UnknownSenderFilter as it uses sender
-            _filterPipeline.Add(new GapNonceFilter(_transactions, _logger));
-            _filterPipeline.Add(new TooExpensiveTxFilter(_transactions, _logger));
-            _filterPipeline.Add(new FeeTooLowFilter(_headInfo, _transactions, logManager));
+            Add(new NullHashTxFilter());
+            Add(new AlreadyKnownTxFilter(_hashCache, _logger));
+            Add(new MalformedTxFilter(_specProvider, validator, _logger));
+            Add(new GasLimitTxFilter(_headInfo, txPoolConfig, _logger));
+            Add(new UnknownSenderFilter(ecdsa, _logger));
+            Add(new LowNonceFilter(_logger)); // has to be after UnknownSenderFilter as it uses sender
+            Add(new GapNonceFilter(_transactions, _logger));
+            Add(new TooExpensiveTxFilter(_transactions, _logger));
+            Add(new FeeTooLowFilter(_headInfo, _transactions, logManager));
             if (incomingTxFilter is not null)
             {
-                _filterPipeline.Add(incomingTxFilter);
+                Add(incomingTxFilter);
             }
-            _filterPipeline.Add(new DeployedCodeFilter(_specProvider, _accounts));
+            Add(new DeployedCodeFilter(_specProvider, _accounts));
 
             ProcessNewHeads();
         }
+
+        private void Add(IIncomingTxFilterAgnosticToState filter) => _filterPipeline0.Add(filter);
+        private void Add(IIncomingTxFilter filter) => _filterPipeline1.Add(filter);
 
         public Transaction[] GetPendingTransactions() => _transactions.GetSnapshot();
 
@@ -267,10 +274,21 @@ namespace Nethermind.TxPool
                 _logger.Trace(
                     $"Adding transaction {tx.ToString("  ")} - managed nonce: {managedNonce} | persistent broadcast {startBroadcast}");
 
-            TxFilteringState state = new(tx, _accounts);
-            for (int i = 0; i < _filterPipeline.Count; i++)
+            for (int i = 0; i < _filterPipeline0.Count; i++)
             {
-                IIncomingTxFilter incomingTxFilter = _filterPipeline[i];
+                IIncomingTxFilterAgnosticToState incomingTxFilter = _filterPipeline0[i];
+                AcceptTxResult accepted = incomingTxFilter.Accept(tx, handlingOptions);
+                if (!accepted)
+                {
+                    Metrics.PendingTransactionsDiscarded++;
+                    return accepted;
+                }
+            }
+
+            TxFilteringState state = new(tx, _accounts);
+            for (int i = 0; i < _filterPipeline1.Count; i++)
+            {
+                IIncomingTxFilter incomingTxFilter = _filterPipeline1[i];
                 AcceptTxResult accepted = incomingTxFilter.Accept(tx, state, handlingOptions);
                 if (!accepted)
                 {
@@ -278,6 +296,7 @@ namespace Nethermind.TxPool
                     return accepted;
                 }
             }
+
 
             return AddCore(tx, startBroadcast);
         }
