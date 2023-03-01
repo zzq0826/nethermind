@@ -7,11 +7,11 @@ using Nethermind.Trie.Store.Nodes;
 
 namespace Nethermind.Trie.Store;
 
-public interface ITreeDb<in T>: IDisposable where T: ITrieNode
+public interface ITreeDb<T>: IDisposable where T: ITrieNode
 {
     public ConcurrentDictionary<string, IDb> RegisteredNodeDbs { get; }
 
-    public void GetNode<TN>(byte[] path, out TN? node) where TN : struct, T;
+    public bool GetNode<TN>(byte[] path, out TN? node) where TN : struct, T;
     public void SetNode<TN>(byte[] path, TN? node) where TN : struct, T;
     public void DeleteNode<TN>(byte[] path) where TN : struct, T;
 

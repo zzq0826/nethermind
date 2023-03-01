@@ -14,19 +14,26 @@ public class MerkleTreeDb: ITreeDb<IMerkleNode>
     public MerkleTreeDb()
     {
         RegisteredNodeDbs = new ConcurrentDictionary<string, IDb>(StringComparer.InvariantCultureIgnoreCase);
-        RegisterDb(TreeNodeType.Extension.ToName()!, new MemDb());
-        RegisterDb(TreeNodeType.Branch.ToName()!, new MemDb());
-        RegisterDb(TreeNodeType.Leaf.ToName()!, new MemDb());
+        RegisterDb(NodeType.Extension.ToName()!, new MemDb());
+        RegisterDb(NodeType.Branch.ToName()!, new MemDb());
+        RegisterDb(NodeType.Leaf.ToName()!, new MemDb());
     }
 
-    public void GetNode<TN>(byte[] path, out TN? node) where TN : struct, IMerkleNode
+    public bool GetNode<TN>(byte[] path, out TN? node) where TN : struct, IMerkleNode
     {
         IDb db = GetDb<IDb>(new TN().NodeType.GetLabel()!);
 
+        var dbNode = db[path];
+        if (dbNode is null)
+        {
+            node = null;
+            return false;
+        }
         node = new TN
         {
-            FullRlp = db[path]
+            FullRlp = dbNode
         };
+        return true;
     }
 
     public void SetNode<TN>(byte[] path, TN? node) where TN : struct, IMerkleNode
