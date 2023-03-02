@@ -18,18 +18,6 @@ using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Trie
 {
-    public interface IPatriciaTree
-    {
-        Keccak RootHash { get; set; }
-        TrieNode? RootRef { get; set; }
-        void UpdateRootHash();
-        void Commit(long blockNumber, bool skipRoot = false);
-
-        ITrieStore TrieStore { get; }
-        void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null);
-    }
-
-
     [DebuggerDisplay("{RootHash}")]
     public class PatriciaTree : IPatriciaTree
     {
