@@ -13,7 +13,7 @@ using Nethermind.Trie.Pruning;
 
 namespace Nethermind.State
 {
-    public class StateTreeByPath : PatriciaTreeByPath, IStateTree
+    public class StateTreeByPath : PatriciaTree, IStateTree
     {
         private readonly AccountDecoder _decoder = new();
 
@@ -21,7 +21,7 @@ namespace Nethermind.State
 
         [DebuggerStepThrough]
         public StateTreeByPath()
-            : base(new MemDb(), Keccak.EmptyTreeHash, true, true, NullLogManager.Instance)
+            : base(new MemDb(), Keccak.EmptyTreeHash, true, true, NullLogManager.Instance, TrieNodeResolverCapability.Path)
         {
             TrieType = TrieType.State;
         }
