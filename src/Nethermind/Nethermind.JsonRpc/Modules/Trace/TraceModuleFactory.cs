@@ -4,18 +4,17 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Processing;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Tracing;
 using Nethermind.Consensus.Validators;
-using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
-using Nethermind.Evm.TransactionProcessing;
-using Nethermind.JsonRpc.Data;
 using Nethermind.Logging;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Newtonsoft.Json;
 
@@ -61,14 +60,13 @@ namespace Nethermind.JsonRpc.Modules.Trace
 
         public override ITraceRpcModule Create()
         {
-            ReadOnlyTxProcessingEnv txProcessingEnv =
-                new(_dbProvider, _trieNodeResolver, _blockTree, _specProvider, _logManager);
+            IReadOnlyTxProcessorSourceExt txProcessingEnv = new ReadOnlyTxProcessingEnv(_dbProvider, _trieNodeResolver, _blockTree, _specProvider, _logManager);
 
             IRewardCalculator rewardCalculator =
                 new MergeRpcRewardCalculator(_rewardCalculatorSource.Get(txProcessingEnv.TransactionProcessor),
                     _poSSwitcher);
 
-            RpcBlockTransactionsExecutor rpcBlockTransactionsExecutor = new(txProcessingEnv.TransactionProcessor, txProcessingEnv.StateProvider);
+            RpcBlockTransactionsExecutor rpcBlockTransactionsExecutor = new(txProcessingEnv.TransactionProcessor, txProcessingEnv.WorldState);
 
             ReadOnlyChainProcessingEnv chainProcessingEnv = new(
                 txProcessingEnv,
@@ -81,7 +79,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
                 _logManager,
                 rpcBlockTransactionsExecutor);
 
-            Tracer tracer = new(chainProcessingEnv.StateProvider, chainProcessingEnv.ChainProcessor);
+            Tracer tracer = new(chainProcessingEnv.WorldState, chainProcessingEnv.ChainProcessor);
 
             return new TraceRpcModule(_receiptStorage, tracer, _blockTree, _jsonRpcConfig, _specProvider, _logManager);
         }
