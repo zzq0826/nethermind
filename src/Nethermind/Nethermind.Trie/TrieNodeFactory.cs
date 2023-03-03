@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Diagnostics;
 
 namespace Nethermind.Trie
 {
@@ -24,9 +25,8 @@ namespace Nethermind.Trie
             };
             if (storagePrefix is not null) node.StorePrefix = storagePrefix;
             if (pathToNode is null) return node;
+            Debug.Assert(path.Length + pathToNode.Length == 64);
             node.PathToNode = pathToNode;
-            if (node.Key.Length + node.PathToNode.Length != 64)
-                throw new Exception("what?");
             return node;
         }
 
