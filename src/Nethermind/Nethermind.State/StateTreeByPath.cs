@@ -30,6 +30,7 @@ namespace Nethermind.State
         public StateTreeByPath(ITrieStore? store, ILogManager? logManager)
             : base(store, Keccak.EmptyTreeHash, true, true, logManager)
         {
+            if (store.Capability == TrieNodeResolverCapability.Hash) throw new ArgumentException("state store should be path based");
             TrieType = TrieType.State;
         }
 
