@@ -132,8 +132,8 @@ public class TestBlockchain : IDisposable
         State.Commit(SpecProvider.GenesisSpec);
         State.CommitTree(0);
 
-            ReadOnlyTrieStore = TrieStore.AsReadOnly(StateDb);
-            StateReader = new StateReader(ReadOnlyTrieStore, ReadOnlyTrieStore, CodeDb, LogManager);
+        ReadOnlyTrieStore = TrieStore.AsReadOnly(StateDb);
+        StateReader = new StateReader(ReadOnlyTrieStore, ReadOnlyTrieStore, CodeDb, LogManager);
 
         IDb blockDb = new MemDb();
         IDb headerDb = new MemDb();
