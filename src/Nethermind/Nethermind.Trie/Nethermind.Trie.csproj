@@ -14,4 +14,8 @@
     <ProjectReference Include="..\Nethermind.Serialization.Rlp\Nethermind.Serialization.Rlp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Umbraco.CSharpTest.Net.Collections" />
+  </ItemGroup>
+
 </Project>

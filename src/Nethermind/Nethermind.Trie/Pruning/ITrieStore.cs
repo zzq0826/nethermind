@@ -16,6 +16,8 @@ namespace Nethermind.Trie.Pruning
         bool IsPersisted(Keccak keccak);
 
         IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
+
+        void SaveNodeDirectly(long blockNumber, TrieNode trieNode);
     }
 
     public interface IStoreWithReorgBoundary
