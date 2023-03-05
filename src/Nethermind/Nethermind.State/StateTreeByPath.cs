@@ -6,6 +6,9 @@ using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
+using System.Collections.Generic;
+using Nethermind.Core.Extensions;
+using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
@@ -15,7 +18,12 @@ namespace Nethermind.State
 {
     public class StateTreeByPath : PatriciaTree, IStateTree
     {
-        private readonly AccountDecoder _decoder = new();
+        private static readonly UInt256 CacheSize = 1024;
+
+        private static readonly int CacheSizeInt = (int)CacheSize;
+
+        private static readonly Dictionary<UInt256, byte[]> Cache = new(CacheSizeInt);
+        private readonly AccountDecoder _decoder = new AccountDecoder();
 
         private static readonly Rlp EmptyAccountRlp = Rlp.Encode(Account.TotallyEmpty);
 
@@ -104,6 +112,124 @@ namespace Nethermind.State
 
             Set(keccak.Bytes, rlp);
             return rlp;
+        }
+
+        private byte[]? GetStorage(byte[] key, Keccak? rootHash = null)
+        {
+            byte[]? bytes = null;
+            if (rootHash is not null && RootHash != rootHash)
+            {
+                Span<byte> nibbleBytes = stackalloc byte[64 + 40];
+                Nibbles.BytesToNibbleBytes(key, nibbleBytes);
+                byte[]? nodeBytes = TrieStore.LoadRlp(nibbleBytes, rootHash);
+                if (nodeBytes is not null)
+                {
+                    TrieNode node = new TrieNode(NodeType.Unknown, nodeBytes);
+                    node.ResolveNode(TrieStore);
+                    bytes = node.Value;
+                }
+            }
+
+            if (bytes is null && RootHash == rootHash)
+            {
+                if (RootRef?.IsPersisted == true)
+                {
+                    byte[]? nodeData = TrieStore[key];
+                    if (nodeData is not null)
+                    {
+                        TrieNode node = new(NodeType.Unknown, nodeData);
+                        node.ResolveNode(TrieStore);
+                        bytes = node.Value;
+                    }
+                }
+                else
+                {
+                    bytes = Get(key);
+                }
+            }
+
+            return bytes;
+        }
+
+
+        public byte[]? GetStorage(in UInt256 index, in Address accountAddress, Keccak? root = null)
+        {
+            Span<byte> key = stackalloc byte[_trieStore.Capability == TrieNodeResolverCapability.Hash ? 32 : 32 + 20];
+            switch (_trieStore.Capability)
+            {
+                case TrieNodeResolverCapability.Hash:
+                    GetStorageKey(index, key);
+                    break;
+                case TrieNodeResolverCapability.Path:
+                    accountAddress.Bytes.CopyTo(key);
+                    GetStorageKey(index, key.Slice(20));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+
+            byte[]? value = GetStorage(key.ToArray(), root);
+
+
+            if (value is null)
+            {
+                return new byte[] { 0 };
+            }
+
+            Rlp.ValueDecoderContext rlp = value.AsRlpValueContext();
+            return rlp.DecodeByteArray();
+        }
+
+        public void SetStorage(in UInt256 index, byte[] value, in Address accountAddress)
+        {
+            Span<byte> key = stackalloc byte[_trieStore.Capability == TrieNodeResolverCapability.Hash ? 32 : 32 + 20];
+            switch (_trieStore.Capability)
+            {
+                case TrieNodeResolverCapability.Hash:
+                    GetStorageKey(index, key);
+                    break;
+                case TrieNodeResolverCapability.Path:
+                    accountAddress.Bytes.CopyTo(key);
+                    GetStorageKey(index, key.Slice(20));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            SetInternal(key, value);
+        }
+
+        public void SetStorage(Keccak key, byte[] value, in Address accountAddress, bool rlpEncode = true)
+        {
+            throw new ArgumentException("not possible");
+        }
+
+        private static void GetStorageKey(in UInt256 index, in Span<byte> key)
+        {
+            if (index < CacheSize)
+            {
+                Cache[index].CopyTo(key);
+                return;
+            }
+
+            index.ToBigEndian(key);
+
+            // in situ calculation
+            KeccakHash.ComputeHashBytesToSpan(key, key);
+        }
+
+        private void SetInternal(Span<byte> rawKey, byte[] value, bool rlpEncode = true)
+        {
+            if (value.IsZero())
+            {
+                Set(rawKey, Array.Empty<byte>());
+            }
+            else
+            {
+                Rlp rlpEncoded = rlpEncode ? Rlp.Encode(value) : new Rlp(value);
+                Set(rawKey, rlpEncoded);
+            }
         }
     }
 }

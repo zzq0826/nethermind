@@ -70,7 +70,7 @@ namespace Nethermind.Synchronization.FastSync
         private LruKeyCache<Keccak> _alreadySavedNode = new(AlreadySavedCapacity, "saved nodes");
         private LruKeyCache<Keccak> _alreadySavedCode = new(AlreadySavedCapacity, "saved nodes");
         private readonly HashSet<Keccak> _codesSameAsNodes = new();
-        private readonly ConcurrentDictionary<Keccak, List<byte>> _additionalLeafNibbles = new();
+        private readonly ConcurrentDictionary<Keccak, List<byte>> _additionalLeafNibbles;
 
         private BranchProgress _branchProgress;
         private int _hintsToResetRoot;

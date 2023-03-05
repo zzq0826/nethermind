@@ -217,13 +217,11 @@ namespace Nethermind.State
 
         private StorageTree GetOrCreateStorage(Address address)
         {
-            if (!_storages.ContainsKey(address))
-            {
-                StorageTree storageTree = new(_trieStore, _stateProvider.GetStorageRoot(address), _logManager);
-                return _storages[address] = storageTree;
-            }
+            if (_storages.TryGetValue(address, out StorageTree value)) return value;
 
-            return _storages[address];
+            StorageTree storageTree = new StorageTree(_trieStore, _stateProvider.GetStorageRoot(address), _logManager, address);
+            return _storages[address] = storageTree;
+
         }
 
         private byte[] LoadFromTree(in StorageCell storageCell)
@@ -278,7 +276,7 @@ namespace Nethermind.State
             // by means of CREATE 2 - notice that the cached trie may carry information about items that were not
             // touched in this block, hence were not zeroed above
             // TODO: how does it work with pruning?
-            _storages[address] = new StorageTree(_trieStore, Keccak.EmptyTreeHash, _logManager);
+            _storages[address] = new StorageTree(_trieStore, Keccak.EmptyTreeHash, _logManager, address);
         }
     }
 }

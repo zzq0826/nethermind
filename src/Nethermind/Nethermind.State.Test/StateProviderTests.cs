@@ -41,7 +41,7 @@ namespace Nethermind.Store.Test
         public static (string name, ITrieStore trieStore)[] Variants
             => LazyInitializer.EnsureInitialized(ref _variants, InitVariants);
 
-        public static (string Name, ITrieStore TrieStore)[] InitVariants()
+        private static (string Name, ITrieStore TrieStore)[] InitVariants()
         {
             return new (string, ITrieStore)[]
             {

@@ -64,7 +64,6 @@ namespace Nethermind.JsonRpc.Test.Modules
             peerManager.MaxActivePeers.Returns(15);
 
             StateProvider stateProvider = new(new TrieStore(new MemDb(), LimboLogs.Instance), new MemDb(), LimboLogs.Instance);
-            StateReader stateReader = new(new TrieStore(new MemDb(), LimboLogs.Instance), new TrieStore(new MemDb(), LimboLogs.Instance), new MemDb(), LimboLogs.Instance);
 
             IDb blockDb = new MemDb();
             IDb headerDb = new MemDb();

@@ -43,7 +43,7 @@ public partial class PatriciaTree : IPatriciaTree
 
     internal readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
 
-    private readonly ITrieStore _trieStore;
+    protected readonly ITrieStore _trieStore;
 
     private readonly bool _parallelBranches;
 
@@ -179,7 +179,7 @@ public partial class PatriciaTree : IPatriciaTree
                 ? stackalloc byte[nibblesCount]
                 : array = ArrayPool<byte>.Shared.Rent(nibblesCount);
             Nibbles.BytesToNibbleBytes(rawKey, nibbles);
-            var result = Run(nibbles, nibblesCount, Array.Empty<byte>(), false, startRootHash: rootHash);
+            byte[]? result = Run(nibbles, nibblesCount, Array.Empty<byte>(), false, startRootHash: rootHash);
             if (array is not null) ArrayPool<byte>.Shared.Return(array);
             return result;
         }
