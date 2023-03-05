@@ -53,6 +53,8 @@ public partial class PatriciaTree : IPatriciaTree
 
     private TrieNode? _rootRef;
 
+    protected byte[]? StoragePrefix { get; set; }
+
 
     /// <summary>
     /// Only used in EthereumTests

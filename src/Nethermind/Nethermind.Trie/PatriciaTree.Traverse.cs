@@ -99,7 +99,7 @@ public partial class PatriciaTree
             TrieNode leaf = _trieStore.Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue),
-                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue, traverseContext.GetCurrentPath()),
+                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue, traverseContext.GetCurrentPath(), StoragePrefix),
                 _ => throw new ArgumentOutOfRangeException()
             };
 
@@ -194,7 +194,7 @@ public partial class PatriciaTree
             TrieNode extension = _trieStore.Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(extensionPath.ToArray()),
-                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(extensionPath.ToArray(), traverseContext.GetCurrentPath()),
+                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(extensionPath.ToArray(), traverseContext.GetCurrentPath(), StoragePrefix),
                 _ => throw new ArgumentOutOfRangeException()
             };
             _nodeStack.Push(new StackedNode(extension, 0));
@@ -203,7 +203,7 @@ public partial class PatriciaTree
         TrieNode branch = _trieStore.Capability switch
         {
             TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
-            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray()),
+            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray(), StoragePrefix),
             _ => throw new ArgumentOutOfRangeException()
         };
         if (extensionLength == shorterPath.Length)
@@ -223,14 +223,14 @@ public partial class PatriciaTree
                     if (shorterPath.Length == 64)
                     {
                         Span<byte> pathToShortLeaf = shorterPath.Slice(0, extensionLength + 1);
-                        shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf);
+                        shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf, StoragePrefix);
                     }
                     else
                     {
                         Span<byte> pathToShortLeaf = stackalloc byte[branch.PathToNode.Length + 1];
                         branch.PathToNode.CopyTo(pathToShortLeaf);
                         pathToShortLeaf[branch.PathToNode.Length] = shorterPath[extensionLength];
-                        shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf);
+                        shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf, StoragePrefix);
                     }
                     break;
                 default:
@@ -335,7 +335,7 @@ public partial class PatriciaTree
         TrieNode branch = _trieStore.Capability switch
         {
             TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
-            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength)),
+            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength), StoragePrefix),
             _ => throw new ArgumentOutOfRangeException()
         };
 
@@ -349,7 +349,7 @@ public partial class PatriciaTree
             TrieNode shortLeaf = _trieStore.Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue),
-                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1)),
+                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1), StoragePrefix),
                 _ => throw new ArgumentOutOfRangeException()
             };
             branch.SetChild(remaining[extensionLength], shortLeaf);
@@ -375,7 +375,7 @@ public partial class PatriciaTree
                     Span<byte> fullPath = traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1);
                     fullPath[traverseContext.CurrentIndex + extensionLength] = pathBeforeUpdate[extensionLength];
                     secondExtension
-                        = TrieNodeFactory.CreateExtension(extensionPath, originalNodeChild, fullPath);
+                        = TrieNodeFactory.CreateExtension(extensionPath, originalNodeChild, fullPath, StoragePrefix);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -471,7 +471,7 @@ public partial class PatriciaTree
                         if (childNode.IsBranch)
                         {
                             TrieNode extensionFromBranch =
-                                TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode);
+                                TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, storagePrefix: StoragePrefix);
                             if (_logger.IsTrace)
                                 _logger.Trace(
                                     $"Extending child {childNodeIndex} {childNode} of {node} into {extensionFromBranch}");
