@@ -34,6 +34,9 @@ namespace Nethermind.Trie
         private RlpStream? _rlpStream;
         private object?[]? _data;
 
+        // can be used for storage prefix
+        public byte[]? StorePrefix { get; set; }
+
         /// <summary>
         /// Ethereum Patricia Trie specification allows for branch values,
         /// although branched never have values as all the keys are of equal length.
@@ -110,10 +113,11 @@ namespace Nethermind.Trie
             {
                 if (!IsLeaf) return PathToNode;
                 Debug.Assert(PathToNode is not null);
-                byte[] full = new byte[64];
-                PathToNode.CopyTo(full, 0);
-                Array.Copy(Key, 0, full, PathToNode.Length, 64 - PathToNode.Length);
-                return full;
+                Span<byte> full = new byte[StorePrefix is null? 64: StorePrefix.Length + 64];
+                StorePrefix?.CopyTo(full);
+                PathToNode.CopyTo(full);
+                Key?[..(64 - PathToNode.Length)].CopyTo(full.Slice(StorePrefix?.Length??0 + PathToNode.Length));
+                return full.ToArray();
             }
         }
 
@@ -711,6 +715,7 @@ namespace Nethermind.Trie
                 trieNode._rlpStream = FullRlp.AsRlpStream();
             }
             if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
+            if (StorePrefix is not null) trieNode.StorePrefix = (byte[])StorePrefix.Clone();
             return trieNode;
         }
 
