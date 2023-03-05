@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
@@ -22,6 +23,8 @@ namespace Nethermind.State
 
         private static readonly Dictionary<UInt256, byte[]> Cache = new(CacheSizeInt);
 
+        private Address? AccountAddress { get; }
+
         static StorageTree()
         {
             Span<byte> buffer = stackalloc byte[32];
@@ -33,16 +36,24 @@ namespace Nethermind.State
             }
         }
 
-        public StorageTree(ITrieStore? trieStore, ILogManager? logManager)
+        public StorageTree(ITrieStore trieStore, ILogManager? logManager, Address? accountAddress = null)
             : base(trieStore, Keccak.EmptyTreeHash, false, true, logManager)
         {
             TrieType = TrieType.Storage;
+            if (trieStore.Capability == TrieNodeResolverCapability.Path)
+            {
+                AccountAddress = accountAddress ?? throw new ArgumentException("this cannot be null while using path based trie store");
+            }
         }
 
-        public StorageTree(ITrieStore? trieStore, Keccak rootHash, ILogManager? logManager)
+        public StorageTree(ITrieStore trieStore, Keccak rootHash, ILogManager? logManager, Address? accountAddress = null)
             : base(trieStore, rootHash, false, true, logManager)
         {
             TrieType = TrieType.Storage;
+            if (trieStore.Capability == TrieNodeResolverCapability.Path)
+            {
+                AccountAddress = accountAddress ?? throw new ArgumentException("this cannot be null while using path based trie store");
+            }
         }
 
         private static void GetKey(in UInt256 index, in Span<byte> key)
@@ -63,9 +74,20 @@ namespace Nethermind.State
         [SkipLocalsInit]
         public byte[] Get(in UInt256 index, Keccak? storageRoot = null)
         {
-            Span<byte> key = stackalloc byte[32];
-            GetKey(index, key);
+            Span<byte> key = stackalloc byte[_trieStore.Capability == TrieNodeResolverCapability.Hash ? 32 : 32 + 20];
 
+            switch (_trieStore.Capability)
+            {
+                case TrieNodeResolverCapability.Hash:
+                    GetKey(index, key);
+                    break;
+                case TrieNodeResolverCapability.Path:
+                    if (AccountAddress != null) AccountAddress.Bytes.CopyTo(key);
+                    GetKey(index, key.Slice(20));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
             byte[]? value = Get(key, storageRoot);
             if (value is null)
             {

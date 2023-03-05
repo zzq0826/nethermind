@@ -47,7 +47,7 @@ namespace Nethermind.Consensus.Processing
 
             ReadOnlyDb codeDb = readOnlyDbProvider.CodeDb.AsReadOnly(true);
 
-            StateReader = new StateReader(readOnlyTrieStore, codeDb, logManager);
+            StateReader = new StateReader(readOnlyTrieStore, readOnlyTrieStore, codeDb, logManager);
             WorldState = new WorldState(readOnlyTrieStore, codeDb, logManager);
 
             BlockTree = readOnlyBlockTree ?? throw new ArgumentNullException(nameof(readOnlyBlockTree));

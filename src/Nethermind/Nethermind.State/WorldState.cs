@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Resettables;
@@ -35,7 +36,8 @@ public class WorldState : IWorldState
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
-        _tree = new StateTree(trieStore, logManager);
+        Debug.Assert(trieStore is not null);
+        _tree = trieStore.Capability == TrieNodeResolverCapability.Path ? new StateTreeByPath(trieStore, logManager) : new StateTree(trieStore, logManager);
         _storageProvider = new StorageProvider(trieStore, this, logManager);
     }
 
@@ -69,7 +71,7 @@ public class WorldState : IWorldState
         set => _tree.RootHash = value;
     }
 
-    private readonly StateTree _tree;
+    private readonly IStateTree _tree;
 
     public bool AccountExists(Address address)
     {

@@ -22,6 +22,7 @@ using Nethermind.State.Repositories;
 using Nethermind.Db.Blooms;
 using Nethermind.State;
 using Nethermind.Trie;
+using Nethermind.Trie.Pruning;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -198,13 +199,15 @@ namespace Nethermind.Blockchain.Test
                 MemDb blockDb = new();
                 MemDb blockInfoDb = new();
                 MemDb headersDb = new();
+                MemDb stateDb = new();
 
                 IStateReader stateReader = Substitute.For<IStateReader>();
 
                 _blockTree = new BlockTree(blockDb, headersDb, blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), MainnetSpecProvider.Instance, NullBloomStorage.Instance, LimboLogs.Instance);
                 _blockProcessor = new BlockProcessorMock(_logManager, stateReader);
                 _recoveryStep = new RecoveryStepMock(_logManager);
-                _processor = new BlockchainProcessor(_blockTree, _blockProcessor, _recoveryStep, stateReader, LimboLogs.Instance, BlockchainProcessor.Options.Default);
+                _processor = new BlockchainProcessor(_blockTree, _blockProcessor, _recoveryStep, new StateReader(new TrieStore(stateDb, LimboLogs.Instance), new TrieStore(stateDb, LimboLogs.Instance), new MemDb(), LimboLogs.Instance), LimboLogs.Instance,
+                    BlockchainProcessor.Options.Default);
                 _resetEvent = new AutoResetEvent(false);
                 _queueEmptyResetEvent = new AutoResetEvent(false);
 
