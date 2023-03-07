@@ -422,8 +422,7 @@ public partial class EngineModuleTests
 
         chain.AddTransactions(BuildTransactions(chain, blockX, TestItem.PrivateKeyA, TestItem.AddressC, 5, 10, out _, out _));
 
-        ResultWrapper<PayloadStatusV1> result1 = await rpc.engine_newPayloadV2(getPayloadResult);
-        result1.Data.Status.Should().Be(PayloadStatus.Valid);
+        Task<ResultWrapper<PayloadStatusV1>> firstBlock = rpc.engine_newPayloadV2(getPayloadResult);
 
         // starting building on block X
         await rpc.engine_forkchoiceUpdatedV1(
@@ -437,9 +436,10 @@ public partial class EngineModuleTests
             ).Data.PayloadId!;
 
         ExecutionPayload getSecondBlockPayload = (await rpc.engine_getPayloadV1(Bytes.FromHexString(secondNewPayload))).Data!;
-        ResultWrapper<PayloadStatusV1> secondBlock = await rpc.engine_newPayloadV2(getSecondBlockPayload);
+        Task<ResultWrapper<PayloadStatusV1>> secondBlock = rpc.engine_newPayloadV2(getSecondBlockPayload);
 
-        secondBlock.Data.Status.Should().Be(PayloadStatus.Valid);
+        (await firstBlock).Data.Status.Should().Be(PayloadStatus.Valid);
+        (await secondBlock).Data.Status.Should().Be(PayloadStatus.Valid);
     }
 }
 
