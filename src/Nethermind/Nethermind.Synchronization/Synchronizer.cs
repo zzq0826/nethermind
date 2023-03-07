@@ -168,7 +168,7 @@ namespace Nethermind.Synchronization
 
         private void StartSnapSyncComponents()
         {
-            _snapSyncFeed = new SnapSyncFeed(_syncMode, _snapProvider, _blockTree, _logManager);
+            _snapSyncFeed = new SnapSyncFeed(_syncMode, _snapProvider, _logManager);
             SnapSyncDispatcher dispatcher = new(_snapSyncFeed!, _syncPeerPool, new SnapSyncAllocationStrategyFactory(), _logManager);
 
             Task _ = RunWithSyncScheduler(dispatcher).ContinueWith(t =>
