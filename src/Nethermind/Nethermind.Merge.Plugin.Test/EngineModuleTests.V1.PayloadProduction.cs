@@ -429,7 +429,6 @@ public partial class EngineModuleTests
             new ForkchoiceStateV1(blockX, Keccak.Zero, blockX),
             new PayloadAttributes { Timestamp = 101, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero });
 
-        await blockImprovementLock.WaitAsync(timePerSlot * 2);
 
         // starting building on block X + 1
         string? secondNewPayload = rpc.engine_forkchoiceUpdatedV1(
@@ -437,10 +436,12 @@ public partial class EngineModuleTests
                 new PayloadAttributes { Timestamp = 102, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero })
             .Result.Data.PayloadId!;
 
+        await blockImprovementLock.WaitAsync(timePerSlot * 2);
+
         ExecutionPayload getSecondBlockPayload = (await rpc.engine_getPayloadV1(Bytes.FromHexString(secondNewPayload))).Data!;
 
         Task<ResultWrapper<PayloadStatusV1>> secondBlock = rpc.engine_newPayloadV2(getSecondBlockPayload);
-        secondBlock.Result.Data.Status.Should().Be(PayloadStatus.Valid);
+        secondBlock.Result.Data.Status.Should().Be(PayloadStatus.Valid, $"{secondBlock.Result.Data.Status} after {TestContext.CurrentContext.CurrentRepeatCount} repeats");
     }
 }
 
