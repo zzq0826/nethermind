@@ -388,7 +388,7 @@ public partial class EngineModuleTests
         cancelledContext?.Disposed.Should().BeTrue();
     }
 
-    [Test, Repeat(5000)]
+    [Test, Repeat(500000)]
     public async Task Cannot_produce_bad_blocks()
     {
         // this test sends two payloadAttributes on block X and X + 1 to start many block improvements
@@ -411,37 +411,47 @@ public partial class EngineModuleTests
         Keccak blockX = chain.BlockTree.HeadHash;
         chain.AddTransactions(BuildTransactions(chain, blockX, TestItem.PrivateKeyB, TestItem.AddressF, 3, 10, out _, out _));
         chain.PayloadPreparationService!.BlockImproved += (_, _) => { blockImprovementLock.Release(1); };
-        string? payloadId = rpc.engine_forkchoiceUpdatedV1(
+        string? payloadId = (await rpc.engine_forkchoiceUpdatedV1(
                 new ForkchoiceStateV1(blockX, Keccak.Zero, blockX),
                 new PayloadAttributes { Timestamp = 100, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero })
-            .Result.Data.PayloadId!;
+            ).Data.PayloadId!;
         chain.AddTransactions(BuildTransactions(chain, blockX, TestItem.PrivateKeyC, TestItem.AddressA, 3, 10, out _, out _));
         await blockImprovementLock.WaitAsync(timePerSlot * 2);
         ExecutionPayload getPayloadResult = (await rpc.engine_getPayloadV1(Bytes.FromHexString(payloadId))).Data!;
 
         chain.AddTransactions(BuildTransactions(chain, blockX, TestItem.PrivateKeyA, TestItem.AddressC, 5, 10, out _, out _));
 
-        Task<ResultWrapper<PayloadStatusV1>> result1 = await rpc.engine_newPayloadV2(getPayloadResult);
-        result1.Result.Data.Status.Should().Be(PayloadStatus.Valid);
+        Task<ResultWrapper<PayloadStatusV1>> firstBlockTask = rpc.engine_newPayloadV2(getPayloadResult);
 
         // starting building on block X
         await rpc.engine_forkchoiceUpdatedV1(
             new ForkchoiceStateV1(blockX, Keccak.Zero, blockX),
             new PayloadAttributes { Timestamp = 101, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero });
 
-        int milliseconds = RandomNumberGenerator.GetInt32(timePerSlot.Milliseconds, timePerSlot.Milliseconds * 2);
-        await Task.Delay(milliseconds);
-
         // starting building on block X + 1
-        string? secondNewPayload = rpc.engine_forkchoiceUpdatedV1(
+        string? secondNewPayload = (await rpc.engine_forkchoiceUpdatedV1(
                 new ForkchoiceStateV1(getPayloadResult.BlockHash, Keccak.Zero, getPayloadResult.BlockHash),
                 new PayloadAttributes { Timestamp = 102, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero })
-            .Result.Data.PayloadId!;
+            ).Data.PayloadId!;
 
         ExecutionPayload getSecondBlockPayload = (await rpc.engine_getPayloadV1(Bytes.FromHexString(secondNewPayload))).Data!;
+        Task<ResultWrapper<PayloadStatusV1>> secondBlockTask = rpc.engine_newPayloadV2(getSecondBlockPayload);
 
-        Task<ResultWrapper<PayloadStatusV1>> secondBlock = rpc.engine_newPayloadV2(getSecondBlockPayload);
-        secondBlock.Result.Data.Status.Should().Be(PayloadStatus.Valid);
+        (await firstBlockTask).Data.Status.Should().Be(PayloadStatus.Valid);
+
+        var secondBlock = await secondBlockTask;
+        if (secondBlock.Data is null)
+        {
+            TestContext.WriteLine($"Data is null, Error Code: {secondBlock.ErrorCode} after {TestContext.CurrentContext.CurrentRepeatCount} runs");
+            // Fail
+            secondBlock.Data.Should().NotBeNull();
+        }
+        else if (!secondBlock.Data.Status.Equals(PayloadStatus.Valid))
+        {
+            TestContext.WriteLine($"Validation error: {secondBlock.Data.ValidationError} after {TestContext.CurrentContext.CurrentRepeatCount} runs");
+        }
+
+        secondBlock.Data!.Status.Should().Be(PayloadStatus.Valid);
     }
 }
 
