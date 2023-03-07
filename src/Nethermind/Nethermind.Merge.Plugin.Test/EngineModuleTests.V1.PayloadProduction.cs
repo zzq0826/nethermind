@@ -429,8 +429,7 @@ public partial class EngineModuleTests
             new ForkchoiceStateV1(blockX, Keccak.Zero, blockX),
             new PayloadAttributes { Timestamp = 101, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero });
 
-        int milliseconds = RandomNumberGenerator.GetInt32(timePerSlot.Milliseconds, timePerSlot.Milliseconds * 2);
-        await Task.Delay(milliseconds);
+        await blockImprovementLock.WaitAsync(timePerSlot * 2);
 
         // starting building on block X + 1
         string? secondNewPayload = rpc.engine_forkchoiceUpdatedV1(
