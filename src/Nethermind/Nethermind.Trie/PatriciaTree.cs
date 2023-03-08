@@ -30,7 +30,7 @@ public partial class PatriciaTree : IPatriciaTree
     public static readonly Keccak EmptyTreeHash = Keccak.EmptyTreeHash;
     private static readonly byte[] EmptyKeyPath = new byte[0];
 
-    protected TrieType TrieType { get; set; }
+    public TrieType TrieType { get; set; }
 
 
     /// <summary>
@@ -44,6 +44,7 @@ public partial class PatriciaTree : IPatriciaTree
     internal readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
 
     protected readonly ITrieStore _trieStore;
+    public TrieNodeResolverCapability Capability => _trieStore.Capability;
 
     private readonly bool _parallelBranches;
 
@@ -117,7 +118,7 @@ public partial class PatriciaTree : IPatriciaTree
     }
 
     public PatriciaTree(IKeyValueStoreWithBatching keyValueStore, TrieNodeResolverCapability capability = TrieNodeResolverCapability.Hash)
-        : this(keyValueStore, EmptyTreeHash, false, true, NullLogManager.Instance)
+        : this(keyValueStore, EmptyTreeHash, false, true, NullLogManager.Instance, capability)
     {
     }
 
@@ -171,7 +172,7 @@ public partial class PatriciaTree : IPatriciaTree
     }
 
     [DebuggerStepThrough]
-    public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+    protected byte[]? GetInternal(Span<byte> rawKey, Keccak? rootHash = null)
     {
         try
         {
@@ -191,7 +192,45 @@ public partial class PatriciaTree : IPatriciaTree
         }
     }
 
-    [DebuggerStepThrough]
+    public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+    {
+        if(Capability == TrieNodeResolverCapability.Hash) return GetInternal(rawKey, rootHash);
+
+        byte[]? bytes = null;
+        if (rootHash is not null && RootHash != rootHash)
+        {
+            Span<byte> nibbleBytes = stackalloc byte[64];
+            Nibbles.BytesToNibbleBytes(rawKey, nibbleBytes);
+            var nodeBytes = TrieStore.LoadRlp(nibbleBytes, rootHash);
+            if (nodeBytes is not null)
+            {
+                TrieNode node = new(NodeType.Unknown, nodeBytes);
+                node.ResolveNode(TrieStore);
+                bytes = node.Value;
+            }
+        }
+
+        if (bytes is null && (RootHash == rootHash || rootHash is null))
+        {
+            if (RootRef?.IsPersisted == true)
+            {
+                byte[]? nodeData = TrieStore[rawKey.ToArray()];
+                if (nodeData is not null)
+                {
+                    TrieNode node = new(NodeType.Unknown, nodeData);
+                    node.ResolveNode(TrieStore);
+                    bytes = node.Value;
+                }
+            }
+            else
+            {
+                bytes = GetInternal(rawKey);
+            }
+        }
+
+        return bytes;
+    }
+
     public void Set(Span<byte> rawKey, byte[] value)
     {
         if (_logger.IsTrace)

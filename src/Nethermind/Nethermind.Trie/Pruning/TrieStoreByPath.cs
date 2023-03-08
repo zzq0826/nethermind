@@ -890,9 +890,13 @@ namespace Nethermind.Trie.Pruning
         private void SaveNodeDirectly(long blockNumber, TrieNode trieNode, IKeyValueStore keyValueStore = null)
         {
             keyValueStore ??= _keyValueStore;
+            Console.WriteLine($"Trie Node Full Path: {string.Join(", ", trieNode.FullPath)}");
+            Console.WriteLine($"Trie Node ToEncodedStorageBytes: {string.Join(", ", Nibbles.ToEncodedStorageBytes(trieNode.FullPath))}");
+            Console.WriteLine($"Trie Node ToBytes: {string.Join(", ",  Nibbles.ToBytes(trieNode.FullPath))}");
 
             byte[] pathBytes = trieNode.FullPath.Length < 64 ?
                 Nibbles.ToEncodedStorageBytes(trieNode.FullPath) : Nibbles.ToBytes(trieNode.FullPath);
+            Console.WriteLine($"Trie Node PathBytes: {string.Join(", ",  pathBytes)}");
             if (trieNode.IsLeaf && (trieNode.Key.Length < 64 || trieNode.PathToNode.Length == 0))
             {
                 byte[] pathToNodeBytes = Nibbles.ToEncodedStorageBytes(trieNode.PathToNode);

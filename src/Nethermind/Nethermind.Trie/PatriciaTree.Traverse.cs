@@ -452,6 +452,7 @@ public partial class PatriciaTree
                         int childNodeIndex = 0;
                         for (int i = 0; i < 16; i++)
                         {
+                            // find the other child and should not be null
                             if (i != parentOnStack.PathIndex && !node.IsChildNull(i))
                             {
                                 childNodeIndex = i;
@@ -470,8 +471,12 @@ public partial class PatriciaTree
                         childNode.ResolveNode(TrieStore);
                         if (childNode.IsBranch)
                         {
-                            TrieNode extensionFromBranch =
-                                TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, storagePrefix: StoragePrefix);
+                            TrieNode extensionFromBranch = Capability switch
+                            {
+                                TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, storagePrefix: StoragePrefix),
+                                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, node.PathToNode, storagePrefix: StoragePrefix),
+                                _ => throw new ArgumentOutOfRangeException()
+                            };
                             if (_logger.IsTrace)
                                 _logger.Trace(
                                     $"Extending child {childNodeIndex} {childNode} of {node} into {extensionFromBranch}");
@@ -507,7 +512,12 @@ public partial class PatriciaTree
 
                             byte[] newKey = Bytes.Concat((byte)childNodeIndex, childNode.Key);
 
-                            TrieNode extendedExtension = childNode.CloneWithChangedKey(newKey);
+                            TrieNode extendedExtension = Capability switch
+                            {
+                                TrieNodeResolverCapability.Hash => childNode.CloneWithChangedKey(newKey),
+                                TrieNodeResolverCapability.Path => childNode.CloneWithChangedKey(newKey, 1),
+                                _ => throw new ArgumentOutOfRangeException()
+                            };
                             if (_logger.IsTrace)
                                 _logger.Trace(
                                     $"Extending child {childNodeIndex} {childNode} of {node} into {extendedExtension}");
@@ -516,8 +526,13 @@ public partial class PatriciaTree
                         else if (childNode.IsLeaf)
                         {
                             byte[] newKey = Bytes.Concat((byte)childNodeIndex, childNode.Key);
+                            TrieNode extendedLeaf = Capability switch
+                            {
+                                TrieNodeResolverCapability.Hash => childNode.CloneWithChangedKey(newKey),
+                                TrieNodeResolverCapability.Path => childNode.CloneWithChangedKey(newKey, 1),
+                                _ => throw new ArgumentOutOfRangeException()
+                            };
 
-                            TrieNode extendedLeaf = childNode.CloneWithChangedKey(newKey);
                             if (_logger.IsTrace)
                                 _logger.Trace(
                                     $"Extending branch child {childNodeIndex} {childNode} into {extendedLeaf}");
@@ -548,7 +563,12 @@ public partial class PatriciaTree
                 if (nextNode.IsLeaf)
                 {
                     byte[] newKey = Bytes.Concat(node.Key, nextNode.Key);
-                    TrieNode extendedLeaf = nextNode.CloneWithChangedKey(newKey);
+                    TrieNode extendedLeaf = Capability switch
+                    {
+                        TrieNodeResolverCapability.Hash => nextNode.CloneWithChangedKey(newKey),
+                        TrieNodeResolverCapability.Path => nextNode.CloneWithChangedKey(newKey, node.Key.Length),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
                     if (_logger.IsTrace)
                         _logger.Trace($"Combining {node} and {nextNode} into {extendedLeaf}");
 
@@ -582,7 +602,12 @@ public partial class PatriciaTree
                        L L - - - - - - - - - - - - - - */
 
                     byte[] newKey = Bytes.Concat(node.Key, nextNode.Key);
-                    TrieNode extendedExtension = nextNode.CloneWithChangedKey(newKey);
+                    TrieNode extendedExtension = Capability switch
+                    {
+                        TrieNodeResolverCapability.Hash => nextNode.CloneWithChangedKey(newKey),
+                        TrieNodeResolverCapability.Path => nextNode.CloneWithChangedKey(newKey, node.Key.Length),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
                     if (_logger.IsTrace)
                         _logger.Trace($"Combining {node} and {nextNode} into {extendedExtension}");
 
