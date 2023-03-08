@@ -45,38 +45,8 @@ namespace Nethermind.State
         [DebuggerStepThrough]
         public Account? Get(Address address, Keccak? rootHash = null)
         {
-            byte[]? bytes = null;
             byte[] addressKeyBytes = Keccak.Compute(address.Bytes).Bytes;
-            if (rootHash is not null && RootHash != rootHash)
-            {
-                Span<byte> nibbleBytes = stackalloc byte[64];
-                Nibbles.BytesToNibbleBytes(addressKeyBytes, nibbleBytes);
-                var nodeBytes = TrieStore.LoadRlp(nibbleBytes, rootHash);
-                if (nodeBytes is not null)
-                {
-                    TrieNode node = new(NodeType.Unknown, nodeBytes);
-                    node.ResolveNode(TrieStore);
-                    bytes = node.Value;
-                }
-            }
-
-            if (bytes is null && RootHash == rootHash)
-            {
-                if (RootRef?.IsPersisted == true)
-                {
-                    byte[]? nodeData = TrieStore[addressKeyBytes];
-                    if (nodeData is not null)
-                    {
-                        TrieNode node = new(NodeType.Unknown, nodeData);
-                        node.ResolveNode(TrieStore);
-                        bytes = node.Value;
-                    }
-                }
-                else
-                {
-                    bytes = Get(addressKeyBytes);
-                }
-            }
+            byte[]? bytes = Get(addressKeyBytes, rootHash);
 
             return bytes is null ? null : _decoder.Decode(bytes.AsRlpStream());
         }
@@ -95,14 +65,14 @@ namespace Nethermind.State
                     return _decoder.Decode(node.Value.AsRlpStream());
                 }
             }
-            byte[]? bytes = Get(addressKeyBytes);
+            byte[]? bytes = GetInternal(addressKeyBytes);
             return bytes is null ? null : _decoder.Decode(bytes.AsRlpStream());
         }
 
         public void Set(Address address, Account? account)
         {
-            ValueKeccak keccak = ValueKeccak.Compute(address.Bytes);
-            Set(keccak.BytesAsSpan, account is null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
+            byte[] addressKeyBytes = Keccak.Compute(address.Bytes).Bytes;
+            Set(addressKeyBytes, account is null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
         }
 
         [DebuggerStepThrough]
@@ -116,6 +86,7 @@ namespace Nethermind.State
 
         private byte[]? GetStorage(byte[] key, Keccak? rootHash = null)
         {
+            // TODO: refactor in the PatriciaTree.Get when supporting random lenght keys in flat storage.
             byte[]? bytes = null;
             if (rootHash is not null && RootHash != rootHash)
             {
@@ -144,7 +115,7 @@ namespace Nethermind.State
                 }
                 else
                 {
-                    bytes = Get(key);
+                    bytes = GetInternal(key);
                 }
             }
 

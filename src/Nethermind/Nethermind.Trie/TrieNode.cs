@@ -697,6 +697,7 @@ namespace Nethermind.Trie
         }
 
         public TrieNode CloneWithChangedKey(byte[] path, Span<byte> fullPath) => CloneWithChangedKey(path, fullPath.ToArray());
+        public TrieNode CloneWithChangedKey(byte[] path, int removeLength) => CloneWithChangedKey(path, PathToNode[..^removeLength]);
 
         public TrieNode Clone()
         {

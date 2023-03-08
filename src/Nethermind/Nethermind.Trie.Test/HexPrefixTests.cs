@@ -3,6 +3,9 @@
 
 using System;
 using System.Linq;
+using FluentAssertions;
+using Nethermind.Core.Crypto;
+using Nethermind.Core.Test.Builders;
 using NUnit.Framework;
 
 namespace Nethermind.Trie.Test
@@ -119,6 +122,17 @@ namespace Nethermind.Trie.Test
             //encoded / odd
             Assert.AreEqual(0xff, result2[0]);
             CollectionAssert.AreEqual(bytes2, result2.AsSpan(1).ToArray());
+        }
+
+        [Test]
+        public void Nibbles_to_byte_and_reverse()
+        {
+            byte[] key = KeccakHash.ComputeHash(TestItem.AddressA.Bytes).ToArray();
+
+            Span<byte> nibbles = stackalloc byte[2 * key.Length];
+
+            Nibbles.BytesToNibbleBytes(key, nibbles);
+            Nibbles.ToBytes(nibbles).Should().BeEquivalentTo(key);
         }
     }
 }

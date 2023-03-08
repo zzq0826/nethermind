@@ -11,7 +11,7 @@ namespace Nethermind.Trie
         {
             TrieNode node = new TrieNode(NodeType.Branch);
             if (pathToNode is not null) node.PathToNode = pathToNode;
-            if (storagePrefix is not null) node.StorePrefix = pathToNode;
+            if (storagePrefix is not null) node.StorePrefix = storagePrefix;
             return node;
         }
 
@@ -22,7 +22,7 @@ namespace Nethermind.Trie
                 Key = path,
                 Value = value
             };
-            if (storagePrefix is not null) node.StorePrefix = pathToNode;
+            if (storagePrefix is not null) node.StorePrefix = storagePrefix;
             if (pathToNode is null) return node;
             node.PathToNode = pathToNode;
             if (node.Key.Length + node.PathToNode.Length != 64)
@@ -37,7 +37,7 @@ namespace Nethermind.Trie
                 Key = path
             };
             if (pathToNode is not null) node.PathToNode = pathToNode;
-            if (storagePrefix is not null) node.StorePrefix = pathToNode;
+            if (storagePrefix is not null) node.StorePrefix = storagePrefix;
             return node;
         }
 
@@ -47,7 +47,7 @@ namespace Nethermind.Trie
             node.SetChild(0, child);
             node.Key = path;
             if (pathToNode is not null) node.PathToNode = pathToNode;
-            if (storagePrefix is not null) node.StorePrefix = pathToNode;
+            if (storagePrefix is not null) node.StorePrefix = storagePrefix;
             return node;
         }
 
