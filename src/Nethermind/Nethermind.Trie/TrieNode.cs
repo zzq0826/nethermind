@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nethermind.Core;
@@ -18,6 +20,19 @@ using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Trie
 {
+    public sealed class ThreadAccessRecorder
+    {
+        readonly ThreadLocal<int> _write = new();
+        readonly ThreadLocal<int> _read = new();
+
+        public void Read() => _read.Value = Thread.CurrentThread.ManagedThreadId;
+        public void Write() => _write.Value = Thread.CurrentThread.ManagedThreadId;
+
+        public IEnumerable<int> ReadingThreadsIds() => _read.Values.ToArray();
+        public IEnumerable<int> WritingThreadsIds() => _write.Values.ToArray();
+    }
+
+
     public partial class TrieNode
     {
 #if DEBUG
@@ -49,21 +64,84 @@ namespace Nethermind.Trie
         /// </summary>
         public bool IsSealed => !IsDirty;
 
-        public bool IsPersisted { get; set; }
+        public static ThreadAccessRecorder IsPersistedAccess = new();
+        private bool _isPersisted;
+
+        public bool IsPersisted
+        {
+            get
+            {
+                IsPersistedAccess.Read();
+                return _isPersisted;
+            }
+            set
+            {
+                IsPersistedAccess.Write();
+                _isPersisted = value;
+            }
+        }
 
         public Keccak? Keccak { get; internal set; }
 
         public byte[]? FullRlp { get; internal set; }
 
-        public NodeType NodeType { get; private set; }
+        public static ThreadAccessRecorder NodeTypeAccessor = new();
+        private NodeType _nodeType;
 
-        public bool IsDirty { get; private set; }
+        public NodeType NodeType
+        {
+            get
+            {
+                NodeTypeAccessor.Read();
+                return _nodeType;
+            }
+            private set
+            {
+                NodeTypeAccessor.Write();
+                _nodeType = value;
+            }
+        }
+
+
+        public static ThreadAccessRecorder IsDirtyAccessor = new();
+
+        private bool _isDirty;
+
+        public bool IsDirty
+        {
+            get
+            {
+                IsDirtyAccessor.Read();
+                return _isDirty;
+            }
+            private set
+            {
+                IsDirtyAccessor.Write();
+                _isDirty = value;
+            }
+        }
 
         public bool IsLeaf => NodeType == NodeType.Leaf;
         public bool IsBranch => NodeType == NodeType.Branch;
         public bool IsExtension => NodeType == NodeType.Extension;
 
-        public long? LastSeen { get; set; }
+        public static ThreadAccessRecorder LastSeenAccessor = new();
+
+        private long? _lastSeen;
+
+        public long? LastSeen
+        {
+            get
+            {
+                LastSeenAccessor.Read();
+                return _lastSeen;
+            }
+            set
+            {
+                LastSeenAccessor.Write();
+                _lastSeen = value;
+            }
+        }
 
         public byte[]? Key
         {
@@ -256,7 +334,8 @@ namespace Nethermind.Trie
                 _rlpStream = FullRlp.AsRlpStream();
                 if (_rlpStream is null)
                 {
-                    throw new InvalidAsynchronousStateException($"{nameof(_rlpStream)} is null when {nameof(NodeType)} is {NodeType}");
+                    throw new InvalidAsynchronousStateException(
+                        $"{nameof(_rlpStream)} is null when {nameof(NodeType)} is {NodeType}");
                 }
 
                 Metrics.TreeNodeRlpDecodings++;
@@ -294,7 +373,8 @@ namespace Nethermind.Trie
                 }
                 else
                 {
-                    throw new TrieException($"Unexpected number of items = {numberOfItems} when decoding a node from RLP ({FullRlp?.ToHexString()})");
+                    throw new TrieException(
+                        $"Unexpected number of items = {numberOfItems} when decoding a node from RLP ({FullRlp?.ToHexString()})");
                 }
             }
             catch (RlpException rlpException)
@@ -461,7 +541,8 @@ namespace Nethermind.Trie
                 // we need to investigate this case when it happens again
                 bool isKeccakCalculated = Keccak is not null && FullRlp is not null;
                 bool isKeccakCorrect = isKeccakCalculated && Keccak == Keccak.Compute(FullRlp);
-                throw new TrieException($"Unexpected type found at position {childIndex} of {this} with {nameof(_data)} of length {_data?.Length}. Expected a {nameof(TrieNode)} or {nameof(Keccak)} but found {childOrRef?.GetType()} with a value of {childOrRef}. Keccak calculated? : {isKeccakCalculated}; Keccak correct? : {isKeccakCorrect}");
+                throw new TrieException(
+                    $"Unexpected type found at position {childIndex} of {this} with {nameof(_data)} of length {_data?.Length}. Expected a {nameof(TrieNode)} or {nameof(Keccak)} but found {childOrRef?.GetType()} with a value of {childOrRef}. Keccak calculated? : {isKeccakCalculated}; Keccak correct? : {isKeccakCorrect}");
             }
 
             // pruning trick so we never store long persisted paths
