@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -17,6 +18,7 @@ using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Nethermind.Synchronization.Reporting;
 using Nethermind.Trie.Pruning;
 using NUnit.Framework;
 
@@ -681,9 +683,9 @@ namespace Nethermind.Trie.Test
             checkTree.Get(_keyD).Should().BeEquivalentTo(_longLeaf1);
         }
 
-        // [TestCase(256, 128, 128, 32)]
+        [TestCase(256, 128, 128, 32)]
         [TestCase(128, 128, 8, 8)]
-        // [TestCase(4, 16, 4, 4)]
+        [TestCase(4, 16, 4, 4)]
         public void Fuzz_accounts(
             int accountsCount,
             int blocksCount,
@@ -790,6 +792,34 @@ namespace Nethermind.Trie.Test
                 }
 
                 verifiedBlocks++;
+            }
+
+            Console.WriteLine("Reporting threading access to TrieNode");
+
+            Report(TrieNode.IsDirtyAccessor, nameof(TrieNode.IsDirty));
+            Report(TrieNode.IsPersistedAccess, nameof(TrieNode.IsPersisted));
+            Report(TrieNode.LastSeenAccessor, nameof(TrieNode.LastSeenAccessor));
+            Report(TrieNode.NodeTypeAccessor, nameof(TrieNode.NodeType));
+
+            static void Report(ThreadAccessRecorder access, string name)
+            {
+                int threadId = Thread.CurrentThread.ManagedThreadId;
+
+                {
+                    int[]? readers = access.ReadingThreadsIds().Where(id => id != threadId).ToArray();
+
+                    Console.WriteLine(readers.Length > 0
+                        ? $"{name} was read by other thread with ids {string.Join(", ", readers)}"
+                        : $"{name} was read only by this thread");
+
+                }
+
+                {
+                    int[]? writers = access.WritingThreadsIds().Where(id => id != threadId).ToArray();
+                    Console.WriteLine(writers.Length > 0
+                        ? $"{name} was written by other thread with ids {string.Join(", ", writers)}"
+                        : $"{name} was written only by this thread");
+                }
             }
         }
 

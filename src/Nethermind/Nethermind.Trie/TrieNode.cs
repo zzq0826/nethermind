@@ -22,8 +22,8 @@ namespace Nethermind.Trie
 {
     public sealed class ThreadAccessRecorder
     {
-        readonly ThreadLocal<int> _write = new();
-        readonly ThreadLocal<int> _read = new();
+        readonly ThreadLocal<int> _write = new(true);
+        readonly ThreadLocal<int> _read = new(true);
 
         public void Read() => _read.Value = Thread.CurrentThread.ManagedThreadId;
         public void Write() => _write.Value = Thread.CurrentThread.ManagedThreadId;
@@ -64,7 +64,7 @@ namespace Nethermind.Trie
         /// </summary>
         public bool IsSealed => !IsDirty;
 
-        public static ThreadAccessRecorder IsPersistedAccess = new();
+        public static readonly ThreadAccessRecorder IsPersistedAccess = new();
         private bool _isPersisted;
 
         public bool IsPersisted
@@ -85,7 +85,7 @@ namespace Nethermind.Trie
 
         public byte[]? FullRlp { get; internal set; }
 
-        public static ThreadAccessRecorder NodeTypeAccessor = new();
+        public static readonly ThreadAccessRecorder NodeTypeAccessor = new();
         private NodeType _nodeType;
 
         public NodeType NodeType
@@ -103,7 +103,7 @@ namespace Nethermind.Trie
         }
 
 
-        public static ThreadAccessRecorder IsDirtyAccessor = new();
+        public static readonly ThreadAccessRecorder IsDirtyAccessor = new();
 
         private bool _isDirty;
 
@@ -125,7 +125,7 @@ namespace Nethermind.Trie
         public bool IsBranch => NodeType == NodeType.Branch;
         public bool IsExtension => NodeType == NodeType.Extension;
 
-        public static ThreadAccessRecorder LastSeenAccessor = new();
+        public static readonly ThreadAccessRecorder LastSeenAccessor = new();
 
         private long? _lastSeen;
 
