@@ -225,11 +225,6 @@ namespace Nethermind.Trie.Pruning
             {
                 TrieNode node = nodeCommitInfo.Node!;
 
-                if (node!.Keccak is null)
-                {
-                    throw new TrieStoreException($"The hash of {node} should be known at the time of committing.");
-                }
-
                 if (CurrentPackage is null)
                 {
                     throw new TrieStoreException($"{nameof(CurrentPackage)} is NULL when committing {node} at {blockNumber}.");
@@ -698,7 +693,7 @@ namespace Nethermind.Trie.Pruning
                 throw new ArgumentNullException(nameof(currentNode));
             }
 
-            if (currentNode.Keccak is not null)
+            if (currentNode.Keccak is not null || currentNode.FullRlp is null)
             {
                 Debug.Assert(blockNumber == TrieNode.LastSeenNotSet || currentNode.LastSeen != TrieNode.LastSeenNotSet, $"Cannot persist a dangling node (without {(nameof(TrieNode.LastSeen))} value set).");
                 // Note that the LastSeen value here can be 'in the future' (greater than block number
@@ -892,13 +887,9 @@ namespace Nethermind.Trie.Pruning
         private void SaveNodeDirectly(long blockNumber, TrieNode trieNode, IKeyValueStore keyValueStore = null)
         {
             keyValueStore ??= _keyValueStore;
-            Console.WriteLine($"Trie Node Full Path: {string.Join(", ", trieNode.FullPath)}");
-            Console.WriteLine($"Trie Node ToEncodedStorageBytes: {string.Join(", ", Nibbles.ToEncodedStorageBytes(trieNode.FullPath))}");
-            Console.WriteLine($"Trie Node ToBytes: {string.Join(", ",  Nibbles.ToBytes(trieNode.FullPath))}");
 
             byte[] pathBytes = trieNode.FullPath.Length < 64 ?
                 Nibbles.ToEncodedStorageBytes(trieNode.FullPath) : Nibbles.ToBytes(trieNode.FullPath);
-            Console.WriteLine($"Trie Node PathBytes: {string.Join(", ",  pathBytes)}");
             if (trieNode.IsLeaf && (trieNode.Key.Length < 64 || trieNode.PathToNode.Length == 0))
             {
                 byte[] pathToNodeBytes = Nibbles.ToEncodedStorageBytes(trieNode.PathToNode);

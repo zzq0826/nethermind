@@ -1064,7 +1064,7 @@ public class TrieByPathTests
 
             streamWriter.WriteLine(
                 $"Commit block {blockNumber} | empty: {isEmptyBlock}");
-
+            Console.WriteLine(blockNumber);
             stateProvider.Commit(MuirGlacier.Instance);
             stateProvider.CommitTree(blockNumber);
             rootQueue.Enqueue(stateProvider.StateRoot);

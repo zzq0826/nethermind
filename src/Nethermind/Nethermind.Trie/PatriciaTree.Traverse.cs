@@ -46,7 +46,7 @@ public partial class PatriciaTree
                 {
                     return null;
                 }
-
+                if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
                 ConnectNodes(null);
             }
             else if (Bytes.AreEqual(traverseContext.UpdateValue, node.Value))
@@ -158,6 +158,7 @@ public partial class PatriciaTree
 
             if (traverseContext.IsDelete)
             {
+                if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
                 ConnectNodes(null);
                 return traverseContext.UpdateValue;
             }
@@ -276,15 +277,6 @@ public partial class PatriciaTree
         int extensionLength = FindCommonPrefixLength(remaining, node.Key);
         if (extensionLength == node.Key.Length)
         {
-            switch (_trieStore.Capability)
-            {
-                case TrieNodeResolverCapability.Hash:
-                    break;
-                case TrieNodeResolverCapability.Path:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
             traverseContext.CurrentIndex += extensionLength;
             if (traverseContext.IsUpdate)
             {
@@ -633,8 +625,8 @@ public partial class PatriciaTree
             {
                 throw new InvalidOperationException($"Unknown node type {node.GetType().Name}");
             }
+            if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
         }
-
         RootRef = nextNode;
     }
 }
