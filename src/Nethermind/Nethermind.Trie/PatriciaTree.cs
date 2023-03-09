@@ -169,7 +169,7 @@ public partial class PatriciaTree : IPatriciaTree
         {
             _currentCommit = new ConcurrentQueue<NodeCommitInfo>();
             _commitExceptions = new ConcurrentQueue<Exception>();
-            _deleteNodes = new ConcurrentQueue<TrieNode>();
+            if(TrieType == TrieType.Storage) _deleteNodes = new ConcurrentQueue<TrieNode>();
         }
     }
 
@@ -303,7 +303,7 @@ public partial class PatriciaTree : IPatriciaTree
                     RootRef = _trieStore.Capability switch
                     {
                         TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue),
-                        TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue, EmptyKeyPath),
+                        TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue, EmptyKeyPath, StoragePrefix),
                         _ => throw new ArgumentOutOfRangeException()
                     };
                 }
@@ -367,8 +367,7 @@ public partial class PatriciaTree : IPatriciaTree
                 $"{nameof(_commitExceptions)} is NULL when calling {nameof(Commit)}");
         }
 
-        Debug.Assert(_deleteNodes != null, nameof(_deleteNodes) + " != null");
-        while (_deleteNodes.TryDequeue(out TrieNode delNode))
+        while (_deleteNodes != null && _deleteNodes.TryDequeue(out TrieNode delNode))
         {
             _currentCommit.Enqueue(new NodeCommitInfo(delNode));
         }
