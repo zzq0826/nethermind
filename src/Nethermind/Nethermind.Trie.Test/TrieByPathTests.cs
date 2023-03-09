@@ -964,7 +964,7 @@ public class TrieByPathTests
         }
     }
 
-    [TestCase(96, 192, 96, 1541344441)]
+     [TestCase(96, 192, 96, 1541344441)]
     [TestCase(128, 256, 128, 988091870)]
     [TestCase(128, 256, 128, 2107374965)]
     [TestCase(128, 256, 128, null)]
@@ -995,7 +995,8 @@ public class TrieByPathTests
         MemDb memDb = new();
 
         using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.IfBlockOlderThan(lookupLimit), _logManager);
-        IWorldState stateProvider = new WorldState(trieStore, new MemDb(), _logManager);
+        StateProvider stateProvider = new(trieStore, new MemDb(), _logManager);
+        StorageProvider storageProvider = new(trieStore, stateProvider, _logManager);
 
         Account[] accounts = new Account[accountsCount];
         Address[] addresses = new Address[accountsCount];
@@ -1049,7 +1050,7 @@ public class TrieByPathTests
 
                         byte[] storage = new byte[1];
                         _random.NextBytes(storage);
-                        stateProvider.Set(new StorageCell(address, 1), storage);
+                        storageProvider.Set(new StorageCell(address, 1), storage);
                     }
                     else if (!account.IsTotallyEmpty)
                     {
@@ -1057,15 +1058,18 @@ public class TrieByPathTests
 
                         byte[] storage = new byte[1];
                         _random.NextBytes(storage);
-                        stateProvider.Set(new StorageCell(address, 1), storage);
+                        storageProvider.Set(new StorageCell(address, 1), storage);
                     }
                 }
             }
 
             streamWriter.WriteLine(
                 $"Commit block {blockNumber} | empty: {isEmptyBlock}");
-            Console.WriteLine(blockNumber);
+
+            storageProvider.Commit();
             stateProvider.Commit(MuirGlacier.Instance);
+
+            storageProvider.CommitTrees(blockNumber);
             stateProvider.CommitTree(blockNumber);
             rootQueue.Enqueue(stateProvider.StateRoot);
         }
@@ -1089,7 +1093,7 @@ public class TrieByPathTests
                     {
                         for (int j = 0; j < 256; j++)
                         {
-                            stateProvider.Get(new StorageCell(addresses[i], (UInt256)j));
+                            storageProvider.Get(new StorageCell(addresses[i], (UInt256)j));
                         }
                     }
                 }
