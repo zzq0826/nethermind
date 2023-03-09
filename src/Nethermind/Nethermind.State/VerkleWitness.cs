@@ -182,7 +182,7 @@ public struct VerkleWitness : IVerkleWitness
     {
 
         // TODO: does not seem right - not upto spec
-        long gasCost = AccessAccount(originAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce)
+        long gasCost = AccessAccount(originAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce | AccountHeaderAccess.CodeHash | AccountHeaderAccess.CodeSize)
                        + (destinationAddress == null ? 0 : AccessCompleteAccount(destinationAddress));
 
         // when you are executing a transaction, you are writing to the nonce of the origin address
