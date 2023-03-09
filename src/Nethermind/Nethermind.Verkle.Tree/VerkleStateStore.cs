@@ -64,8 +64,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     private void InitRootHash()
     {
-        if (Batch.GetBranch(Array.Empty<byte>(), out InternalNode? _)) return;
-        Batch.SetBranch(Array.Empty<byte>(), new BranchNode());
+        InternalNode? node = GetBranch(Array.Empty<byte>());
+        if(node is null) SetBranch(Array.Empty<byte>(), new BranchNode());
     }
 
     public byte[]? GetLeaf(byte[] key)
@@ -154,7 +154,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         History.InsertDiff(blockNumber, Batch, reverseDiff);
         FullStateBlock = blockNumber;
         StateRootToBlocks.Set(GetBranch(Array.Empty<byte>())?._internalCommitment.PointAsField.ToBytes().ToArray() ?? throw new InvalidOperationException(), blockNumber.ToBigEndianByteArrayWithoutLeadingZeros());
-
+        Storage.LeafDb.Flush();
+        Storage.BranchDb.Flush();
+        Storage.StemDb.Flush();
         Batch = new VerkleMemoryDb();
     }
 
