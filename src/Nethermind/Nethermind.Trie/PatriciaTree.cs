@@ -169,7 +169,7 @@ public partial class PatriciaTree : IPatriciaTree
         {
             _currentCommit = new ConcurrentQueue<NodeCommitInfo>();
             _commitExceptions = new ConcurrentQueue<Exception>();
-            if(TrieType == TrieType.Storage) _deleteNodes = new ConcurrentQueue<TrieNode>();
+            _deleteNodes = new ConcurrentQueue<TrieNode>();
         }
     }
 

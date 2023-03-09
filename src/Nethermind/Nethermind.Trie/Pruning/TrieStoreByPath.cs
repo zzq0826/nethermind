@@ -24,6 +24,7 @@ namespace Nethermind.Trie.Pruning
     /// </summary>
     public class TrieStoreByPath : ITrieStore
     {
+        private const byte PathMarker = 128;
         private static readonly byte[] _rootKeyPath = Array.Empty<byte>();
 
         private class DirtyNodesCache
@@ -350,9 +351,9 @@ namespace Nethermind.Trie.Pruning
 
             keyValueStore ??= _keyValueStore;
             byte[]? rlp = _currentBatch?[keyPath] ?? keyValueStore[keyPath];
-            if (path.Length < 64 && rlp?.Length == 32)
+            if (path.Length < 64 && rlp?[0] == PathMarker)
             {
-                byte[]? pointsToPath = _currentBatch?[rlp] ?? keyValueStore[rlp];
+                byte[]? pointsToPath = _currentBatch?[rlp[1..]] ?? keyValueStore[rlp[1..]];
                 if (pointsToPath is not null)
                     rlp = pointsToPath;
             }
@@ -893,7 +894,10 @@ namespace Nethermind.Trie.Pruning
             if (trieNode.IsLeaf && (trieNode.Key.Length < 64 || trieNode.PathToNode.Length == 0))
             {
                 byte[] pathToNodeBytes = Nibbles.ToEncodedStorageBytes(trieNode.PathToNode);
-                keyValueStore[pathToNodeBytes] = pathBytes;
+                byte[] newPath = new byte[pathBytes.Length + 1];
+                Array.Copy(pathBytes, 0, newPath, 1, pathBytes.Length);
+                newPath[0] = 128;
+                keyValueStore[pathToNodeBytes] = newPath;
             }
             keyValueStore[pathBytes] = trieNode.FullRlp;
         }
