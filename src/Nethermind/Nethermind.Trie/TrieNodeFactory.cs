@@ -51,9 +51,9 @@ namespace Nethermind.Trie
             return node;
         }
 
-        public static TrieNode CreateBranch(Span<byte> pathToNode, byte[]? storagePrefix = null) => CreateBranch(pathToNode.ToArray(), storagePrefix);
-        public static TrieNode CreateLeaf(byte[] path, byte[]? value, Span<byte> pathToNode, byte[]? storagePrefix = null) => CreateLeaf(path, value, pathToNode.ToArray(), storagePrefix);
-        public static TrieNode CreateExtension(byte[] path, Span<byte> pathToNode, byte[]? storagePrefix = null) => CreateExtension(path, pathToNode.ToArray(), storagePrefix);
-        public static TrieNode CreateExtension(byte[] path, TrieNode child, Span<byte> pathToNode, byte[]? storagePrefix = null) => CreateExtension(path, child, pathToNode.ToArray(), storagePrefix);
+        public static TrieNode CreateBranch(Span<byte> pathToNode, byte[]? storagePrefix) => CreateBranch(pathToNode.ToArray(), storagePrefix);
+        public static TrieNode CreateLeaf(byte[] path, byte[]? value, Span<byte> pathToNode, byte[]? storagePrefix) => CreateLeaf(path, value, pathToNode.ToArray(), storagePrefix);
+        public static TrieNode CreateExtension(byte[] path, Span<byte> pathToNode, byte[]? storagePrefix) => CreateExtension(path, pathToNode.ToArray(), storagePrefix);
+        public static TrieNode CreateExtension(byte[] path, TrieNode child, Span<byte> pathToNode, byte[]? storagePrefix) => CreateExtension(path, child, pathToNode.ToArray(), storagePrefix);
     }
 }
