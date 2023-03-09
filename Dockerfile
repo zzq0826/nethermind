@@ -11,11 +11,10 @@ ARG BUILD_TIMESTAMP
 ARG COMMIT_HASH
 
 COPY . .
-
 RUN if [ "$TARGETARCH" = "amd64" ] ; \
-    then dotnet publish src/Nethermind/Nethermind.Runner -r $TARGETOS-x64 -c release -p:Commit=$COMMIT_HASH -p:BuildTimestamp=$BUILD_TIMESTAMP -o out ; \
-    else dotnet publish src/Nethermind/Nethermind.Runner -r $TARGETOS-$TARGETARCH -c release -p:Commit=$COMMIT_HASH -p:BuildTimestamp=$BUILD_TIMESTAMP -o out ; \
-    fi
+        then dotnet publish src/Nethermind/Nethermind.Runner -r $TARGETOS-x64 -c release -p:Commit=$COMMIT_HASH -p:BuildTimestamp=$BUILD_TIMESTAMP -o out ; \
+        else dotnet publish src/Nethermind/Nethermind.Runner -r $TARGETOS-$TARGETARCH -c release -p:Commit=$COMMIT_HASH -p:BuildTimestamp=$BUILD_TIMESTAMP -o out ; \
+        fi
 
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:7.0-jammy
 
