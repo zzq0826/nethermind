@@ -42,6 +42,7 @@ public partial class PatriciaTree : IPatriciaTree
     internal readonly ConcurrentQueue<Exception>? _commitExceptions;
 
     internal readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
+    internal readonly ConcurrentQueue<TrieNode>? _deleteNodes;
 
     protected readonly ITrieStore _trieStore;
     public TrieNodeResolverCapability Capability => _trieStore.Capability;
@@ -103,7 +104,7 @@ public partial class PatriciaTree : IPatriciaTree
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
+            if(_deleteNodes is not null) _deleteNodes.Clear();
         }
     }
 
@@ -168,6 +169,7 @@ public partial class PatriciaTree : IPatriciaTree
         {
             _currentCommit = new ConcurrentQueue<NodeCommitInfo>();
             _commitExceptions = new ConcurrentQueue<Exception>();
+            _deleteNodes = new ConcurrentQueue<TrieNode>();
         }
     }
 
@@ -363,6 +365,12 @@ public partial class PatriciaTree : IPatriciaTree
         {
             throw new InvalidAsynchronousStateException(
                 $"{nameof(_commitExceptions)} is NULL when calling {nameof(Commit)}");
+        }
+
+        Debug.Assert(_deleteNodes != null, nameof(_deleteNodes) + " != null");
+        while (_deleteNodes.TryDequeue(out TrieNode delNode))
+        {
+            _currentCommit.Enqueue(new NodeCommitInfo(delNode));
         }
 
         TrieNode node = nodeCommitInfo.Node;

@@ -31,7 +31,7 @@ namespace Nethermind.Trie
         private static TrieNodeDecoder _nodeDecoder = new();
         private static AccountDecoder _accountDecoder = new();
         private static Action<TrieNode> _markPersisted => tn => tn.IsPersisted = true;
-        private RlpStream? _rlpStream;
+        public RlpStream? _rlpStream;
         private object?[]? _data;
 
         // can be used for storage prefix
@@ -701,6 +701,15 @@ namespace Nethermind.Trie
         public TrieNode CloneWithChangedKey(byte[] path, Span<byte> fullPath) => CloneWithChangedKey(path, fullPath.ToArray());
         public TrieNode CloneWithChangedKey(byte[] path, int removeLength) => CloneWithChangedKey(path, PathToNode[..^removeLength]);
 
+        public TrieNode CloneNodeForDeletion()
+        {
+            TrieNode trieNode = new TrieNode(NodeType);
+            if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
+            if (StorePrefix is not null) trieNode.StorePrefix = (byte[])StorePrefix.Clone();
+            if(Key is not null) trieNode.Key = (byte[])Key.Clone();
+            trieNode._rlpStream = null;
+            return trieNode;
+        }
         public TrieNode Clone()
         {
             TrieNode trieNode = new(NodeType);
