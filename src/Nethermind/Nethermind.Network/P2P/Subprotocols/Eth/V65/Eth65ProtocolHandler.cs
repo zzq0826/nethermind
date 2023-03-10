@@ -54,7 +54,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V65
                         = Deserialize<PooledTransactionsMessage>(message.Content);
                     Metrics.Eth65PooledTransactionsReceived++;
                     ReportIn(pooledTxMsg);
-                    Handle(pooledTxMsg);
+                   // Handle(pooledTxMsg);
                     break;
                 case Eth65MessageCode.GetPooledTransactions:
                     GetPooledTransactionsMessage getPooledTxMsg
