@@ -109,7 +109,7 @@ namespace Nethermind.TxPool
             }
             _filterPipeline.Add(new DeployedCodeFilter(_specProvider, _accounts));
 
-            ProcessNewHeads();
+         //   ProcessNewHeads();
         }
 
         public Transaction[] GetPendingTransactions() => _transactions.GetSnapshot();
