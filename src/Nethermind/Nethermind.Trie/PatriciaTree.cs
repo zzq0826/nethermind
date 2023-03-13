@@ -219,6 +219,7 @@ public partial class PatriciaTree : IPatriciaTree
                 byte[]? nodeData = TrieStore[rawKey.ToArray()];
                 if (nodeData is not null)
                 {
+                    if (nodeData[0] == 128) nodeData = TrieStore[nodeData[1..]];
                     TrieNode node = new(NodeType.Unknown, nodeData);
                     node.ResolveNode(TrieStore);
                     bytes = node.Value;

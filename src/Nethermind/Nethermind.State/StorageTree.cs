@@ -43,7 +43,9 @@ namespace Nethermind.State
             if (trieStore.Capability == TrieNodeResolverCapability.Path)
             {
                 AccountAddress = accountAddress ?? throw new ArgumentException("this cannot be null while using path based trie store");
-                StoragePrefix = AccountAddress.Bytes;
+                Span<byte> nibbles = stackalloc byte[40];
+                Nibbles.BytesToNibbleBytes(AccountAddress.Bytes, nibbles);
+                StoragePrefix = nibbles.ToArray();
             }
         }
 
@@ -54,7 +56,9 @@ namespace Nethermind.State
             if (trieStore.Capability == TrieNodeResolverCapability.Path)
             {
                 AccountAddress = accountAddress ?? throw new ArgumentException("this cannot be null while using path based trie store");
-                StoragePrefix = AccountAddress.Bytes;
+                Span<byte> nibbles = stackalloc byte[40];
+                Nibbles.BytesToNibbleBytes(AccountAddress.Bytes, nibbles);
+                StoragePrefix = nibbles.ToArray();
             }
         }
 
