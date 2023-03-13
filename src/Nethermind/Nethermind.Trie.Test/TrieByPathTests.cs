@@ -1057,14 +1057,13 @@ public class TrieByPathTests
 
                         byte[] storage = new byte[1];
                         _random.NextBytes(storage);
-                        stateProvider.Set(new StorageCell(address, 1), storage);
+                        // stateProvider.Set(new StorageCell(address, 1), storage);
                     }
                 }
             }
 
             streamWriter.WriteLine(
                 $"Commit block {blockNumber} | empty: {isEmptyBlock}");
-            Console.WriteLine(blockNumber);
             stateProvider.Commit(MuirGlacier.Instance);
             stateProvider.CommitTree(blockNumber);
             rootQueue.Enqueue(stateProvider.StateRoot);

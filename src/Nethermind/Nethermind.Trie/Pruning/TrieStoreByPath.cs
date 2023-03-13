@@ -337,7 +337,7 @@ namespace Nethermind.Trie.Pruning
             return rlp;
         }
 
-        internal byte[] LoadRlp(Span<byte> path, IKeyValueStore? keyValueStore, Keccak rootHash = null)
+        internal byte[]? LoadRlp(Span<byte> path, IKeyValueStore? keyValueStore, Keccak rootHash = null)
         {
 
             if (rootHash is not null)
@@ -897,6 +897,8 @@ namespace Nethermind.Trie.Pruning
                 byte[] newPath = new byte[pathBytes.Length + 1];
                 Array.Copy(pathBytes, 0, newPath, 1, pathBytes.Length);
                 newPath[0] = 128;
+                if (trieNode.FullRlp == null)
+                    newPath = null;
                 keyValueStore[pathToNodeBytes] = newPath;
             }
             keyValueStore[pathBytes] = trieNode.FullRlp;
