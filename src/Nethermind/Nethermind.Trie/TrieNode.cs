@@ -111,7 +111,7 @@ namespace Nethermind.Trie
         {
             get
             {
-                if (!IsLeaf) return PathToNode;
+                if (!IsLeaf || PathToNode is null) return PathToNode;
                 Debug.Assert(PathToNode is not null);
                 Span<byte> full = new byte[StorePrefix is null? 64: StorePrefix.Length + 64];
                 StorePrefix?.CopyTo(full);

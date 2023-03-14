@@ -381,7 +381,7 @@ namespace Nethermind.Synchronization.FastSync
             try
             {
                 // it finished downloading
-                rootNodeKeyExists = _stateDb.KeyExists(_rootNode);
+                rootNodeKeyExists = _stateStore.IsFullySynced(_rootNode);
             }
             catch (ObjectDisposedException)
             {
@@ -533,8 +533,19 @@ namespace Nethermind.Synchronization.FastSync
                     bool keyExists;
                     if (syncItem.NodeDataType == NodeDataType.State && _stateStore.Capability == TrieNodeResolverCapability.Path)
                     {
-                        byte[] pathBytes = Nibbles.ToEncodedStorageBytes(syncItem.PathNibbles);
-                        keyExists = dbToCheck.KeyExists(pathBytes);
+                        byte[] pathBytes = syncItem.PathNibbles.Length < 64 ?
+                            Nibbles.ToEncodedStorageBytes(syncItem.PathNibbles) : Nibbles.ToBytes(syncItem.PathNibbles);
+                        byte[] rlp = dbToCheck.Get(pathBytes);
+                        if (rlp is not null)
+                        {
+                            TrieNode node = new(NodeType.Unknown, rlp);
+                            node.ResolveKey(_stateStore, false);
+                            keyExists = node.Keccak == syncItem.Hash;
+                        }
+                        else
+                        {
+                            keyExists = false;
+                        }
                     }
                     else
                     {

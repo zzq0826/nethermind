@@ -38,6 +38,7 @@ using Nethermind.State;
 using Nethermind.State.Witnesses;
 using Nethermind.Synchronization.Witness;
 using Nethermind.Trie;
+using Nethermind.Trie.ByPath;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Wallet;
@@ -113,7 +114,8 @@ namespace Nethermind.Init.Steps
                 stateWitnessedBy,
                 No.Pruning,
                 Persist.EveryBlock,
-                getApi.LogManager);
+                getApi.LogManager,
+                new FullLeafHistory(128)); //TDOD - change, so that object init is done in class based on strategy - should be same as persistance strategy?
 
             TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new TrieStoreBoundaryWatcher(trieStore, _api.BlockTree!, _api.LogManager);
             getApi.DisposeStack.Push(trieStoreBoundaryWatcher);

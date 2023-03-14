@@ -923,8 +923,8 @@ namespace Nethermind.Trie.Pruning
             }
 
             TrieNode trieNode = FindCachedOrUnknown(Array.Empty<byte>());
-            bool stateRootIsInMemory = trieNode.NodeType != NodeType.Unknown;
-            return stateRootIsInMemory || _keyValueStore[Array.Empty<byte>()] is not null;
+            trieNode.ResolveKey(this, false);
+            return trieNode.Keccak == stateRoot;
         }
     }
 }

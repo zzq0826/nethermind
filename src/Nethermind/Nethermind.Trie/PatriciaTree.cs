@@ -501,7 +501,20 @@ public partial class PatriciaTree : IPatriciaTree
         TrieNode rootRef = null;
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
-            rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash);
+
+            if (rootHash == RootHash)
+            {
+                rootRef = RootRef;
+            }
+            else
+            {
+                rootRef = Capability switch
+                {
+                    TrieNodeResolverCapability.Hash => TrieStore.FindCachedOrUnknown(rootHash),
+                    TrieNodeResolverCapability.Path => TrieStore.FindCachedOrUnknown(Array.Empty<byte>()),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+            }
             try
             {
                 rootRef!.ResolveNode(TrieStore);
