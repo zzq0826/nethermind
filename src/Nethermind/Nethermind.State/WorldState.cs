@@ -23,7 +23,7 @@ using Nethermind.Trie.Pruning;
 
 namespace Nethermind.State;
 
-public class WorldState : IWorldState
+public class WorldStateProvider : IStateProvider
 {
     private const int StartCapacity = Resettable.StartCapacity;
     private readonly ResettableDictionary<Address, Stack<int>> _intraBlockCache = new();
@@ -37,14 +37,11 @@ public class WorldState : IWorldState
     private Change?[] _changes = new Change?[StartCapacity];
     private int _currentPosition = Resettable.EmptyPosition;
 
-    private readonly IStorageProvider _storageProvider;
-
-    public WorldState(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager)
+    public WorldStateProvider(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         _tree = new StateTree(trieStore, logManager);
-        _storageProvider = new StorageProvider(trieStore, this, logManager);
     }
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)
@@ -321,20 +318,11 @@ public class WorldState : IWorldState
         PushDelete(address);
     }
 
-    public void ClearStorage(Address address)
-    {
-        _storageProvider.ClearStorage(address);
-    }
+
     int IStateProvider.TakeSnapshot(bool newTransactionStart)
     {
         if (_logger.IsTrace) _logger.Trace($"State snapshot {_currentPosition}");
         return _currentPosition;
-    }
-
-    public void Restore(Snapshot snapshot)
-    {
-        Restore(snapshot.StateSnapshot);
-        _storageProvider.Restore(snapshot.StorageSnapshot);
     }
 
     public void Restore(int snapshot)
@@ -589,26 +577,6 @@ public class WorldState : IWorldState
         }
     }
 
-    public byte[] GetOriginal(in StorageCell storageCell)
-    {
-        return _storageProvider.GetOriginal(storageCell);
-    }
-    public byte[] Get(in StorageCell storageCell)
-    {
-        return _storageProvider.Get(storageCell);
-    }
-    public void Set(in StorageCell storageCell, byte[] newValue)
-    {
-        _storageProvider.Set(storageCell, newValue);
-    }
-    public byte[] GetTransientState(in StorageCell storageCell)
-    {
-        return _storageProvider.GetTransientState(storageCell);
-    }
-    public void SetTransientState(in StorageCell storageCell, byte[] newValue)
-    {
-        _storageProvider.SetTransientState(storageCell, newValue);
-    }
     public void Reset()
     {
         if (_logger.IsTrace) _logger.Trace("Clearing state provider caches");
@@ -619,12 +587,10 @@ public class WorldState : IWorldState
         Array.Clear(_changes, 0, _changes.Length);
         _needsStateRootUpdate = false;
 
-        _storageProvider.Reset();
     }
 
     public void CommitTree(long blockNumber)
     {
-        _storageProvider.CommitTrees(blockNumber);
         if (_needsStateRootUpdate)
         {
             RecalculateStateRoot();
@@ -671,21 +637,9 @@ public class WorldState : IWorldState
         public Account? Account { get; }
     }
 
-    public Snapshot TakeSnapshot(bool newTransactionStart = false)
-    {
-        return new Snapshot(((IStateProvider)this).TakeSnapshot(newTransactionStart), _storageProvider.TakeSnapshot(newTransactionStart));
-    }
-
     public void Commit(IReleaseSpec releaseSpec, bool isGenesis = false)
     {
-        _storageProvider.Commit();
         Commit(releaseSpec, (IStateTracer)NullStateTracer.Instance, isGenesis);
-    }
-
-    public void Commit(IReleaseSpec releaseSpec, IWorldStateTracer stateTracer, bool isGenesis = false)
-    {
-        _storageProvider.Commit(stateTracer);
-        Commit(releaseSpec, (IStateTracer)stateTracer, isGenesis);
     }
 
     public void Commit(IReleaseSpec releaseSpec, IStateTracer stateTracer, bool isGenesis = false)
