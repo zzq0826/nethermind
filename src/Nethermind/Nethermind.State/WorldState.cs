@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Resettables;
@@ -12,6 +13,13 @@ using Nethermind.Logging;
 using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+
+[assembly: InternalsVisibleTo("Ethereum.Test.Base")]
+[assembly: InternalsVisibleTo("Ethereum.Blockchain.Test")]
+[assembly: InternalsVisibleTo("Nethermind.State.Test")]
+[assembly: InternalsVisibleTo("Nethermind.Benchmark")]
+[assembly: InternalsVisibleTo("Nethermind.Blockchain.Test")]
+[assembly: InternalsVisibleTo("Nethermind.Synchronization.Test")]
 
 namespace Nethermind.State;
 

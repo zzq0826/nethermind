@@ -368,7 +368,7 @@ namespace Nethermind.Evm
             }
         }
 
-        public CodeInfo GetCachedCodeInfo(IWorldState state, Address codeSource, IReleaseSpec vmSpec)
+        public CodeInfo GetCachedCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec vmSpec)
         {
             if (codeSource.IsPrecompile(vmSpec))
             {
@@ -380,11 +380,11 @@ namespace Nethermind.Evm
                 return _precompiles[codeSource];
             }
 
-            Keccak codeHash = state.GetCodeHash(codeSource);
+            Keccak codeHash = worldState.GetCodeHash(codeSource);
             CodeInfo cachedCodeInfo = _codeCache.Get(codeHash);
             if (cachedCodeInfo is null)
             {
-                byte[] code = state.GetCode(codeHash);
+                byte[] code = worldState.GetCode(codeHash);
 
                 if (code is null)
                 {
@@ -397,7 +397,7 @@ namespace Nethermind.Evm
             else
             {
                 // need to touch code so that any collectors that track database access are informed
-                state.TouchCode(codeHash);
+                worldState.TouchCode(codeHash);
             }
 
             return cachedCodeInfo;
