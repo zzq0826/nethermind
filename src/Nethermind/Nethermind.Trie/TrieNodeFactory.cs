@@ -2,75 +2,54 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Diagnostics;
-using System.Xml.XPath;
 
 namespace Nethermind.Trie
 {
     internal static class TrieNodeFactory
     {
-        public static TrieNode CreateBranch()
+        public static TrieNode CreateBranch(byte[]? pathToNode = null)
         {
-            TrieNode node = new(NodeType.Branch);
+            TrieNode node = new TrieNode(NodeType.Branch);
+            if (pathToNode is not null) node.PathToNode = pathToNode;
             return node;
         }
 
-        public static TrieNode CreateBranch(Span<byte> pathToNode)
+        public static TrieNode CreateLeaf(byte[] path, byte[]? value, byte[]? pathToNode = null)
         {
-            TrieNode node = new(NodeType.Branch);
-            node.PathToNode = pathToNode.ToArray();
-            return node;
-        }
-
-        public static TrieNode CreateLeaf(byte[] path, byte[]? value)
-        {
-            TrieNode node = new(NodeType.Leaf);
-            node.Key = path;
-            node.Value = value;
-            return node;
-        }
-
-        public static TrieNode CreateLeaf(byte[] path, byte[]? value, Span<byte> pathToNode)
-        {
-            TrieNode node = new(NodeType.Leaf);
-            node.Key = path;
-            node.Value = value;
-            node.PathToNode = pathToNode.ToArray();
+            TrieNode node = new TrieNode(NodeType.Leaf)
+            {
+                Key = path,
+                Value = value
+            };
+            if (pathToNode is null) return node;
+            node.PathToNode = pathToNode;
             if (node.Key.Length + node.PathToNode.Length != 64)
                 throw new Exception("what?");
             return node;
         }
 
-        public static TrieNode CreateExtension(byte[] path)
+        public static TrieNode CreateExtension(byte[] path, byte[]? pathToNode = null)
         {
-            TrieNode node = new(NodeType.Extension);
-            node.Key = path;
+            TrieNode node = new TrieNode(NodeType.Extension)
+            {
+                Key = path
+            };
+            if (pathToNode is not null) node.PathToNode = pathToNode;
             return node;
         }
 
-        public static TrieNode CreateExtension(byte[] path, Span<byte> pathToNode)
+        public static TrieNode CreateExtension(byte[] path, TrieNode child, byte[]? pathToNode = null)
         {
-            TrieNode node = new(NodeType.Extension);
-            node.Key = path;
-            node.PathToNode = pathToNode.ToArray();
-            return node;
-        }
-
-        public static TrieNode CreateExtension(byte[] path, TrieNode child)
-        {
-            TrieNode node = new(NodeType.Extension);
+            TrieNode node = new TrieNode(NodeType.Extension);
             node.SetChild(0, child);
             node.Key = path;
+            if (pathToNode is not null) node.PathToNode = pathToNode;
             return node;
         }
 
-        public static TrieNode CreateExtension(byte[] path, TrieNode child, Span<byte> pathToNode)
-        {
-            TrieNode node = new(NodeType.Extension);
-            node.SetChild(0, child);
-            node.Key = path;
-            node.PathToNode = pathToNode.ToArray();
-            return node;
-        }
+        public static TrieNode CreateBranch(Span<byte> pathToNode) => CreateBranch(pathToNode.ToArray());
+        public static TrieNode CreateLeaf(byte[] path, byte[]? value, Span<byte> pathToNode) => CreateLeaf(path, value, pathToNode.ToArray());
+        public static TrieNode CreateExtension(byte[] path, Span<byte> pathToNode) => CreateExtension(path, pathToNode.ToArray());
+        public static TrieNode CreateExtension(byte[] path, TrieNode child, Span<byte> pathToNode) => CreateExtension(path, child, pathToNode.ToArray());
     }
 }

@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core.Crypto;
+using Nethermind.Trie.Pruning;
 
-namespace Nethermind.Trie.Pruning;
+namespace Nethermind.Trie.ByPath;
 public interface ILeafHistoryStrategy
 {
     void Init(ITrieStore trieStore);

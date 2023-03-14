@@ -7,8 +7,9 @@ using System.Linq;
 using CSharpTest.Net.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Trie.Pruning;
 
-namespace Nethermind.Trie.Pruning;
+namespace Nethermind.Trie.ByPath;
 
 public class IndexedLeafHistory : ILeafHistoryStrategy
 {

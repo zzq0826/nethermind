@@ -3,7 +3,7 @@
 
 using System;
 using System.ComponentModel;
-using System.IO;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nethermind.Core;
@@ -107,27 +107,21 @@ namespace Nethermind.Trie
         {
             get
             {
-                if (IsLeaf)
-                {
-                    byte[] full = new byte[64];
-                    PathToNode.CopyTo(full, 0);
-                    Array.Copy(Key, 0, full, PathToNode.Length, 64 - PathToNode.Length);
-                    return full;
-                }
-                return PathToNode;
+                if (!IsLeaf) return PathToNode;
+                Debug.Assert(PathToNode is not null);
+                byte[] full = new byte[64];
+                PathToNode.CopyTo(full, 0);
+                Array.Copy(Key, 0, full, PathToNode.Length, 64 - PathToNode.Length);
+                return full;
             }
         }
 
         private TrieNode? StorageRoot
         {
-            get
-            {
-                return _data?[2] as TrieNode;
-            }
+            get => _data?[2] as TrieNode;
             set
             {
-                if (_data is null)
-                    InitData();
+                if (_data is null) InitData();
                 _data![2] = value;
             }
         }
@@ -334,7 +328,6 @@ namespace Nethermind.Trie
                         {
                             if (Keccak is null)
                                 throw new TrieException("Unable to resolve node without Keccak");
-
                             fullRlp = tree.LoadRlp(Keccak);
                         }
                         else if (tree.Capability == TrieNodeResolverCapability.Path)
@@ -345,11 +338,8 @@ namespace Nethermind.Trie
                             fullRlp = tree.LoadRlp(Keccak);
                         }
                         IsPersisted = true;
-
                         if (fullRlp is null)
-                        {
                             throw new TrieException($"Trie returned a NULL RLP for node {Keccak}");
-                        }
                     }
                 }
                 else
@@ -402,7 +392,6 @@ namespace Nethermind.Trie
                     throw new TrieException(
                         $"Unexpected number of items = {numberOfItems} when decoding a node from RLP ({FullRlp?.ToHexString()})");
                 }
-
             }
             catch (RlpException rlpException)
             {
@@ -576,9 +565,7 @@ namespace Nethermind.Trie
 
             // pruning trick so we never store long persisted paths
             if (child?.IsPersisted == true)
-            {
                 UnresolveChild(childIndex);
-            }
 
             return child;
         }
@@ -615,9 +602,7 @@ namespace Nethermind.Trie
 
             // pruning trick so we never store long persisted paths
             if (child?.IsPersisted == true)
-            {
                 UnresolveChild(childIndex);
-            }
 
             return child;
         }
@@ -701,21 +686,15 @@ namespace Nethermind.Trie
             return MemorySizes.Align(unaligned);
         }
 
-        public TrieNode CloneWithChangedKey(byte[] key)
+        public TrieNode CloneWithChangedKey(byte[] key, byte[]? fullPath = null)
         {
             TrieNode trieNode = Clone();
             trieNode.Key = key;
-            trieNode.PathToNode = PathToNode;
+            trieNode.PathToNode = fullPath ?? PathToNode;
             return trieNode;
         }
 
-        public TrieNode CloneWithChangedKey(byte[] path, Span<byte> fullPath)
-        {
-            TrieNode trieNode = Clone();
-            trieNode.Key = path;
-            trieNode.PathToNode = fullPath.ToArray();
-            return trieNode;
-        }
+        public TrieNode CloneWithChangedKey(byte[] path, Span<byte> fullPath) => CloneWithChangedKey(path, fullPath.ToArray());
 
         public TrieNode Clone()
         {
@@ -746,20 +725,12 @@ namespace Nethermind.Trie
             return trieNode;
         }
 
-        public TrieNode CloneWithChangedKeyAndValue(byte[] key, byte[]? changedValue)
+        public TrieNode CloneWithChangedKeyAndValue(byte[] key, byte[]? changedValue, byte[]? changedFullPath = null)
         {
             TrieNode trieNode = Clone();
             trieNode.Key = key;
             trieNode.Value = changedValue;
-            return trieNode;
-        }
-
-        public TrieNode CloneWithChangedKeyAndValue(byte[] path, byte[]? changedValue, byte[] changedFullPath)
-        {
-            TrieNode trieNode = Clone();
-            trieNode.Key = path;
-            trieNode.Value = changedValue;
-            trieNode.PathToNode = changedFullPath;
+            if (changedFullPath is not null) trieNode.PathToNode = changedFullPath;
             return trieNode;
         }
 
