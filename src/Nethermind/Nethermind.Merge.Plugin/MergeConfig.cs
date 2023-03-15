@@ -21,5 +21,11 @@ namespace Nethermind.Merge.Plugin
         public ulong SecondsPerSlot { get; set; } = 12;
 
         public string? BuilderRelayUrl { get; set; }
+
+        public bool PrioritizeBlockLatency { get; set; } = true;
+
+        public int GCGenerationToCollect { get; set; } = 1;
+
+        public bool AggressivelyCompactMemory { get; set; } = true;
     }
 }
