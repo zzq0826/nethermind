@@ -30,6 +30,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly IBlockTree _blockTree;
         private readonly ISyncConfig _syncConfig;
         private readonly ISyncReport _syncReport;
+        private readonly ManualResetEventSlim _syncResetEvent;
         private readonly ISpecProvider _specProvider;
         private readonly IReceiptStorage _receiptStorage;
         private readonly ISyncPeerPool _syncPeerPool;
@@ -49,6 +50,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncPeerPool syncPeerPool,
             ISyncConfig syncConfig,
             ISyncReport syncReport,
+            ManualResetEventSlim syncResetEvent,
             ILogManager logManager)
             : base(syncModeSelector)
         {
@@ -58,6 +60,7 @@ namespace Nethermind.Synchronization.FastBlocks
             _syncPeerPool = syncPeerPool ?? throw new ArgumentNullException(nameof(syncPeerPool));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
+            _syncResetEvent = syncResetEvent;
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
 
             if (!_syncConfig.FastBlocks)
@@ -125,13 +128,18 @@ namespace Nethermind.Synchronization.FastBlocks
             ReceiptsSyncBatch? batch = null;
             if (ShouldBuildANewBatch())
             {
-                BlockInfo?[] infos = new BlockInfo[_requestSize];
-                _syncStatusList.GetInfosForBatch(infos);
-                if (infos[0] is not null)
+                _syncResetEvent.Wait(token);
+
+                if (ShouldBuildANewBatch())
                 {
-                    batch = new ReceiptsSyncBatch(infos);
-                    batch.MinNumber = infos[0].BlockNumber;
-                    batch.Prioritized = true;
+                    BlockInfo?[] infos = new BlockInfo[_requestSize];
+                    _syncStatusList.GetInfosForBatch(infos);
+                    if (infos[0] is not null)
+                    {
+                        batch = new ReceiptsSyncBatch(infos);
+                        batch.MinNumber = infos[0].BlockNumber;
+                        batch.Prioritized = true;
+                    }
                 }
 
                 // Array.Reverse(infos);
@@ -152,6 +160,8 @@ namespace Nethermind.Synchronization.FastBlocks
                     if (_logger.IsDebug) _logger.Debug("Received a NULL batch as a response");
                     return SyncResponseHandlingResult.InternalError;
                 }
+
+                _syncResetEvent.Wait(5000);
 
                 int added = InsertReceipts(batch);
                 return added == 0 ? SyncResponseHandlingResult.NoProgress : SyncResponseHandlingResult.OK;

@@ -20,6 +20,7 @@ public partial class EngineRpcModule : IEngineRpcModule
     private readonly IHandler<TransitionConfigurationV1, TransitionConfigurationV1> _transitionConfigurationHandler;
     private readonly SemaphoreSlim _locker = new(1, 1);
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(8);
+    private readonly ManualResetEventSlim _syncResetEvent;
 
     public ResultWrapper<TransitionConfigurationV1> engine_exchangeTransitionConfigurationV1(
         TransitionConfigurationV1 beaconTransitionConfiguration) => _transitionConfigurationHandler.Handle(beaconTransitionConfiguration);
@@ -44,12 +45,14 @@ public partial class EngineRpcModule : IEngineRpcModule
         if (await _locker.WaitAsync(_timeout))
         {
             Stopwatch watch = Stopwatch.StartNew();
+            _syncResetEvent.Reset();
             try
             {
                 return await _forkchoiceUpdatedV1Handler.Handle(forkchoiceState, payloadAttributes);
             }
             finally
             {
+                _syncResetEvent.Set();
                 watch.Stop();
                 Metrics.ForkchoiceUpdedExecutionTime = watch.ElapsedMilliseconds;
                 _locker.Release();

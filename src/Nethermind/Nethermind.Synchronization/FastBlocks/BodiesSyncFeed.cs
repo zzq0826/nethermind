@@ -27,6 +27,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly ISyncConfig _syncConfig;
         private readonly ISyncReport _syncReport;
         private readonly ISpecProvider _specProvider;
+        private readonly ManualResetEventSlim _syncResetEvent;
         private readonly ISyncPeerPool _syncPeerPool;
 
         private readonly long _pivotNumber;
@@ -41,6 +42,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncConfig syncConfig,
             ISyncReport syncReport,
             ISpecProvider specProvider,
+            ManualResetEventSlim syncResetEvent,
             ILogManager logManager) : base(syncModeSelector)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
@@ -49,6 +51,7 @@ namespace Nethermind.Synchronization.FastBlocks
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
+            _syncResetEvent = syncResetEvent;
 
             if (!_syncConfig.FastBlocks)
             {
@@ -107,13 +110,16 @@ namespace Nethermind.Synchronization.FastBlocks
             BodiesSyncBatch? batch = null;
             if (ShouldBuildANewBatch())
             {
-                BlockInfo?[] infos = new BlockInfo[_requestSize];
-                _syncStatusList.GetInfosForBatch(infos);
-                if (infos[0] is not null)
+                _syncResetEvent.Wait(token);
+
+                if (ShouldBuildANewBatch())
                 {
-                    batch = new BodiesSyncBatch(infos);
-                    batch.MinNumber = infos[0].BlockNumber;
-                    batch.Prioritized = true;
+                    BlockInfo?[] infos = new BlockInfo[_requestSize];
+                    _syncStatusList.GetInfosForBatch(infos);
+                    if (infos[0] is not null)
+                    {
+                        batch = new BodiesSyncBatch(infos) { MinNumber = infos[0].BlockNumber, Prioritized = true };
+                    }
                 }
             }
 
@@ -132,6 +138,8 @@ namespace Nethermind.Synchronization.FastBlocks
                     if (_logger.IsDebug) _logger.Debug("Received a NULL batch as a response");
                     return SyncResponseHandlingResult.InternalError;
                 }
+
+                _syncResetEvent.Wait(5000);
 
                 int added = InsertBodies(batch);
                 return added == 0

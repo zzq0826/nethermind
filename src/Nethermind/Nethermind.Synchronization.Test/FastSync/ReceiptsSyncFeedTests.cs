@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
@@ -122,6 +123,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ManualResetEventSlim(true),
                 LimboLogs.Instance);
         }
 
@@ -138,6 +140,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                     _syncPeerPool,
                     _syncConfig,
                     _syncReport,
+                    new ManualResetEventSlim(true),
                     LimboLogs.Instance));
         }
 
@@ -152,6 +155,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ManualResetEventSlim(true),
                 LimboLogs.Instance);
 
             var request = await _feed.PrepareRequest();
@@ -250,6 +254,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ManualResetEventSlim(true),
                 LimboLogs.Instance);
 
             _blockTree.Genesis.Returns(scenario.Blocks[0].Header);

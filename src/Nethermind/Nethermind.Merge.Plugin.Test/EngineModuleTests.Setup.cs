@@ -103,6 +103,7 @@ public partial class EngineModuleTests
             new ExchangeTransitionConfigurationV1Handler(chain.PoSSwitcher, chain.LogManager),
             new ExchangeCapabilitiesHandler(capabilitiesProvider, chain.SpecProvider, chain.LogManager),
             chain.SpecProvider,
+            new ManualResetEventSlim(true),
             chain.LogManager);
     }
 

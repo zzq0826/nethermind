@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.JsonRpc;
@@ -29,6 +30,7 @@ public partial class EngineRpcModule : IEngineRpcModule
         IHandler<TransitionConfigurationV1, TransitionConfigurationV1> transitionConfigurationHandler,
         IHandler<IEnumerable<string>, IEnumerable<string>> capabilitiesHandler,
         ISpecProvider specProvider,
+        ManualResetEventSlim syncResetEvent,
         ILogManager logManager)
     {
         _capabilitiesHandler = capabilitiesHandler ?? throw new ArgumentNullException(nameof(capabilitiesHandler));
@@ -40,7 +42,10 @@ public partial class EngineRpcModule : IEngineRpcModule
         _executionGetPayloadBodiesByRangeV1Handler = executionGetPayloadBodiesByRangeV1Handler;
         _transitionConfigurationHandler = transitionConfigurationHandler;
         _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
+        _syncResetEvent = syncResetEvent;
         _logger = logManager.GetClassLogger();
+
+        syncResetEvent.Set();
     }
 
     public ResultWrapper<IEnumerable<string>> engine_exchangeCapabilities(IEnumerable<string> methods)

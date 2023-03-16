@@ -203,7 +203,7 @@ namespace Nethermind.Synchronization
             {
                 if (_syncConfig.DownloadBodiesInFastSync)
                 {
-                    _bodiesFeed = new BodiesSyncFeed(_syncMode, _blockTree, _syncPeerPool, _syncConfig, _syncReport, _specProvider, _logManager);
+                    _bodiesFeed = new BodiesSyncFeed(_syncMode, _blockTree, _syncPeerPool, _syncConfig, _syncReport, _specProvider, SyncEventReset, _logManager);
                     BodiesSyncDispatcher bodiesDispatcher = new(_bodiesFeed!, _syncPeerPool, fastFactory, _logManager);
                     Task bodiesTask = bodiesDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
                     {
@@ -220,7 +220,7 @@ namespace Nethermind.Synchronization
 
                 if (_syncConfig.DownloadReceiptsInFastSync)
                 {
-                    _receiptsFeed = new ReceiptsSyncFeed(_syncMode, _specProvider, _blockTree, _receiptStorage, _syncPeerPool, _syncConfig, _syncReport, _logManager);
+                    _receiptsFeed = new ReceiptsSyncFeed(_syncMode, _specProvider, _blockTree, _receiptStorage, _syncPeerPool, _syncConfig, _syncReport, SyncEventReset, _logManager);
                     ReceiptsSyncDispatcher receiptsDispatcher = new(_receiptsFeed!, _syncPeerPool, fastFactory, _logManager);
                     Task receiptsTask = receiptsDispatcher.Start(_syncCancellation.Token).ContinueWith(t =>
                     {
@@ -290,6 +290,8 @@ namespace Nethermind.Synchronization
                     _receiptsFeed?.FeedTask ?? Task.CompletedTask));
         }
 
+        public ManualResetEventSlim SyncEventReset { get; } = new();
+
         public void Dispose()
         {
             CancellationTokenExtensions.CancelDisposeAndClear(ref _syncCancellation);
@@ -301,6 +303,7 @@ namespace Nethermind.Synchronization
             _headersFeed?.Dispose();
             _bodiesFeed?.Dispose();
             _receiptsFeed?.Dispose();
+            SyncEventReset.Dispose();
         }
     }
 }
