@@ -201,6 +201,8 @@ namespace Nethermind.Consensus.Processing
 
         private void RunRecoveryLoop()
         {
+            Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
             void DecrementQueue(Keccak blockHash, ProcessingResult processingResult, Exception? exception = null)
             {
                 Interlocked.Decrement(ref _queueCount);
@@ -253,6 +255,8 @@ namespace Nethermind.Consensus.Processing
 
         private void RunProcessingLoop()
         {
+            Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
             if (_logger.IsDebug) _logger.Debug($"Starting block processor - {_blockQueue.Count} blocks waiting in the queue.");
 
             FireProcessingQueueEmpty();
