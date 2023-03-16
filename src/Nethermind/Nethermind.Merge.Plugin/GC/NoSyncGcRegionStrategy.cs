@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Runtime.CompilerServices;
 using Nethermind.Synchronization.ParallelSync;
 
 namespace Nethermind.Merge.Plugin.GC;
@@ -21,6 +22,7 @@ public class NoSyncGcRegionStrategy : IGCStrategy
 
     public bool CanStartNoGCRegion() => _canStartNoGCRegion && IsProcessingBlocks();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsProcessingBlocks() => (_syncModeSelector.Current & SyncMode.WaitingForBlock) != 0;
 
     public (int, bool) GetForcedGCParams() => IsProcessingBlocks() ? _gcParams : (-1, false);
