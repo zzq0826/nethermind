@@ -15,8 +15,6 @@ namespace Nethermind.State
     /// </summary>
     public interface IWorldState : IJournal<Snapshot>, IStateProvider
     {
-        void SetNonce(Address address, in UInt256 nonce);
-
         void ClearStorage(Address address);
 
         byte[] GetOriginal(in StorageCell storageCell);
