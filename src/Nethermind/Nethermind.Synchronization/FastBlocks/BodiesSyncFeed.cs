@@ -139,7 +139,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     return SyncResponseHandlingResult.InternalError;
                 }
 
-                _syncResetEvent.Wait(5000);
+                _syncResetEvent.Wait();
 
                 int added = InsertBodies(batch);
                 return added == 0

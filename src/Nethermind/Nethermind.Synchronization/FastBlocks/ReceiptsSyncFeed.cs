@@ -161,7 +161,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     return SyncResponseHandlingResult.InternalError;
                 }
 
-                _syncResetEvent.Wait(5000);
+                _syncResetEvent.Wait();
 
                 int added = InsertReceipts(batch);
                 return added == 0 ? SyncResponseHandlingResult.NoProgress : SyncResponseHandlingResult.OK;

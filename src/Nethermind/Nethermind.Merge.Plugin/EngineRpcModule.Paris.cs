@@ -36,32 +36,38 @@ public partial class EngineRpcModule : IEngineRpcModule
 
     private async Task<ResultWrapper<ForkchoiceUpdatedV1Result>> ForkchoiceUpdated(ForkchoiceStateV1 forkchoiceState, PayloadAttributes? payloadAttributes, int version)
     {
-        if (payloadAttributes?.Validate(_specProvider, version, out string? error) == false)
+        _syncResetEvent.Reset();
+        try
         {
-            if (_logger.IsWarn) _logger.Warn(error);
-            return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error, ErrorCodes.InvalidParams);
-        }
+            if (payloadAttributes?.Validate(_specProvider, version, out string? error) == false)
+            {
+                if (_logger.IsWarn) _logger.Warn(error);
+                return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error, ErrorCodes.InvalidParams);
+            }
 
-        if (await _locker.WaitAsync(_timeout))
-        {
-            Stopwatch watch = Stopwatch.StartNew();
-            _syncResetEvent.Reset();
-            try
+            if (await _locker.WaitAsync(_timeout))
             {
-                return await _forkchoiceUpdatedV1Handler.Handle(forkchoiceState, payloadAttributes);
+                Stopwatch watch = Stopwatch.StartNew();
+                try
+                {
+                    return await _forkchoiceUpdatedV1Handler.Handle(forkchoiceState, payloadAttributes);
+                }
+                finally
+                {
+                    watch.Stop();
+                    Metrics.ForkchoiceUpdedExecutionTime = watch.ElapsedMilliseconds;
+                    _locker.Release();
+                }
             }
-            finally
+            else
             {
-                _syncResetEvent.Set();
-                watch.Stop();
-                Metrics.ForkchoiceUpdedExecutionTime = watch.ElapsedMilliseconds;
-                _locker.Release();
+                if (_logger.IsWarn) _logger.Warn($"engine_forkchoiceUpdated{version} timed out");
+                return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail("Timed out", ErrorCodes.Timeout);
             }
         }
-        else
+        finally
         {
-            if (_logger.IsWarn) _logger.Warn($"engine_forkchoiceUpdated{version} timed out");
-            return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail("Timed out", ErrorCodes.Timeout);
+            _syncResetEvent.Set();
         }
     }
 
