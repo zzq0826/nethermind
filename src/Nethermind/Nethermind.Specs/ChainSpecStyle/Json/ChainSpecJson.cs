@@ -66,6 +66,34 @@ internal class ChainSpecJson
         public UInt256? BlockReward { get; set; }
     }
 
+    internal class BorEngineJson
+    {
+        public Address ValidatorContractAddress => Params.ValidatorContractAddress;
+        public Address StateReceiverContractAddress => Params.StateReceiverContractAddress;
+        public IDictionary<long, long> Period => Params.Period;
+        public IDictionary<long, long> Sprint => Params.Sprint;
+        public IDictionary<long, long> BackupMultiplier => Params.BackupMultiplier;
+        public long? JaipurBlockNumber => Params.JaipurBlockNumber;
+        public BorEngineParamsJson Params { get; set; }
+    }
+
+    internal class BorEngineParamsJson
+    {
+        public Address ValidatorContractAddress { get; init; }
+
+        public Address StateReceiverContractAddress { get; init; }
+
+        public IDictionary<long, long> Period { get; init; }
+
+        public IDictionary<long, long> Sprint { get; init; }
+
+        public IDictionary<long, long> BackupMultiplier { get; init; }
+
+        public long? JaipurBlockNumber { get; init; }
+
+        public long? DelhiBlockNumber { get; init; }
+    }
+
     internal class AuraEngineParamsJson
     {
         public StepDurationJson StepDuration { get; set; }
@@ -166,6 +194,7 @@ internal class ChainSpecJson
     internal class EngineJson
     {
         public EthashEngineJson Ethash { get; set; }
+        public BorEngineJson Bor { get; set; }
         public CliqueEngineJson Clique { get; set; }
         public AuraEngineJson AuthorityRound { get; set; }
         public NethDevJson NethDev { get; set; }

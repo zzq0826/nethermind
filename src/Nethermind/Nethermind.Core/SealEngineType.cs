@@ -8,6 +8,7 @@ namespace Nethermind.Core
         public static readonly string None = nameof(None);
         public static readonly string AuRa = nameof(AuRa);
         public static readonly string Clique = nameof(Clique);
+        public static readonly string Bor = nameof(Bor);
         public static readonly string NethDev = nameof(NethDev);
         public static readonly string Ethash = nameof(Ethash);
         public static readonly string BeaconChain = nameof(BeaconChain);

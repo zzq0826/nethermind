@@ -285,6 +285,16 @@ public class ChainSpecLoader : IChainSpecLoader
                 Reward = chainSpecJson.Engine.Clique.BlockReward ?? UInt256.Zero
             };
         }
+        else if (chainSpecJson.Engine?.Bor is not null)
+        {
+            chainSpec.SealEngineType = SealEngineType.Bor;
+            chainSpec.Bor = new BorParameters
+            {
+                // Epoch = chainSpecJson.Engine.Clique.Epoch,
+                // Period = chainSpecJson.Engine.Clique.Period,
+                // Reward = chainSpecJson.Engine.Clique.BlockReward ?? UInt256.Zero
+            };
+        }
         else if (chainSpecJson.Engine?.Ethash is not null)
         {
             chainSpec.SealEngineType = SealEngineType.Ethash;
