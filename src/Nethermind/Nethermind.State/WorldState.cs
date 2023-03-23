@@ -16,7 +16,7 @@ using Nethermind.Trie.Pruning;
 
 namespace Nethermind.State;
 
-public class WorldState: PartialStorageProviderBase, IWorldState
+public class WorldState : PartialStorageProviderBase, IWorldState
 {
     private readonly StateProvider _stateProvider;
     private readonly TransientStorageProvider _transientStorageProvider;
@@ -30,7 +30,7 @@ public class WorldState: PartialStorageProviderBase, IWorldState
     private readonly ResettableDictionary<StorageCell, byte[]> _originalValues = new();
     private readonly ResettableHashSet<StorageCell> _committedThisRound = new();
 
-    public WorldState(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager): base(logManager)
+    public WorldState(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager) : base(logManager)
     {
         _trieStore = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
         _logManager = logManager;
@@ -172,23 +172,23 @@ public class WorldState: PartialStorageProviderBase, IWorldState
         _transientStorageProvider.ClearStorage(address);
     }
 
-     public void Commit(IReleaseSpec releaseSpec, bool isGenesis = false)
+    public void Commit(IReleaseSpec releaseSpec, bool isGenesis = false)
     {
         base.Commit((IStorageTracer)NullStateTracer.Instance);
         _transientStorageProvider.Commit();
         _stateProvider.Commit(releaseSpec, isGenesis);
     }
 
-     public void Commit(IReleaseSpec releaseSpec, IStateTracer? stateTracer, bool isGenesis = false)
-     {
-         _stateProvider.Commit(releaseSpec, stateTracer, isGenesis);
-     }
+    public void Commit(IReleaseSpec releaseSpec, IStateTracer? stateTracer, bool isGenesis = false)
+    {
+        _stateProvider.Commit(releaseSpec, stateTracer, isGenesis);
+    }
 
-     public void Commit(IReleaseSpec releaseSpec, IWorldStateTracer? tracer, bool isGenesis = false)
+    public void Commit(IReleaseSpec releaseSpec, IWorldStateTracer? tracer, bool isGenesis = false)
     {
         _stateProvider.Commit(releaseSpec, tracer, isGenesis);
-        base.Commit(tracer?? (IStorageTracer)NullStateTracer.Instance);
-        _transientStorageProvider.Commit(tracer?? (IStorageTracer)NullStateTracer.Instance);
+        base.Commit(tracer ?? (IStorageTracer)NullStateTracer.Instance);
+        _transientStorageProvider.Commit(tracer ?? (IStorageTracer)NullStateTracer.Instance);
     }
 
     /// <summary>
