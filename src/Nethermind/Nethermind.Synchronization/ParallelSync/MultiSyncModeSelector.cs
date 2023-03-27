@@ -477,8 +477,6 @@ namespace Nethermind.Synchronization.ParallelSync
         // ReSharper disable once UnusedParameter.Local
         private bool ShouldBeInFastHeadersMode(Snapshot best)
         {
-            bool notInUpdatingPivot = !best.IsInUpdatingPivot;
-
             bool fastBlocksHeadersNotFinished = !FastBlocksHeadersFinished;
 
             if (_logger.IsTrace)
@@ -489,8 +487,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
             // this is really the only condition - fast blocks headers can always run if there are peers until it is done
             // also fast blocks headers can run in parallel with all other sync modes
-            return notInUpdatingPivot &&
-                   fastBlocksHeadersNotFinished;
+            return fastBlocksHeadersNotFinished;
         }
 
         private bool ShouldBeInFastBodiesMode(Snapshot best)
