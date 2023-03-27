@@ -368,6 +368,8 @@ namespace Nethermind.Synchronization.ParallelSync
                 return false;
             }
 
+            bool notInUpdatingPivot = !best.IsInUpdatingPivot;
+
             // Shared with fast sync
             bool notInBeaconModes = !best.IsInAnyBeaconMode;
             bool postPivotPeerAvailable = AnyPostPivotPeerKnown(best.Peer.Block);
@@ -382,7 +384,8 @@ namespace Nethermind.Synchronization.ParallelSync
             bool notHasJustStartedFullSync = !HasJustStartedFullSync(best);
             bool notNeedToWaitForHeaders = NotNeedToWaitForHeaders;
 
-            bool result = notInBeaconModes &&
+            bool result = notInUpdatingPivot &&
+                          notInBeaconModes &&
                           postPivotPeerAvailable &&
                           // (catch up after node is off for a while
                           // OR standard fast sync)
