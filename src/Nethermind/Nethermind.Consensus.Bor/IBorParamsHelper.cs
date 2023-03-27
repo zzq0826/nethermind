@@ -6,4 +6,6 @@ namespace Nethermind.Consensus.Bor;
 public interface IBorParamsHelper
 {
     bool IsSprintStart(long blockNumber);
+    
+    long CalculateSprintSize(long blockNumber);
 }

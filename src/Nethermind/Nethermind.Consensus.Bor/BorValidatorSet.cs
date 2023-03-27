@@ -3,8 +3,6 @@
 
 namespace Nethermind.Consensus.Bor;
 
-public interface IHeimdallClient
+public class BorValidatorSet
 {
-    // TODO: Make this async
-    HeimdallSpan GetSpan(long number);
 }

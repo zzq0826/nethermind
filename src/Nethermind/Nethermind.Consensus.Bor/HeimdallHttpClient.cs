@@ -15,8 +15,18 @@ public class HeimdallHttpClient : IHeimdallClient
         _httpClient = new DefaultHttpClient(new HttpClient(), jsonSerializer, logManager);
     }
 
-    public HeimdallSpan? GetSpan(long number)
+    public HeimdallSpan GetSpan(long number)
     {
-        throw new NotImplementedException();
+        // TODO: Make this async
+        // Right now this is call in block processing context, which assumes syncronous calls
+        HeimdallSpanResponse response =
+            _httpClient.GetAsync<HeimdallSpanResponse>($"{_heimdallAddr}/bor/span/{number}").Result;
+        return response.Result ?? throw new Exception($"Heimdall returned null span for number {number}");
+    }
+
+    private class HeimdallSpanResponse
+    {
+        public long Height { get; init; }
+        public HeimdallSpan? Result { get; set; }
     }
 }

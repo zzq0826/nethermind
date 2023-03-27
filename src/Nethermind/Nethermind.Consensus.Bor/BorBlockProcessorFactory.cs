@@ -20,11 +20,12 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
 
     public IBlockProcessor Create()
     {
+        ArgumentNullException.ThrowIfNull(_api.ChainSpec);
+        ArgumentNullException.ThrowIfNull(_api.BlockTree);
         ArgumentNullException.ThrowIfNull(_api.DbProvider);
+        ArgumentNullException.ThrowIfNull(_api.StateProvider);
         ArgumentNullException.ThrowIfNull(_api.RewardCalculatorSource);
         ArgumentNullException.ThrowIfNull(_api.TransactionProcessor);
-        ArgumentNullException.ThrowIfNull(_api.StateProvider);
-        ArgumentNullException.ThrowIfNull(_api.ChainSpec);
 
         BorParameters borParams = _api.ChainSpec.Bor;
         IBorConfig borConfig = _api.Config<IBorConfig>();
@@ -40,7 +41,13 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
             borParams.ValidatorContractAddress
         );
 
-        BorValidatorSetManager validatorSetManager = new(heimdallClient, borHelper, validatorSetContract);
+        BorValidatorSetManager validatorSetManager = new(
+            _api.ChainSpec.ChainId,
+            _api.BlockTree,
+            heimdallClient,
+            borHelper,
+            validatorSetContract
+        );
 
         BorStateSyncManager stateSyncManager = new();
 
