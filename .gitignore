@@ -381,7 +381,8 @@ FodyWeavers.xsd
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
-!.vscode/launch.json
+# launch.json is too specific to each user and should be ignored
+# !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
 
