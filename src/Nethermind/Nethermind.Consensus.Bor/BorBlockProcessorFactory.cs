@@ -49,7 +49,19 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
             validatorSetContract
         );
 
-        BorStateSyncManager stateSyncManager = new();
+        BorStateReceiverContract stateReceiverContract = new(
+            _api.TransactionProcessor,
+            _api.AbiEncoder,
+            borParams.StateReceiverContractAddress
+        );
+
+        BorStateSyncManager stateSyncManager = new(
+            _api.LogManager,
+            _api.BlockTree,
+            borHelper,
+            heimdallClient,
+            stateReceiverContract
+        );
 
         BlockProcessor.BlockValidationTransactionsExecutor blockTransactionsExecutor =
             new(_api.TransactionProcessor, _api.StateProvider);
