@@ -14,6 +14,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Timers;
 using Nethermind.Crypto;
+using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.TxPool.Collections;
@@ -44,6 +45,7 @@ namespace Nethermind.TxPool
 
         private readonly IAccountStateProvider _accounts;
 
+        private readonly IDb _blobTransactionsDb;
         private readonly IChainHeadInfoProvider _headInfo;
         private readonly ITxPoolConfig _txPoolConfig;
 
@@ -67,6 +69,7 @@ namespace Nethermind.TxPool
         /// </summary>
         /// <param name="txStorage">Tx storage used to reject known transactions.</param>
         /// <param name="ecdsa">Used to recover sender addresses from transaction signatures.</param>
+        /// <param name="blobTransactionsDb"></param>
         /// <param name="chainHeadInfoProvider"></param>
         /// <param name="txPoolConfig"></param>
         /// <param name="validator"></param>
@@ -76,6 +79,7 @@ namespace Nethermind.TxPool
         /// <param name="thereIsPriorityContract"></param>
         public TxPool(
             IEthereumEcdsa ecdsa,
+            IDb blobTransactionsDb,
             IChainHeadInfoProvider chainHeadInfoProvider,
             ITxPoolConfig txPoolConfig,
             ITxValidator validator,
@@ -85,6 +89,7 @@ namespace Nethermind.TxPool
             bool thereIsPriorityContract = false)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
+            _blobTransactionsDb = blobTransactionsDb ?? throw new ArgumentNullException(nameof(blobTransactionsDb));
             _headInfo = chainHeadInfoProvider ?? throw new ArgumentNullException(nameof(chainHeadInfoProvider));
             _txPoolConfig = txPoolConfig;
             _accounts = _headInfo.AccountStateProvider;

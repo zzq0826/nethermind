@@ -273,6 +273,7 @@ namespace Nethermind.Consensus.AuRa.InitializationSteps
 
             return new TxPool.TxPool(
                 _api.EthereumEcdsa,
+                _api.DbProvider.BlobTransactionsDb,
                 new ChainHeadInfoProvider(_api.SpecProvider, _api.BlockTree, _api.StateReader),
                 NethermindApi.Config<ITxPoolConfig>(),
                 _api.TxValidator,
