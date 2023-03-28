@@ -300,6 +300,11 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public override Task<HeadersSyncBatch?> PrepareRequest(CancellationToken cancellationToken = default)
         {
+            if (_pivotNumber != _syncConfig.PivotNumberParsed)
+            {
+                ResetPivot();
+            }
+
             _resetLock.EnterReadLock();
             try
             {

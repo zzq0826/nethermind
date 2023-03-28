@@ -123,6 +123,11 @@ public sealed class BeaconHeadersSyncFeed : HeadersSyncFeed
 
     public override Task<HeadersSyncBatch?> PrepareRequest(CancellationToken cancellationToken = default)
     {
+        if (_pivotNumber != _syncConfig.PivotNumberParsed)
+        {
+            ResetPivot();
+        }
+
         if (_pivotNumber != ExpectedPivotNumber)
         {
             // Pivot changed during the sync. Need to reset the states
