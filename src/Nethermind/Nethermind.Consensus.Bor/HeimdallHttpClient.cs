@@ -6,8 +6,9 @@ namespace Nethermind.Consensus.Bor;
 
 public class HeimdallHttpClient : IHeimdallClient
 {
-    protected readonly string _heimdallAddr;
-    protected readonly IHttpClient _httpClient;
+    private const int StateSyncEventsLimit = 50;
+    private readonly string _heimdallAddr;
+    private readonly IHttpClient _httpClient;
 
     public HeimdallHttpClient(string heimdallAddr, IJsonSerializer jsonSerializer, ILogManager logManager)
     {
@@ -19,14 +20,42 @@ public class HeimdallHttpClient : IHeimdallClient
     {
         // TODO: Make this async
         // Right now this is call in block processing context, which assumes syncronous calls
-        HeimdallSpanResponse response =
-            _httpClient.GetAsync<HeimdallSpanResponse>($"{_heimdallAddr}/bor/span/{number}").Result;
+        HeimdallResponse<HeimdallSpan> response =
+            _httpClient.GetAsync<HeimdallResponse<HeimdallSpan>>($"{_heimdallAddr}/bor/span/{number}").Result;
         return response.Result ?? throw new Exception($"Heimdall returned null span for number {number}");
     }
 
-    private class HeimdallSpanResponse
+    public StateSyncEventRecord[] StateSyncEvents(ulong fromId, ulong toTime)
+    {
+        string StateSyncEndpoint(ulong fromId, ulong toTime) =>
+            $"{_heimdallAddr}/clerk/event-record/list?from-id={fromId}&to-time={toTime}&limit={StateSyncEventsLimit}";
+
+        List<StateSyncEventRecord> eventRecords = new();
+
+        while (true)
+        {
+            HeimdallResponse<StateSyncEventRecord[]> response =
+                _httpClient.GetAsync<HeimdallResponse<StateSyncEventRecord[]>>(StateSyncEndpoint(fromId, toTime)).Result;
+
+            if (response.Result is null)
+                break;
+
+            eventRecords.AddRange(response.Result);
+
+            if (response.Result.Length < StateSyncEventsLimit)
+                break;
+
+            fromId += StateSyncEventsLimit;
+        }
+
+        eventRecords.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
+
+        return eventRecords.ToArray();
+    }
+
+    private class HeimdallResponse<T>
     {
         public long Height { get; init; }
-        public HeimdallSpan? Result { get; set; }
+        public T? Result { get; set; }
     }
 }

@@ -15,4 +15,14 @@ public class BorStateReceiverContract : CallableContract, IBorStateReceiverContr
     ) : base(transactionProcessor, abiEncoder, contractAddress)
     {
     }
+
+    public void CommitState(BlockHeader header, StateSyncEventRecord eventRecord)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ulong LastStateId(BlockHeader header)
+    {
+        throw new NotImplementedException();
+    }
 }
