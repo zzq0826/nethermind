@@ -189,6 +189,7 @@ namespace Nethermind.TxPool
                         {
                             ReAddReorganisedTransactions(args.PreviousBlock);
                             RemoveProcessedTransactions(args.Block);
+                            DeleteOldBlobTransactions(args.Block.Number);
                             UpdateBuckets();
                             _broadcaster.BroadcastPersistentTxs();
                             Metrics.TransactionCount = _transactions.Count;
@@ -228,8 +229,7 @@ namespace Nethermind.TxPool
                 if (_blobTransactionsDb.KeyExists(previousBlock.Number))
                 {
                     byte[]? rawBlobTxs = _blobTransactionsDb.Get(previousBlock.Number);
-                    RlpStream streamOfBlobTxs = new(rawBlobTxs!);
-                    Transaction[] blobTxs = _txDecoder.DecodeArray(streamOfBlobTxs);
+                    Transaction[] blobTxs = _txDecoder.DecodeArray(new RlpStream(rawBlobTxs!));
 
                     for (int i = 0; i < blobTxs.Length; i++)
                     {
@@ -297,6 +297,14 @@ namespace Nethermind.TxPool
             bool removed = RemoveTransaction(tx.Hash);
             _broadcaster.EnsureStopBroadcastUpToNonce(tx.SenderAddress!, tx.Nonce);
             return removed;
+        }
+
+        private void DeleteOldBlobTransactions(long blockNumber)
+        {
+            if (_blobTransactionsDb.KeyExists(blockNumber - 128))
+            {
+                _blobTransactionsDb.Delete(blockNumber - 128);
+            }
         }
 
         public void AddPeer(ITxPoolPeer peer)
