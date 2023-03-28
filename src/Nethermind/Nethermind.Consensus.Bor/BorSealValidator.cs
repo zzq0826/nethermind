@@ -9,11 +9,11 @@ public class BorSealValidator : ISealValidator
 {
     public bool ValidateParams(BlockHeader parent, BlockHeader header, bool isUncle = false)
     {
-        throw new NotImplementedException();
+        return true;
     }
 
     public bool ValidateSeal(BlockHeader header, bool force)
     {
-        throw new NotImplementedException();
+        return true;
     }
 }
