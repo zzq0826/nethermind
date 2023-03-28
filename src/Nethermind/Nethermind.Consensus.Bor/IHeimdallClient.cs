@@ -7,4 +7,5 @@ public interface IHeimdallClient
 {
     // TODO: Make this async
     HeimdallSpan GetSpan(long number);
+    StateSyncEventRecord[] StateSyncEvents(ulong fromId, ulong toTime);
 }
