@@ -290,9 +290,9 @@ public class ChainSpecLoader : IChainSpecLoader
             chainSpec.SealEngineType = SealEngineType.Bor;
             chainSpec.Bor = new BorParameters
             {
-                // Epoch = chainSpecJson.Engine.Clique.Epoch,
-                // Period = chainSpecJson.Engine.Clique.Period,
-                // Reward = chainSpecJson.Engine.Clique.BlockReward ?? UInt256.Zero
+                Sprint = chainSpecJson.Engine.Bor.Sprint,
+                ValidatorContractAddress = chainSpecJson.Engine.Bor.ValidatorContractAddress,
+                StateReceiverContractAddress = chainSpecJson.Engine.Bor.StateReceiverContractAddress,
             };
         }
         else if (chainSpecJson.Engine?.Ethash is not null)
