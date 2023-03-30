@@ -1,18 +1,5 @@
-//  Copyright (c) 2021 Demerzel Solutions Limited
-//  This file is part of the Nethermind library.
-//
-//  The Nethermind library is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  The Nethermind library is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-//  GNU Lesser General Public License for more details.
-//
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using System.Collections.Generic;
@@ -26,6 +13,9 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using DotNetty.Common;
+
 using Microsoft.Extensions.CommandLineUtils;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
@@ -48,7 +38,6 @@ using Nethermind.Serialization.Json;
 using Nethermind.UPnP.Plugin;
 using NLog;
 using NLog.Config;
-using RocksDbSharp;
 using ILogger = Nethermind.Logging.ILogger;
 
 namespace Nethermind.Runner
@@ -68,6 +57,9 @@ namespace Nethermind.Runner
 
         public static void Main(string[] args)
         {
+#if !DEBUG
+            ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
+#endif
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
             {
                 ILogger logger = GetCriticalLogger();
@@ -117,6 +109,7 @@ namespace Nethermind.Runner
         private static void Run(string[] args)
         {
             _logger.Info("Nethermind starting initialization.");
+            _logger.Info($"Client version: {ProductInfo.ClientId}");
 
             AppDomain.CurrentDomain.ProcessExit += CurrentDomainOnProcessExit;
             AssemblyLoadContext.Default.ResolvingUnmanagedDll += OnResolvingUnmanagedDll;
@@ -168,8 +161,6 @@ namespace Nethermind.Runner
                 NLogManager logManager = new(initConfig.LogFileName, initConfig.LogDirectory, initConfig.LogRules);
 
                 _logger = logManager.GetClassLogger();
-                if (_logger.IsDebug) _logger.Debug(ProductInfo.ClientId);
-
                 ConfigureSeqLogger(configProvider);
                 SetFinalDbPath(dbBasePath.HasValue() ? dbBasePath.Value() : null, initConfig);
                 LogMemoryConfiguration();
@@ -207,6 +198,14 @@ namespace Nethermind.Runner
                     await ethereumRunner.Start(_processCloseCancellationSource.Token);
 
                     _ = await Task.WhenAny(_cancelKeySource.Task, _processExit.Task);
+                }
+                catch (TaskCanceledException)
+                {
+                    if (_logger.IsTrace) _logger.Trace("Runner Task was canceled");
+                }
+                catch (OperationCanceledException)
+                {
+                    if (_logger.IsTrace) _logger.Trace("Runner operation was canceled");
                 }
                 catch (Exception e)
                 {
@@ -269,19 +268,19 @@ namespace Nethermind.Runner
         private static void BuildOptionsFromConfigFiles(CommandLineApplication app)
         {
             Type configurationType = typeof(IConfig);
-            IEnumerable<Type> configTypes = new TypeDiscovery().FindNethermindTypes(configurationType)
+            IEnumerable<Type> configTypes = TypeDiscovery.FindNethermindTypes(configurationType)
                 .Where(ct => ct.IsInterface);
 
             foreach (Type configType in configTypes.Where(ct => !ct.IsAssignableTo(typeof(INoCategoryConfig))).OrderBy(c => c.Name))
             {
-                if (configType == null)
+                if (configType is null)
                 {
                     continue;
                 }
 
                 ConfigCategoryAttribute? typeLevel = configType.GetCustomAttribute<ConfigCategoryAttribute>();
 
-                if (typeLevel != null && (typeLevel?.DisabledForCli ?? true))
+                if (typeLevel is not null && (typeLevel?.DisabledForCli ?? true))
                 {
                     continue;
                 }
@@ -293,7 +292,7 @@ namespace Nethermind.Runner
                     ConfigItemAttribute? configItemAttribute = propertyInfo.GetCustomAttribute<ConfigItemAttribute>();
                     if (!(configItemAttribute?.DisabledForCli ?? false))
                     {
-                        _ = app.Option($"--{configType.Name[1..].Replace("Config", string.Empty)}.{propertyInfo.Name}", $"{(configItemAttribute == null ? "<missing documentation>" : configItemAttribute.Description + $" (DEFAULT: {configItemAttribute.DefaultValue})" ?? "<missing documentation>")}", CommandOptionType.SingleValue);
+                        _ = app.Option($"--{configType.Name[1..].Replace("Config", string.Empty)}.{propertyInfo.Name}", $"{(configItemAttribute is null ? "<missing documentation>" : configItemAttribute.Description + $" (DEFAULT: {configItemAttribute.DefaultValue})" ?? "<missing documentation>")}", CommandOptionType.SingleValue);
 
                     }
                 }
@@ -301,7 +300,7 @@ namespace Nethermind.Runner
 
             // Create Help Text for environment variables
             Type noCategoryConfig = configTypes.FirstOrDefault(ct => ct.IsAssignableTo(typeof(INoCategoryConfig)));
-            if (noCategoryConfig != null)
+            if (noCategoryConfig is not null)
             {
                 StringBuilder sb = new();
                 sb.AppendLine();
@@ -309,7 +308,7 @@ namespace Nethermind.Runner
                 foreach (PropertyInfo propertyInfo in noCategoryConfig.GetProperties(BindingFlags.Public | BindingFlags.Instance).OrderBy(p => p.Name))
                 {
                     ConfigItemAttribute? configItemAttribute = propertyInfo.GetCustomAttribute<ConfigItemAttribute>();
-                    if (configItemAttribute != null && !(string.IsNullOrEmpty(configItemAttribute?.EnvironmentVariable)))
+                    if (configItemAttribute is not null && !(string.IsNullOrEmpty(configItemAttribute?.EnvironmentVariable)))
                     {
                         sb.AppendLine($"{configItemAttribute.EnvironmentVariable} - {(string.IsNullOrEmpty(configItemAttribute.Description) ? "<missing documentation>" : configItemAttribute.Description)} (DEFAULT: {configItemAttribute.DefaultValue})");
                     }

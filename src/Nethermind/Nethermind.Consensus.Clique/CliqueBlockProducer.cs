@@ -1,18 +1,5 @@
-//  Copyright (c) 2021 Demerzel Solutions Limited
-//  This file is part of the Nethermind library.
-// 
-//  The Nethermind library is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-// 
-//  The Nethermind library is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-//  GNU Lesser General Public License for more details.
-// 
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
+// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using System.Collections.Concurrent;
@@ -132,14 +119,14 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
     {
         try
         {
-            if (_blockTree.Head == null)
+            if (_blockTree.Head is null)
             {
                 _timer.Enabled = true;
                 return;
             }
 
             Block? scheduledBlock = _scheduledBlock;
-            if (scheduledBlock == null)
+            if (scheduledBlock is null)
             {
                 if (_blockTree.Head.Timestamp + _config.BlockPeriod < _timestamper.UnixTime.Seconds)
                 {
@@ -273,7 +260,7 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
                 {
                     if (t.IsCompletedSuccessfully)
                     {
-                        if (t.Result != null)
+                        if (t.Result is not null)
                         {
                             if (_logger.IsInfo)
                                 _logger.Info($"Sealed block {t.Result.ToString(Block.Format.HashNumberDiffAndTx)}");
@@ -321,9 +308,9 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
 
     bool IBlockProducer.IsProducingBlocks(ulong? maxProducingInterval)
     {
-        if (_producerTask == null || _producerTask.IsCompleted)
+        if (_producerTask is null || _producerTask.IsCompleted)
             return false;
-        if (maxProducingInterval != null)
+        if (maxProducingInterval is not null)
             return _lastProducedBlock.AddSeconds(maxProducingInterval.Value) > DateTime.UtcNow;
         else
             return true;
@@ -336,7 +323,7 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
     private Block? PrepareBlock(Block parentBlock)
     {
         BlockHeader parentHeader = parentBlock.Header;
-        if (parentHeader.Hash == null)
+        if (parentHeader.Hash is null)
         {
             if (_logger.IsError) _logger.Error(
                 $"Preparing new block on top of {parentHeader.ToString(BlockHeader.Format.Short)} - parent header hash is null");
@@ -359,7 +346,6 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
             _logger.Info($"Preparing new block on top of {parentBlock.ToString(Block.Format.Short)}");
 
         ulong timestamp = _timestamper.UnixTime.Seconds;
-        IReleaseSpec spec = _specProvider.GetSpec(parentHeader.Number + 1);
 
         BlockHeader header = new(
             parentHeader.Hash,
@@ -399,8 +385,13 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
             }
         }
 
+        // Ensure the timestamp has the correct delay
+        header.Timestamp = Math.Max(parentBlock.Timestamp + _config.BlockPeriod, _timestamper.UnixTime.Seconds);
+
+        var spec = _specProvider.GetSpec(header);
+
+        header.BaseFeePerGas = BaseFeeCalculator.Calculate(parentHeader, spec);
         // Set the correct difficulty
-        header.BaseFeePerGas = BaseFeeCalculator.Calculate(parentHeader, _specProvider.GetSpec(header.Number));
         header.Difficulty = CalculateDifficulty(snapshot, _sealer.Address);
         header.TotalDifficulty = parentBlock.TotalDifficulty + header.Difficulty;
         if (_logger.IsDebug)
@@ -428,17 +419,17 @@ public class CliqueBlockProducer : ICliqueBlockProducer, IDisposable
 
         // Mix digest is reserved for now, set to empty
         header.MixHash = Keccak.Zero;
-        // Ensure the timestamp has the correct delay
-        header.Timestamp = parentBlock.Timestamp + _config.BlockPeriod;
-        if (header.Timestamp < _timestamper.UnixTime.Seconds)
-        {
-            header.Timestamp = _timestamper.UnixTime.Seconds;
-        }
+        header.WithdrawalsRoot = spec.WithdrawalsEnabled ? Keccak.EmptyTreeHash : null;
 
         _stateProvider.StateRoot = parentHeader.StateRoot!;
 
         IEnumerable<Transaction> selectedTxs = _txSource.GetTransactions(parentBlock.Header, header.GasLimit);
-        Block block = new BlockToProduce(header, selectedTxs, Array.Empty<BlockHeader>());
+        Block block = new BlockToProduce(
+            header,
+            selectedTxs,
+            Array.Empty<BlockHeader>(),
+            spec.WithdrawalsEnabled ? Enumerable.Empty<Withdrawal>() : null
+            );
         header.TxRoot = new TxTrie(block.Transactions).RootHash;
         block.Header.Author = _sealer.Address;
         return block;
