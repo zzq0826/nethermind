@@ -2316,18 +2316,19 @@ namespace Nethermind.Evm
                             else
                             {
                                 stack.PushByte(code[programCounterInt]);
-                            }
 
-                            if (spec.IsVerkleTreeEipEnabled && programCounterInt % 31 == 0)
-                            {
-                                // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
-                                long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounter), false);
-                                if (!GasUtils.UpdateGas(gas, ref gasAvailable))
+                                if (spec.IsVerkleTreeEipEnabled && programCounterInt % 31 == 0)
                                 {
-                                    EndInstructionTraceError(EvmExceptionType.OutOfGas);
-                                    return CallResult.OutOfGasException;
+                                    // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
+                                    long gas = vmState.VerkleTreeWitness.AccessCodeChunk(vmState.To, CalculateChunkIdFromPc(programCounterInt + 1), false);
+                                    if (!GasUtils.UpdateGas(gas, ref gasAvailable))
+                                    {
+                                        EndInstructionTraceError(EvmExceptionType.OutOfGas);
+                                        return CallResult.OutOfGasException;
+                                    }
                                 }
                             }
+
                             programCounter++;
                             break;
                         }
@@ -2380,8 +2381,10 @@ namespace Nethermind.Evm
                             if (spec.IsVerkleTreeEipEnabled)
                             {
                                 // TODO: modify - add the chunk that gets jumped when PUSH32 is called.
-                                var startChunkId = CalculateChunkIdFromPc(programCounterInt + 1);
-                                var endChunkId = CalculateChunkIdFromPc(programCounterInt + usedFromCode);
+                                var startChunkId = CalculateChunkIdFromPc(programCounterInt);
+                                var endOffset = programCounterInt + length > code.Length ? code.Length : programCounterInt + length;
+                                // var endChunkId = CalculateChunkIdFromPc(programCounterInt + usedFromCode);
+                                var endChunkId = CalculateChunkIdFromPc(endOffset - 1);
 
                                 for (byte ch = startChunkId; ch <= endChunkId; ch++)
                                 {

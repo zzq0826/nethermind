@@ -18,7 +18,7 @@ namespace Nethermind.State;
 //       already calculate keys in StateProvider - or we maintain pre images?
 public struct VerkleWitness : IVerkleWitness
 {
-    private ILogger _logger = SimpleConsoleLogger.Instance;
+    private ILogger _logger;
     [Flags]
     private enum AccountHeaderAccess
     {
@@ -44,8 +44,9 @@ public struct VerkleWitness : IVerkleWitness
     private readonly Dictionary<int, int[]> _snapshots = new Dictionary<int, int[]>();
     private int NextSnapshot;
 
-    public VerkleWitness()
+    public VerkleWitness(ILogger logManager)
     {
+        _logger = logManager;
         _accessedSubtrees = new JournalSet<byte[]>(Bytes.EqualityComparer);
         _accessedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);
         _modifiedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);

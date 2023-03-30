@@ -130,7 +130,7 @@ namespace Nethermind.Evm.TransactionProcessing
             bool notSystemTransaction = !transaction.IsSystem();
             bool deleteCallerAccount = false;
 
-            VerkleWitness witness = new VerkleWitness();
+            VerkleWitness witness = new VerkleWitness(_logger);
 
             if (!notSystemTransaction) spec = new SystemTransactionReleaseSpec(spec);
 
