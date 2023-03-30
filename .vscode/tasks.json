@@ -11,7 +11,10 @@
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
-      "problemMatcher": "$msCompile"
+      "problemMatcher": {
+        "base":"$msCompile",
+        "severity": "error"
+      }
     },
   ]
 }
