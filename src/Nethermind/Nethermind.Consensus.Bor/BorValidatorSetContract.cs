@@ -42,8 +42,6 @@ public class BorValidatorSetContract : CallableContract, IBorValidatorSetContrac
         };
 
         Call(header, "commitSpan", Address.SystemUser, UnlimitedGas, args);
-
-        System.Environment.Exit(1);
     }
 
     public BorSpan GetCurrentSpan(BlockHeader header)
