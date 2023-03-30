@@ -33,6 +33,8 @@ public class BorStateSyncManager : IBorStateSyncManager
         if (!_borHelper.IsSprintStart(number))
             return;
 
+        System.Console.WriteLine($"Processing block {number} for state sync");
+
         long sprintSize = _borHelper.CalculateSprintSize(number);
 
         BlockHeader snapshotHeader = _blockTree.FindHeader(number - 1)!;

@@ -44,8 +44,10 @@ public class HeimdallHttpClient : IHeimdallClient
 
         while (true)
         {
+            System.Console.WriteLine($"StateSyncEvents: fromId={fromId}, toTime={toTime}");
             HeimdallResponse<StateSyncEventRecord[]> response =
                 _httpClient.GetAsync<HeimdallResponse<StateSyncEventRecord[]>>(StateSyncEndpoint(fromId, toTime)).Result;
+            System.Console.WriteLine($"StateSyncEvents Result: {response.Result?.Length}");
 
             if (response.Result is null)
                 break;
@@ -59,6 +61,8 @@ public class HeimdallHttpClient : IHeimdallClient
         }
 
         eventRecords.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
+
+        System.Console.WriteLine("Out of StateSyncEvents");
 
         return eventRecords.ToArray();
     }
