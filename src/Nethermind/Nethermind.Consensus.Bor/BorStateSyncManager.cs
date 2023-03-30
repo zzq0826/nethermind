@@ -30,6 +30,9 @@ public class BorStateSyncManager : IBorStateSyncManager
     public void ProcessBlock(BlockHeader header)
     {
         long number = header.Number;
+        if (!_borHelper.IsSprintStart(number))
+            return;
+
         long sprintSize = _borHelper.CalculateSprintSize(number);
 
         BlockHeader snapshotHeader = _blockTree.FindHeader(number - 1)!;

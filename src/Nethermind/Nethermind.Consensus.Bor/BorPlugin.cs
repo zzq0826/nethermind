@@ -3,6 +3,7 @@ using Nethermind.Api.Extensions;
 using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Transactions;
+using Newtonsoft.Json;
 
 namespace Nethermind.Consensus.Bor;
 
@@ -22,6 +23,10 @@ public class BorPlugin : IConsensusPlugin
             return Task.CompletedTask;
 
         (IApiWithFactories getApi, IApiWithBlockchain setApi) = api.ForInit;
+
+        // I don't like this a lot, static method, calling from here to http client
+        // when maybe we are using grpc, but right now I'm tired.
+        HeimdallHttpClient.RegisterConverters(getApi.EthereumJsonSerializer);
 
         setApi.BlockProcessorFactory = new BorBlockProcessorFactory(api);
 

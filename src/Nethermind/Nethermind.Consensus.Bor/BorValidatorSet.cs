@@ -5,4 +5,6 @@ namespace Nethermind.Consensus.Bor;
 
 public class BorValidatorSet
 {
+    public required BorValidator[] Validators { get; init; }
+    public required BorValidator Proposer { get; init; }
 }

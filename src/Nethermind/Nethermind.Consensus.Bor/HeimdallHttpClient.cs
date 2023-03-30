@@ -1,11 +1,19 @@
 using Nethermind.Facade.Proxy;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
+using Newtonsoft.Json;
 
 namespace Nethermind.Consensus.Bor;
 
 public class HeimdallHttpClient : IHeimdallClient
 {
+    public static void RegisterConverters(IJsonSerializer serializer)
+    {
+        serializer.RegisterConverter(new BorValidatorJsonConverter());
+        serializer.RegisterConverter(new HeimdallSpanJsonConverter());
+        serializer.RegisterConverter(new StateSyncEventRecordJsonConverter());
+    }
+
     private const int StateSyncEventsLimit = 50;
     private readonly string _heimdallAddr;
     private readonly IHttpClient _httpClient;
@@ -16,15 +24,17 @@ public class HeimdallHttpClient : IHeimdallClient
         _httpClient = new DefaultHttpClient(new HttpClient(), jsonSerializer, logManager);
     }
 
+    // TODO: Make this async
+    // Right now this is call in block processing context, which assumes syncronous calls
     public HeimdallSpan GetSpan(long number)
     {
-        // TODO: Make this async
-        // Right now this is call in block processing context, which assumes syncronous calls
         HeimdallResponse<HeimdallSpan> response =
             _httpClient.GetAsync<HeimdallResponse<HeimdallSpan>>($"{_heimdallAddr}/bor/span/{number}").Result;
         return response.Result ?? throw new Exception($"Heimdall returned null span for number {number}");
     }
 
+    // TODO: Make this async
+    // Right now this is call in block processing context, which assumes syncronous calls
     public StateSyncEventRecord[] StateSyncEvents(ulong fromId, ulong toTime)
     {
         string StateSyncEndpoint(ulong fromId, ulong toTime) =>

@@ -5,7 +5,7 @@ namespace Nethermind.Consensus.Bor;
 
 public class BorSpan
 {
-    public long Number { get; init; }
-    public long StartBlock { get; init; }
-    public long EndBlock { get; init; }
+    public required long Number { get; init; }
+    public required long StartBlock { get; init; }
+    public required long EndBlock { get; init; }
 }

@@ -10,7 +10,9 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Tracing;
+using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Specs.Forks;
 using Nethermind.State;
 
 namespace Nethermind.Consensus.Bor;
@@ -53,8 +55,17 @@ public class BorBlockProcessor : BlockProcessor
     {
         TxReceipt[] receipts = base.ProcessBlock(block, blockTracer, options);
 
-        _validatorSetManager.ProcessBlock(block.Header);
-        _stateSyncManager.ProcessBlock(block.Header);
+        if (!_stateProvider.AccountExists(Address.SystemUser))
+        {
+            _stateProvider.CreateAccount(Address.SystemUser, UInt256.Zero);
+            _stateProvider.Commit(Homestead.Instance);
+        }
+
+        if (!block.IsGenesis)
+        {
+            _validatorSetManager.ProcessBlock(block.Header);
+            _stateSyncManager.ProcessBlock(block.Header);
+        }
 
         return receipts;
     }

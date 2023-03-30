@@ -5,7 +5,7 @@ namespace Nethermind.Consensus.Bor;
 
 public class HeimdallSpan : BorSpan
 {
-    public ulong ChainId { get; init; }
-    public BorValidatorSet? ValidatorSet { get; init; }
-    public BorValidator[]? SelectedProducers { get; init; }
+    public required ulong ChainId { get; init; }
+    public required BorValidatorSet ValidatorSet { get; init; }
+    public required BorValidator[] SelectedProducers { get; init; }
 }
