@@ -30,7 +30,7 @@ public class HeimdallHttpClient : IHeimdallClient
     {
         HeimdallResponse<HeimdallSpan> response =
             _httpClient.GetAsync<HeimdallResponse<HeimdallSpan>>($"{_heimdallAddr}/bor/span/{number}").Result;
-        return response.Result ?? throw new Exception($"Heimdall returned null span for number {number}");
+        return response?.Result ?? throw new Exception($"Heimdall returned null span for number {number}");
     }
 
     // TODO: Make this async
@@ -48,6 +48,9 @@ public class HeimdallHttpClient : IHeimdallClient
             HeimdallResponse<StateSyncEventRecord[]> response =
                 _httpClient.GetAsync<HeimdallResponse<StateSyncEventRecord[]>>(StateSyncEndpoint(fromId, toTime)).Result;
             System.Console.WriteLine($"StateSyncEvents Result: {response.Result?.Length}");
+
+            if (response is null)
+                throw new Exception("Heimdall returned null response for StateSyncEvents");
 
             if (response.Result is null)
                 break;
