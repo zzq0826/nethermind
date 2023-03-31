@@ -26,9 +26,9 @@ namespace Nethermind.Specs.Forks
             Eip1559TransitionBlock = long.MaxValue;
             ValidateChainId = true;
             ValidateReceipts = true;
+            IsEip158IgnoringSystem = false;
         }
 
         public static IReleaseSpec Instance => LazyInitializer.EnsureInitialized(ref _instance, () => new Olympic());
-        public override bool IsEip158IgnoredAccount(Address address) => false;
     }
 }

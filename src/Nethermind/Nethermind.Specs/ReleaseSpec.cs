@@ -53,7 +53,7 @@ namespace Nethermind.Specs
         public bool IsEip2565Enabled { get; set; }
         public bool IsEip2929Enabled { get; set; }
         public bool IsEip2930Enabled { get; set; }
-        public virtual bool IsEip158IgnoredAccount(Address address) => address == Address.SystemUser;
+        public bool IsEip158IgnoringSystem { get; set; }
 
         // used only in testing
         public ReleaseSpec Clone()

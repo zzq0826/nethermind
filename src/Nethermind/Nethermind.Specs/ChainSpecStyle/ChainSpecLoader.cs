@@ -103,6 +103,7 @@ public class ChainSpecLoader : IChainSpecLoader
             Eip7Transition = chainSpecJson.Params.Eip7Transition,
             Eip150Transition = chainSpecJson.Params.Eip150Transition ?? 0,
             Eip152Transition = chainSpecJson.Params.Eip152Transition,
+            Eip158IgnoreSystem = chainSpecJson.Params.Eip158IgnoreSystem ?? true,
             Eip160Transition = chainSpecJson.Params.Eip160Transition ?? 0,
             Eip161abcTransition = chainSpecJson.Params.Eip161abcTransition ?? 0,
             Eip161dTransition = chainSpecJson.Params.Eip161dTransition ?? 0,

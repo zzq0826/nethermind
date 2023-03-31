@@ -175,6 +175,7 @@ namespace Nethermind.Specs.ChainSpecStyle
             releaseSpec.IsEip155Enabled = (chainSpec.Parameters.Eip155Transition ?? 0) <= releaseStartBlock;
             releaseSpec.IsEip160Enabled = (chainSpec.Parameters.Eip160Transition ?? 0) <= releaseStartBlock;
             releaseSpec.IsEip158Enabled = (chainSpec.Parameters.Eip161abcTransition ?? 0) <= releaseStartBlock;
+            releaseSpec.IsEip158IgnoringSystem = chainSpec.Parameters.Eip158IgnoreSystem ?? true;
             releaseSpec.IsEip196Enabled = (chainSpec.ByzantiumBlockNumber ?? 0) <= releaseStartBlock;
             releaseSpec.IsEip197Enabled = (chainSpec.ByzantiumBlockNumber ?? 0) <= releaseStartBlock;
             releaseSpec.IsEip198Enabled = (chainSpec.ByzantiumBlockNumber ?? 0) <= releaseStartBlock;

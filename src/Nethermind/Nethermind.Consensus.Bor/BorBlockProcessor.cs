@@ -55,12 +55,6 @@ public class BorBlockProcessor : BlockProcessor
     {
         TxReceipt[] receipts = base.ProcessBlock(block, blockTracer, options);
 
-        if (!_stateProvider.AccountExists(Address.SystemUser))
-        {
-            _stateProvider.CreateAccount(Address.SystemUser, UInt256.Zero);
-            _stateProvider.Commit(Homestead.Instance);
-        }
-
         if (!block.IsGenesis)
         {
             _validatorSetManager.ProcessBlock(block.Header);

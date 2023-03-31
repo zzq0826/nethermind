@@ -3,9 +3,12 @@
 
 using Nethermind.Api;
 using Nethermind.Api.Factories;
+using Nethermind.Blockchain;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Rewards;
+using Nethermind.Evm;
 using Nethermind.Specs.ChainSpecStyle;
+using Nethermind.State;
 
 namespace Nethermind.Consensus.Bor;
 
@@ -23,7 +26,9 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         ArgumentNullException.ThrowIfNull(_api.ChainSpec);
         ArgumentNullException.ThrowIfNull(_api.BlockTree);
         ArgumentNullException.ThrowIfNull(_api.DbProvider);
+        ArgumentNullException.ThrowIfNull(_api.SpecProvider);
         ArgumentNullException.ThrowIfNull(_api.StateProvider);
+        ArgumentNullException.ThrowIfNull(_api.StorageProvider);
         ArgumentNullException.ThrowIfNull(_api.RewardCalculatorSource);
         ArgumentNullException.ThrowIfNull(_api.TransactionProcessor);
 
@@ -35,6 +40,14 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
 
         BorParamsHelper borHelper = new(borParams);
 
+        BorSystemTransactionProcessor systemTransactionProcessor = new(
+            _api.SpecProvider,
+            _api.BlockTree,
+            _api.StateProvider,
+            _api.StorageProvider,
+            _api.LogManager
+        );
+
         ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv = new(
             _api.DbProvider,
             _api.ReadOnlyTrieStore,
@@ -44,8 +57,9 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         );
 
         BorValidatorSetContract validatorSetContract = new(
+            _api.StateProvider,
             readOnlyTxProcessingEnv,
-            _api.TransactionProcessor,
+            systemTransactionProcessor,
             _api.AbiEncoder,
             borParams.ValidatorContractAddress
         );
@@ -53,13 +67,15 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         BorValidatorSetManager validatorSetManager = new(
             _api.ChainSpec.ChainId,
             _api.BlockTree,
+            _api.StateProvider,
             heimdallClient,
             borHelper,
             validatorSetContract
         );
 
         BorStateReceiverContract stateReceiverContract = new(
-            _api.TransactionProcessor,
+            _api.StateProvider,
+            systemTransactionProcessor,
             _api.AbiEncoder,
             borParams.StateReceiverContractAddress
         );

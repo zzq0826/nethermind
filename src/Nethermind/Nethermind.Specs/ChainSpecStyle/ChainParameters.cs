@@ -22,6 +22,7 @@ namespace Nethermind.Specs.ChainSpecStyle
         public long? Eip7Transition { get; set; }
         public long? Eip150Transition { get; set; }
         public long? Eip152Transition { get; set; }
+        public bool? Eip158IgnoreSystem { get; set; }
         public long? Eip160Transition { get; set; }
         public long? Eip161abcTransition { get; set; }
         public long? Eip161dTransition { get; set; }
