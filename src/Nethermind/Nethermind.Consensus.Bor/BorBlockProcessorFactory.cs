@@ -35,7 +35,16 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
 
         BorParamsHelper borHelper = new(borParams);
 
+        ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv = new(
+            _api.DbProvider,
+            _api.ReadOnlyTrieStore,
+            _api.BlockTree,
+            _api.SpecProvider,
+            _api.LogManager
+        );
+
         BorValidatorSetContract validatorSetContract = new(
+            readOnlyTxProcessingEnv,
             _api.TransactionProcessor,
             _api.AbiEncoder,
             borParams.ValidatorContractAddress

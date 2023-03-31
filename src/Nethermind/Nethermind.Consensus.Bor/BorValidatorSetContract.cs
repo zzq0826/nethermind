@@ -3,6 +3,7 @@ using Nethermind.Blockchain.Contracts;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm.TransactionProcessing;
+using Nethermind.Init.Steps;
 using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
 
@@ -10,9 +11,12 @@ namespace Nethermind.Consensus.Bor;
 
 public class BorValidatorSetContract : CallableContract, IBorValidatorSetContract
 {
-    public BorValidatorSetContract(ITransactionProcessor transactionProcessor, IAbiEncoder abiEncoder, Address contractAddress)
+    private readonly IConstantContract _constant;
+    
+    public BorValidatorSetContract(IReadOnlyTxProcessorSource readOnlyTxProcessorSource, ITransactionProcessor transactionProcessor, IAbiEncoder abiEncoder, Address contractAddress)
         : base(transactionProcessor, abiEncoder, contractAddress)
     {
+        _constant = GetConstant(readOnlyTxProcessorSource);
     }
 
     public void CommitSpan(BlockHeader header, HeimdallSpan span)
@@ -46,13 +50,14 @@ public class BorValidatorSetContract : CallableContract, IBorValidatorSetContrac
 
     public BorSpan GetCurrentSpan(BlockHeader header)
     {
-        object[] result = Call(header, "getCurrentSpan", Address.SystemUser);
+        (UInt256 number, UInt256 startBlock, UInt256 endBlock) =
+            _constant.Call<UInt256, UInt256, UInt256>(header, "getCurrentSpan", Address.SystemUser);
 
         return new BorSpan
         {
-            Number = (long)(UInt256)result[0],
-            StartBlock = (long)(UInt256)result[1],
-            EndBlock = (long)(UInt256)result[2],
+            Number = (long)number,
+            StartBlock = (long)startBlock,
+            EndBlock = (long)endBlock,
         };
     }
 
