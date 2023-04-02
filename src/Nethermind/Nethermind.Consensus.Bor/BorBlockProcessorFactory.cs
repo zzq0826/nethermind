@@ -57,7 +57,6 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         );
 
         BorValidatorSetContract validatorSetContract = new(
-            _api.StateProvider,
             readOnlyTxProcessingEnv,
             systemTransactionProcessor,
             _api.AbiEncoder,
@@ -67,14 +66,13 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         BorValidatorSetManager validatorSetManager = new(
             _api.ChainSpec.ChainId,
             _api.BlockTree,
-            _api.StateProvider,
             heimdallClient,
             borHelper,
             validatorSetContract
         );
 
         BorStateReceiverContract stateReceiverContract = new(
-            _api.StateProvider,
+            readOnlyTxProcessingEnv,
             systemTransactionProcessor,
             _api.AbiEncoder,
             borParams.StateReceiverContractAddress

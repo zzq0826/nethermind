@@ -6,14 +6,19 @@ using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Init.Steps;
 using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
+using Nethermind.State;
 
 namespace Nethermind.Consensus.Bor;
 
 public class BorValidatorSetContract : CallableContract, IBorValidatorSetContract
 {
     private readonly IConstantContract _constant;
-    
-    public BorValidatorSetContract(IReadOnlyTxProcessorSource readOnlyTxProcessorSource, ITransactionProcessor transactionProcessor, IAbiEncoder abiEncoder, Address contractAddress)
+
+    public BorValidatorSetContract(
+        IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
+        ITransactionProcessor transactionProcessor,
+        IAbiEncoder abiEncoder,
+        Address contractAddress)
         : base(transactionProcessor, abiEncoder, contractAddress)
     {
         _constant = GetConstant(readOnlyTxProcessorSource);

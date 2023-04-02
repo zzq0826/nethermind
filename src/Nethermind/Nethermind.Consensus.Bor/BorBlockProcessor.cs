@@ -9,6 +9,7 @@ using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
+using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -59,6 +60,10 @@ public class BorBlockProcessor : BlockProcessor
         {
             _validatorSetManager.ProcessBlock(block.Header);
             _stateSyncManager.ProcessBlock(block.Header);
+
+            _stateProvider.RecalculateStateRoot();
+            block.Header.StateRoot = _stateProvider.StateRoot;
+            block.Header.Hash = block.Header.CalculateHash();
         }
 
         return receipts;
