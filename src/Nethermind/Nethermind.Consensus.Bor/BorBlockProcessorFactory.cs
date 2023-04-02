@@ -64,6 +64,7 @@ public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
         );
 
         BorValidatorSetManager validatorSetManager = new(
+            _api.LogManager,
             _api.ChainSpec.ChainId,
             _api.BlockTree,
             heimdallClient,

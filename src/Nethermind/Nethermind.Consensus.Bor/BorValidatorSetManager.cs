@@ -1,3 +1,4 @@
+using Nethermind.Abi;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
 using Nethermind.Core;
@@ -7,6 +8,8 @@ namespace Nethermind.Consensus.Bor;
 
 public class BorValidatorSetManager : IBorValidatorSetManager
 {
+    private readonly ILogger _logger;
+
     private readonly ulong _chainId;
     private readonly IBlockTree _blockTree;
     private readonly IHeimdallClient _heimdallClient;
@@ -14,12 +17,15 @@ public class BorValidatorSetManager : IBorValidatorSetManager
     private readonly IBorValidatorSetContract _validatorSetContract;
 
     public BorValidatorSetManager(
+        ILogManager logManager,
         ulong chainId,
         IBlockTree blockTree,
         IHeimdallClient heimdallClient,
         IBorParamsHelper borHelper,
         IBorValidatorSetContract validatorSetContract)
     {
+        _logger = logManager.GetClassLogger();
+
         _chainId = chainId;
         _blockTree = blockTree;
         _heimdallClient = heimdallClient;
@@ -47,7 +53,14 @@ public class BorValidatorSetManager : IBorValidatorSetManager
             throw new Exception("Heimdall and Bor chain ids differ from each other");
 
         // Commit the span we got from Heimdall to the validator set contract
-        _validatorSetContract.CommitSpan(header, nextSpan);
+        try
+        {
+            _validatorSetContract.CommitSpan(header, nextSpan);
+        }
+        catch (AbiException e)
+        {
+            _logger.Warn($"Ignoring span commit error to match Bor behavior: {e.Message}");
+        }
     }
 
     private bool ShouldCommitNextSpan(long spanEndBlock, long headerNumber)
