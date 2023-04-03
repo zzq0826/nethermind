@@ -25,6 +25,8 @@ namespace Nethermind.Trie
 
         public const int OneNodeAvgMemoryEstimate = 384;
 
+        protected readonly IKeyValueStore? _preimages;
+
         /// <summary>
         ///     0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
         /// </summary>
@@ -105,7 +107,8 @@ namespace Nethermind.Trie
             Keccak rootHash,
             bool parallelBranches,
             bool allowCommits,
-            ILogManager? logManager)
+            ILogManager? logManager,
+            IKeyValueStore? preImages = null)
         {
             _logger = logManager?.GetClassLogger<PatriciaTree>() ?? throw new ArgumentNullException(nameof(logManager));
             TrieStore = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
@@ -121,6 +124,7 @@ namespace Nethermind.Trie
                 _currentCommit = new ConcurrentQueue<NodeCommitInfo>();
                 _commitExceptions = new ConcurrentQueue<Exception>();
             }
+            _preimages = preImages;
         }
 
         public void Commit(long blockNumber, bool skipRoot = false)

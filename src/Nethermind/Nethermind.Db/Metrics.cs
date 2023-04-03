@@ -90,6 +90,13 @@ namespace Nethermind.Db
         [Description("Number of Metadata DB writes.")]
         public static long MetadataDbWrites { get; set; }
 
+        [Description("Number of Preimages DB reads.")]
+        public static long PreimagesRead { get; set; }
+
+        [Description("Number of Preimages DB writes.")]
+        public static long PreimagesWrite { get; set; }
+
+
         [Description("Indicator if StadeDb is being pruned.")]
         public static int StateDbPruning { get; set; }
 

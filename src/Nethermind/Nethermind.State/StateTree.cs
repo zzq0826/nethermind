@@ -18,6 +18,8 @@ namespace Nethermind.State
 
         private static readonly Rlp EmptyAccountRlp = Rlp.Encode(Account.TotallyEmpty);
 
+
+
         [DebuggerStepThrough]
         public StateTree()
             : base(new MemDb(), Keccak.EmptyTreeHash, true, true, NullLogManager.Instance)
@@ -33,9 +35,18 @@ namespace Nethermind.State
         }
 
         [DebuggerStepThrough]
+        public StateTree(ITrieStore? store, IKeyValueStore? preimages, ILogManager? logManager)
+            : base(store, Keccak.EmptyTreeHash, true, true, logManager, preimages)
+        {
+            TrieType = TrieType.State;
+        }
+
+        [DebuggerStepThrough]
         public Account? Get(Address address, Keccak? rootHash = null)
         {
-            byte[]? bytes = Get(ValueKeccak.Compute(address.Bytes).BytesAsSpan, rootHash);
+            ValueKeccak keccak  = ValueKeccak.Compute(address.Bytes);
+            if (_preimages != null) _preimages[keccak.BytesAsSpan.ToArray()] = address.Bytes;
+            byte[]? bytes = Get(keccak.BytesAsSpan, rootHash);
             if (bytes is null)
             {
                 return null;
@@ -59,6 +70,7 @@ namespace Nethermind.State
         public void Set(Address address, Account? account)
         {
             ValueKeccak keccak = ValueKeccak.Compute(address.Bytes);
+            if (_preimages != null) _preimages[keccak.BytesAsSpan.ToArray()] = address.Bytes;
             Set(keccak.BytesAsSpan, account is null ? null : account.IsTotallyEmpty ? EmptyAccountRlp : Rlp.Encode(account));
         }
 

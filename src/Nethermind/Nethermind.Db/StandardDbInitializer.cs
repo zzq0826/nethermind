@@ -63,6 +63,7 @@ namespace Nethermind.Db
                 RegisterCustomDb(DbNames.Receipts, () => new ReadOnlyColumnsDb<ReceiptsColumns>(new MemColumnsDb<ReceiptsColumns>(), false));
             }
             RegisterDb(BuildRocksDbSettings(DbNames.Metadata, () => Metrics.MetadataDbReads++, () => Metrics.MetadataDbWrites++));
+            RegisterDb(BuildRocksDbSettings(DbNames.Preimages, () => Metrics.PreimagesRead++, () => Metrics.PreimagesWrite++));
         }
 
         private RocksDbSettings BuildRocksDbSettings(string dbName, Action updateReadsMetrics, Action updateWriteMetrics, bool deleteOnStart = false)

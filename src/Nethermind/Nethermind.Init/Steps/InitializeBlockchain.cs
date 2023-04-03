@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
@@ -164,6 +165,9 @@ namespace Nethermind.Init.Steps
             Account.AccountStartNonce = getApi.ChainSpec.Parameters.AccountStartNonce;
 
             stateProvider.StateRoot = getApi.BlockTree!.Head?.StateRoot ?? Keccak.EmptyTreeHash;
+
+            BinaryReader binReader = new BinaryReader(File.Open("/media/eurus/extended/preimages.bin", FileMode.Open));
+
 
             if (_api.Config<IInitConfig>().DiagnosticMode == DiagnosticMode.VerifyTrie)
             {
