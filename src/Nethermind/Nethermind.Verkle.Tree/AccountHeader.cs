@@ -1,5 +1,6 @@
 using Nethermind.Int256;
-using Nethermind.Verkle.Utils;
+using Nethermind.Verkle.Tree.Utils;
+using PedersenHash = Nethermind.Verkle.Tree.Utils.PedersenHash;
 
 namespace Nethermind.Verkle.Tree;
 

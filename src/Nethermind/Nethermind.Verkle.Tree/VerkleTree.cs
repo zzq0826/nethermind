@@ -5,8 +5,8 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.VerkleDb;
-using Nethermind.Verkle.Utils;
-using Nethermind.Core.Extensions;
+using Nethermind.Verkle.Tree.Utils;
+using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 
 namespace Nethermind.Verkle.Tree;
 

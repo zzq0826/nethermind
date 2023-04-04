@@ -2,7 +2,7 @@ using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Utils;
+using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Tree.Test;
