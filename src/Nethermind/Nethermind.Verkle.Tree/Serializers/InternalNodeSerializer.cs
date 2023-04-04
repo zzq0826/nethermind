@@ -13,7 +13,7 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
     public static InternalNodeSerializer Instance => new InternalNodeSerializer();
     public int GetLength(InternalNode item, RlpBehaviors rlpBehaviors)
     {
-        return item.NodeType switch
+        return item._nodeType switch
         {
             NodeType.BranchNode => 32 + 1,
             NodeType.StemNode => 32 + 31 + 1,
@@ -38,7 +38,7 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
     }
     public void Encode(RlpStream stream, InternalNode item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        switch (item.NodeType)
+        switch (item._nodeType)
         {
             case NodeType.BranchNode:
                 stream.WriteByte((byte)NodeType.BranchNode);

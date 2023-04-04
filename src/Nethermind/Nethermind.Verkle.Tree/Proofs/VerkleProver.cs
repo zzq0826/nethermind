@@ -23,12 +23,12 @@ public class VerkleProver
     public VerkleProver(IDbProvider dbProvider)
     {
         VerkleStateStore stateDb = new(dbProvider);
-        _stateDb = new CompositeVerkleStateStore(stateDb);
+        _stateDb = new VerkleStoreWithMemCache(stateDb);
     }
 
     public VerkleProver(IVerkleStore stateStore)
     {
-        _stateDb = new CompositeVerkleStateStore(stateStore);
+        _stateDb = new VerkleStoreWithMemCache(stateStore);
     }
 
     public VerkleProof CreateVerkleProof(List<byte[]> keys, out Banderwagon rootPoint)
@@ -56,7 +56,7 @@ public class VerkleProver
                 InternalNode? node = _stateDb.GetBranch(currentPath);
                 if (node != null)
                 {
-                    switch (node.NodeType)
+                    switch (node._nodeType)
                     {
                         case NodeType.BranchNode:
                             CreateBranchProofPolynomialIfNotExist(currentPath);

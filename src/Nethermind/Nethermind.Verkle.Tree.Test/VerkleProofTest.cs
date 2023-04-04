@@ -25,7 +25,7 @@ public class VerkleProofTest
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
         tree.Flush(0);
 
-        VerkleProver prover = new VerkleProver(tree._stateDb);
+        VerkleProver prover = new VerkleProver(tree._verkleStateStore);
         prover.CreateVerkleProof(new List<byte[]>(new[]
             {VerkleTestUtils._keyVersion, VerkleTestUtils._keyNonce, VerkleTestUtils._keyBalance, VerkleTestUtils._keyCodeCommitment}), out Banderwagon _);
 
@@ -50,7 +50,7 @@ public class VerkleProofTest
         tree.Insert(keys[3], keys[3]);
         tree.Flush(0);
 
-        VerkleProver prover = new VerkleProver(tree._stateDb);
+        VerkleProver prover = new VerkleProver(tree._verkleStateStore);
         VerkleProof proof = prover.CreateVerkleProof(new List<byte[]>(keys), out Banderwagon root);
 
         const string expectedProof = "00000000040000000a0a0a0a0800000056778fe0bcf12a14820d4c054d85cfcae4bdb7017107b6769cecd42629a3825e38f30e21c" +

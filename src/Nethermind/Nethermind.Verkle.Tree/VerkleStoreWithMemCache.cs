@@ -7,13 +7,12 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public class CompositeVerkleStateStore : IVerkleStore
+public class VerkleStoreWithMemCache : IVerkleStore
 {
-
     private readonly IVerkleStore _wrappedStore;
     private VerkleMemoryDb _memDb;
 
-    public CompositeVerkleStateStore(IVerkleStore verkleStore)
+    public VerkleStoreWithMemCache(IVerkleStore verkleStore)
     {
         _wrappedStore = verkleStore ?? throw new ArgumentNullException(nameof(verkleStore));
         _memDb = new VerkleMemoryDb();

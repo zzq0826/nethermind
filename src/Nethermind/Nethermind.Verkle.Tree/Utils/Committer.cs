@@ -67,5 +67,14 @@ namespace Nethermind.Verkle.Tree.Utils
             _pointAsField = null;
             SetCommitmentToField();
         }
+
+        public FrE UpdateCommitmentGetDelta(Banderwagon point)
+        {
+            FrE prevPointAsField = PointAsField.Dup();
+            Point += point;
+            _pointAsField = null;
+            SetCommitmentToField();
+            return PointAsField - prevPointAsField;
+        }
     }
 }

@@ -26,7 +26,7 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
-            _stateDb.MoveToStateRoot(rootHash.Bytes);
+            _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
         }
         else
         {
@@ -35,7 +35,7 @@ public partial class VerkleTree
 
         if (visitor is RootCheckVisitor)
         {
-            if (!rootHash.Bytes.SequenceEqual(_stateDb.GetStateRoot())) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
+            if (!rootHash.Bytes.SequenceEqual(_verkleStateStore.GetStateRoot())) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
         }
         else
         {
@@ -62,7 +62,7 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
-            _stateDb.MoveToStateRoot(rootHash.Bytes);
+            _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
         }
         else
         {
@@ -71,13 +71,13 @@ public partial class VerkleTree
 
         visitor.VisitTree(rootHash.Bytes, trieVisitContext);
 
-        RecurseNodes(visitor, _stateDb.GetBranch(Array.Empty<byte>()), trieVisitContext);
+        RecurseNodes(visitor, _verkleStateStore.GetBranch(Array.Empty<byte>()), trieVisitContext);
 
     }
 
     private void RecurseNodes(IVerkleTreeVisitor visitor, InternalNode node, TrieVisitContext trieVisitContext)
     {
-        switch (node.NodeType)
+        switch (node._nodeType)
         {
             case Nodes.NodeType.BranchNode:
                 {
@@ -86,7 +86,7 @@ public partial class VerkleTree
                     for (int i = 0; i < 256; i++)
                     {
                         trieVisitContext.AbsolutePathIndex.Add((byte)i);
-                        InternalNode? childNode = _stateDb.GetBranch(trieVisitContext.AbsolutePathIndex.ToArray());
+                        InternalNode? childNode = _verkleStateStore.GetBranch(trieVisitContext.AbsolutePathIndex.ToArray());
                         if (childNode is not null && visitor.ShouldVisit(trieVisitContext.AbsolutePathIndex.ToArray()))
                         {
                             RecurseNodes(visitor, childNode!, trieVisitContext);
@@ -106,7 +106,7 @@ public partial class VerkleTree
                     for (int i = 0; i < 256; i++)
                     {
                         childKey[31] = (byte)i;
-                        byte[]? childNode = _stateDb.GetLeaf(childKey.ToArray());
+                        byte[]? childNode = _verkleStateStore.GetLeaf(childKey.ToArray());
                         if (childNode is not null && visitor.ShouldVisit(childKey.ToArray()))
                         {
                             visitor.VisitLeafNode(childKey.ToArray(), trieVisitContext, childNode);

@@ -22,7 +22,6 @@ public class SuffixTree
         C1 = new Commitment();
         C2 = new Commitment();
         ExtensionCommitment = new Commitment();
-        InitCommitmentHash = FrE.Zero;
         Banderwagon stemCommitment = GetInitialCommitment();
         ExtensionCommitment.AddPoint(stemCommitment);
         InitCommitmentHash = ExtensionCommitment.PointAsField.Dup();
@@ -37,41 +36,33 @@ public class SuffixTree
         InitCommitmentHash = FrE.Zero;
     }
 
-    private Banderwagon GetInitialCommitment() => Committer.ScalarMul(FrE.One, 0) +
-                                                  Committer.ScalarMul(FrE.FromBytesReduced(Stem.Reverse().ToArray()), 1);
+    private Banderwagon GetInitialCommitment()
+    {
+        return Committer.ScalarMul(FrE.One, 0) +
+               Committer.ScalarMul(FrE.FromBytesReduced(Stem.Reverse().ToArray()), 1);
+    }
 
     public FrE UpdateCommitment(LeafUpdateDelta deltaLeafCommitment)
     {
-        FrE prevCommit = ExtensionCommitment.PointAsField.Dup();
+        FrE deltaC1Commit = FrE.Zero;
+        FrE deltaC2Commit = FrE.Zero;
 
-        FrE oldC1Value = C1.PointAsField.Dup();
-        FrE oldC2Value = C2.PointAsField.Dup();
-        if (deltaLeafCommitment.DeltaC1 is not null) C1.AddPoint(deltaLeafCommitment.DeltaC1);
-        if (deltaLeafCommitment.DeltaC2 is not null) C2.AddPoint(deltaLeafCommitment.DeltaC2);
-
-        FrE deltaC1Commit = C1.PointAsField - oldC1Value;
-        FrE deltaC2Commit = C2.PointAsField - oldC2Value;
+        if (deltaLeafCommitment.DeltaC1 is not null)
+        {
+            FrE oldC1Value = C1.PointAsField.Dup();
+            C1.AddPoint(deltaLeafCommitment.DeltaC1);
+            deltaC1Commit = C1.PointAsField - oldC1Value;
+        }
+        if (deltaLeafCommitment.DeltaC2 is not null)
+        {
+            FrE oldC2Value = C2.PointAsField.Dup();
+            C2.AddPoint(deltaLeafCommitment.DeltaC2);
+            deltaC2Commit = C2.PointAsField - oldC2Value;
+        }
 
         Banderwagon deltaCommit = Committer.ScalarMul(deltaC1Commit, 2)
                                   + Committer.ScalarMul(deltaC2Commit, 3);
 
-        ExtensionCommitment.AddPoint(deltaCommit);
-        return ExtensionCommitment.PointAsField - prevCommit;
-    }
-
-    public byte[] Encode()
-    {
-        int nodeLength = 31 + 32 + 32 + 32;
-        byte[] rlp = new byte[nodeLength];
-        Buffer.BlockCopy(Stem, 0, rlp, 0, 31);
-        Buffer.BlockCopy(C1.Point.ToBytes(), 0, rlp, 31, 32);
-        Buffer.BlockCopy(C2.Point.ToBytes(), 0, rlp, 63, 32);
-        Buffer.BlockCopy(ExtensionCommitment.Point.ToBytes(), 0, rlp, 95, 32);
-        return rlp;
-    }
-
-    public static SuffixTree Decode(byte[] rlp)
-    {
-        return new SuffixTree(rlp[..31], rlp[32..64], rlp[64..96], rlp[96..128]);
+        return ExtensionCommitment.UpdateCommitmentGetDelta(deltaCommit);
     }
 }
