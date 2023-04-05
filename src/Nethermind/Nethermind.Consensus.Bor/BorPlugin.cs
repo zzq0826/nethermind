@@ -36,8 +36,8 @@ public class BorPlugin : IConsensusPlugin
         // There are no block rewards on the Bor layer
         setApi.RewardCalculatorSource = NoBlockRewards.Instance;
 
-        // taken from clique, but will probably also need to do it here, we'll see
-        // setApi.BlockPreprocessor.AddLast(new AuthorRecoveryStep(_snapshotManager!));
+        // Recover the block author from the extradata signature before processing
+        setApi.BlockPreprocessor.AddLast(new BorAuthorRecoveryStep(getApi.EthereumEcdsa!, getApi.ChainSpec!.Bor));
 
         return Task.CompletedTask;
     }
