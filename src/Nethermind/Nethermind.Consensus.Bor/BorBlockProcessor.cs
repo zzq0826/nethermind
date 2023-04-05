@@ -70,20 +70,22 @@ public class BorBlockProcessor : BlockProcessor
 
         TxReceipt[] receipts = base.ProcessBlock(block, tracer, options);
 
+        Bloom bloom = new();
         for (int i = 0, k = 0; i < receipts.Length; i++)
         {
             if (receipts[i].StatusCode == StatusCode.Failure)
                 continue;
 
-            LogEntry[] receiptsWithTransferLogs = transferLogsTracer.Logs[k++];
-            Bloom bloomWithTransferLogs = new(receiptsWithTransferLogs);
+            LogEntry[] logsWithTransferLogs = transferLogsTracer.Logs[k++];
+            Bloom bloomWithTransferLogs = new(logsWithTransferLogs);
 
-            receipts[i].Logs = receiptsWithTransferLogs;
+            receipts[i].Logs = logsWithTransferLogs;
             receipts[i].Bloom = bloomWithTransferLogs;
 
-            block.Header.Bloom!.Accumulate(bloomWithTransferLogs);
+            bloom.Accumulate(bloomWithTransferLogs);
         }
 
+        block.Header.Bloom = bloom;
         block.Header.ReceiptsRoot =
             receipts.GetReceiptsRoot(_specProvider.GetSpec(block.Header), null!);
 

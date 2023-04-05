@@ -139,6 +139,8 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public void ReportAction(long gas, UInt256 value, Address from, Address to, ReadOnlyMemory<byte> input, ExecutionType callType, bool isPrecompileCall = false)
     {
+        if (value.IsZero) return;
+
         switch (callType)
         {
             case ExecutionType.Transaction:
