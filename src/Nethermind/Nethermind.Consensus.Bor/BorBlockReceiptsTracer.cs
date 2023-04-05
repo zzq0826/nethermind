@@ -209,7 +209,6 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public bool IsTracingMemory => false;
 
-
     public bool IsTracingRefunds => false;
 
     public bool IsTracingCode => false;
@@ -224,93 +223,39 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public bool IsTracingStorage => false;
 
-    public void LoadOperationStorage(Address address, UInt256 storageIndex, ReadOnlySpan<byte> value)
-    {
-        throw new NotImplementedException();
-    }
+    public void LoadOperationStorage(Address address, UInt256 storageIndex, ReadOnlySpan<byte> value) { }
 
-    public void ReportAccess(IReadOnlySet<Address> accessedAddresses, IReadOnlySet<StorageCell> accessedStorageCells)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportAccess(IReadOnlySet<Address> accessedAddresses, IReadOnlySet<StorageCell> accessedStorageCells) { }
 
-    public void ReportAccountRead(Address address)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportAccountRead(Address address) { }
 
+    public void ReportBalanceChange(Address address, UInt256? before, UInt256? after) { }
 
-    public void ReportBalanceChange(Address address, UInt256? before, UInt256? after)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportBlockHash(Keccak blockHash) { }
 
-    public void ReportBlockHash(Keccak blockHash)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportByteCode(byte[] byteCode) { }
 
-    public void ReportByteCode(byte[] byteCode)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportCodeChange(Address address, byte[]? before, byte[]? after) { }
 
-    public void ReportCodeChange(Address address, byte[]? before, byte[]? after)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportExtraGasPressure(long extraGasPressure) { }
 
-    public void ReportExtraGasPressure(long extraGasPressure)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportNonceChange(Address address, UInt256? before, UInt256? after) { }
 
-    public void ReportNonceChange(Address address, UInt256? before, UInt256? after)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportRefund(long refund) { }
 
-    public void ReportRefund(long refund)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportSelfDestruct(Address address, UInt256 balance, Address refundAddress) { }
 
-    public void ReportSelfDestruct(Address address, UInt256 balance, Address refundAddress)
-    {
-    }
+    public void ReportStorageChange(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value) { }
 
-    public void ReportStorageChange(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportStorageChange(in StorageCell storageCell, byte[] before, byte[] after) { }
 
-    public void ReportStorageChange(in StorageCell storageCell, byte[] before, byte[] after)
-    {
-        throw new NotImplementedException();
-    }
+    public void ReportStorageRead(in StorageCell storageCell) { }
 
-    public void ReportStorageRead(in StorageCell storageCell)
-    {
-        throw new NotImplementedException();
-    }
+    public void SetOperationMemory(List<string> memoryTrace) { }
 
-    public void SetOperationMemory(List<string> memoryTrace)
-    {
-        throw new NotImplementedException();
-    }
+    public void SetOperationMemorySize(ulong newSize) { }
 
-    public void SetOperationMemorySize(ulong newSize)
-    {
-        throw new NotImplementedException();
-    }
+    public void SetOperationStack(List<string> stackTrace) { }
 
-    public void SetOperationStack(List<string> stackTrace)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void SetOperationStorage(Address address, UInt256 storageIndex, ReadOnlySpan<byte> newValue, ReadOnlySpan<byte> currentValue)
-    {
-        throw new NotImplementedException();
-    }
+    public void SetOperationStorage(Address address, UInt256 storageIndex, ReadOnlySpan<byte> newValue, ReadOnlySpan<byte> currentValue) { }
 }
