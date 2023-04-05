@@ -75,9 +75,13 @@ public class BorBlockProcessor : BlockProcessor
             if (receipts[i].StatusCode == StatusCode.Failure)
                 continue;
 
-            LogEntry[] withTransferLogs = transferLogsTracer.Logs[k++];
-            receipts[i].Logs = withTransferLogs;
-            receipts[i].Bloom = new Bloom(withTransferLogs);
+            LogEntry[] receiptsWithTransferLogs = transferLogsTracer.Logs[k++];
+            Bloom bloomWithTransferLogs = new(receiptsWithTransferLogs);
+
+            receipts[i].Logs = receiptsWithTransferLogs;
+            receipts[i].Bloom = bloomWithTransferLogs;
+
+            block.Header.Bloom!.Accumulate(bloomWithTransferLogs);
         }
 
         block.Header.ReceiptsRoot =
