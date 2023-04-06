@@ -24,17 +24,16 @@ public class BorStateReceiverContract : CallableContract, IBorStateReceiverContr
 
     public void CommitState(BlockHeader header, StateSyncEventRecord eventRecord)
     {
-        Rlp eventRecordRlp = Rlp.Encode(
+        byte[] eventRecordBytes = Rlp.Encode(
             Rlp.Encode(eventRecord.Id),
             Rlp.Encode(eventRecord.ContractAddress),
             Rlp.Encode(eventRecord.Data),
             Rlp.Encode(eventRecord.TxHash),
             Rlp.Encode(eventRecord.LogIndex),
-            Rlp.Encode(eventRecord.ChainId),
-            Rlp.Encode(eventRecord.Time)
-        );
+            Rlp.Encode(eventRecord.ChainId)
+        ).Bytes;
 
-        Call(header, "commitState", Address.SystemUser, UnlimitedGas, eventRecordRlp.Bytes);
+        Call(header, "commitState", Address.SystemUser, UnlimitedGas, eventRecord.Time.ToUnixTimeSeconds(), eventRecordBytes);
     }
 
     public ulong LastStateId(BlockHeader header)

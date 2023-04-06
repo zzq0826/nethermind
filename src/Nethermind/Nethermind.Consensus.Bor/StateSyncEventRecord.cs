@@ -9,7 +9,7 @@ namespace Nethermind.Consensus.Bor;
 public class StateSyncEventRecord
 {
     public required ulong Id { get; init; }
-    public required ulong Time { get; init; }
+    public required DateTimeOffset Time { get; init; }
     public required Address ContractAddress { get; init; }
     public required byte[] Data { get; init; }
     public required Keccak TxHash { get; init; }

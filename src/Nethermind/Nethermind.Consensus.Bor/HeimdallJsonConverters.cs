@@ -81,7 +81,7 @@ public class StateSyncEventRecordJsonConverter : JsonConverter<StateSyncEventRec
         return new StateSyncEventRecord
         {
             Id = obj.GetRequired("id").ToObjectRequired<ulong>(serializer),
-            Time = obj.GetRequired("record_time").ToObjectRequired<ulong>(serializer),
+            Time = obj.GetRequired("record_time").ToObjectRequired<DateTimeOffset>(serializer),
             ContractAddress = obj.GetRequired("contract").ToObjectRequired<Address>(serializer),
             Data = obj.GetRequired("data").ToObjectRequired<byte[]>(serializer),
             TxHash = obj.GetRequired("tx_hash").ToObjectRequired<Keccak>(serializer),
