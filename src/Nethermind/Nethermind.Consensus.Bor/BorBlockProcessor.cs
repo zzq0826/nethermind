@@ -51,6 +51,8 @@ public class BorBlockProcessor : BlockProcessor
             witnessCollector,
             logManager)
     {
+        ArgumentNullException.ThrowIfNull(specProvider);
+
         _validatorSetManager = validatorSetManager;
         _stateSyncManager = stateSyncManager;
 
