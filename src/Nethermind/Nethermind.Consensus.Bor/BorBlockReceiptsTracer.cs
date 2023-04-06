@@ -56,6 +56,8 @@ public class BorBlockTransferLogsTracer : IBlockTracer
 public class BorTxTransferLogTracer : ITxTracer
 {
     private static readonly Address _logAddress = new("0x0000000000000000000000000000000000001010");
+    private static readonly Keccak _feeEventSig = new("0x4dfe1bbbcf077ddc3e01291eea2d5c70c2b422b415d95645b9adcfd678cb1d63");
+    private static readonly Keccak _transferEventSig = new("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4");
 
     private int _logCount = 0;
     private bool _insideLog = false;
@@ -99,7 +101,7 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public void MarkAsFailed(Address recipient, long gasSpent, byte[] output, string error, Keccak? stateRoot = null)
     {
-        _txLogs = Array.Empty<LogEntry>();
+        _txLogs = new[] { _logs[^1].Entry };
     }
 
     public void MarkAsSuccess(Address recipient, long gasSpent, byte[] output, LogEntry[] logs, Keccak? stateRoot = null)
@@ -119,15 +121,13 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public void ReportFees(UInt256 fees, UInt256 burntFees)
     {
-        Keccak eventSig = new("0x4dfe1bbbcf077ddc3e01291eea2d5c70c2b422b415d95645b9adcfd678cb1d63");
-
         UInt256 input1 = _sender.InitialBalance;
         UInt256 input2 = _beneficiary.InitialBalance;
         UInt256 output1 = input1 - fees;
         UInt256 output2 = input2 + fees;
 
         LogEntry log = BuildTransferLog(
-            eventSig,
+            _feeEventSig,
             _sender.Address,
             _beneficiary.Address,
             fees,
@@ -159,15 +159,13 @@ public class BorTxTransferLogTracer : ITxTracer
                 throw new NotImplementedException();
         }
 
-        Keccak eventSig = new("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4");
-
         UInt256 output1 = _stateProvider.GetBalance(from);
         UInt256 input2 = _stateProvider.GetBalance(to);
 
         UInt256 input1 = output1 + value;
         UInt256 output2 = input2 + value;
 
-        LogEntry log = BuildTransferLog(eventSig, from, to, value, input1, input2, output1, output2);
+        LogEntry log = BuildTransferLog(_transferEventSig, from, to, value, input1, input2, output1, output2);
 
         _logs.Add((_logCount, log));
     }
