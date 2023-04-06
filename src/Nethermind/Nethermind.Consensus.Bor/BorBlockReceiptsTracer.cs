@@ -97,7 +97,10 @@ public class BorTxTransferLogTracer : ITxTracer
 
     public bool IsTracingReceipt => true;
 
-    public void MarkAsFailed(Address recipient, long gasSpent, byte[] output, string error, Keccak? stateRoot = null) { }
+    public void MarkAsFailed(Address recipient, long gasSpent, byte[] output, string error, Keccak? stateRoot = null)
+    {
+        _txLogs = Array.Empty<LogEntry>();
+    }
 
     public void MarkAsSuccess(Address recipient, long gasSpent, byte[] output, LogEntry[] logs, Keccak? stateRoot = null)
     {

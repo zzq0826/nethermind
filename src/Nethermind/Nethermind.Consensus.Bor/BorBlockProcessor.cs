@@ -73,9 +73,6 @@ public class BorBlockProcessor : BlockProcessor
         Bloom bloom = new();
         for (int i = 0, k = 0; i < receipts.Length; i++)
         {
-            if (receipts[i].StatusCode == StatusCode.Failure)
-                continue;
-
             LogEntry[] logsWithTransferLogs = transferLogsTracer.Logs[k++];
             Bloom bloomWithTransferLogs = new(logsWithTransferLogs);
 
