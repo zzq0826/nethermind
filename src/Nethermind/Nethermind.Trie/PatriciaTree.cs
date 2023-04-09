@@ -44,6 +44,8 @@ namespace Nethermind.Trie
 
         private readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
 
+        internal readonly ConcurrentQueue<TrieNode>? _deleteNodes;
+
         private readonly ITrieStore _trieStore;
         public TrieNodeResolverCapability Capability => _trieStore.Capability;
 
@@ -133,6 +135,7 @@ namespace Nethermind.Trie
             {
                 _currentCommit = new ConcurrentQueue<NodeCommitInfo>();
                 _commitExceptions = new ConcurrentQueue<Exception>();
+                _deleteNodes = new ConcurrentQueue<TrieNode>();
             }
         }
 
@@ -179,6 +182,12 @@ namespace Nethermind.Trie
             {
                 throw new InvalidAsynchronousStateException(
                     $"{nameof(_commitExceptions)} is NULL when calling {nameof(Commit)}");
+            }
+
+            // TODO: stcg
+            while (_deleteNodes != null && _deleteNodes.TryDequeue(out TrieNode delNode))
+            {
+                _currentCommit.Enqueue(new NodeCommitInfo(delNode));
             }
 
             TrieNode node = nodeCommitInfo.Node;
@@ -310,10 +319,10 @@ namespace Nethermind.Trie
             {
                 RootRef = TrieStore.FindCachedOrUnknown(_rootHash, Array.Empty<byte>());
             }
+            if(_deleteNodes is not null) _deleteNodes.Clear();
         }
 
-        [DebuggerStepThrough]
-        public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+        public byte[]? GetInternal(Span<byte> rawKey, Keccak? rootHash = null)
         {
             try
             {
@@ -331,6 +340,36 @@ namespace Nethermind.Trie
             {
                 throw new TrieException($"Failed to load key {rawKey.ToHexString()} from root hash {rootHash ?? RootHash}.", e);
             }
+        }
+
+        public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+        {
+            if(Capability == TrieNodeResolverCapability.Hash) return GetInternal(rawKey, rootHash);
+
+            if (RootRef is null) return null;
+            if (rootHash is null)
+            {
+                if (RootRef?.IsDirty == true)
+                {
+                    return GetInternal(rawKey);
+                }
+                rootHash = RootHash;
+            }
+
+            // try and get cached nodes
+            Span<byte> nibbleBytes = stackalloc byte[64];
+            Nibbles.BytesToNibbleBytes(rawKey, nibbleBytes);
+            TrieNode node = TrieStore.FindCachedOrUnknown(nibbleBytes, rootHash);
+            if (node.NodeType == NodeType.Leaf) return node.Value;
+
+            // if not in cached nodes - then check persisted nodes
+            byte[]? nodeData = TrieStore[rawKey.ToArray()];
+            if (nodeData is null) return null;
+
+            if (nodeData[0] == 128) nodeData = TrieStore[nodeData[1..]];
+            node = new TrieNode(NodeType.Unknown, nodeData);
+            node.ResolveNode(TrieStore);
+            return node.Value;
         }
 
         [DebuggerStepThrough]
@@ -681,6 +720,7 @@ namespace Nethermind.Trie
                 {
                     throw new InvalidOperationException($"Unknown node type {node.GetType().Name}");
                 }
+                if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
             }
 
             RootRef = nextNode;
@@ -705,6 +745,7 @@ namespace Nethermind.Trie
                         return null;
                     }
 
+                    if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
                     ConnectNodes(null);
                 }
                 else if (Bytes.AreEqual(traverseContext.UpdateValue, node.Value))
@@ -816,6 +857,7 @@ namespace Nethermind.Trie
 
                 if (traverseContext.IsDelete)
                 {
+                    if(Capability == TrieNodeResolverCapability.Path) _deleteNodes?.Enqueue(node.CloneNodeForDeletion());
                     ConnectNodes(null);
                     return traverseContext.UpdateValue;
                 }

@@ -250,6 +250,15 @@ namespace Nethermind.Trie
             }
         }
 
+        public TrieNode CloneNodeForDeletion()
+        {
+            TrieNode trieNode = new TrieNode(NodeType);
+            if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
+            if(Key is not null) trieNode.Key = (byte[])Key.Clone();
+            trieNode._rlpStream = null;
+            return trieNode;
+        }
+
         public override string ToString()
         {
 #if DEBUG

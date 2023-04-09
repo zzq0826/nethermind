@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core;
-using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Trie.ByPath;
@@ -20,6 +19,8 @@ namespace Nethermind.Trie.Pruning
     /// </summary>
     public class TrieStoreByPath : ITrieStore
     {
+        private const byte PathMarker = 128;
+
         private static readonly byte[] _rootKeyPath = Nibbles.ToEncodedStorageBytes(Array.Empty<byte>());
 
         private int _isFirst;
@@ -120,11 +121,6 @@ namespace Nethermind.Trie.Pruning
             {
                 TrieNode node = nodeCommitInfo.Node!;
 
-                if (node!.Keccak is null)
-                {
-                    throw new TrieStoreException($"The hash of {node} should be known at the time of committing.");
-                }
-
                 if (CurrentPackage is null)
                 {
                     throw new TrieStoreException($"{nameof(CurrentPackage)} is NULL when committing {node} at {blockNumber}.");
@@ -220,9 +216,9 @@ namespace Nethermind.Trie.Pruning
 
             keyValueStore ??= _keyValueStore;
             byte[]? rlp = _currentBatch?[keyPath] ?? keyValueStore[keyPath];
-            if (path.Length < 64 && rlp?.Length == 32)
+            if (rlp?[0] == PathMarker)
             {
-                byte[]? pointsToPath = _currentBatch?[rlp] ?? keyValueStore[rlp];
+                byte[]? pointsToPath = _currentBatch?[rlp[1..]] ?? keyValueStore[rlp[1..]];
                 if (pointsToPath is not null)
                     rlp = pointsToPath;
             }
@@ -384,7 +380,7 @@ namespace Nethermind.Trie.Pruning
                 throw new ArgumentNullException(nameof(currentNode));
             }
 
-            if (currentNode.Keccak is not null)
+            if (currentNode.Keccak is not null || currentNode.FullRlp is null)
             {
                 Debug.Assert(blockNumber == TrieNode.LastSeenNotSet || currentNode.LastSeen != TrieNode.LastSeenNotSet, $"Cannot persist a dangling node (without {(nameof(TrieNode.LastSeen))} value set).");
                 // Note that the LastSeen value here can be 'in the future' (greater than block number
@@ -530,11 +526,16 @@ namespace Nethermind.Trie.Pruning
             byte[] pathBytes = fullPath.Length < 64 ? Nibbles.ToEncodedStorageBytes(fullPath) : Nibbles.ToBytes(fullPath);
             if (trieNode.IsLeaf && (trieNode.Key.Length < 64 || trieNode.PathToNode.Length == 0))
             {
-                //_logger.Info($"Saving node pointer - path to: {trieNode.PathToNode.ToHexString()} full path: {fullPath.ToHexString()}");
                 byte[] pathToNodeBytes = Nibbles.ToEncodedStorageBytes(trieNode.PathToNode);
-                keyValueStore[pathToNodeBytes] = pathBytes;
+                byte[] newPath = new byte[pathBytes.Length + 1];
+                Array.Copy(pathBytes, 0, newPath, 1, pathBytes.Length);
+                newPath[0] = PathMarker;
+                if (trieNode.FullRlp == null)
+                    newPath = null;
+                // _logger.Info($"Saving node pointer - path to: {pathToNodeBytes.ToHexString()} full path: {newPath.ToHexString()}");
+                keyValueStore[pathToNodeBytes] = newPath;
             }
-            //_logger.Info($"Saving node - full path: {fullPath.ToHexString()} key: {trieNode.Key?.ToHexString()}");
+            // _logger.Info($"Saving node - full path: {fullPath.ToHexString()} key: {pathBytes.ToHexString()}");
             keyValueStore[pathBytes] = trieNode.FullRlp;
         }
 
