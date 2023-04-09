@@ -45,6 +45,7 @@ namespace Nethermind.Trie
         private readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
 
         private readonly ITrieStore _trieStore;
+        public TrieNodeResolverCapability Capability => _trieStore.Capability;
 
         private readonly bool _parallelBranches;
 
@@ -292,7 +293,7 @@ namespace Nethermind.Trie
 
         public void UpdateRootHash()
         {
-            if (_trieStore.Capability == TrieNodeResolverCapability.Path)
+            if (Capability == TrieNodeResolverCapability.Path)
                 RootRef?.ResolveNode(TrieStore);
             RootRef?.ResolveKey(TrieStore, true);
             SetRootHash(RootRef?.Keccak ?? EmptyTreeHash, false);
@@ -400,7 +401,7 @@ namespace Nethermind.Trie
                     {
                         if (_logger.IsTrace) _logger.Trace($"Setting new leaf node with value {traverseContext.UpdateValue}");
                         byte[] key = updatePath.Slice(0, nibblesCount).ToArray();
-                        RootRef = _trieStore.Capability switch
+                        RootRef = Capability switch
                         {
                             TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue),
                             TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue, EmptyKeyPath),
@@ -518,7 +519,7 @@ namespace Nethermind.Trie
                             childNode.ResolveNode(TrieStore);
                             if (childNode.IsBranch)
                             {
-                                TrieNode extensionFromBranch = _trieStore.Capability switch
+                                TrieNode extensionFromBranch = Capability switch
                                 {
                                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode),
                                     TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, node.PathToNode),
@@ -559,7 +560,7 @@ namespace Nethermind.Trie
 
                                 byte[] newKey = Bytes.Concat((byte)childNodeIndex, childNode.Key);
 
-                                TrieNode extendedExtension = _trieStore.Capability switch
+                                TrieNode extendedExtension = Capability switch
                                 {
                                     TrieNodeResolverCapability.Hash => childNode.CloneWithChangedKey(newKey),
                                     TrieNodeResolverCapability.Path => childNode.CloneWithChangedKey(newKey, node.PathToNode),
@@ -574,7 +575,7 @@ namespace Nethermind.Trie
                             else if (childNode.IsLeaf)
                             {
                                 byte[] newKey = Bytes.Concat((byte)childNodeIndex, childNode.Key);
-                                TrieNode extendedLeaf = _trieStore.Capability switch
+                                TrieNode extendedLeaf = Capability switch
                                 {
                                     TrieNodeResolverCapability.Hash => childNode.CloneWithChangedKey(newKey),
                                     TrieNodeResolverCapability.Path => childNode.CloneWithChangedKey(newKey, node.PathToNode),
@@ -610,7 +611,7 @@ namespace Nethermind.Trie
                     if (nextNode.IsLeaf)
                     {
                         byte[] newKey = Bytes.Concat(node.Key, nextNode.Key);
-                        TrieNode extendedLeaf = _trieStore.Capability switch
+                        TrieNode extendedLeaf = Capability switch
                         {
                             TrieNodeResolverCapability.Hash => nextNode.CloneWithChangedKey(newKey),
                             TrieNodeResolverCapability.Path => nextNode.CloneWithChangedKey(newKey, node.PathToNode),
@@ -649,7 +650,7 @@ namespace Nethermind.Trie
                            L L - - - - - - - - - - - - - - */
 
                         byte[] newKey = Bytes.Concat(node.Key, nextNode.Key);
-                        TrieNode extendedExtension = _trieStore.Capability switch
+                        TrieNode extendedExtension = Capability switch
                         {
                             TrieNodeResolverCapability.Hash => nextNode.CloneWithChangedKey(newKey),
                             TrieNodeResolverCapability.Path => nextNode.CloneWithChangedKey(newKey, node.PathToNode),
@@ -719,7 +720,7 @@ namespace Nethermind.Trie
                 return traverseContext.UpdateValue;
             }
 
-            TrieNode childNode = _trieStore.Capability switch
+            TrieNode childNode = Capability switch
             {
                 TrieNodeResolverCapability.Hash => node.GetChild(TrieStore, traverseContext.UpdatePath[traverseContext.CurrentIndex]),
                 TrieNodeResolverCapability.Path => node.GetChild(TrieStore, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + 1).ToArray(), traverseContext.UpdatePath[traverseContext.CurrentIndex]),
@@ -752,7 +753,7 @@ namespace Nethermind.Trie
                 byte[] leafPath = traverseContext.UpdatePath.Slice(
                     currentIndex,
                     traverseContext.UpdatePath.Length - currentIndex).ToArray();
-                TrieNode leaf = _trieStore.Capability switch
+                TrieNode leaf = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue),
                     TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue, traverseContext.GetCurrentPath(currentIndex).ToArray()),
@@ -848,7 +849,7 @@ namespace Nethermind.Trie
             {
                 ReadOnlySpan<byte> extensionPath = longerPath.Slice(0, extensionLength);
 
-                TrieNode extension = _trieStore.Capability switch
+                TrieNode extension = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(extensionPath.ToArray()),
                     TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(extensionPath.ToArray(), traverseContext.GetCurrentPath().ToArray()),
@@ -858,7 +859,7 @@ namespace Nethermind.Trie
                 _nodeStack.Push(new StackedNode(extension, 0));
             }
 
-            TrieNode branch = _trieStore.Capability switch
+            TrieNode branch = Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
                 TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray()),
@@ -872,7 +873,7 @@ namespace Nethermind.Trie
             {
                 ReadOnlySpan<byte> shortLeafPath = shorterPath.Slice(extensionLength + 1, shorterPath.Length - extensionLength - 1);
                 TrieNode shortLeaf;
-                switch (_trieStore.Capability)
+                switch (Capability)
                 {
                     case TrieNodeResolverCapability.Hash:
                         shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue);
@@ -899,7 +900,7 @@ namespace Nethermind.Trie
 
             ReadOnlySpan<byte> leafPath = longerPath.Slice(extensionLength + 1, longerPath.Length - extensionLength - 1);
             TrieNode withUpdatedKeyAndValue;
-            switch (_trieStore.Capability)
+            switch (Capability)
             {
                 case TrieNodeResolverCapability.Hash:
                     withUpdatedKeyAndValue = node.CloneWithChangedKeyAndValue(
@@ -941,7 +942,7 @@ namespace Nethermind.Trie
                 }
 
 
-                TrieNode next = _trieStore.Capability switch
+                TrieNode next = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => node.GetChild(TrieStore, 0),
                     TrieNodeResolverCapability.Path => node.GetChild(TrieStore, traverseContext.GetCurrentPath(currentIndex).ToArray(), 0),
@@ -981,7 +982,7 @@ namespace Nethermind.Trie
                 _nodeStack.Push(new StackedNode(node, 0));
             }
 
-            TrieNode branch = _trieStore.Capability switch
+            TrieNode branch = Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
                 TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray()),
@@ -995,7 +996,7 @@ namespace Nethermind.Trie
             else
             {
                 byte[] path = remaining.Slice(extensionLength + 1, remaining.Length - extensionLength - 1).ToArray();
-                TrieNode shortLeaf = _trieStore.Capability switch
+                TrieNode shortLeaf = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue),
                     TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1).ToArray()),
@@ -1014,7 +1015,7 @@ namespace Nethermind.Trie
             {
                 byte[] extensionPath = pathBeforeUpdate.Slice(extensionLength + 1, pathBeforeUpdate.Length - extensionLength - 1);
                 TrieNode secondExtension;
-                switch (_trieStore.Capability)
+                switch (Capability)
                 {
                     case TrieNodeResolverCapability.Hash:
                         secondExtension = TrieNodeFactory.CreateExtension(extensionPath, originalNodeChild);
@@ -1157,7 +1158,7 @@ namespace Nethermind.Trie
             if (!rootHash.Equals(Keccak.EmptyTreeHash))
             {
 
-                switch (_trieStore.Capability)
+                switch (Capability)
                 {
                     case TrieNodeResolverCapability.Hash:
                         rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash);
