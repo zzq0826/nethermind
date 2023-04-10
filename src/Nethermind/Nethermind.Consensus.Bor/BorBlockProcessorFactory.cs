@@ -44,16 +44,7 @@ public class BorBlockProcessorFactory
             _api.LogManager
         );
 
-        ReadOnlyTxProcessingEnv readOnlyTxProcessingEnv = new(
-            _api.DbProvider,
-            _api.ReadOnlyTrieStore,
-            _api.BlockTree,
-            _api.SpecProvider,
-            _api.LogManager
-        );
-
         BorValidatorSetContract validatorSetContract = new(
-            readOnlyTxProcessingEnv,
             systemTransactionProcessor,
             _api.AbiEncoder,
             borParams.ValidatorContractAddress
@@ -69,7 +60,6 @@ public class BorBlockProcessorFactory
         );
 
         BorStateReceiverContract stateReceiverContract = new(
-            readOnlyTxProcessingEnv,
             systemTransactionProcessor,
             _api.AbiEncoder,
             borParams.StateReceiverContractAddress

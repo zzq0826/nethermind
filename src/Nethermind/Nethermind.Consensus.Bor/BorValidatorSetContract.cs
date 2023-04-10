@@ -12,16 +12,12 @@ namespace Nethermind.Consensus.Bor;
 
 public class BorValidatorSetContract : CallableContract, IBorValidatorSetContract
 {
-    private readonly IConstantContract _constant;
-
     public BorValidatorSetContract(
-        IReadOnlyTxProcessorSource readOnlyTxProcessorSource,
         ITransactionProcessor transactionProcessor,
         IAbiEncoder abiEncoder,
         Address contractAddress)
         : base(transactionProcessor, abiEncoder, contractAddress)
     {
-        _constant = GetConstant(readOnlyTxProcessorSource);
     }
 
     public void CommitSpan(BlockHeader header, HeimdallSpan span)
@@ -55,8 +51,10 @@ public class BorValidatorSetContract : CallableContract, IBorValidatorSetContrac
 
     public BorSpan GetCurrentSpan(BlockHeader header)
     {
+        object[] result = CallAndRestore(header, "getCurrentSpan", Address.SystemUser);
+
         (UInt256 number, UInt256 startBlock, UInt256 endBlock) =
-            _constant.Call<UInt256, UInt256, UInt256>(header, "getCurrentSpan", Address.SystemUser);
+            ((UInt256)result[0], (UInt256)result[1], (UInt256)result[2]);
 
         return new BorSpan
         {
