@@ -40,10 +40,15 @@ public class BorStateSyncManager : IBorStateSyncManager
         ulong fromId = _stateReceiverContract.LastStateId(snapshotHeader) + 1;
         ulong toTime = _blockTree.FindHeader(number - sprintSize)!.Timestamp;
 
-        _logger.Info($"Fetching state updates from Heimdall for block {number} from `{fromId}` to `{toTime}`");
+        if (_logger.IsDebug)
+            _logger.Debug($"Fetching state updates from Heimdall for block {number} from `{fromId}` to `{toTime}`");
+
         StateSyncEventRecord[] eventRecords = _heimdallClient.StateSyncEvents(fromId, toTime);
 
         // TODO: override state sync event records
+
+        if (_logger.IsInfo && eventRecords.Length > 0)
+            _logger.Info("Applying state updates from Heimdall for block {number} ({eventRecords.Length} events)");
 
         foreach (StateSyncEventRecord eventRecord in eventRecords)
         {

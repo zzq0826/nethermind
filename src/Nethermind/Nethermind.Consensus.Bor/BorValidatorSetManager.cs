@@ -52,14 +52,18 @@ public class BorValidatorSetManager : IBorValidatorSetManager
         if (nextSpan.ChainId != _chainId)
             throw new Exception("Heimdall and Bor chain ids differ from each other");
 
-        // Commit the span we got from Heimdall to the validator set contract
+        if (_logger.IsInfo)
+            _logger.Info($"Committing span {nextSpan.Number} to validator set contract at block {header.Number}");
+
         try
         {
+            // Commit the span we got from Heimdall to the validator set contract
             _validatorSetContract.CommitSpan(header, nextSpan);
         }
         catch (AbiException e)
         {
-            _logger.Warn($"Ignoring span commit error to match Bor behavior: {e.Message}");
+            if (_logger.IsWarn)
+                _logger.Warn($"Ignoring span commit error to match Bor behavior: {e.Message}");
         }
     }
 
