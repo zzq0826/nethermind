@@ -30,7 +30,6 @@ namespace Nethermind.Blockchain.Contracts
         }
 
         private byte[] Call(BlockHeader header, string functionName, Transaction transaction) => CallCore(_transactionProcessor, header, functionName, transaction);
-        private byte[] CallAndRestore(BlockHeader header, string functionName, Transaction transaction) => CallCore(_transactionProcessor, header, functionName, transaction, true);
 
         /// <summary>
         /// Calls the function in contract, state modification is allowed.
@@ -44,18 +43,7 @@ namespace Nethermind.Blockchain.Contracts
             Call(header, functionName, sender, DefaultContractGasLimit, arguments);
 
         /// <summary>
-        /// Calls the function in contract, state modification is not commited.
-        /// </summary>
-        /// <param name="header">Header in which context the call is done.</param>
-        /// <param name="functionName"></param>
-        /// <param name="sender">Sender of the transaction - caller of the function.</param>
-        /// <param name="arguments">Arguments to the function.</param>
-        /// <returns>Deserialized return value of the <see cref="functionName"/> based on its definition.</returns>
-        protected object[] CallAndRestore(BlockHeader header, string functionName, Address sender, params object[] arguments) =>
-            CallAndRestore(header, functionName, sender, DefaultContractGasLimit, arguments);
-
-        /// <summary>
-        /// Calls the function in contract, state modification is not commited.
+        /// Calls the function in contract, state modification is allowed.
         /// </summary>
         /// <param name="header">Header in which context the call is done.</param>
         /// <param name="functionName"></param>
@@ -72,24 +60,6 @@ namespace Nethermind.Blockchain.Contracts
             return objects;
         }
 
-        /// <summary>
-        /// Calls the function in contract, state modification is allowed.
-        /// </summary>
-        /// <param name="header">Header in which context the call is done.</param>
-        /// <param name="functionName"></param>
-        /// <param name="sender">Sender of the transaction - caller of the function.</param>
-        /// <param name="gasLimit">Gas limit for generated transaction.</param>
-        /// <param name="arguments">Arguments to the function.</param>
-        /// <returns>Deserialized return value of the <see cref="functionName"/> based on its definition.</returns>
-        protected object[] CallAndRestore(BlockHeader header, string functionName, Address sender, long gasLimit, params object[] arguments)
-        {
-            var function = AbiDefinition.GetFunction(functionName);
-            var transaction = GenerateTransaction<SystemTransaction>(functionName, sender, gasLimit, header, arguments);
-            var result = CallAndRestore(header, functionName, transaction);
-            var objects = DecodeData(function.GetReturnInfo(), result);
-            return objects;
-        }
-
         private bool TryCall(BlockHeader header, Transaction transaction, out byte[] result)
         {
             CallOutputTracer tracer = new();
@@ -97,23 +67,6 @@ namespace Nethermind.Blockchain.Contracts
             try
             {
                 _transactionProcessor.Execute(transaction, header, tracer);
-                result = tracer.ReturnValue;
-                return tracer.StatusCode == StatusCode.Success;
-            }
-            catch (Exception)
-            {
-                result = null;
-                return false;
-            }
-        }
-
-        private bool TryCallAndRestore(BlockHeader header, Transaction transaction, out byte[] result)
-        {
-            CallOutputTracer tracer = new();
-
-            try
-            {
-                _transactionProcessor.CallAndRestore(transaction, header, tracer);
                 result = tracer.ReturnValue;
                 return tracer.StatusCode == StatusCode.Success;
             }
@@ -137,18 +90,6 @@ namespace Nethermind.Blockchain.Contracts
             TryCall(header, functionName, sender, DefaultContractGasLimit, out result, arguments);
 
         /// <summary>
-        /// Same as <see cref="CallAndRestore(Nethermind.Core.BlockHeader,AbiFunctionDescription,Address,object[])"/> but returns false instead of throwing <see cref="AbiException"/>.
-        /// </summary>
-        /// <param name="header">Header in which context the call is done.</param>
-        /// <param name="functionName"></param>
-        /// <param name="sender">Sender of the transaction - caller of the function.</param>
-        /// <param name="result">Deserialized return value of the <see cref="functionName"/> based on its definition.</param>
-        /// <param name="arguments">Arguments to the function.</param>
-        /// <returns>true if function was <see cref="StatusCode.Success"/> otherwise false.</returns>
-        protected bool TryCallAndRestore(BlockHeader header, string functionName, Address sender, out object[] result, params object[] arguments) =>
-            TryCallAndRestore(header, functionName, sender, DefaultContractGasLimit, out result, arguments);
-
-        /// <summary>
         /// Same as <see cref="Call(Nethermind.Core.BlockHeader,AbiFunctionDescription,Address,object[])"/> but returns false instead of throwing <see cref="AbiException"/>.
         /// </summary>
         /// <param name="header">Header in which context the call is done.</param>
@@ -163,30 +104,6 @@ namespace Nethermind.Blockchain.Contracts
             var function = AbiDefinition.GetFunction(functionName);
             var transaction = GenerateTransaction<SystemTransaction>(functionName, sender, gasLimit, header, arguments);
             if (TryCall(header, transaction, out var bytes))
-            {
-                result = DecodeData(function.GetReturnInfo(), bytes);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        /// <summary>
-        /// Same as <see cref="CallAndRestore(Nethermind.Core.BlockHeader,AbiFunctionDescription,Address,object[])"/> but returns false instead of throwing <see cref="AbiException"/>.
-        /// </summary>
-        /// <param name="header">Header in which context the call is done.</param>
-        /// <param name="functionName"></param>
-        /// <param name="sender">Sender of the transaction - caller of the function.</param>
-        /// <param name="gasLimit">Gas limit for generated transaction.</param>
-        /// <param name="result">Deserialized return value of the <see cref="functionName"/> based on its definition.</param>
-        /// <param name="arguments">Arguments to the function.</param>
-        /// <returns>true if function was <see cref="StatusCode.Success"/> otherwise false.</returns>
-        protected bool TryCallAndRestore(BlockHeader header, string functionName, Address sender, long gasLimit, out object[] result, params object[] arguments)
-        {
-            var function = AbiDefinition.GetFunction(functionName);
-            var transaction = GenerateTransaction<SystemTransaction>(functionName, sender, gasLimit, header, arguments);
-            if (TryCallAndRestore(header, transaction, out var bytes))
             {
                 result = DecodeData(function.GetReturnInfo(), bytes);
                 return true;
