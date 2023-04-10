@@ -48,7 +48,7 @@ public class BorStateSyncManager : IBorStateSyncManager
         // TODO: override state sync event records
 
         if (_logger.IsInfo && eventRecords.Length > 0)
-            _logger.Info("Applying state updates from Heimdall for block {number} ({eventRecords.Length} events)");
+            _logger.Info($"Applying state updates from Heimdall for block {number} ({eventRecords.Length} events)");
 
         foreach (StateSyncEventRecord eventRecord in eventRecords)
         {
