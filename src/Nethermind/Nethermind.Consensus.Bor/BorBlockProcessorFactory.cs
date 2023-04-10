@@ -2,17 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Api;
-using Nethermind.Api.Factories;
-using Nethermind.Blockchain;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Rewards;
-using Nethermind.Evm;
 using Nethermind.Specs.ChainSpecStyle;
-using Nethermind.State;
 
 namespace Nethermind.Consensus.Bor;
 
-public class BorBlockProcessorFactory : IApiComponentFactory<IBlockProcessor>
+public class BorBlockProcessorFactory
 {
     private readonly INethermindApi _api;
 

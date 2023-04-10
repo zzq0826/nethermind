@@ -3,11 +3,11 @@ using Nethermind.Api.Extensions;
 using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Transactions;
-using Newtonsoft.Json;
+using Nethermind.Init.Steps;
 
 namespace Nethermind.Consensus.Bor;
 
-public class BorPlugin : IConsensusPlugin
+public class BorPlugin : IConsensusPlugin, IInitializationPlugin
 {
     public string Name => "Bor";
 
@@ -22,13 +22,11 @@ public class BorPlugin : IConsensusPlugin
         if (api.SealEngineType != SealEngineType)
             return Task.CompletedTask;
 
-        (IApiWithFactories getApi, IApiWithBlockchain setApi) = api.ForInit;
+        (IApiWithStores getApi, IApiWithBlockchain setApi) = api.ForInit;
 
         // I don't like this a lot, static method, calling from here to http client
         // when maybe we are using grpc, but right now I'm tired.
         HeimdallHttpClient.RegisterConverters(getApi.EthereumJsonSerializer);
-
-        setApi.BlockProcessorFactory = new BorBlockProcessorFactory(api);
 
         // We need to validate that the sealer is the correct one
         setApi.SealValidator = new BorSealValidator();
@@ -62,5 +60,11 @@ public class BorPlugin : IConsensusPlugin
     public ValueTask DisposeAsync()
     {
         return ValueTask.CompletedTask;
+    }
+
+    public bool ShouldRunSteps(INethermindApi api)
+    {
+        ArgumentNullException.ThrowIfNull(api.ChainSpec);
+        return api.ChainSpec.SealEngineType == SealEngineType;
     }
 }

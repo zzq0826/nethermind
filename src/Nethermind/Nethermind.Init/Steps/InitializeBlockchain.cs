@@ -351,7 +351,7 @@ namespace Nethermind.Init.Steps
             _api.LogManager);
 
         // TODO: remove from here - move to consensus?
-        protected virtual BlockProcessor CreateBlockProcessor()
+        protected virtual IBlockProcessor CreateBlockProcessor()
         {
             if (_api.DbProvider is null) throw new StepDependencyException(nameof(_api.DbProvider));
             if (_api.RewardCalculatorSource is null) throw new StepDependencyException(nameof(_api.RewardCalculatorSource));
