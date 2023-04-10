@@ -2,28 +2,28 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Collections;
-using System.Reflection.PortableExecutable;
-using System.Threading;
 using Nethermind.Evm.Precompiles;
 
 namespace Nethermind.Evm.CodeAnalysis
 {
-    public class CodeInfo
+    public class CodeInfo : ICodeInfo
     {
         private const int SampledCodeLength = 10_001;
         private const int PercentageOfPush1 = 40;
         private const int NumberOfSamples = 100;
-        private static Random _rand = new();
-
-        public byte[] MachineCode { get; set; }
-        public IPrecompile? Precompile { get; set; }
+        private static readonly Random _rand = new();
         private ICodeInfoAnalyzer? _analyzer;
+
+        public byte[] MachineCode { get; }
+        public IPrecompile? Precompile { get; }
+        public ReadOnlyMemory<byte> CodeSection => MachineCode;
 
         public CodeInfo(byte[] code)
         {
             MachineCode = code;
         }
+
+        public int SectionOffset(int _) => 0;
 
         public bool IsPrecompile => Precompile is not null;
 
@@ -35,11 +35,7 @@ namespace Nethermind.Evm.CodeAnalysis
 
         public bool ValidateJump(int destination, bool isSubroutine)
         {
-            if (_analyzer is null)
-            {
-                CreateAnalyzer();
-            }
-
+            _analyzer ??= CreateAnalyzer(CodeSection);
             return _analyzer.ValidateJump(destination, isSubroutine);
         }
 
@@ -47,16 +43,17 @@ namespace Nethermind.Evm.CodeAnalysis
         /// Do sampling to choose an algo when the code is big enough.
         /// When the code size is small we can use the default analyzer.
         /// </summary>
-        private void CreateAnalyzer()
+        public static ICodeInfoAnalyzer CreateAnalyzer(ReadOnlyMemory<byte> codeToBeAnalyzed)
         {
-            if (MachineCode.Length >= SampledCodeLength)
+            if (codeToBeAnalyzed.Length >= SampledCodeLength)
             {
+                ReadOnlySpan<byte> code = codeToBeAnalyzed.Span;
                 byte push1Count = 0;
 
                 // we check (by sampling randomly) how many PUSH1 instructions are in the code
                 for (int i = 0; i < NumberOfSamples; i++)
                 {
-                    byte instruction = MachineCode[_rand.Next(0, MachineCode.Length)];
+                    byte instruction = code[_rand.Next(0, code.Length)];
 
                     // PUSH1
                     if (instruction == 0x60)
@@ -68,11 +65,11 @@ namespace Nethermind.Evm.CodeAnalysis
                 // If there are many PUSH1 ops then use the JUMPDEST analyzer.
                 // The JumpdestAnalyzer can perform up to 40% better than the default Code Data Analyzer
                 // in a scenario when the code consists only of PUSH1 instructions.
-                _analyzer = push1Count > PercentageOfPush1 ? new JumpdestAnalyzer(MachineCode) : new CodeDataAnalyzer(MachineCode);
+                return push1Count > PercentageOfPush1 ? new JumpdestAnalyzer(codeToBeAnalyzed) : new CodeDataAnalyzer(codeToBeAnalyzed);
             }
             else
             {
-                _analyzer = new CodeDataAnalyzer(MachineCode);
+                return new CodeDataAnalyzer(codeToBeAnalyzed);
             }
         }
     }

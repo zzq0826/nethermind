@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
@@ -12,7 +12,7 @@ namespace Nethermind.Evm
     {
         public ExecutionEnvironment
         (
-            CodeInfo codeInfo,
+            ICodeInfo codeInfo,
             Address executingAccount,
             Address caller,
             Address? codeSource,
@@ -32,11 +32,6 @@ namespace Nethermind.Evm
             Value = value;
             CallDepth = callDepth;
         }
-
-        /// <summary>
-        /// Parsed bytecode for the current call.
-        /// </summary>
-        public readonly CodeInfo CodeInfo;
 
         /// <summary>
         /// Currently executing account (in DELEGATECALL this will be equal to caller).
@@ -73,7 +68,12 @@ namespace Nethermind.Evm
         /// DELEGATECALL behaves like a library call and it uses the value information from the caller even
         /// as no transfer happens.
         /// </summary>
-        public readonly UInt256 Value;
+        public UInt256 Value { get; }
+
+        /// <summary>
+        /// Parsed bytecode for the current call.
+        /// </summary>
+        public ICodeInfo CodeInfo { get; }
 
         /// <example>If we call TX -> DELEGATECALL -> CALL -> STATICCALL then the call depth would be 3.</example>
         public readonly int CallDepth;

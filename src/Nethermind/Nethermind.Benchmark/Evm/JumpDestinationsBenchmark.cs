@@ -1,11 +1,5 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
-
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using Nethermind.Core.Extensions;
-using Nethermind.Evm;
-using Nethermind.Evm.CodeAnalysis;
 
 namespace Nethermind.Benchmarks.Evm
 {

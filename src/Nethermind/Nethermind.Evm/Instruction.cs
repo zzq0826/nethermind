@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using FastEnumUtility;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.EOF;
 using Nethermind.Specs.Forks;
 
 namespace Nethermind.Evm
@@ -36,9 +37,9 @@ namespace Nethermind.Evm
         XOR = 0x18,
         NOT = 0x19,
         BYTE = 0x1a,
-        SHL = 0x1b, // EIP-145
-        SHR = 0x1c, // EIP-145
-        SAR = 0x1d, // EIP-145
+        SHL = 0x1b, // ShiftOpcodesEnabled
+        SHR = 0x1c, // ShiftOpcodesEnabled
+        SAR = 0x1d, // ShiftOpcodesEnabled
 
         SHA3 = 0x20,
 
@@ -55,9 +56,9 @@ namespace Nethermind.Evm
         GASPRICE = 0x3a,
         EXTCODESIZE = 0x3b,
         EXTCODECOPY = 0x3c,
-        RETURNDATASIZE = 0x3d,
-        RETURNDATACOPY = 0x3e,
-        EXTCODEHASH = 0x3f,
+        RETURNDATASIZE = 0x3d, // ReturnDataOpcodesEnabled
+        RETURNDATACOPY = 0x3e, // ReturnDataOpcodesEnabled
+        EXTCODEHASH = 0x3f, // ExtCodeHashOpcodeEnabled
 
         BLOCKHASH = 0x40,
         COINBASE = 0x41,
@@ -65,9 +66,9 @@ namespace Nethermind.Evm
         NUMBER = 0x43,
         PREVRANDAO = 0x44,
         GASLIMIT = 0x45,
-        CHAINID = 0x46,
-        SELFBALANCE = 0x47,
-        BASEFEE = 0x48,
+        CHAINID = 0x46, // ChainIdOpcodeEnabled
+        SELFBALANCE = 0x47, // SelfBalanceOpcodeEnabled
+        BASEFEE = 0x48, // BaseFeeEnabled
         DATAHASH = 0x49,
 
         POP = 0x50,
@@ -81,12 +82,16 @@ namespace Nethermind.Evm
         PC = 0x58,
         MSIZE = 0x59,
         GAS = 0x5a,
+        NOP = 0x5b,
         JUMPDEST = 0x5b,
-        BEGINSUB = 0x5c,
-        RETURNSUB = 0x5d,
-        JUMPSUB = 0x5e,
+        RJUMP = 0x5c, // RelativeStaticJumps
+        RJUMPI = 0x5d, // RelativeStaticJumps
+        RJUMPV = 0x5e, // RelativeStaticJumps
+        BEGINSUB = 0x5c, // SubroutinesEnabled
+        RETURNSUB = 0x5d, // SubroutinesEnabled
+        JUMPSUB = 0x5e, // SubroutinesEnabled
 
-        PUSH0 = 0x5f, // EIP-3855
+        PUSH0 = 0x5f, // IncludePush0Instruction
         PUSH1 = 0x60,
         PUSH2 = 0x61,
         PUSH3 = 0x62,
@@ -161,43 +166,56 @@ namespace Nethermind.Evm
         LOG4 = 0xa4,
 
         // EIP-1153
-        TLOAD = 0xb3,
-        TSTORE = 0xb4,
+        TLOAD = 0xb3, // TransientStorageEnabled
+        TSTORE = 0xb4, //TransientStorageEnabled
 
         CREATE = 0xf0,
         CALL = 0xf1,
+        CALLF = 0xb0, // FunctionSection
+        RETF = 0xb1, // FunctionSection
         CALLCODE = 0xf2,
         RETURN = 0xf3,
-        DELEGATECALL = 0xf4,
-        CREATE2 = 0xf5,
-        STATICCALL = 0xfa,
-        REVERT = 0xfd,
+        DELEGATECALL = 0xf4, // DelegateCallEnabled
+        CREATE2 = 0xf5, // Create2OpcodeEnabled
+        STATICCALL = 0xfa, // StaticCallEnabled
+        REVERT = 0xfd, // RevertOpcodeEnabled
         INVALID = 0xfe,
         SELFDESTRUCT = 0xff,
     }
 
     public static class InstructionExtensions
     {
-        public static int GetImmediateCount(this Instruction instruction)
+        public static int GetImmediateCount(this Instruction instruction, bool IsEofContext, byte jumpvCount = 0)
             => instruction switch
             {
+                Instruction.RJUMP or Instruction.RJUMPI => IsEofContext ? EvmObjectFormat.Eof1.TWO_BYTE_LENGTH : 0,
+                Instruction.RJUMPV => IsEofContext ? jumpvCount * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH + EvmObjectFormat.Eof1.ONE_BYTE_LENGTH : 0,
                 >= Instruction.PUSH0 and <= Instruction.PUSH32 => instruction - Instruction.PUSH0,
                 _ => 0
             };
         public static bool IsTerminating(this Instruction instruction) => instruction switch
         {
-            Instruction.INVALID or Instruction.STOP or Instruction.RETURN or Instruction.REVERT => true,
+            Instruction.RETF or Instruction.INVALID or Instruction.STOP or Instruction.RETURN or Instruction.REVERT => true,
             // Instruction.SELFDESTRUCT => true
             _ => false
         };
 
-        public static bool IsValid(this Instruction instruction)
+        public static bool IsValid(this Instruction instruction, bool IsEofContext)
         {
             if (!Enum.IsDefined(instruction))
             {
                 return false;
             }
-            return true;
+
+            return instruction switch
+            {
+                Instruction.PC => !IsEofContext,
+                Instruction.CALLCODE or Instruction.SELFDESTRUCT => !IsEofContext,
+                Instruction.JUMPI or Instruction.JUMP => !IsEofContext,
+                Instruction.CALLF or Instruction.RETF => IsEofContext,
+                Instruction.BEGINSUB or Instruction.RETURNSUB or Instruction.JUMPSUB => true,
+                _ => true
+            };
         }
 
         //Note() : Extensively test this, refactor it, 
@@ -264,6 +282,9 @@ namespace Nethermind.Evm
             Instruction.MSIZE => (0, 1, 0),
             Instruction.GAS => (0, 1, 0),
             Instruction.JUMPDEST => (0, 0, 0),
+            Instruction.RJUMP => (0, 0, 2),
+            Instruction.RJUMPI => (1, 0, 2),
+            Instruction.RJUMPV => (1, 0, 4),
             Instruction.DATAHASH => (1, 1, 0),
             >= Instruction.PUSH0 and <= Instruction.PUSH32 => (0, 1, instruction - Instruction.PUSH0),
             >= Instruction.DUP1 and <= Instruction.DUP16 => (instruction - Instruction.DUP1 + 1, instruction - Instruction.DUP1 + 2, 0),
@@ -273,6 +294,8 @@ namespace Nethermind.Evm
             Instruction.LOG2 => (4, 0, 0),
             Instruction.LOG3 => (5, 0, 0),
             Instruction.LOG4 => (6, 0, 0),
+            Instruction.CALLF => (0, 0, 2),
+            Instruction.RETF => (0, 0, 0),
             Instruction.CREATE => (3, 1, 0),
             Instruction.CALL => (7, 1, 0),
             Instruction.RETURN => (2, 0, 0),
@@ -290,9 +313,19 @@ namespace Nethermind.Evm
             return instruction switch
             {
                 Instruction.PREVRANDAO => isPostMerge ? "PREVRANDAO" : "DIFFICULTY",
+                Instruction.RJUMP => !spec.StaticRelativeJumpsEnabled ? "BEGINSUB" : "RJUMP",
+                Instruction.RJUMPI => spec.StaticRelativeJumpsEnabled ? "RJUMPI" : "RETURNSUB",
+                Instruction.RJUMPV => spec.StaticRelativeJumpsEnabled ? "RJUMPV" : "JUMPSUB",
+                Instruction.JUMPDEST => spec.FunctionSections ? "NOP" : "JUMPDEST",
                 _ => FastEnum.IsDefined(instruction) ? FastEnum.GetName(instruction) : null,
             };
         }
+
+        public static bool IsOnlyForEofBytecode(this Instruction instruction) => instruction switch
+        {
+            Instruction.RJUMP or Instruction.RJUMPI or Instruction.RJUMPV => true,
+            Instruction.RETF or Instruction.CALLF => true,
+            _ => false
+        };
     }
 }
-

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Threading;
@@ -14,6 +14,11 @@ namespace Nethermind.Specs.Forks
         {
             Name = "Cancun";
             IsEip1153Enabled = true;
+            IsEip3670Enabled = true;
+            IsEip3540Enabled = true;
+            IsEip4200Enabled = true;
+            IsEip4750Enabled = true;
+            IsEip5450Enabled = true;
             IsEip4844Enabled = true;
         }
 

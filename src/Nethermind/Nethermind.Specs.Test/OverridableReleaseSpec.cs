@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core;
@@ -97,7 +97,12 @@ namespace Nethermind.Specs.Test
 
         public bool IsEip2200Enabled => _spec.IsEip2200Enabled;
 
-        public bool IsEip2315Enabled => _spec.IsEip2315Enabled;
+        public bool? _IsEip2315Enabled = null;
+        public bool IsEip2315Enabled
+        {
+            get => _IsEip2315Enabled ?? _spec.IsEip2315Enabled;
+            set => _IsEip2315Enabled = value;
+        }
 
         public bool IsEip2537Enabled => _spec.IsEip2315Enabled;
 
@@ -115,10 +120,7 @@ namespace Nethermind.Specs.Test
         public bool IsEip4844Enabled => _spec.IsEip4844Enabled;
         public bool IsEip3607Enabled { get; set; }
 
-        public bool IsEip158IgnoredAccount(Address address)
-        {
-            return _spec.IsEip158IgnoredAccount(address);
-        }
+        public bool IsEip158IgnoredAccount(Address address) => _spec.IsEip158IgnoredAccount(address);
 
         private long? _overridenEip1559TransitionBlock;
         public long Eip1559TransitionBlock
@@ -151,6 +153,65 @@ namespace Nethermind.Specs.Test
         public bool IsEip3651Enabled => _spec.IsEip3651Enabled;
         public bool IsEip3855Enabled => _spec.IsEip3855Enabled;
         public bool IsEip3860Enabled => _spec.IsEip3860Enabled;
+
+        private bool? _overridenEip3540Status;
+        public bool IsEip3540Enabled
+        {
+            get => _overridenEip3540Status ?? _spec.IsEip3540Enabled;
+            set => _overridenEip3540Status = value;
+        }
+
+        private bool? _overridenEip3670Status;
+        public bool IsEip3670Enabled
+        {
+            get
+            {
+                return _overridenEip3670Status ?? _spec.IsEip3670Enabled;
+            }
+            set
+            {
+                _overridenEip3670Status = value;
+            }
+        }
+
+        private bool? _overridenEip4200Status;
+        public bool IsEip4200Enabled
+        {
+            get
+            {
+                return _overridenEip4200Status ?? _spec.IsEip4200Enabled;
+            }
+            set
+            {
+                _overridenEip4200Status = value;
+            }
+        }
+
+        private bool? _overridenEip4750Status;
+        public bool IsEip4750Enabled
+        {
+            get
+            {
+                return _overridenEip4750Status ?? _spec.IsEip4750Enabled;
+            }
+            set
+            {
+                _overridenEip4750Status = value;
+            }
+        }
+
+        private bool? _overridenEip5450Status;
+        public bool IsEip5450Enabled
+        {
+            get
+            {
+                return _overridenEip5450Status ?? _spec.IsEip5450Enabled;
+            }
+            set
+            {
+                _overridenEip5450Status = value;
+            }
+        }
         public bool IsEip4895Enabled => _spec.IsEip4895Enabled;
         public ulong WithdrawalTimestamp => _spec.WithdrawalTimestamp;
     }

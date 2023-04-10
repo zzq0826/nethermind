@@ -1,35 +1,34 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
-using Nethermind.Blockchain.Receipts;
-using Nethermind.Core;
-using Nethermind.Core.Extensions;
-using Nethermind.Core.Specs;
-using Nethermind.Specs;
-using Nethermind.Core.Test.Builders;
-using Nethermind.Int256;
-using Nethermind.JsonRpc.Modules.Eth;
-using Nethermind.JsonRpc.Modules.Trace;
-using Nethermind.Logging;
-using NUnit.Framework;
 using Nethermind.Blockchain.Find;
+using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Tracing;
 using Nethermind.Consensus.Validators;
+using Nethermind.Core;
+using Nethermind.Core.Extensions;
+using Nethermind.Core.Specs;
+using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Evm;
-using Nethermind.Serialization.Json;
-using Nethermind.Specs.Forks;
-using Nethermind.Specs.Test;
+using Nethermind.Int256;
 using Nethermind.JsonRpc.Data;
 using Nethermind.JsonRpc.Modules;
+using Nethermind.JsonRpc.Modules.Eth;
+using Nethermind.JsonRpc.Modules.Trace;
+using Nethermind.Logging;
+using Nethermind.Serialization.Json;
+using Nethermind.Specs;
+using Nethermind.Specs.Forks;
+using Nethermind.Specs.Test;
+using NUnit.Framework;
 
 namespace Nethermind.JsonRpc.Test.Modules
 {
@@ -614,8 +613,10 @@ namespace Nethermind.JsonRpc.Test.Modules
         public async Task trace_replayBlockTransactions_zeroGasUsed_test()
         {
             Context context = new();
-            OverridableReleaseSpec releaseSpec = new(London.Instance);
-            releaseSpec.Eip1559TransitionBlock = 1;
+            OverridableReleaseSpec releaseSpec = new(London.Instance)
+            {
+                Eip1559TransitionBlock = 1
+            };
             TestSpecProvider specProvider = new(releaseSpec);
             await context.Build(specProvider, isAura: true);
             TestRpcBlockchain blockchain = context.Blockchain;

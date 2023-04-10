@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Int256;
@@ -251,6 +251,32 @@ namespace Nethermind.Core.Specs
         bool IsEip3860Enabled { get; }
 
         /// <summary>
+        /// Sectioned bytecode 
+        /// </summary>
+        bool IsEip3540Enabled { get; }
+
+        /// <summary>
+        /// Strict bytecode validation 
+        /// </summary>
+        bool IsEip3670Enabled { get; }
+
+        /// <summary>
+        /// Static Relative Jumps
+        /// </summary>
+        bool IsEip4200Enabled { get; }
+
+        /// <summary>
+        /// Function Sections
+        /// </summary>
+        bool IsEip4750Enabled { get; }
+
+        /// <summary>
+        /// Stack Validation
+        /// </summary>
+        bool IsEip5450Enabled { get; }
+
+
+        /// <summary>
         /// Gets or sets a value indicating whether the
         /// <see href="https://eips.ethereum.org/EIPS/eip-4895">EIP-4895</see>
         /// validator withdrawals are enabled.
@@ -315,6 +341,9 @@ namespace Nethermind.Core.Specs
         public bool ShiftOpcodesEnabled => IsEip145Enabled;
 
         public bool SubroutinesEnabled => IsEip2315Enabled;
+        public bool StaticRelativeJumpsEnabled => IsEip4200Enabled;
+
+        public bool FunctionSections => IsEip4750Enabled;
 
         public bool RevertOpcodeEnabled => IsEip140Enabled;
 

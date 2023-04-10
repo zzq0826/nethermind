@@ -1,30 +1,55 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.CodeAnalysis;
+using Nethermind.Evm.EOF;
 
 namespace Nethermind.Evm
 {
     public static class CodeDepositHandler
     {
         private const byte InvalidStartingCodeByte = 0xEF;
+
         public static long CalculateCost(int byteCodeLength, IReleaseSpec spec)
         {
-            if (spec.LimitCodeSize && byteCodeLength > spec.MaxCodeSize)
-                return long.MaxValue;
-
-            return GasCostOf.CodeDeposit * byteCodeLength;
+            return spec.LimitCodeSize && byteCodeLength > spec.MaxCodeSize
+                ? long.MaxValue
+                : GasCostOf.CodeDeposit * byteCodeLength;
         }
 
-        public static bool CodeIsInvalid(IReleaseSpec spec, byte[] output)
+        public static bool CodeIsValid(ReadOnlySpan<byte> code, IReleaseSpec spec, int fromVersion)
         {
-            return spec.IsEip3541Enabled && output.Length >= 1 && output[0] == InvalidStartingCodeByte;
+            bool valid = true;
+            if (spec.IsEip3540Enabled)
+            {
+                //fromVersion = (execType is ExecutionType.Create1 or ExecutionType.Create2) ? fromVersion : 0; //// hmmmm
+                bool isCodeEof = EvmObjectFormat.IsEof(code);
+                int codeVersion = isCodeEof ? EvmObjectFormat.GetCodeVersion(code) : 0;
+                valid &= codeVersion >= fromVersion
+                      && (isCodeEof ?  // this needs test cases
+                           EvmObjectFormat.IsValidEof(code, out _) :
+                                fromVersion > 0 ? false : code is not [InvalidStartingCodeByte, ..]);
+            }
+            else if (spec.IsEip3541Enabled)
+            {
+                valid &= code is not [InvalidStartingCodeByte, ..];
+            }
+
+            return valid;
         }
 
-        public static bool CodeIsInvalid(IReleaseSpec spec, ReadOnlyMemory<byte> output)
+        public static bool CodeIsInvalid(ReadOnlySpan<byte> code, IReleaseSpec spec, int fromVersion) => !CodeIsValid(code, spec, fromVersion);
+
+        public static bool CreateCodeIsValid(ICodeInfo codeInfo, ReadOnlySpan<byte> initCode, IReleaseSpec spec)
         {
-            return spec.IsEip3541Enabled && output.Length >= 1 && output.StartsWith(InvalidStartingCodeByte);
+            if (spec.IsEip3540Enabled)
+            {
+                byte containerVersion = codeInfo.EofVersion();
+                return CodeIsValid(initCode, spec, containerVersion);
+            }
+            return true;
         }
     }
 }

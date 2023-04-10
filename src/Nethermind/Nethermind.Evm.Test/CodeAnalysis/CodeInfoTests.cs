@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using FluentAssertions;
 using Nethermind.Evm.CodeAnalysis;
+using Nethermind.Specs;
+using Nethermind.Specs.Forks;
 using NuGet.Frameworks;
 using NUnit.Framework;
 

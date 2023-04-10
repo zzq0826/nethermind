@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
@@ -299,7 +299,6 @@ namespace Nethermind.Evm.TransactionProcessing
             _stateProvider.SubtractFromBalance(caller, value, spec);
             byte statusCode = StatusCode.Failure;
             TransactionSubstate substate = null;
-
             Address? recipientOrNull = null;
             try
             {
@@ -331,7 +330,7 @@ namespace Nethermind.Evm.TransactionProcessing
                     inputData: data ?? Array.Empty<byte>(),
                     codeInfo: machineCode is null
                         ? _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec)
-                        : new CodeInfo(machineCode)
+                        : CodeInfoFactory.CreateCodeInfo(machineCode, spec)
                 );
                 ExecutionType executionType =
                     transaction.IsContractCreation ? ExecutionType.Create : ExecutionType.Transaction;
@@ -380,16 +379,17 @@ namespace Nethermind.Evm.TransactionProcessing
                             throw new OutOfGasException();
                         }
 
-                        if (CodeDepositHandler.CodeIsInvalid(spec, substate.Output))
-                        {
-                            throw new InvalidCodeException();
-                        }
-
                         if (unspentGas >= codeDepositGasCost)
                         {
                             Keccak codeHash = _stateProvider.UpdateCode(substate.Output);
                             _stateProvider.UpdateCodeHash(recipient, codeHash, spec);
                             unspentGas -= codeDepositGasCost;
+                        }
+
+                        if (CodeDepositHandler.CodeIsInvalid(substate.Output.Span, spec, substate.FromVersion))
+                        {
+                            _stateProvider.IncrementNonce(caller);
+                            throw new InvalidCodeException();
                         }
                     }
 
@@ -512,7 +512,7 @@ namespace Nethermind.Evm.TransactionProcessing
         {
             if (_stateProvider.AccountExists(contractAddress))
             {
-                CodeInfo codeInfo = _virtualMachine.GetCachedCodeInfo(_worldState, contractAddress, spec);
+                ICodeInfo codeInfo = _virtualMachine.GetCachedCodeInfo(_worldState, contractAddress, spec);
                 bool codeIsNotEmpty = codeInfo.MachineCode.Length != 0;
                 bool accountNonceIsNotZero = _stateProvider.GetNonce(contractAddress) != 0;
 

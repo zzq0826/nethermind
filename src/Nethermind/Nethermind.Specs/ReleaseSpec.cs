@@ -1,7 +1,6 @@
-// SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
@@ -66,6 +65,7 @@ namespace Nethermind.Specs
         public bool IsEip3529Enabled { get; set; }
         public bool IsEip3607Enabled { get; set; }
         public bool IsEip3541Enabled { get; set; }
+        public bool IsEip3540Enabled { get; set; }
         public bool ValidateChainId { get; set; }
         public bool ValidateReceipts { get; set; }
         public long Eip1559TransitionBlock { get; set; }
@@ -75,8 +75,12 @@ namespace Nethermind.Specs
         public UInt256? Eip1559BaseFeeMinValue { get; set; }
         public bool IsEip1153Enabled { get; set; }
         public bool IsEip3651Enabled { get; set; }
+        public bool IsEip3670Enabled { get; set; }
         public bool IsEip3855Enabled { get; set; }
         public bool IsEip3860Enabled { get; set; }
+        public bool IsEip4200Enabled { get; set; }
+        public bool IsEip4750Enabled { get; set; }
+        public bool IsEip5450Enabled { get; set; }
         public bool IsEip4895Enabled { get; set; }
         public bool IsEip4844Enabled { get; set; }
     }
