@@ -66,17 +66,16 @@ public class BorSystemTransactionProcessor : ITransactionProcessor
         Address recipient = transaction.To!;
         try
         {
-            ExecutionEnvironment env = new()
-            {
-                TxExecutionContext = new TxExecutionContext(block, transaction.SenderAddress!, UInt256.Zero, transaction.BlobVersionedHashes!),
-                Value = UInt256.Zero,
-                TransferValue = UInt256.Zero,
-                Caller = transaction.SenderAddress!,
-                CodeSource = recipient,
-                ExecutingAccount = recipient,
-                InputData = transaction.Data,
-                CodeInfo = _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec),
-            };
+            ExecutionEnvironment env = new(
+                _virtualMachine.GetCachedCodeInfo(_worldState, recipient, spec),
+                recipient,
+                transaction.SenderAddress!,
+                recipient,
+                transaction.Data,
+                new TxExecutionContext(block, transaction.SenderAddress!, UInt256.Zero, transaction.BlobVersionedHashes!),
+                UInt256.Zero,
+                UInt256.Zero
+            );
 
             using (EvmState state = new(transaction.GasLimit, env, ExecutionType.Transaction, true, snapshot, false))
             {
