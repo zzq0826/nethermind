@@ -61,6 +61,8 @@ public class BorBlockProcessor : BlockProcessor
 
     protected override TxReceipt[] ProcessBlock(Block block, IBlockTracer blockTracer, ProcessingOptions options)
     {
+        System.Console.WriteLine($"Processing block {block.ToString(Block.Format.HashNumberAndTx)}");
+
         if (block.IsGenesis)
             return base.ProcessBlock(block, blockTracer, options);
 
