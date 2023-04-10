@@ -165,7 +165,8 @@ public class BorTxTransferLogTracer : ITxTracer
         UInt256 input1 = output1 + value;
         UInt256 output2 = input2 + value;
 
-        LogEntry log = BuildTransferLog(_transferEventSig, from, to, value, input1, input2, output1, output2);
+        LogEntry log = from != to ? BuildTransferLog(_transferEventSig, from, to, value, input1, input2, output1, output2)
+                                    : BuildTransferLog(_transferEventSig, from, to, value, input1, input1, output2, output2);
 
         _logs.Add((_logCount, log));
     }
