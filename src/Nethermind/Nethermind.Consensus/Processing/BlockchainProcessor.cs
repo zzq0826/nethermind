@@ -259,6 +259,7 @@ namespace Nethermind.Consensus.Processing
 
             foreach (BlockRef blockRef in _blockQueue.GetConsumingEnumerable(_loopCancellationSource.Token))
             {
+                bool finish = false;
                 try
                 {
                     if (blockRef.IsInDb || blockRef.Block is null)
@@ -289,6 +290,7 @@ namespace Nethermind.Consensus.Processing
                 {
                     if (_logger.IsWarn) _logger.Warn($"Processing loop threw an exception. Block: {blockRef}, Exception: {exception}");
                     BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception, exception));
+                    finish = true;
                 }
                 finally
                 {
@@ -297,6 +299,7 @@ namespace Nethermind.Consensus.Processing
 
                 if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
                 FireProcessingQueueEmpty();
+                if (finish) break;
             }
 
             if (_logger.IsInfo) _logger.Info("Block processor queue stopped.");
