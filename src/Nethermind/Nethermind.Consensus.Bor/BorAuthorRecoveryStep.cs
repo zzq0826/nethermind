@@ -79,32 +79,6 @@ public class BorAuthorRecoveryStep : IBlockPreprocessorStep
         if (header.Number >= (_params.JaipurBlockNumber ?? long.MaxValue))
             encoding.Add(Rlp.Encode(header.BaseFeePerGas));
 
-        // string[] names = {
-        //     "header.ParentHash",
-        //     "header.UnclesHash",
-        //     "header.Beneficiary",
-        //     "header.StateRoot",
-        //     "header.TxRoot",
-        //     "header.ReceiptsRoot",
-        //     "header.Bloom",
-        //     "header.Difficulty",
-        //     "header.Number",
-        //     "header.GasLimit",
-        //     "header.GasUsed",
-        //     "header.Timestamp",
-        //     "header.ExtraData[..^(header.ExtraData.Length-ExtraSeal)]",
-        //     "header.MixHash",
-        //     "header.Nonce",
-        //     "header.BaseFeePerGas"
-        // };
-
-        // Console.WriteLine($"------------------ Header Encoding {header.Number} ------------------");
-        // for (int i = 0; i < encoding.Count; i++)
-        // {
-        //     Console.WriteLine($"{names[i]}: {encoding[i]}");
-        // }
-        // Console.WriteLine($"---------------------------------------------------------------------");
-
         return Keccak.Compute(Rlp.Encode(encoding.ToArray()).Bytes);
     }
 }
