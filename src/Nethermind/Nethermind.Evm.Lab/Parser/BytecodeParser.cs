@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using NUnit.Framework;
 
@@ -16,8 +17,8 @@ namespace Nethermind.Evm.Lab.Parser;
 public record Immediate(int size, byte[] value);
 public record Instruction(int idx, Evm.Instruction opcode, Immediate? arg = null)
 {
-    public override string ToString()
-        => $"{opcode} {(arg is null ? string.Empty : arg?.value?.ToHexString(true))}";
+    public string ToString(IReleaseSpec spec)
+        => $"{opcode.GetName(spec.IncludePush0Instruction, spec)} {(arg is null ? string.Empty : arg?.value?.ToHexString(true))}";
 }
 internal class BytecodeParser
 {
@@ -37,29 +38,34 @@ internal class BytecodeParser
                 {
                     parsed.Add(new Instruction(idx, opcode, new Immediate(immCount, Bytes.FromHexString(tokens[i++]))));
                     idx += immCount;
-                } else
+                }
+                else
                 {
                     parsed.Add(new Instruction(idx, opcode));
                 }
-            } else throw new InvalidCodeException();
+            }
+            else
+            {
+                throw new InvalidCodeException();
+            }
         }
         return parsed;
     }
 
-    public static IReadOnlyList<Instruction> Dissassemble(byte[] bytecode)
+    public static IReadOnlyList<Instruction> Dissassemble(bool isEof, ReadOnlySpan<byte> bytecode)
     {
         var opcodes = new List<Instruction>();
-
         for (int i = 0; i < bytecode.Length; i++)
         {
             var instruction = (Evm.Instruction)bytecode[i];
-            if (!instruction.IsValid())
+            if (!instruction.IsValid(isEof))
             {
-                throw new InvalidOperationException();
+                opcodes.Add(new Instruction(i, Evm.Instruction.INVALID));
+                continue;
             }
-            int immediatesCount = instruction.GetImmediateCount();
-            byte[] immediates = bytecode.Slice(i + 1, immediatesCount);
-            opcodes.Add(new Instruction(i, instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates)));
+            int immediatesCount = instruction.GetImmediateCount(isEof, instruction is Evm.Instruction.RJUMPV ? bytecode[i+1] : (byte)0);
+            ReadOnlySpan<byte> immediates = bytecode.Slice(i + 1, immediatesCount);
+            opcodes.Add(new Instruction(i, instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
             i += immediatesCount;
         }
         return opcodes;
@@ -82,8 +88,8 @@ public static class Extension
         }).ToArray();
     }
 
-    public static string ToMultiLineString(this IReadOnlyList<Instruction> opcodes)
+    public static string ToMultiLineString(this IReadOnlyList<Instruction> opcodes, IReleaseSpec spec)
     {
-        return String.Join("\n", opcodes.Select(instr => instr.ToString()));
+        return String.Join("\n", opcodes.Select(instr => instr.ToString(spec)));
     }
 }

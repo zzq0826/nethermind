@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core.Specs;
+using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Test;
 using Nethermind.Evm.Tracing.GethStyle;
@@ -22,6 +23,7 @@ namespace MachineState.Actions
     public record ThrowError(string error) : ActionsBase;
     public record SetGasMode(bool ignore, long gasValue) : ActionsBase;
     public record RunBytecode : ActionsBase;
+    public record Reset : ActionsBase;
 
 }
 
@@ -60,7 +62,7 @@ namespace Nethermind.Evm.Lab
         public long AvailableGas { get; set; }
         public IReleaseSpec SelectedFork { get; set; }
 
-        public byte[] Bytecode { get; set; }
+        public ICodeInfo RuntimeContext { get; set; }
         public byte[] CallData { get; set; }
 
         public MachineState Next()

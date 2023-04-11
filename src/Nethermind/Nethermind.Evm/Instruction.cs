@@ -191,6 +191,7 @@ namespace Nethermind.Evm
                 Instruction.RJUMP or Instruction.RJUMPI => IsEofContext ? EvmObjectFormat.Eof1.TWO_BYTE_LENGTH : 0,
                 Instruction.RJUMPV => IsEofContext ? jumpvCount * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH + EvmObjectFormat.Eof1.ONE_BYTE_LENGTH : 0,
                 >= Instruction.PUSH0 and <= Instruction.PUSH32 => instruction - Instruction.PUSH0,
+                Instruction.CALLF => IsEofContext ? EvmObjectFormat.Eof1.TWO_BYTE_LENGTH : 0,
                 _ => 0
             };
         public static bool IsTerminating(this Instruction instruction) => instruction switch

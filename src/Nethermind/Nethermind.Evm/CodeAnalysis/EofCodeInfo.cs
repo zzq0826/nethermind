@@ -10,7 +10,7 @@ namespace Nethermind.Evm.CodeAnalysis;
 public class EofCodeInfo : ICodeInfo
 {
     private readonly CodeInfo _codeInfo;
-    private readonly EofHeader _header;
+    internal readonly EofHeader _header;
     private ICodeInfoAnalyzer? _analyzer;
     public byte[] MachineCode => _codeInfo.MachineCode;
     public IPrecompile? Precompile => _codeInfo.Precompile;

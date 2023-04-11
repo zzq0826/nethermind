@@ -10,6 +10,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 
 [assembly: InternalsVisibleTo("Nethermind.EofParser")]
+[assembly: InternalsVisibleTo("Nethermind.Evm.Lab")]
 
 namespace Nethermind.Evm.EOF;
 

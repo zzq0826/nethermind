@@ -1,49 +1,222 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
 using MachineState.Actions;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.CodeAnalysis;
+using Nethermind.Evm.EOF;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Nethermind.Specs;
 using Terminal.Gui;
+using static Nethermind.Evm.Test.EofTestsBase;
 
 namespace Nethermind.Evm.Lab.Components.MachineLab;
 internal class MnemonicInput : IComponent<MachineState>
 {
+    private class CodeSection
+    {
+        public CodeSection(int iCount, int oCount, int sHeight)
+            => (inCount, outCount, stackMax) = (iCount, oCount, sHeight);
+        public int inCount = 0;
+        public int outCount = 0;
+        public int stackMax = 0;
+        public string Body = string.Empty;
+    }
+    // keep view static and swap state instead 
     bool isCached = false;
     private Dialog? container = null;
-    private TextView? inputField= null;
+    private CheckBox? eofModeSelection= null;
+    private List<CodeSection>? sectionsField= null;
+    private TabView? tabView = null;
     private (Button submit, Button cancel) buttons;
-    public event Action<byte[]> BytecodeChanged; 
+    private (Button add, Button remove) actions;
+    public event Action<byte[]> BytecodeChanged;
+    bool isEofMode = false;
+    private TextView CreateNewFunctionPage(bool select = true)
+    {
+        if (sectionsField is null || tabView is null || sectionsField.Count == 23)
+            throw new System.Diagnostics.UnreachableException();
+        var newCodeSection = new CodeSection(0, 0, 0);
+        var container = new FrameView()
+        {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+            Border = new Border(),
+        };
+
+        var inLabel = new Terminal.Gui.Label("Inputs Count")
+        {
+            Width = Dim.Percent(30)
+        };
+        var inputCountField = new Terminal.Gui.TextField("0")
+        {
+            X = Pos.X(inLabel),
+            Y = Pos.Bottom(inLabel),
+            Width = Dim.Percent(30),
+            Height = Dim.Percent(10),
+            Border = new Border(),
+            ColorScheme = Colors.Dialog
+        };
+        inputCountField.TextChanged += (e) =>
+        {
+            int count = Int32.Parse((string)inputCountField.Text); // Note(Ayman) : handle the case e is not a number
+            newCodeSection.inCount = count;
+        };
+
+        var outLabel = new Terminal.Gui.Label("Outputs Count")
+        {
+            X = Pos.Right(inLabel) + 2,
+            Width = Dim.Percent(30)
+        };
+        var outputCountField = new Terminal.Gui.TextField("0")
+        {
+            X = Pos.X(outLabel),
+            Y = Pos.Bottom(outLabel),
+            Width = Dim.Percent(30),
+            Height = Dim.Percent(10),
+            Border = new Border(),
+            ColorScheme = Colors.Base
+        };
+        outputCountField.TextChanged += (e) =>
+        {
+            int count = Int32.Parse((string)outputCountField.Text); // Note(Ayman) : handle the case e is not a number
+            newCodeSection.outCount = count;
+        };
+
+        var maxLabel = new Terminal.Gui.Label("Max Stack Height")
+        {
+            X = Pos.Right(outLabel) + 2,
+            Width = Dim.Percent(30)
+        };
+        var stackHeightField = new Terminal.Gui.TextField("0")
+        {
+            X = Pos.X(maxLabel),
+            Y = Pos.Bottom(maxLabel),
+            Width = Dim.Percent(30),
+            Height = Dim.Percent(10),
+            Border = new Border(),
+            ColorScheme = Colors.TopLevel
+        };
+        stackHeightField.TextChanged += (e) =>
+        {
+            int count = Int32.Parse((string)stackHeightField.Text); // Note(Ayman) : handle the case e is not a number
+            newCodeSection.stackMax = count;
+        };
+
+        var inputBodyField = new Terminal.Gui.TextView
+        {
+            Y = Pos.Bottom(stackHeightField),
+            Width = Dim.Fill(),
+            Height = Dim.Percent(90),
+            ColorScheme = Colors.Base,
+        };
+        inputBodyField.Initialized += (s, e) =>
+        {
+            newCodeSection.Body = (string)inputBodyField.Text;
+        };
+        inputBodyField.KeyPress += (e) =>
+        {
+            newCodeSection.Body = (string)inputBodyField.Text;
+        };
+
+        container.Add(
+            inLabel, outLabel, maxLabel,
+            inputCountField,
+            outputCountField,
+            stackHeightField,
+            inputBodyField
+        );
+
+        var currentTab = new TabView.Tab($"{sectionsField.Count}", container);
+        sectionsField.Add(newCodeSection);
+        tabView.AddTab(currentTab, select);
+        return inputBodyField;
+    }
+
+    private void RemoveSelectedFunctionPage()
+    {
+        if (sectionsField is null || tabView is null || sectionsField.Count == 1)
+            return;
+
+        int indexOf = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab); // ugly code veeeeeery ugly
+        sectionsField.RemoveAt(indexOf);
+        tabView.RemoveTab(tabView.SelectedTab); 
+    }
+
+    private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
+    {
+        byte[] bytecode = Array.Empty<byte>();
+        if(!isEofContext)
+        {
+            bytecode = BytecodeParser.Parse(sectionsField[0].Body.Trim()).ToByteArray();
+        } else
+        {
+            var scenario = new ScenarioCase(sectionsField.Select(field => new FunctionCase(field.inCount, field.outCount, field.stackMax, BytecodeParser.Parse(field.Body.Trim()).ToByteArray())).ToArray(), Array.Empty<byte>());
+            bytecode = scenario.Bytecode;
+        }
+        BytecodeChanged?.Invoke(bytecode);
+        EventsSink.EnqueueEvent(new BytecodeInsertedB(bytecode), true);
+    } 
+
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();
 
 
-        var bytecodeMnemonics = BytecodeParser.Dissassemble(innerState.Bytecode).ToMultiLineString();
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? Pos.Center(),
                 Y: rect?.Y ?? Pos.Center(),
-                Width: rect?.Width ?? Dim.Percent(20),
+                Width: rect?.Width ?? Dim.Percent(25),
                 Height: rect?.Height ?? Dim.Percent(75)
             );
 
-        inputField ??= new Terminal.Gui.TextView
+        eofModeSelection ??= new CheckBox("Is Eof Mode Enabled", innerState.SelectedFork.IsEip3540Enabled)
         {
             Width = Dim.Fill(),
-            Height = Dim.Fill(2),
-            Border = new Border()
+            Height = Dim.Percent(5),
+            Checked = isEofMode
         };
-        inputField.Text = bytecodeMnemonics;
 
+        tabView ??= new TabView()
+        {
+            Y = Pos.Bottom(eofModeSelection),
+            Width = Dim.Fill(),
+            Height = Dim.Percent(95),
+        };
 
+        if (innerState.RuntimeContext is EofCodeInfo)
+        {
+            var eofCodeInfo = (EofCodeInfo)innerState.RuntimeContext;
+            sectionsField = new List<CodeSection>(eofCodeInfo._header.CodeSections.Length);
+            for(int i = 0; i <  eofCodeInfo._header.CodeSections.Length; i++)
+            {
+                var bodyInputFieldRef = CreateNewFunctionPage(i == 0);
+                var codeSectionOffsets = eofCodeInfo._header.CodeSections[i];
+                var bytecodeMnemonics = BytecodeParser.Dissassemble(true, innerState.RuntimeContext.MachineCode[codeSectionOffsets.Start..codeSectionOffsets.EndOffset])
+                    .ToMultiLineString(innerState.SelectedFork);
+                bodyInputFieldRef.Text = bytecodeMnemonics;
+            }
+        } else
+        {
+            sectionsField = new List<CodeSection>();
+            var bodyInputFieldRef = CreateNewFunctionPage();
+            var bytecodeMnemonics = BytecodeParser.Dissassemble(false, innerState.RuntimeContext.CodeSection.Span)
+                .ToMultiLineString(innerState.SelectedFork);
+            bodyInputFieldRef.Text = bytecodeMnemonics;
+        }
+
+        actions.add ??= new Button("Add");
+        actions.remove ??= new Button("Remove");
         buttons.submit ??= new Button("Submit");
         buttons.cancel ??= new Button("Cancel");
-        container ??= new Dialog("Eip Selection Panel", 60, 7, buttons.submit, buttons.cancel)
+        container ??= new Dialog("Bytecode Insertion View", 100, 7, actions.add, actions.remove, buttons.submit, buttons.cancel)
         {
             X = frameBoundaries.X,
             Y = frameBoundaries.Y,
@@ -54,19 +227,26 @@ internal class MnemonicInput : IComponent<MachineState>
 
         if (!isCached)
         {
-            container.Add(inputField);
+            container.Add(eofModeSelection, tabView); 
             buttons.submit.Clicked += () =>
             {
                 try
                 {
-                    var newBytecode = BytecodeParser.Parse((string)inputField.Text.TrimSpace()).ToByteArray();
-                    BytecodeChanged?.Invoke(newBytecode);
-                    EventsSink.EnqueueEvent(new BytecodeInsertedB(newBytecode));
+
+                    if (!isEofMode && sectionsField.Count > 1)
+                        throw new Exception("Cannot have more than one code section in non-Eof code");
+
+                    SubmitBytecodeChanges(isEofMode, sectionsField);
+                    Application.RequestStop();
                 } catch (Exception ex)
                 {
-                    EventsSink.EnqueueEvent(new ThrowError("Error parsing Mnemonics"));
+                    MainView.ShowError(ex.Message);
                 }
-                Application.RequestStop();
+            };
+
+            eofModeSelection.Toggled += (e) =>
+            {
+                eofModeSelection.Checked = isEofMode = eofModeSelection.Checked && innerState.SelectedFork.IsEip3540Enabled;
             };
 
             buttons.cancel.Clicked += () =>
@@ -74,6 +254,9 @@ internal class MnemonicInput : IComponent<MachineState>
                 Application.RequestStop();
             };
 
+            actions.add.Clicked += () => CreateNewFunctionPage(true);
+
+            actions.remove.Clicked += RemoveSelectedFunctionPage;
         }
         isCached = true;
 

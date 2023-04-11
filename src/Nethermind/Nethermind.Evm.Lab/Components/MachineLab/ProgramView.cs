@@ -3,6 +3,7 @@
 
 using System.Data;
 using Nethermind.Core.Extensions;
+using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Terminal.Gui;
@@ -16,7 +17,8 @@ internal class ProgramView : IComponent<MachineState>
     
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
-        var dissassembledBytecode = BytecodeParser.Dissassemble(state.GetState().Bytecode);
+        var innerState = state.GetState();
+        var dissassembledBytecode = BytecodeParser.Dissassemble(innerState.RuntimeContext is EofCodeInfo, innerState.RuntimeContext.CodeSection.Span);
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -35,9 +37,13 @@ internal class ProgramView : IComponent<MachineState>
         var dataTable = new DataTable();
         dataTable.Columns.Add("Position");
         dataTable.Columns.Add("Operation");
+        int selectedRow = 0;
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add(instr.idx, instr.ToString());
+            dataTable.Rows.Add(instr.idx, instr.ToString(state.GetState().SelectedFork));
+            selectedRow += instr.idx < innerState.Entries[innerState.Index].Pc ? 1 : 0;
+
+
         }
 
         programView ??= new TableView()
@@ -48,7 +54,7 @@ internal class ProgramView : IComponent<MachineState>
             Height = Dim.Percent(80),
         };
         programView.Table = dataTable;
-        programView.SelectedRow = state.GetState().Index;
+        programView.SelectedRow = selectedRow;
 
         if (!isCached)
         {

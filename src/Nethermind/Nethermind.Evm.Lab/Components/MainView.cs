@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using MachineState.Actions;
+using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Componants;
 using Nethermind.Evm.Lab.Components.GlobalViews;
 using Nethermind.Evm.Lab.Components.MachineLab;
@@ -12,27 +13,21 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components;
 internal class MainView : IComponent<MachineState>
 {
+    private string initialCmdArgument;
+
     private EthereumRestrictedInstance context = new(Cancun.Instance);
     private GethLikeTxTracer _tracer => new(GethTraceOptions.Default);
-    private PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+    private PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1));
     private Window MainPanel = new Window("EvmLaboratory");
     public MachineState InitialState;
 
-    public GethLikeTxTrace? defaultValue;
+    public MachineState? defaultValue;
     public bool isCached = false;
     public IComponent<MachineState>[] _components;
     public MainView(string pathOrBytecode)
     {
-        byte[] bytecode = Core.Extensions.Bytes.FromHexString(Uri.IsWellFormedUriString(pathOrBytecode, UriKind.Absolute) ? File.OpenText(pathOrBytecode).ReadToEnd() : pathOrBytecode);
-
-        var resultTraces = context.Execute(_tracer, long.MaxValue, bytecode);
-        InitialState = new MachineState()
-        {
-            Bytecode = bytecode,
-            CallData = Array.Empty<byte>(),
-        };
-        defaultValue = resultTraces.BuildResult();
-        EventsSink.EnqueueEvent(new UpdateState(defaultValue));
+        initialCmdArgument = pathOrBytecode;
+        InitialState = Initialize(new MachineState());
 
         _components = new IComponent<MachineState>[]{
             new HeaderView(),
@@ -47,25 +42,55 @@ internal class MainView : IComponent<MachineState>
         };
     }
 
+    public MachineState Initialize(MachineState state)
+    {
+        byte[] bytecode = Core.Extensions.Bytes.FromHexString(Uri.IsWellFormedUriString(initialCmdArgument, UriKind.Absolute) ? File.OpenText(initialCmdArgument).ReadToEnd() : initialCmdArgument);
+
+        state.RuntimeContext = CodeInfoFactory.CreateCodeInfo(bytecode, InitialState?.SelectedFork ?? Cancun.Instance);
+        state.CallData = Array.Empty<byte>();
+        var resultTraces = context.Execute(_tracer, long.MaxValue, bytecode).BuildResult();
+        EventsSink.EnqueueEvent(new UpdateState(resultTraces), true);
+        return state;
+    }
+    public static Dialog ShowError(string mesg, Action? cancelHandler = null)
+    {
+        var cancel = new Button("OK")
+        {
+            X = Pos.Center(),
+            Y = Pos.AnchorEnd(5)
+        };
+
+        if(cancelHandler is not null)
+            cancel.Clicked += cancelHandler;
+
+        var dialog = new Dialog("Error", 60, 7, cancel)
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            Width = Dim.Percent(25),
+            Height = Dim.Percent(25),
+            ColorScheme = Colors.TopLevel,
+        };
+        cancel.Clicked += () => dialog.RequestStop();
+
+        var entry = new TextView()
+        {
+            X = 1,
+            Y = 1,
+            Width = Dim.Fill(),
+            Height = Dim.Percent(50),
+            Enabled = false,
+            Text = mesg,
+            WordWrap = true,
+        };
+        dialog.Add(entry);
+        Application.Run(dialog);
+        return dialog;
+    }
     public void Run(MachineState _)
     {
         bool firstRender = true;
-        static void ShowError(string mesg, Action handler)
-        {
-            var cancel = new Button(10, 14, "OK");
-            cancel.Clicked += handler;
-            var dialog = new Dialog("Error", 60, 7, cancel);
-
-            var entry = new Label(mesg)
-            {
-                X = 1,
-                Y = 1,
-                Width = Dim.Fill(),
-                Height = 1
-            };
-            dialog.Add(entry);
-            Application.Run(dialog);
-        }
+        
 
         HookKeyboardEvents();
         Application.Init();
@@ -90,10 +115,12 @@ internal class MainView : IComponent<MachineState>
                             }
                             catch (Exception ex)
                             {
-                                ShowError(ex.Message, () =>
-                                {
-                                    EventsSink.EnqueueEvent(new UpdateState(defaultValue));
-                                });
+                                var dialogView = ShowError(ex.Message,
+                                    () =>
+                                    {
+                                        EventsSink.EnqueueEvent(new Reset());
+                                    }
+                                );
                             }
                         }
                     }
@@ -191,7 +218,7 @@ internal class MainView : IComponent<MachineState>
                 }
             case BytecodeInsertedB biMsg:
                 {
-                    state.GetState().Bytecode = biMsg.bytecode;
+                    state.GetState().RuntimeContext = CodeInfoFactory.CreateCodeInfo(biMsg.bytecode, state.GetState().SelectedFork);
                     EventsSink.EnqueueEvent(new RunBytecode(), true);
                     break;
                 }
@@ -225,9 +252,13 @@ internal class MainView : IComponent<MachineState>
             case RunBytecode _:
                 {
                     var localTracer = _tracer;
-                    context.Execute(localTracer, state.GetState().AvailableGas, state.GetState().Bytecode);
+                    context.Execute(localTracer, state.GetState().AvailableGas, state.GetState().RuntimeContext.MachineCode);
                     EventsSink.EnqueueEvent(new UpdateState(localTracer.BuildResult()), true);
                     break;
+                }
+            case Reset _:
+                {
+                    return Initialize(state.GetState());
                 }
             case ThrowError errMsg:
                 {

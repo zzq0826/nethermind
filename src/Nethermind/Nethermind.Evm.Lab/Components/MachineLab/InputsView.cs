@@ -39,7 +39,7 @@ internal class InputsView : IComponent<MachineState>
             Width = Dim.Fill(),
             Height = Dim.Percent(10)
         };
-        bytecodeInputField ??= new TextField(state.GetState().Bytecode.ToHexString(true))
+        bytecodeInputField ??= new TextField(state.GetState().RuntimeContext.MachineCode.ToHexString(true))
         {
             Y = Pos.Bottom(label_bytecode),
             Width = Dim.Percent(80),
