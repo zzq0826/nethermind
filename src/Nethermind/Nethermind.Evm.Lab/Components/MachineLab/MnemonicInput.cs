@@ -63,10 +63,10 @@ internal class MnemonicInput : IComponent<MachineState>
             Border = new Border(),
             ColorScheme = Colors.Dialog
         };
+        inputCountField.AddFilter((_) => !isEofMode);
         inputCountField.TextChanged += (e) =>
         {
-            if (Int32.TryParse((string)inputCountField.Text, out int value))
-            {
+            if (Int32.TryParse((string)inputCountField.Text, out int value)) {
                 newCodeSection.inCount = value;
             } else newCodeSection.inCount = 0;
         };
@@ -85,10 +85,11 @@ internal class MnemonicInput : IComponent<MachineState>
             Border = new Border(),
             ColorScheme = Colors.Base
         };
+        outputCountField.AddFilter((_) => !isEofMode);
         outputCountField.TextChanged += (e) =>
         {
-            if (Int32.TryParse((string)outputCountField.Text, out int value))
-            {
+            if (!isEofMode) return;
+            if (Int32.TryParse((string)outputCountField.Text, out int value)) {
                 newCodeSection.outCount = value;
             } else newCodeSection.outCount = 0;
         };
@@ -107,7 +108,9 @@ internal class MnemonicInput : IComponent<MachineState>
             Border = new Border(),
             ColorScheme = Colors.TopLevel
         };
+        stackHeightField.AddFilter((_) => !isEofMode);
         stackHeightField.TextChanged += (e) => {
+            if (!isEofMode) return;
             if(Int32.TryParse((string)stackHeightField.Text, out int value)) {
                 newCodeSection.stackMax = value;
             } else newCodeSection.stackMax = 0;
