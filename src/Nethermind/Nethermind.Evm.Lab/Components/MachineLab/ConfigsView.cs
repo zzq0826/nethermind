@@ -5,6 +5,7 @@ using System.Reflection;
 using MachineState.Actions;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Lab.Interfaces;
+using Nethermind.Evm.Test;
 using Nethermind.Specs.Forks;
 using Terminal.Gui;
 
@@ -59,7 +60,7 @@ internal class ConfigsView : IComponent<MachineState>
             Y = Pos.Bottom(forksChoice),
             Width = Dim.Fill(),
         };
-        gasValueInput ??= new NumberInputField()
+        gasValueInput ??= new NumberInputField(VirtualMachineTestsBase.DefaultBlockGasLimit)
         {
             Y = Pos.Bottom(label_gasSetter),
             Width = Dim.Fill(),

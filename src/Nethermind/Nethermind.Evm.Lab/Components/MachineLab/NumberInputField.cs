@@ -12,6 +12,7 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components.MachineLab;
 internal class NumberInputField : TextField
 {
+    public NumberInputField(long defaultValue) : base(defaultValue.ToString()) { }
     public override TextChangingEventArgs OnTextChanging(ustring newText)
     {
         if (newText.Where(c => Char.IsAsciiLetter((char)c)).Any())

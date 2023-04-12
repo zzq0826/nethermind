@@ -54,7 +54,7 @@ internal class MnemonicInput : IComponent<MachineState>
         {
             Width = Dim.Percent(30)
         };
-        var inputCountField = new Terminal.Gui.TextField("0")
+        var inputCountField = new NumberInputField(0)
         {
             X = Pos.X(inLabel),
             Y = Pos.Bottom(inLabel),
@@ -65,8 +65,10 @@ internal class MnemonicInput : IComponent<MachineState>
         };
         inputCountField.TextChanged += (e) =>
         {
-            int count = Int32.Parse((string)inputCountField.Text); // Note(Ayman) : handle the case e is not a number
-            newCodeSection.inCount = count;
+            if (Int32.TryParse((string)inputCountField.Text, out int value))
+            {
+                newCodeSection.inCount = value;
+            } else newCodeSection.inCount = 0;
         };
 
         var outLabel = new Terminal.Gui.Label("Outputs Count")
@@ -74,7 +76,7 @@ internal class MnemonicInput : IComponent<MachineState>
             X = Pos.Right(inLabel) + 2,
             Width = Dim.Percent(30)
         };
-        var outputCountField = new Terminal.Gui.TextField("0")
+        var outputCountField = new NumberInputField(0)
         {
             X = Pos.X(outLabel),
             Y = Pos.Bottom(outLabel),
@@ -85,8 +87,10 @@ internal class MnemonicInput : IComponent<MachineState>
         };
         outputCountField.TextChanged += (e) =>
         {
-            int count = Int32.Parse((string)outputCountField.Text); // Note(Ayman) : handle the case e is not a number
-            newCodeSection.outCount = count;
+            if (Int32.TryParse((string)outputCountField.Text, out int value))
+            {
+                newCodeSection.outCount = value;
+            } else newCodeSection.outCount = 0;
         };
 
         var maxLabel = new Terminal.Gui.Label("Max Stack Height")
@@ -94,7 +98,7 @@ internal class MnemonicInput : IComponent<MachineState>
             X = Pos.Right(outLabel) + 2,
             Width = Dim.Percent(30)
         };
-        var stackHeightField = new Terminal.Gui.TextField("0")
+        var stackHeightField = new NumberInputField(0)
         {
             X = Pos.X(maxLabel),
             Y = Pos.Bottom(maxLabel),
@@ -103,10 +107,10 @@ internal class MnemonicInput : IComponent<MachineState>
             Border = new Border(),
             ColorScheme = Colors.TopLevel
         };
-        stackHeightField.TextChanged += (e) =>
-        {
-            int count = Int32.Parse((string)stackHeightField.Text); // Note(Ayman) : handle the case e is not a number
-            newCodeSection.stackMax = count;
+        stackHeightField.TextChanged += (e) => {
+            if(Int32.TryParse((string)stackHeightField.Text, out int value)) {
+                newCodeSection.stackMax = value;
+            } else newCodeSection.stackMax = 0;
         };
 
         var inputBodyField = new Terminal.Gui.TextView
@@ -146,7 +150,7 @@ internal class MnemonicInput : IComponent<MachineState>
 
         int indexOf = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab); // ugly code veeeeeery ugly
         sectionsField.RemoveAt(indexOf);
-        tabView.RemoveTab(tabView.SelectedTab); 
+        tabView.RemoveTab(tabView.SelectedTab);
     }
 
     private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
