@@ -13,14 +13,14 @@ namespace Nethermind.Evm.Lab.Components.MachineLab;
 
 internal class FilteredInputField : TextField
 {
-    protected Func<ustring,bool> _filter = bool (ustring _) => true;
+    protected List<Func<ustring,bool>> _filters = new();
     public FilteredInputField(ustring defaultValue) : base(defaultValue.ToString()) { }
     public FilteredInputField(Func<ustring, bool> filter, ustring defaultValue) : base(defaultValue)
-        => _filter = filter;
+        => _filters.Add(filter);
 
     public override TextChangingEventArgs OnTextChanging(ustring newText)
     {
-        if (_filter(newText))
+        if (_filters.Any(filter => filter(newText)))
             return new TextChangingEventArgs(this.Text);
         return base.OnTextChanging(newText);
     }
@@ -28,12 +28,8 @@ internal class FilteredInputField : TextField
 internal class NumberInputField : FilteredInputField
 {
     public NumberInputField(long defaultValue) : base(defaultValue.ToString())
-    {
-        _filter = bool (ustring s) => s.Where(c => Char.IsAsciiLetter((char)c)).Any();
-    }
+        => _filters.Add(bool (ustring s) => s.Where(c => Char.IsAsciiLetter((char)c)).Any());
 
     public void AddFilter(Func<ustring, bool> filter)
-    {
-        _filter += filter; 
-    }
+        => _filters.Add(filter); 
 }

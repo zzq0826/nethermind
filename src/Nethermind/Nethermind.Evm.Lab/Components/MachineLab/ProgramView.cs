@@ -62,7 +62,7 @@ internal class ProgramView : IComponent<MachineState>
                 .View(state, new Rectangle
                 {
                     X = 0,
-                    Y = Pos.Bottom(programView),
+                    Y = Pos.AnchorEnd(2),
                     Height = Dim.Percent(20),
                 });
             container.Add(programView, mediaLikeView.Item1);

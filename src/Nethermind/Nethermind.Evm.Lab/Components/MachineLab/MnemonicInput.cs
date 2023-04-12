@@ -42,6 +42,7 @@ internal class MnemonicInput : IComponent<MachineState>
     {
         if (sectionsField is null || tabView is null || sectionsField.Count == 23)
             throw new System.Diagnostics.UnreachableException();
+
         var newCodeSection = new CodeSection(0, 0, 0);
         var container = new FrameView()
         {
