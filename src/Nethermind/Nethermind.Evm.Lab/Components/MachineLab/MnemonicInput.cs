@@ -151,6 +151,12 @@ internal class MnemonicInput : IComponent<MachineState>
         int indexOf = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab); // ugly code veeeeeery ugly
         sectionsField.RemoveAt(indexOf);
         tabView.RemoveTab(tabView.SelectedTab);
+
+        int idx = 0;
+        foreach (var tab in tabView.Tabs)
+        {
+            tab.Text = (idx++).ToString();
+        }
     }
 
     private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
