@@ -11,6 +11,8 @@ using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Specs.Forks;
 using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components;
+
+// Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
 internal class MainView : IComponent<MachineState>
 {
     private string initialCmdArgument;
