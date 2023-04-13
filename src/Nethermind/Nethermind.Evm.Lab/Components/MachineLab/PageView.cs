@@ -15,7 +15,7 @@ namespace Nethermind.Evm.Lab.Components;
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
 internal class PageView : IComponent<MachineState>
 {
-    private FrameView MainPanel;
+    private View MainPanel;
     public MachineState? defaultValue;
     public bool isCached = false;
     public IComponent<MachineState>[] _components;
@@ -46,56 +46,54 @@ internal class PageView : IComponent<MachineState>
         IComponent<MachineState> _component_pgr = _components[6];
         IComponent<MachineState> _component_cnfg = _components[7];
 
-        MainPanel ??= new FrameView()
+        MainPanel ??= new View()
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
         };
 
-        var (view1, rect1) = _component_cpu.View(state, new Rectangle(0, 0, Dim.Percent(30), 10));
-        var (view2, rect2) = _component_stk.View(state, rect1.Value with
+        var (cpu_view, cpu_rect) = _component_cpu.View(state, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
+        var (stack_view, stack_rect) = _component_stk.View(state, cpu_rect.Value with // h:50 w:30
         {
-            Y = Pos.Bottom(view1),
-            Height = Dim.Percent(45)
+            Y = Pos.Bottom(cpu_view),
+            Height = Dim.Percent(40)
         });
-        var (view3, rect3) = _component_ram.View(state, rect2.Value with
+        var (ram_view, ram_rect) = _component_ram.View(state, stack_rect.Value with // h: 100, w:100
         {
-            Y = Pos.Bottom(view2),
-            Width = Dim.Fill()
+            Y = Pos.Bottom(stack_view),
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
         });
-        var (view4, rect4) = _component_inpt.View(state, rect1.Value with
+        var (input_view, input_rect) = _component_inpt.View(state, cpu_rect.Value with // h: 10, w : 80
         {
-            X = Pos.Right(view1),
+            X = Pos.Right(cpu_view),
             Width = Dim.Percent(50)
         });
-        var (view5, rect5) = _component_strg.View(state, rect4.Value with
+        var (storage_view, storage_rect) = _component_strg.View(state, input_rect.Value with // h: 40, w: 80
         {
-            Y = Pos.Bottom(view4),
-            Width = Dim.Percent(50),
+            Y = Pos.Bottom(input_view),
             Height = Dim.Percent(25),
         });
-        var (view6, rect6) = _component_rtrn.View(state, rect4.Value with
+        var (return_view, return_rect) = _component_rtrn.View(state, storage_rect.Value with
         {
-            Y = Pos.Bottom(view5),
-            Height = Dim.Percent(20),
-            Width = Dim.Percent(50)
+            Y = Pos.Bottom(storage_view),
+            Height = Dim.Percent(15),
         });
-        var (view8, rect8) = _component_cnfg.View(state, rect4.Value with
+        var (config_view, config_rect) = _component_cnfg.View(state, input_rect.Value with
         {
-            X = Pos.Right(view4),
+            X = Pos.Right(input_view),
             Width = Dim.Percent(20)
         });
-        var (view7, rect7) = _component_pgr.View(state, rect8.Value with
+        var (program_view, program_rect) = _component_pgr.View(state, config_rect.Value with
         {
-            Y = Pos.Bottom(view8),
-            Height = Dim.Percent(45),
-            Width = Dim.Percent(20)
+            Y = Pos.Bottom(config_view),
+            Height = Dim.Percent(40),
         });
 
         if (!isCached)
         {
             HookKeyboardEvents(state);
-            MainPanel.Add(view1, view4, view2, view3, view5, view6, view7, view8);
+            MainPanel.Add(program_view, config_view, return_view, storage_view, input_view, ram_view, stack_view, cpu_view);
         }
         isCached = true;
         return (MainPanel, null);

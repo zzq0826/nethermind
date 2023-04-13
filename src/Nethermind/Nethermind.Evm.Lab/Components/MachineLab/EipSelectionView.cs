@@ -83,7 +83,6 @@ internal class EipSelectionView : IComponent<MachineState>
                 Y = 2,
                 Width = Dim.Fill(),
                 Height = Dim.Fill() - 2,
-                ColorScheme = Colors.TopLevel,
                 ContentSize = new Size(previousCheckbox.Bounds.Width, heightAcc),
                 //ContentOffset = new Point (0, 0),
                 ShowVerticalScrollIndicator = true,
@@ -100,7 +99,6 @@ internal class EipSelectionView : IComponent<MachineState>
                 Y = frameBoundaries.Y,
                 Width = frameBoundaries.Width,
                 Height = frameBoundaries.Height,
-                ColorScheme = Colors.TopLevel,
             };
 
             container.Add(scrollView);

@@ -43,7 +43,8 @@ internal class InputsView : IComponent<MachineState>
         {
             Y = Pos.Bottom(label_bytecode),
             Width = Dim.Percent(80),
-            Height = Dim.Percent(40)
+            Height = Dim.Percent(40),
+            ColorScheme = Colors.Base
         };
 
         mnemonicInputViewBtn ??= new Button("MnemonicInput")
@@ -64,7 +65,8 @@ internal class InputsView : IComponent<MachineState>
             Y = Pos.Bottom(label_calldata),
             Width = Dim.Fill(),
             Height = Dim.Percent(20),
-            Enabled = false
+            Enabled = false,
+            ColorScheme = Colors.Base
         };
 
         if (!isCached)

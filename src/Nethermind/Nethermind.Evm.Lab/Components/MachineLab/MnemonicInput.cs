@@ -37,16 +37,17 @@ internal class MnemonicInput : IComponent<MachineState>
             throw new System.Diagnostics.UnreachableException();
 
         var newCodeSection = new CodeSection(0, 0, 0);
-        var container = new FrameView()
+        var container = new View()
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            Border = new Border(),
+            ColorScheme = Colors.Menu
         };
 
         var inLabel = new Terminal.Gui.Label("Inputs Count")
         {
-            Width = Dim.Percent(30)
+            Width = Dim.Percent(30),
+            ColorScheme = Colors.TopLevel
         };
         var inputCountField = new NumberInputField(0)
         {
@@ -54,8 +55,7 @@ internal class MnemonicInput : IComponent<MachineState>
             Y = Pos.Bottom(inLabel),
             Width = Dim.Percent(30),
             Height = Dim.Percent(10),
-            Border = new Border(),
-            ColorScheme = Colors.Dialog
+            ColorScheme = Colors.TopLevel
         };
         inputCountField.AddFilter((_) => !isEofMode);
         inputCountField.TextChanged += (e) =>
@@ -68,7 +68,8 @@ internal class MnemonicInput : IComponent<MachineState>
         var outLabel = new Terminal.Gui.Label("Outputs Count")
         {
             X = Pos.Right(inLabel) + 2,
-            Width = Dim.Percent(30)
+            Width = Dim.Percent(30),
+            ColorScheme = Colors.TopLevel
         };
         var outputCountField = new NumberInputField(0)
         {
@@ -76,8 +77,7 @@ internal class MnemonicInput : IComponent<MachineState>
             Y = Pos.Bottom(outLabel),
             Width = Dim.Percent(30),
             Height = Dim.Percent(10),
-            Border = new Border(),
-            ColorScheme = Colors.Base
+            ColorScheme = Colors.TopLevel
         };
         outputCountField.AddFilter((_) => !isEofMode);
         outputCountField.TextChanged += (e) =>
@@ -91,7 +91,8 @@ internal class MnemonicInput : IComponent<MachineState>
         var maxLabel = new Terminal.Gui.Label("Max Stack Height")
         {
             X = Pos.Right(outLabel) + 2,
-            Width = Dim.Percent(30)
+            Width = Dim.Percent(30),
+            ColorScheme = Colors.TopLevel
         };
         var stackHeightField = new NumberInputField(0)
         {
@@ -99,7 +100,6 @@ internal class MnemonicInput : IComponent<MachineState>
             Y = Pos.Bottom(maxLabel),
             Width = Dim.Percent(30),
             Height = Dim.Percent(10),
-            Border = new Border(),
             ColorScheme = Colors.TopLevel
         };
         stackHeightField.AddFilter((_) => !isEofMode);
@@ -114,8 +114,8 @@ internal class MnemonicInput : IComponent<MachineState>
         {
             Y = Pos.Bottom(stackHeightField),
             Width = Dim.Fill(),
-            Height = Dim.Percent(90),
-            ColorScheme = Colors.Base,
+            Height = Dim.Percent(100),
+            ColorScheme = Colors.Base
         };
         inputBodyField.Initialized += (s, e) =>
         {
@@ -229,7 +229,7 @@ internal class MnemonicInput : IComponent<MachineState>
             Y = frameBoundaries.Y,
             Width = frameBoundaries.Width,
             Height = frameBoundaries.Height,
-            ColorScheme = Colors.TopLevel,
+            ColorScheme = Colors.TopLevel
         };
 
         if (!isCached)

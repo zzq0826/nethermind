@@ -33,7 +33,8 @@ internal class MainView : IComponent<GlobalState>
         {
             pageState.Initialize(true);
         }
-        table.AddTab(new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1), true);
+        var tab = new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1);
+        table.AddTab(tab, true);
     }
 
     private void RemoveMachinePage(int idx)
@@ -102,7 +103,6 @@ internal class MainView : IComponent<GlobalState>
             Y = Pos.Center(),
             Width = Dim.Percent(25),
             Height = Dim.Percent(25),
-            ColorScheme = Colors.TopLevel,
         };
         cancel.Clicked += () => dialog.RequestStop();
 
@@ -150,6 +150,7 @@ internal class MainView : IComponent<GlobalState>
     {
         bool firstRender = true;
         Application.Init();
+        Application.Top.Add(header.View(state).Item1, View(state).Item1);
         Application.MainLoop.Invoke(
             async () =>
             {
@@ -164,7 +165,7 @@ internal class MainView : IComponent<GlobalState>
                     await MoveNext(state);
                     for (int i = 0; i < pages.Count; i++)
                     {
-                        if(pages[i].IsSelected() && await State.MachineStates[i].MoveNext())
+                        if(await State.MachineStates[i].MoveNext() && pages[i].IsSelected())
                         {
                             UpdateTabPage(pages[i].View(State.MachineStates[i]).Item1, i);
                         }
@@ -172,7 +173,6 @@ internal class MainView : IComponent<GlobalState>
                 }
                 while (firstRender || await timer.WaitForNextTickAsync()) ;
             });
-
         Application.Run();
         Application.Shutdown();
     }
@@ -183,7 +183,7 @@ internal class MainView : IComponent<GlobalState>
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
                 Width: rect?.Width ?? Dim.Fill(),
-                Height: rect?.Height ?? Dim.Percent(10)
+                Height: rect?.Height ?? Dim.Fill()
             );
 
         container ??= new Window("EvmLaboratory")
@@ -197,7 +197,6 @@ internal class MainView : IComponent<GlobalState>
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            ColorScheme = Colors.TopLevel
         };
 
         if(!isCached)
