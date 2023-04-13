@@ -9,9 +9,9 @@ public abstract record ActionsBase;
 
 public class EventsSink
 {
-    private static Stopwatch watch = new Stopwatch();
-    private static ConcurrentQueue<ActionsBase> Events { get; set; } = new();
-    public static void EnqueueEvent(ActionsBase msg, bool overrideTimeout = false)
+    private Stopwatch watch = new Stopwatch();
+    private ConcurrentQueue<ActionsBase> Events { get; set; } = new();
+    public void EnqueueEvent(ActionsBase msg, bool overrideTimeout = false)
     {
         if (!watch.IsRunning || watch.ElapsedMilliseconds > 100 || overrideTimeout)
         {
@@ -21,10 +21,10 @@ public class EventsSink
         }
     }
 
-    public static bool TryDequeueEvent(out ActionsBase? msg)
+    public bool TryDequeueEvent(out ActionsBase? msg)
     {
         return Events.TryDequeue(out msg);
     }
 
-    public static void EmptyQueue() => Events.Clear();
+    public void EmptyQueue() => Events.Clear();
 }

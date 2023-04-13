@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Reflection;
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Test;
@@ -78,7 +78,7 @@ internal class ConfigsView : IComponent<MachineState>
                 if (forkName != "Custom")
                 {
                     var chosenFork = (IReleaseSpec)typeof(Frontier).Module.GetTypes().First(type => type.Name == forkName).GetProperty("Instance", BindingFlags.Static | BindingFlags.Public).GetValue(null);
-                    EventsSink.EnqueueEvent(new SetForkChoice(chosenFork));
+                    state.EventsSink.EnqueueEvent(new SetForkChoice(chosenFork));
                 }
                 else
                 {
@@ -92,7 +92,7 @@ internal class ConfigsView : IComponent<MachineState>
                 if (e.KeyEvent.Key is not Key.Enter) return;
                 if (Int32.TryParse((string)gasValueInput.Text, out int gasValue))
                 {
-                    EventsSink.EnqueueEvent(new SetGasMode(false, gasValue));
+                    state.EventsSink.EnqueueEvent(new SetGasMode(false, gasValue));
                 }
             };
             //ignoreGasCheck.Add(gasValueInput);

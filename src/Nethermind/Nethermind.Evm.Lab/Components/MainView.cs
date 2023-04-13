@@ -1,59 +1,90 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using MachineState.Actions;
-using Nethermind.Evm.CodeAnalysis;
-using Nethermind.Evm.Lab.Componants;
+using System.Diagnostics;
+using GlobalStateEvents.Actions;
 using Nethermind.Evm.Lab.Components.GlobalViews;
-using Nethermind.Evm.Lab.Components.MachineLab;
 using Nethermind.Evm.Lab.Interfaces;
-using Nethermind.Evm.Tracing.GethStyle;
-using Nethermind.Specs.Forks;
 using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components;
 
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
-internal class MainView : IComponent<MachineState>
+internal class MainView : IComponent<GlobalState>
 {
-    private string initialCmdArgument;
-
-    private EthereumRestrictedInstance context = new(Cancun.Instance);
-    private GethLikeTxTracer _tracer => new(GethTraceOptions.Default);
+    private List<PageView> pages = new();
+    private bool isCached;
+    private Window container;
+    private TabView table;
+    private HeaderView header;
     private PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1));
-    private Window MainPanel = new Window("EvmLaboratory");
-    public MachineState InitialState;
-
-    public MachineState? defaultValue;
-    public bool isCached = false;
-    public IComponent<MachineState>[] _components;
-    public MainView(string pathOrBytecode)
+    public GlobalState State = new GlobalState();
+    public MainView()
     {
-        initialCmdArgument = pathOrBytecode;
-        InitialState = Initialize(new MachineState());
-
-        _components = new IComponent<MachineState>[]{
-            new HeaderView(),
-            new MachineOverview(),
-            new StackView(),
-            new MemoryView(),
-            new InputsView(),
-            new ReturnView(),
-            new StorageView(),
-            new ProgramView(),
-            new ConfigsView()
-        };
+        header = new HeaderView();
     }
 
-    public MachineState Initialize(MachineState state)
+    private void AddMachinePage(MachineState? state = null, string name = null)
     {
-        byte[] bytecode = Core.Extensions.Bytes.FromHexString(Uri.IsWellFormedUriString(initialCmdArgument, UriKind.Absolute) ? File.OpenText(initialCmdArgument).ReadToEnd() : initialCmdArgument);
-
-        state.RuntimeContext = CodeInfoFactory.CreateCodeInfo(bytecode, InitialState?.SelectedFork ?? Cancun.Instance);
-        state.CallData = Array.Empty<byte>();
-        var resultTraces = context.Execute(_tracer, long.MaxValue, bytecode).BuildResult();
-        EventsSink.EnqueueEvent(new UpdateState(resultTraces), true);
-        return state;
+        var pageObj = new PageView();
+        var pageState = state ?? new MachineState();
+        pages.Add(pageObj);
+        State.MachineStates.Add(pageState);
+        if (state is null)
+        {
+            pageState.Initialize(true);
+        }
+        table.AddTab(new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1), true);
     }
+
+    private void RemoveMachinePage(int idx)
+    {
+        int index = 0;
+        if(State.MachineStates.Count > 1)
+        {
+            TabView.Tab targetTab = null;
+            foreach (var tab in table.Tabs)
+            {
+                if (idx == index)
+                {
+                    targetTab = tab;
+                    break;
+                }
+                index++;
+            }
+            table.RemoveTab(targetTab);
+            pages.RemoveAt(index);
+            State.MachineStates.RemoveAt(index);
+        }
+    }
+
+    private int GetTabIndex(TabView.Tab page)
+    {
+        int index = 0;
+        foreach (var tab in table.Tabs)
+        {
+            if(tab == page)
+            {
+                return index;
+            }
+            index++;
+        }
+        throw new UnreachableException();
+    }
+
+    private void UpdateTabPage(View page, int idx)
+    {
+        int index = 0;
+        foreach(var tab in table.Tabs)
+        {
+            if(idx == index)
+            {
+                tab.View = page;
+                break;
+            }
+        }
+
+    }
+
     public static Dialog ShowError(string mesg, Action? cancelHandler = null)
     {
         var cancel = new Button("OK")
@@ -89,202 +120,112 @@ internal class MainView : IComponent<MachineState>
         Application.Run(dialog);
         return dialog;
     }
-    public void Run(MachineState _)
+
+    public async Task<bool> MoveNext(GlobalState state)
+    {
+        if (state.EventsSink.TryDequeueEvent(out var currentEvent))
+        {
+            lock (state)
+            {
+                try
+                {
+                    state = Update(state, currentEvent).GetState();
+                }
+                catch (Exception ex)
+                {
+                    var dialogView = MainView.ShowError(ex.Message,
+                        () =>
+                        {
+                            state.EventsSink.EnqueueEvent(new Reset());
+                        }
+                    );
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public async Task Run(GlobalState state)
     {
         bool firstRender = true;
-        
-
-        HookKeyboardEvents();
         Application.Init();
         Application.MainLoop.Invoke(
             async () =>
             {
-                do
+                if(firstRender)
                 {
-                    if (EventsSink.TryDequeueEvent(out var currentEvent))
+                    firstRender = false;
+                    Application.Top.Add(header.View(state).Item1, View(state).Item1);
+                }
+
+                do {
+
+                    await MoveNext(state);
+                    for (int i = 0; i < pages.Count; i++)
                     {
-                        lock (InitialState)
+                        if(pages[i].IsSelected() && await State.MachineStates[i].MoveNext())
                         {
-                            try
-                            {
-                                InitialState = Update(InitialState, currentEvent).GetState();
-                                if (firstRender)
-                                {
-                                    Application.Top.Add(_components[0].View(InitialState).Item1, View(InitialState).Item1);
-                                    firstRender = false;
-                                }
-                                else View(InitialState);
-                            }
-                            catch (Exception ex)
-                            {
-                                var dialogView = ShowError(ex.Message,
-                                    () =>
-                                    {
-                                        EventsSink.EnqueueEvent(new Reset());
-                                    }
-                                );
-                            }
+                            UpdateTabPage(pages[i].View(State.MachineStates[i]).Item1, i);
                         }
                     }
                 }
-                while (firstRender || await timer.WaitForNextTickAsync());
+                while (firstRender || await timer.WaitForNextTickAsync()) ;
             });
 
         Application.Run();
         Application.Shutdown();
     }
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(IState<GlobalState> state, Rectangle? rect = null)
     {
-        IComponent<MachineState> _component_cpu = _components[1];
-        IComponent<MachineState> _component_stk = _components[2];
-        IComponent<MachineState> _component_ram = _components[3];
-        IComponent<MachineState> _component_inpt = _components[4];
-        IComponent<MachineState> _component_rtrn = _components[5];
-        IComponent<MachineState> _component_strg = _components[6];
-        IComponent<MachineState> _component_pgr = _components[7];
-        IComponent<MachineState> _component_cnfg = _components[8];
+        var innerState = state.GetState();
+        var frameBoundaries = new Rectangle(
+                X: rect?.X ?? 0,
+                Y: rect?.Y ?? 0,
+                Width: rect?.Width ?? Dim.Fill(),
+                Height: rect?.Height ?? Dim.Percent(10)
+            );
 
-        var (view1, rect1) = _component_cpu.View(state, new Rectangle(0, 0, Dim.Percent(30), 10));
-        var (view2, rect2) = _component_stk.View(state, rect1.Value with
+        container ??= new Window("EvmLaboratory")
         {
-            Y = Pos.Bottom(view1),
-            Height = Dim.Percent(45)
-        });
-        var (view3, rect3) = _component_ram.View(state, rect2.Value with
-        {
-            Y = Pos.Bottom(view2),
-            Width = Dim.Fill()
-        });
-        var (view4, rect4) = _component_inpt.View(state, rect1.Value with
-        {
-            X = Pos.Right(view1),
-            Width = Dim.Percent(50)
-        });
-        var (view5, rect5) = _component_strg.View(state, rect4.Value with
-        {
-            Y = Pos.Bottom(view4),
-            Width = Dim.Percent(50),
-            Height = Dim.Percent(25),
-        });
-        var (view6, rect6) = _component_rtrn.View(state, rect4.Value with
-        {
-            Y = Pos.Bottom(view5),
-            Height = Dim.Percent(20),
-            Width = Dim.Percent(50)
-        });
-        var (view8, rect8) = _component_cnfg.View(state, rect4.Value with
-        {
-            X = Pos.Right(view4),
-            Width = Dim.Percent(20)
-        });
-        var (view7, rect7) = _component_pgr.View(state, rect8.Value with
-        {
-            Y = Pos.Bottom(view8),
-            Height = Dim.Percent(45),
-            Width = Dim.Percent(20)
-        });
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+            ColorScheme = Colors.TopLevel
+        };
 
-        if (!isCached)
-            MainPanel.Add(view1, view4, view2, view3, view5, view6, view7, view8);
-        isCached = true;
-        return (MainPanel, null);
+        table ??= new TabView()
+        {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+            ColorScheme = Colors.TopLevel
+        };
+
+        if(!isCached)
+        {
+            table.SelectedTabChanged += (s, e) => state.GetState().SelectedState = GetTabIndex(e.NewTab);
+            AddMachinePage();
+            container.Add(table);
+            isCached = true;
+        }
+        return (container, frameBoundaries);
     }
 
-    public IState<MachineState> Update(IState<MachineState> state, ActionsBase msg)
+    public IState<GlobalState> Update(IState<GlobalState> state, ActionsBase msg)
     {
         switch (msg)
         {
-            case Goto idxMsg:
-                return state.GetState().Goto(idxMsg.index);
-            case MoveNext _:
-                return state.GetState().Next();
-            case MoveBack _:
-                return state.GetState().Previous();
-            case FileLoaded flMsg:
+            case AddPage msgA:
                 {
-                    var file = File.OpenText(flMsg.filePath);
-                    if (file == null)
-                    {
-                        EventsSink.EnqueueEvent(new ThrowError($"File {flMsg.filePath} not found"), true);
-                        break;
-                    }
-
-                    EventsSink.EnqueueEvent(new BytecodeInserted(file.ReadToEnd()), true);
-
+                    AddMachinePage(name: msgA.name);
                     break;
                 }
-            case BytecodeInserted biMsg:
+            case RemovePage msgR:
                 {
-                    EventsSink.EnqueueEvent(new BytecodeInsertedB(Nethermind.Core.Extensions.Bytes.FromHexString(biMsg.bytecode)), true);
+                    RemoveMachinePage(state.GetState().SelectedState);
                     break;
-                }
-            case BytecodeInsertedB biMsg:
-                {
-                    state.GetState().RuntimeContext = CodeInfoFactory.CreateCodeInfo(biMsg.bytecode, state.GetState().SelectedFork);
-                    EventsSink.EnqueueEvent(new RunBytecode(), true);
-                    break;
-                }
-            case CallDataInserted ciMsg:
-                {
-                    var calldata = Nethermind.Core.Extensions.Bytes.FromHexString(ciMsg.calldata);
-                    state.GetState().CallData = calldata;
-                    break;
-                }
-            case UpdateState updState:
-                {
-                    if (updState.traces.Failed)
-                    {
-                        EventsSink.EnqueueEvent(new ThrowError($"Transaction Execution Failed"), true);
-                        break;
-                    }
-                    return state.GetState().SetState(updState.traces);
-                }
-            case SetForkChoice frkMsg:
-                {
-                    context = new(frkMsg.forkName);
-                    EventsSink.EnqueueEvent(new RunBytecode(), true);
-                    return state.GetState().SetFork(frkMsg.forkName);
-                }
-            case SetGasMode gasMsg:
-                {
-                    state.GetState().SetGas(gasMsg.ignore ? int.MaxValue : gasMsg.gasValue);
-                    EventsSink.EnqueueEvent(new RunBytecode(), true);
-                    break;
-                }
-            case RunBytecode _:
-                {
-                    var localTracer = _tracer;
-                    context.Execute(localTracer, state.GetState().AvailableGas, state.GetState().RuntimeContext.MachineCode);
-                    EventsSink.EnqueueEvent(new UpdateState(localTracer.BuildResult()), true);
-                    break;
-                }
-            case Reset _:
-                {
-                    return Initialize(state.GetState());
-                }
-            case ThrowError errMsg:
-                {
-                    throw new Exception(errMsg.error);
                 }
         }
+
         return state;
-    }
-
-    private void HookKeyboardEvents()
-    {
-        MainPanel.KeyUp += (e) =>
-        {
-            switch (e.KeyEvent.Key)
-            {
-                case Key.F:
-                    EventsSink.EnqueueEvent(new MoveNext());
-                    break;
-
-                case Key.B:
-                    EventsSink.EnqueueEvent(new MoveBack());
-                    break;
-            }
-
-        };
     }
 }

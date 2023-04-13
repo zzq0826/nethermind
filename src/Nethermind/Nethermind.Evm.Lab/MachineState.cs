@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using MachineStateEvents;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
+using Nethermind.Evm.Lab.Components;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Test;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Specs.Forks;
 
-namespace MachineState.Actions
+namespace MachineStateEvents
 {
     public record MoveNext : ActionsBase;
     public record MoveBack : ActionsBase;
@@ -31,6 +33,21 @@ namespace Nethermind.Evm.Lab
 {
     public class MachineState : GethLikeTxTrace, IState<MachineState>
     {
+
+        public EthereumRestrictedInstance context = new(Cancun.Instance);
+        public GethLikeTxTracer Tracer => new(GethTraceOptions.Default);
+        public MachineState Initialize(bool swapStateInPlace = false)
+        {
+            byte[] bytecode = Core.Extensions.Bytes.FromHexString(Uri.IsWellFormedUriString(GlobalState.initialCmdArgument, UriKind.Absolute) ? File.OpenText(GlobalState.initialCmdArgument).ReadToEnd() : GlobalState.initialCmdArgument);
+
+            RuntimeContext = CodeInfoFactory.CreateCodeInfo(bytecode, this.SelectedFork ?? Cancun.Instance);
+            CallData = Array.Empty<byte>();
+            var resultTraces = context.Execute(Tracer, long.MaxValue, bytecode).BuildResult();
+            if (!swapStateInPlace)
+                EventsSink.EnqueueEvent(new UpdateState(resultTraces), true);
+            else SetState(resultTraces);
+            return this;
+        }
         public MachineState(GethLikeTxTrace trace)
             => SetState(trace, true);
 
@@ -39,6 +56,8 @@ namespace Nethermind.Evm.Lab
             AvailableGas = VirtualMachineTestsBase.DefaultBlockGasLimit;
             SelectedFork = Cancun.Instance;
         }
+
+        public EventsSink EventsSink { get; } = new EventsSink();
 
         public MachineState SetState(GethLikeTxTrace trace, bool isInit = false)
         {
@@ -101,5 +120,110 @@ namespace Nethermind.Evm.Lab
 
 
         IState<MachineState> IState<MachineState>.Initialize(MachineState seed) => seed;
+
+        public async Task<bool> MoveNext()
+        {
+            if (this.EventsSink.TryDequeueEvent(out var currentEvent))
+            {
+                lock (this)
+                {
+                    try
+                    {
+                        MachineState.Update(this, currentEvent).GetState();
+                    }
+                    catch (Exception ex)
+                    {
+                        var dialogView = MainView.ShowError(ex.Message,
+                            () =>
+                            {
+                                this.EventsSink.EnqueueEvent(new Reset());
+                            }
+                        );
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public static IState<MachineState> Update(IState<MachineState> state, ActionsBase msg)
+        {
+            switch (msg)
+            {
+                case Goto idxMsg:
+                    return state.GetState().Goto(idxMsg.index);
+                case MoveNext _:
+                    return state.GetState().Next();
+                case MoveBack _:
+                    return state.GetState().Previous();
+                case FileLoaded flMsg:
+                    {
+                        var file = File.OpenText(flMsg.filePath);
+                        if (file == null)
+                        {
+                            state.EventsSink.EnqueueEvent(new ThrowError($"File {flMsg.filePath} not found"), true);
+                            break;
+                        }
+
+                        state.EventsSink.EnqueueEvent(new BytecodeInserted(file.ReadToEnd()), true);
+
+                        break;
+                    }
+                case BytecodeInserted biMsg:
+                    {
+                        state.EventsSink.EnqueueEvent(new BytecodeInsertedB(Nethermind.Core.Extensions.Bytes.FromHexString(biMsg.bytecode)), true);
+                        break;
+                    }
+                case BytecodeInsertedB biMsg:
+                    {
+                        state.GetState().RuntimeContext = CodeInfoFactory.CreateCodeInfo(biMsg.bytecode, state.GetState().SelectedFork);
+                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
+                        break;
+                    }
+                case CallDataInserted ciMsg:
+                    {
+                        var calldata = Nethermind.Core.Extensions.Bytes.FromHexString(ciMsg.calldata);
+                        state.GetState().CallData = calldata;
+                        break;
+                    }
+                case UpdateState updState:
+                    {
+                        if (updState.traces.Failed)
+                        {
+                            state.EventsSink.EnqueueEvent(new ThrowError($"Transaction Execution Failed"), true);
+                            break;
+                        }
+                        return state.GetState().SetState(updState.traces);
+                    }
+                case SetForkChoice frkMsg:
+                    {
+                        state.GetState().context = new(frkMsg.forkName);
+                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
+                        return state.GetState().SetFork(frkMsg.forkName);
+                    }
+                case SetGasMode gasMsg:
+                    {
+                        state.GetState().SetGas(gasMsg.ignore ? int.MaxValue : gasMsg.gasValue);
+                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
+                        break;
+                    }
+                case RunBytecode _:
+                    {
+                        var localTracer = state.GetState().Tracer;
+                        state.GetState().context.Execute(localTracer, state.GetState().AvailableGas, state.GetState().RuntimeContext.MachineCode);
+                        state.EventsSink.EnqueueEvent(new UpdateState(localTracer.BuildResult()), true);
+                        break;
+                    }
+                case Reset _:
+                    {
+                        return state.GetState().Initialize();
+                    }
+                case ThrowError errMsg:
+                    {
+                        throw new Exception(errMsg.error);
+                    }
+            }
+            return state;
+        }
     }
 }

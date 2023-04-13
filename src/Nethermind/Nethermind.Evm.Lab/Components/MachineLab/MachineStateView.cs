@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Data;
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
@@ -23,7 +23,7 @@ namespace Nethermind.Evm.Lab.Componants
             var innerState = currentState.GetState();
             return action switch
             {
-                MoveNext _ => innerState?.Next(),
+                MoveNext => innerState?.Next(),
                 MoveBack _ => innerState?.Previous(),
                 Goto act => innerState?.Goto(act.index),
                 _ => currentState

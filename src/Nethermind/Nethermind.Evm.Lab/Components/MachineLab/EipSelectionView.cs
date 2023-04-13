@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Text.RegularExpressions;
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Specs;
@@ -107,7 +107,7 @@ internal class EipSelectionView : IComponent<MachineState>
 
             submit.Clicked += () =>
             {
-                EventsSink.EnqueueEvent(new SetForkChoice(_releaseSpec));
+                state.EventsSink.EnqueueEvent(new SetForkChoice(_releaseSpec));
                 Application.RequestStop();
             };
 

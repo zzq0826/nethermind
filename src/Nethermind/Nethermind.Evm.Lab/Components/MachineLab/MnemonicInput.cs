@@ -1,18 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Reflection.Metadata.Ecma335;
-using System.Text.RegularExpressions;
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
-using Nethermind.Evm.EOF;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
-using Nethermind.Specs;
 using Terminal.Gui;
 using static Nethermind.Evm.Test.EofTestsBase;
 
@@ -163,7 +156,7 @@ internal class MnemonicInput : IComponent<MachineState>
         }
     }
 
-    private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
+    private void SubmitBytecodeChanges(IState<MachineState> state, bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
     {
         byte[] bytecode = Array.Empty<byte>();
         if(!isEofContext)
@@ -175,7 +168,7 @@ internal class MnemonicInput : IComponent<MachineState>
             bytecode = scenario.Bytecode;
         }
         BytecodeChanged?.Invoke(bytecode);
-        EventsSink.EnqueueEvent(new BytecodeInsertedB(bytecode), true);
+        state.EventsSink.EnqueueEvent(new BytecodeInsertedB(bytecode), true);
     } 
 
 
@@ -250,7 +243,7 @@ internal class MnemonicInput : IComponent<MachineState>
                     if (!isEofMode && sectionsField.Count > 1)
                         throw new Exception("Cannot have more than one code section in non-Eof code");
 
-                    SubmitBytecodeChanges(isEofMode, sectionsField);
+                    SubmitBytecodeChanges(state, isEofMode, sectionsField);
                     Application.RequestStop();
                 } catch (Exception ex)
                 {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
@@ -42,7 +42,7 @@ internal class MediaLikeView : IComponent<MachineState>
                 };
                 actionButton.Clicked += () =>
                 {
-                    EventsSink.EnqueueEvent(msg);
+                    state.EventsSink.EnqueueEvent(msg);
                 };
                 previousButton = actionButton;
                 return actionButton;

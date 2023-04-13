@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using MachineState.Actions;
+using MachineStateEvents;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
@@ -73,14 +73,14 @@ internal class InputsView : IComponent<MachineState>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    EventsSink.EnqueueEvent(new BytecodeInserted((string)bytecodeInputField.Text));
+                    state.EventsSink.EnqueueEvent(new BytecodeInserted((string)bytecodeInputField.Text));
                 }
             };
             calldataInputField.KeyPress += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    EventsSink.EnqueueEvent(new CallDataInserted((string)calldataInputField.Text));
+                    state.EventsSink.EnqueueEvent(new CallDataInserted((string)calldataInputField.Text));
                 }
             };
 

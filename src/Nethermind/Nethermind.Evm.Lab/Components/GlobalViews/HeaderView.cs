@@ -2,19 +2,20 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Text.Json;
-using MachineState.Actions;
+using GlobalStateEvents.Actions;
+using MachineStateEvents;
 using Nethermind.Consensus.Tracing;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.GlobalViews;
-internal class HeaderView : IComponent<MachineState>
+internal class HeaderView : IComponent<GlobalState>
 {
     private bool IsCached = false;
     private MenuBar menu;
     
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(IState<GlobalState> state, Rectangle? rect = null)
     {
         if(!IsCached)
         {
@@ -27,7 +28,9 @@ internal class HeaderView : IComponent<MachineState>
                             if(fileOpenDialogue.Canceled) return;
                             var filePath = (string)fileOpenDialogue.FilePath;
                             var contentAsText = File.ReadAllText (filePath);
-                            EventsSink.EnqueueEvent(new BytecodeInserted(contentAsText));
+                            var innerState = state.GetState();
+                            var substate = innerState.MachineStates[innerState.SelectedState];
+                            substate.EventsSink.EnqueueEvent(new BytecodeInserted(contentAsText));
                         };
                         Application.Run(fileOpenDialogue);
                     }),
@@ -42,7 +45,7 @@ internal class HeaderView : IComponent<MachineState>
                                 GethLikeTxTrace? traces = JsonSerializer.Deserialize<GethLikeTxTrace>(contentAsText);
                                 if(traces is not null)
                                 {
-                                    EventsSink.EnqueueEvent(new UpdateState(traces));
+                                    state.EventsSink.EnqueueEvent(new UpdateState(traces));
                                     return;
                                 }
                                 else goto  error_section;
@@ -61,7 +64,8 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         {
                             if(saveOpenDialogue.Canceled) return;
                             var filePath = (string)saveOpenDialogue.FilePath;
-                            var serializedData = System.Text.Json.JsonSerializer.Serialize(state.GetState() as GethLikeTxTrace);
+                            var localState = state.GetState();
+                            var serializedData = System.Text.Json.JsonSerializer.Serialize(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
                             File.WriteAllText(filePath, serializedData);
                         };
                         Application.Run(saveOpenDialogue);
@@ -70,10 +74,17 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         Application.RequestStop ();
                     })
                 }),
+
+                new MenuBarItem ("_Action", new MenuItem [] {
+                    new MenuItem ("_New", "", () => {
+                        state.EventsSink.EnqueueEvent(new AddPage($"Page {state.GetState().MachineStates.Count}"));
+                    }),
+                    new MenuItem ("_Remove", "", () => {
+                        state.EventsSink.EnqueueEvent(new RemovePage(state.GetState().SelectedState));
+                    }),
+                }),
             });
             IsCached = true;
-
-            
         }
 
         return (menu, null);

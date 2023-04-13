@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Reflection;
-using MachineState.Actions;
-using Nethermind.Core.Specs;
-using Nethermind.Evm.Lab.Interfaces;
-using Nethermind.Specs.Forks;
 using NStack;
 using Terminal.Gui;
 
