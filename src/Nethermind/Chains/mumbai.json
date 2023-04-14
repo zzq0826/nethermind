@@ -3,8 +3,12 @@
   "engine": {
     "bor": {
       "params": {
+        "JaipurBlock": 22770000,
+        "DelhiBlock": 29638656,
+
         "sprint": {
-          "0": 64
+          "0": 64,
+          "29638656": 16
         },
 
         "validatorContractAddress": "0x0000000000000000000000000000000000001000",
@@ -14,7 +18,7 @@
   },
   "params": {
     "chainId": "80001",
-		"maximumExtraDataSize": "0xffff",
+    "maximumExtraDataSize": "0xffff",
 
     "eip150Transition": 0,
     "eip155Transition": 0,

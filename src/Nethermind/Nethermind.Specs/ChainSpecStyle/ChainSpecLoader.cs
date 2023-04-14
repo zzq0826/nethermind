@@ -294,6 +294,9 @@ public class ChainSpecLoader : IChainSpecLoader
                 Sprint = chainSpecJson.Engine.Bor.Sprint,
                 ValidatorContractAddress = chainSpecJson.Engine.Bor.ValidatorContractAddress,
                 StateReceiverContractAddress = chainSpecJson.Engine.Bor.StateReceiverContractAddress,
+
+                JaipurBlockNumber = chainSpecJson.Engine.Bor.JaipurBlockNumber,
+                DelhiBlockNumber =  chainSpecJson.Engine.Bor.DelhiBlockNumber
             };
         }
         else if (chainSpecJson.Engine?.Ethash is not null)

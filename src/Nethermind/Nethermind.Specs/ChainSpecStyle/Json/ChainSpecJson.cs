@@ -74,6 +74,7 @@ internal class ChainSpecJson
         public IDictionary<long, long> Sprint => Params.Sprint;
         public IDictionary<long, long> BackupMultiplier => Params.BackupMultiplier;
         public long? JaipurBlockNumber => Params.JaipurBlockNumber;
+        public long? DelhiBlockNumber => Params.DelhiBlockNumber;
         public BorEngineParamsJson Params { get; set; }
     }
 
