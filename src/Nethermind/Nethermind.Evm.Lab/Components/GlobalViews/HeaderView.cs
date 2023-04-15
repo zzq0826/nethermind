@@ -35,17 +35,18 @@ internal class HeaderView : IComponent<GlobalState>
                         Application.Run(fileOpenDialogue);
                     }),
                     new MenuItem ("_Open", "", () => {
-                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a binary file that contains EVM bytecode");
+                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a Traces file that contains EVM bytecode");
                         fileOpenDialogue.Closed += (e) =>
                         {
                             if(fileOpenDialogue.Canceled) return;
                             var filePath = (string)fileOpenDialogue.FilePath;
+                            var fileName = Path.GetFileName (filePath);
                             var contentAsText = File.ReadAllText (filePath);
                             try {
                                 GethLikeTxTrace? traces = JsonSerializer.Deserialize<GethLikeTxTrace>(contentAsText);
                                 if(traces is not null)
                                 {
-                                    state.EventsSink.EnqueueEvent(new UpdateState(traces));
+                                    state.EventsSink.EnqueueEvent(new AddPage(fileName, new MachineState(traces)));
                                     return;
                                 }
                                 else goto  error_section;

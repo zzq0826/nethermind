@@ -215,7 +215,7 @@ internal class MainView : IComponent<GlobalState>
         {
             case AddPage msgA:
                 {
-                    AddMachinePage(name: msgA.name);
+                    AddMachinePage(msgA.customState, name: msgA.name);
                     break;
                 }
             case RemovePage msgR:

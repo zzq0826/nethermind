@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Evm.Lab;
 using Nethermind.Evm.Lab.Interfaces;
 
 
 
 namespace GlobalStateEvents.Actions
 {
-    public record AddPage(string name) : ActionsBase;
+    public record AddPage(string name, MachineState? customState = null) : ActionsBase;
     public record RemovePage(int index) : ActionsBase;
     public record Reset : ActionsBase;
 
