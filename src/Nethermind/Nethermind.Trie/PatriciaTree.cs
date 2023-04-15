@@ -22,6 +22,10 @@ namespace Nethermind.Trie
     [DebuggerDisplay("{RootHash}")]
     public class PatriciaTree
     {
+        private List<(Keccak keccak, bool persisted, bool isSealed, bool dirty, long? lastSeen)> _touchedNodes = new();
+
+
+
         private readonly ILogger _logger;
 
         public const int OneNodeAvgMemoryEstimate = 384;
@@ -410,6 +414,15 @@ namespace Nethermind.Trie
                 _logger.Trace(
                     $"Traversing {node} to {(traverseContext.IsRead ? "READ" : traverseContext.IsDelete ? "DELETE" : "UPDATE")}");
 
+            if(traverseContext.IsUpdate || traverseContext.IsDelete) {
+                _touchedNodes.Add((node.Keccak, node.IsPersisted, node.IsSealed, node.IsDirty, node.LastSeen));
+
+                if(_touchedNodes.Count % 1000 == 0)
+                {
+                    Print(_touchedNodes);
+                }
+            }
+
             return node.NodeType switch
             {
                 NodeType.Branch => TraverseBranch(node, in traverseContext),
@@ -420,6 +433,14 @@ namespace Nethermind.Trie
                 _ => throw new NotSupportedException(
                     $"Unknown node type {node.NodeType}")
             };
+        }
+
+        private void Print(List<(Keccak keccak, bool persisted, bool isSealed, bool dirty, long? lastSeen)> touchedNodes)
+        {
+            foreach (var item in touchedNodes)
+            {
+                _logger.Warn($"{item.keccak}: {item.persisted} {item.isSealed} {item.dirty} {item.lastSeen}");
+            }
         }
 
         private void ConnectNodes(TrieNode? node)
