@@ -414,7 +414,7 @@ namespace Nethermind.Trie
                 _logger.Trace(
                     $"Traversing {node} to {(traverseContext.IsRead ? "READ" : traverseContext.IsDelete ? "DELETE" : "UPDATE")}");
 
-            if(traverseContext.IsUpdate || traverseContext.IsDelete) {
+            if(traverseContext.IsUpdate || traverseContext.IsDelete || node.IsPersisted) {
                 _touchedNodes.Add((node.Keccak, node.IsPersisted, node.IsSealed, node.IsDirty, node.LastSeen));
 
                 if(_touchedNodes.Count % 1000 == 0)
