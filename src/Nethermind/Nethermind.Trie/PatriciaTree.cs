@@ -437,6 +437,7 @@ namespace Nethermind.Trie
 
         private void Print(List<(Keccak keccak, bool persisted, bool isSealed, bool dirty, long? lastSeen)> touchedNodes)
         {
+            _logger.Warn($"Touched nodes: {touchedNodes.Count}");
             foreach (var item in touchedNodes)
             {
                 _logger.Warn($"{item.keccak}: {item.persisted} {item.isSealed} {item.dirty} {item.lastSeen}");
