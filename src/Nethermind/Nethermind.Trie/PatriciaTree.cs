@@ -441,6 +441,8 @@ namespace Nethermind.Trie
             {
                 _logger.Warn($"{item.keccak}: {item.persisted} {item.isSealed} {item.dirty} {item.lastSeen}");
             }
+
+            touchedNodes.Clear();   
         }
 
         private void ConnectNodes(TrieNode? node)
