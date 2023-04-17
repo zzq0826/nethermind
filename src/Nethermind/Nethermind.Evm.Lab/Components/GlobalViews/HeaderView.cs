@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.IO.Abstractions;
 using System.Text.Json;
 using GlobalStateEvents.Actions;
 using MachineStateEvents;
@@ -14,7 +15,12 @@ internal class HeaderView : IComponent<GlobalState>
 {
     private bool IsCached = false;
     private MenuBar menu;
-    
+
+    public void Dispose()
+    {
+        menu?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<GlobalState> state, Rectangle? rect = null)
     {
         if(!IsCached)
@@ -23,53 +29,49 @@ internal class HeaderView : IComponent<GlobalState>
                 new MenuBarItem ("_File", new MenuItem [] {
                     new MenuItem ("_Run", "", () => {
                         using var fileOpenDialogue = new OpenDialog("Bytecode File", "Select a binary file that contains EVM bytecode");
-                        fileOpenDialogue.Closed += (e) =>
-                        {
-                            if(fileOpenDialogue.Canceled) return;
-                            var filePath = (string)fileOpenDialogue.FilePath;
-                            var contentAsText = File.ReadAllText (filePath);
-                            var innerState = state.GetState();
-                            var substate = innerState.MachineStates[innerState.SelectedState];
-                            substate.EventsSink.EnqueueEvent(new BytecodeInserted(contentAsText));
-                        };
                         Application.Run(fileOpenDialogue);
+                        if(fileOpenDialogue.Canceled) return;
+                        var filePath = (string)fileOpenDialogue.FilePath;
+                        var contentAsText = File.ReadAllText (filePath);
+                        var innerState = state.GetState();
+                        if(innerState.MachineStates[innerState.SelectedState] is MachineState substate)
+                        {
+                            substate.EventsSink.EnqueueEvent(new BytecodeInserted(contentAsText));
+                        } else
+                        {
+                            MainView.ShowError("Selected View Must be a MachineView");
+                        }
                     }),
                     new MenuItem ("_Open", "", () => {
-                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a Traces file that contains EVM bytecode");
-                        fileOpenDialogue.Closed += (e) =>
-                        {
-                            if(fileOpenDialogue.Canceled) return;
-                            var filePath = (string)fileOpenDialogue.FilePath;
-                            var fileName = Path.GetFileName (filePath);
-                            var contentAsText = File.ReadAllText (filePath);
-                            try {
-                                GethLikeTxTrace? traces = JsonSerializer.Deserialize<GethLikeTxTrace>(contentAsText);
-                                if(traces is not null)
-                                {
-                                    state.EventsSink.EnqueueEvent(new AddPage(fileName, new MachineState(traces)));
-                                    return;
-                                }
-                                else goto  error_section;
-                            } catch
-                            {
-                                goto  error_section;
-                            }
-error_section:              MainView.ShowError("Failed to deserialize Traces Provided!");
-                        };
+                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a Traces file that contains EVM bytecode",  new List<string> { ".json" });
                         Application.Run(fileOpenDialogue);
+                        if(fileOpenDialogue.Canceled) return;
+                        var filePath = (string)fileOpenDialogue.FilePath;
+                        var fileName = Path.GetFileNameWithoutExtension (filePath);
+                        var contentAsText = File.ReadAllText (filePath);
+                        try {
+                            GethLikeTxTrace? traces = JsonSerializer.Deserialize<GethLikeTxTrace>(contentAsText);
+                            if(traces is not null)
+                            {
+                                state.EventsSink.EnqueueEvent(new AddPage<MachineState>(fileName, new MachineState(traces)));
+                                return;
+                            }
+                            else goto  error_section;
+                        } catch
+                        {
+                            goto  error_section;
+                        }
+error_section:              MainView.ShowError("Failed to deserialize Traces Provided!");
                     }),
                     new MenuItem ("_Export", "", () => {
                         // open trace file
                         using var saveOpenDialogue = new SaveDialog("Bytecode File", "Select a binary file that contains EVM bytecode");
-                        saveOpenDialogue .Closed += (e) =>
-                        {
-                            if(saveOpenDialogue.Canceled) return;
-                            var filePath = (string)saveOpenDialogue.FilePath;
-                            var localState = state.GetState();
-                            var serializedData = System.Text.Json.JsonSerializer.Serialize(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
-                            File.WriteAllText(filePath, serializedData);
-                        };
                         Application.Run(saveOpenDialogue);
+                        if(saveOpenDialogue.Canceled) return;
+                        var filePath = (string)saveOpenDialogue.FilePath;
+                        var localState = state.GetState();
+                        var serializedData = System.Text.Json.JsonSerializer.Serialize(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
+                        File.WriteAllText(filePath, serializedData);
                     }),
                     new MenuItem ("_Quit", "", () => {
                         Application.RequestStop ();
@@ -78,10 +80,33 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
 
                 new MenuBarItem ("_Action", new MenuItem [] {
                     new MenuItem ("_New", "", () => {
-                        state.EventsSink.EnqueueEvent(new AddPage($"Page {state.GetState().MachineStates.Count}"));
+                        state.EventsSink.EnqueueEvent(new AddPage < MachineState >($"Page {state.GetState().MachineStates.Count}"));
                     }),
                     new MenuItem ("_Remove", "", () => {
                         state.EventsSink.EnqueueEvent(new RemovePage(state.GetState().SelectedState));
+                    }),
+                    new MenuItem ("_Diff", "",  () => {
+                        // open trace file
+                        TraceStateEntry[] files = new TraceStateEntry[2];
+                        for(int i = 0; i < 2; i++)
+                        {
+                            using var importOpenDialogue = new OpenDialog("traces File", "Select a two json trace files", new List<string> { ".json" });
+
+                            Application.Run(importOpenDialogue);
+
+                            if(importOpenDialogue.Canceled) return;
+                            string filePath = (string)importOpenDialogue.FilePath;
+                            string fileName = Path.GetFileNameWithoutExtension (filePath);
+                            try {
+                                files[i] = new TraceStateEntry(fileName, new MachineState(JsonSerializer.Deserialize<GethLikeTxTrace>(File.ReadAllText (filePath))));
+                            } catch
+                            {
+                                MainView.ShowError("Failed to deserialize Traces Provided!");
+                                return;
+                            }
+                        }
+                        state.EventsSink.EnqueueEvent(new AddPage<TraceState>(String.Join("/", files.Select(f => f.Name)), new TraceState(files[0], files[1])));
+                        return;
                     }),
                 }),
             });

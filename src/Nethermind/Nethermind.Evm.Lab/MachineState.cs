@@ -115,17 +115,18 @@ namespace Nethermind.Evm.Lab
 
         public MachineState Next()
         {
-            Index = (Index + 1) % base.Entries.Count;
+            Index = (Index + 1) == base.Entries.Count ? base.Entries.Count - 1 : Index + 1;
             return this;
         }
         public MachineState Previous()
         {
-            Index = (Index - 1) < 0 ? base.Entries.Count - 1 : Index - 1;
+            Index = (Index - 1) < 0 ? 0 : Index - 1;
             return this;
         }
         public MachineState Goto(int index)
         {
-            Index = index % base.Entries.Count;
+            if(index >= base.Entries.Count) Index = base.Entries.Count - 1;
+            else Index = index;
             return this;
         }
 

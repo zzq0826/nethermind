@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Diagnostics;
 using Nethermind.Evm.Lab;
 using Nethermind.Evm.Lab.Interfaces;
 
@@ -8,7 +9,8 @@ using Nethermind.Evm.Lab.Interfaces;
 
 namespace GlobalStateEvents.Actions
 {
-    public record AddPage(string name, MachineState? customState = null) : ActionsBase;
+    public record AddPage<T>(string name, IState<T>? customState = null) : ActionsBase
+        where T : IState<T>, new();
     public record RemovePage(int index) : ActionsBase;
     public record Reset : ActionsBase;
 
@@ -22,8 +24,14 @@ namespace Nethermind.Evm.Lab
         public static string initialCmdArgument;
         public EventsSink EventsSink { get; } = new EventsSink();
 
-        public List<MachineState> MachineStates = new List<MachineState>();
+        public List<IStateObject> MachineStates = new List<IStateObject>();
         IState<GlobalState> IState<GlobalState>.Initialize(GlobalState seed) => seed;
+
+        public Task<bool> MoveNext()
+        {
+            throw new UnreachableException();
+        }
+
         public int SelectedState { get; set; }
     }
 }

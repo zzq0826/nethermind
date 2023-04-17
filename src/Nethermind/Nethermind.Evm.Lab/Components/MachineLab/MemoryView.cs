@@ -3,12 +3,20 @@
 
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
+
 namespace Nethermind.Evm.Lab.Componants;
 internal class MemoryView : IComponent<MachineState>
 {
     bool isCached = false;
     private FrameView? container = null;
     private HexView? memoryView = null;
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        memoryView?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Data;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
@@ -9,7 +10,14 @@ internal class StackView : IComponent<MachineState>
 {
     bool isCached = false;
     private FrameView? container = null;
-    private ListView? stackView = null;
+    private TableView? stackView = null;
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        stackView?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();
@@ -27,7 +35,7 @@ internal class StackView : IComponent<MachineState>
             Height = frameBoundaries.Height,
         };
 
-        stackView ??= new ListView()
+        stackView ??= new TableView()
         {
             X = 0,
             Y = 0,
@@ -35,14 +43,25 @@ internal class StackView : IComponent<MachineState>
             Height = Dim.Fill(2),
         };
 
+        var dataTable = new DataTable();
+        dataTable.Columns.Add("Index");
+        dataTable.Columns.Add("Value");
+
         var cleanedUpDataSource = innerState.Current.Stack.Select(entry =>
         {
             int firstNonZeroBitIdx = 0;
             while (firstNonZeroBitIdx < entry.Length && entry[firstNonZeroBitIdx] == '0') firstNonZeroBitIdx++;
-            int length = Math.Max(55, entry.Length - firstNonZeroBitIdx);
+            int length = Math.Max(42, entry.Length - firstNonZeroBitIdx);
             return entry[^length..];
         }).ToList();
-        stackView.SetSource(cleanedUpDataSource);
+
+        int index = 0;
+        foreach (var value in cleanedUpDataSource)
+        {
+            dataTable.Rows.Add(index++, value);
+        }
+        stackView.Table = dataTable;
+
 
         if (!isCached)
             container.Add(stackView);

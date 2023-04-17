@@ -14,6 +14,15 @@ internal class InputsView : IComponent<MachineState>
     private TextField? bytecodeInputField = null;
     private TextField? calldataInputField = null;
     private Button? mnemonicInputViewBtn = null;
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        bytecodeInputField?.Dispose();
+        calldataInputField?.Dispose();
+        mnemonicInputViewBtn?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();

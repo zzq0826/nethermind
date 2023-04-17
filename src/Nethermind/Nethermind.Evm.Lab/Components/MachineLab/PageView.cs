@@ -13,13 +13,13 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components;
 
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
-internal class PageView : IComponent<MachineState>
+internal class MachineView : IComponent<MachineState>
 {
     private View MainPanel;
     public MachineState? defaultValue;
     public bool isCached = false;
     public IComponent<MachineState>[] _components;
-    public PageView()
+    public MachineView()
     {
         _components = new IComponent<MachineState>[]{
             new MachineOverview(),
@@ -119,5 +119,13 @@ internal class PageView : IComponent<MachineState>
         };
     }
 
-    public bool IsSelected() => MainPanel.HasFocus;
+    public void Dispose()
+    {
+        MainPanel?.Dispose();
+        if(_components != null)
+            foreach(var comp in _components)
+            {
+                comp?.Dispose();
+            }
+    }
 }

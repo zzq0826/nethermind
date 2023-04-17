@@ -14,7 +14,13 @@ internal class ProgramView : IComponent<MachineState>
     bool isCached = false;
     private FrameView? container = null;
     private TableView? programView = null;
-    
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        programView?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();
@@ -42,8 +48,6 @@ internal class ProgramView : IComponent<MachineState>
         {
             dataTable.Rows.Add(instr.idx, instr.ToString(state.GetState().SelectedFork));
             selectedRow += instr.idx < innerState.Entries[innerState.Index].Pc ? 1 : 0;
-
-
         }
 
         programView ??= new TableView()
@@ -58,7 +62,7 @@ internal class ProgramView : IComponent<MachineState>
 
         if (!isCached)
         {
-            var mediaLikeView = new MediaLikeView()
+            var mediaLikeView = new MediaLikeView<MachineState>()
                 .View(state, new Rectangle
                 {
                     X = 0,

@@ -20,6 +20,13 @@ internal class ConfigsView : IComponent<MachineState>
 
     private List<string> Forks = typeof(Shanghai).Module.GetTypes().Where(type => type.Namespace == typeof(Shanghai).Namespace && type.GetCustomAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>() == null).Select(type => type.Name).Append("Custom").ToList();
 
+    public void Dispose()
+    {
+        container?.Dispose();
+        forksChoice?.Dispose();
+        gasValueInput?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();

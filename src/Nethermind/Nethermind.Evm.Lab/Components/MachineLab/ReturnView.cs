@@ -10,6 +10,13 @@ internal class ReturnView : IComponent<MachineState>
     bool isCached = false;
     private FrameView? container = null;
     private HexView? memoryView = null;
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        memoryView?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();

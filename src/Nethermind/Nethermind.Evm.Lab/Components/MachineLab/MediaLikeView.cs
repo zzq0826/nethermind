@@ -6,11 +6,17 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Componants;
-internal class MediaLikeView : IComponent<MachineState>
+internal class MediaLikeView<T> : IComponent<T> where T : IState<T>, new()
 {
     bool isCached = false;
     private FrameView? container = null;
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+
+    public void Dispose()
+    {
+        container?.Dispose();
+    }
+
+    public (View, Rectangle?) View(IState<T> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();
         var frameBoundaries = new Rectangle(
@@ -30,7 +36,7 @@ internal class MediaLikeView : IComponent<MachineState>
         if (!isCached)
         {
             string[] labels = new[] { "reset", "previous", "next", "end" };
-            ActionsBase[] events = new ActionsBase[] { new Goto(0), new MoveBack(), new MoveNext(), new Goto(innerState.Entries.Count - 1) };
+            ActionsBase[] events = new ActionsBase[] { new Goto(0), new MoveBack(), new MoveNext(), new Goto(int.MaxValue) };
             Button? previousButton = null;
             Button[] buttons = labels.Zip(events).Select(pair =>
             {
@@ -38,7 +44,6 @@ internal class MediaLikeView : IComponent<MachineState>
                 var actionButton = new Button(label)
                 {
                     X = previousButton is null ? 0 : Pos.Right(previousButton),
-                    Width = Dim.Percent(20)
                 };
                 actionButton.Clicked += () =>
                 {

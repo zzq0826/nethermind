@@ -17,7 +17,6 @@ namespace Nethermind.Evm.Lab.Componants
 
         private static readonly string[] Columns_Overview = { "Pc", "Gas", "Depth", "Error" };
         private static readonly string[] Columns_Opcode = { "Opcode", "Operation", "GasCost" };
-        private View? _cache { get; set; }
         public IState<MachineState> Update(IState<MachineState> currentState, ActionsBase action)
         {
             var innerState = currentState.GetState();
@@ -105,6 +104,11 @@ namespace Nethermind.Evm.Lab.Componants
             }
             isCached = true;
             return (container, frameBoundaries);
+        }
+
+        public void Dispose()
+        {
+            container?.Dispose();
         }
     }
 }

@@ -13,7 +13,7 @@ public class EventsSink
     private ConcurrentQueue<ActionsBase> Events { get; set; } = new();
     public void EnqueueEvent(ActionsBase msg, bool overrideTimeout = false)
     {
-        if (!watch.IsRunning || watch.ElapsedMilliseconds > 100 || overrideTimeout)
+        if (!watch.IsRunning || watch.ElapsedMilliseconds > 10 || overrideTimeout)
         {
             Events.Enqueue(msg);
             if (!watch.IsRunning) watch.Start();

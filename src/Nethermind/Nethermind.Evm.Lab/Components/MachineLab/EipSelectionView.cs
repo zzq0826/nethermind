@@ -3,6 +3,7 @@
 
 using System.Text.RegularExpressions;
 using MachineStateEvents;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Specs;
@@ -117,5 +118,11 @@ internal class EipSelectionView : IComponent<MachineState>
         isCached = true;
 
         return (container, frameBoundaries);
+    }
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        EipCheckBoxes.ForEach(x => x.Dispose());
     }
 }

@@ -11,6 +11,13 @@ internal class StorageView : IComponent<MachineState>
     bool isCached = false;
     private FrameView? container = null;
     private TableView? table = null;
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        table?.Dispose();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();

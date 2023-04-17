@@ -7,6 +7,11 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components.GlobalViews;
 internal class FooterView : IComponent<MachineState>
 {
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+
     public (View, Rectangle?) View(IState<MachineState> _, Rectangle? rect = null)
     {
         throw new NotImplementedException();

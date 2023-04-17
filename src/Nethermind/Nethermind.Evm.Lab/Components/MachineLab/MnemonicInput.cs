@@ -31,6 +31,20 @@ internal class MnemonicInput : IComponent<MachineState>
     private (Button add, Button remove) actions;
     public event Action<byte[]> BytecodeChanged;
     bool isEofMode = false;
+
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        eofModeSelection?.Dispose();
+        tabView?.Dispose();
+        buttons.cancel?.Dispose();
+        buttons.submit?.Dispose();
+        actions.add?.Dispose();
+        actions.remove?.Dispose();
+    }
+
+
     private TextView CreateNewFunctionPage(bool select = true)
     {
         if (sectionsField is null || tabView is null || sectionsField.Count == 23)
@@ -269,4 +283,5 @@ internal class MnemonicInput : IComponent<MachineState>
 
         return (container, frameBoundaries);
     }
+
 }

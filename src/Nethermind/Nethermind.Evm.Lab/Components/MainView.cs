@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using GlobalStateEvents.Actions;
+using Nethermind.Evm.Lab.Componants;
 using Nethermind.Evm.Lab.Components.GlobalViews;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
@@ -11,7 +12,7 @@ namespace Nethermind.Evm.Lab.Components;
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
 internal class MainView : IComponent<GlobalState>
 {
-    private List<PageView> pages = new();
+    private List<IComponentObject> pages = new();
     private bool isCached;
     private Window container;
     private TabView table;
@@ -25,7 +26,7 @@ internal class MainView : IComponent<GlobalState>
 
     private void AddMachinePage(MachineState? state = null, string name = null)
     {
-        var pageObj = new PageView();
+        var pageObj = new MachineView();
         var pageState = state ?? new MachineState();
         pages.Add(pageObj);
         State.MachineStates.Add(pageState);
@@ -34,6 +35,15 @@ internal class MainView : IComponent<GlobalState>
             pageState.Initialize(true);
         }
         var tab = new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1);
+        table.AddTab(tab, true);
+    }
+
+    private void AddTracesPage(TraceState state = null, string name = null)
+    {
+        var pageObj = new TracesView();
+        pages.Add(pageObj);
+        State.MachineStates.Add(state);
+        var tab = new TabView.Tab(name ?? "Default", pageObj.View(state).Item1);
         table.AddTab(tab, true);
     }
 
@@ -53,8 +63,10 @@ internal class MainView : IComponent<GlobalState>
                 index++;
             }
             table.RemoveTab(targetTab);
+            var page = pages[index];
             pages.RemoveAt(index);
             State.MachineStates.RemoveAt(index);
+            page.Dispose();
         }
     }
 
@@ -165,9 +177,17 @@ internal class MainView : IComponent<GlobalState>
                     await MoveNext(state);
                     for (int i = 0; i < pages.Count; i++)
                     {
-                        if(await State.MachineStates[i].MoveNext() && pages[i].IsSelected())
+                        if(await State.MachineStates[i].MoveNext() && i == state.SelectedState)
                         {
-                            UpdateTabPage(pages[i].View(State.MachineStates[i]).Item1, i);
+                            switch(pages[i])
+                            {
+                                case MachineView machineView:
+                                    UpdateTabPage(machineView.View(State.MachineStates[i] as MachineState).Item1, i);
+                                    break;
+                                case TracesView traceView:
+                                    _ = traceView.View(State.MachineStates[i] as TraceState).Item1;
+                                    break;
+                            }
                         }
                     }
                 }
@@ -213,9 +233,14 @@ internal class MainView : IComponent<GlobalState>
     {
         switch (msg)
         {
-            case AddPage msgA:
+            case AddPage<MachineState> msgA:
                 {
-                    AddMachinePage(msgA.customState, name: msgA.name);
+                    AddMachinePage(msgA.customState?.GetState(), name: msgA.name);
+                    break;
+                }
+            case AddPage<TraceState> msgA:
+                {
+                    AddTracesPage(msgA.customState.GetState(), name: msgA.name);
                     break;
                 }
             case RemovePage msgR:
@@ -226,5 +251,12 @@ internal class MainView : IComponent<GlobalState>
         }
 
         return state;
+    }
+
+    public void Dispose()
+    {
+        container?.Dispose();
+        table?.Dispose();
+        header?.Dispose();
     }
 }
