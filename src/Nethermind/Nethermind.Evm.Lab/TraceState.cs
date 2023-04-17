@@ -14,17 +14,28 @@ namespace Nethermind.Evm.Lab
     {
         public TraceState() { }
         public TraceState(TraceStateEntry target, TraceStateEntry subject)
-            => Traces = (target, subject);
+        {
+            Traces = (target, subject);
+            CompareTraces();
+        }
         public TraceState(string targetName, GethLikeTxTrace target, string subjectName, GethLikeTxTrace subject)
         {
             var targetMS = new TraceStateEntry(targetName, new MachineState(target));
             var subjectMS = new TraceStateEntry(subjectName, new MachineState(subject));
             Traces = (targetMS, subjectMS);
+            CompareTraces();
+        }
+
+        private void CompareTraces()
+        {
+            var (targetEntries, subjectEntries) = (Traces.target.State.Entries, Traces.subject.State.Entries);
+            for (DifferenceStartIndex = 0; DifferenceStartIndex < Math.Min(targetEntries.Count, subjectEntries.Count) && subjectEntries[DifferenceStartIndex] == subjectEntries[DifferenceStartIndex]; DifferenceStartIndex++) ;
+
         }
         IState<TraceState> IState<TraceState>.Initialize(TraceState seed) => seed;
         public (TraceStateEntry target, TraceStateEntry subject) Traces;
         public EventsSink EventsSink { get; } = new EventsSink();
-
+        public int DifferenceStartIndex { get; private set; }
         public TraceState Next()
         {
             Traces.subject?.State?.Next();

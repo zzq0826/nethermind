@@ -30,8 +30,8 @@ internal class TracesView : IComponent<TraceState>
     {
         var innerState = state.GetState();
 
-        targetView ??= new HalfPageView(innerState.Traces.target.Name);
-        subjectView ??= new HalfPageView(innerState.Traces.subject.Name);
+        targetView ??= new HalfPageView(innerState.Traces.target.Name, 0);
+        subjectView ??= new HalfPageView(innerState.Traces.subject.Name, 1);
 
         container ??= new View()
         {
@@ -42,8 +42,8 @@ internal class TracesView : IComponent<TraceState>
         };
 
 
-        var (target_view, _) = targetView.View(innerState.Traces.target.State, new Rectangle(0, 0, Dim.Percent(50), Dim.Fill() - 3)); // h:10 w:30
-        var (subject_view, _) = subjectView.View(innerState.Traces.subject.State, new Rectangle(Pos.Right(target_view), 0, Dim.Percent(51), Dim.Fill() - 3)); // h:10 w:30
+        var (target_view, _) = targetView.View(innerState, new Rectangle(0, 0, Dim.Percent(50), Dim.Fill() - 3)); // h:10 w:30
+        var (subject_view, _) = subjectView.View(innerState, new Rectangle(Pos.Right(target_view), 0, Dim.Percent(51), Dim.Fill() - 3)); // h:10 w:30
 
         if (!isCached)
         {
