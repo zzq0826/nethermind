@@ -21,6 +21,12 @@ class TableViewColored : TableView
 {
     public int DiffIndexStart = 2;
     public int RenderCellIndex = 0;
+
+    public override void Redraw(Rect bounds)
+    {
+        RenderCellIndex = 0;
+        base.Redraw(bounds);
+    }
     protected override void RenderCell(Terminal.Gui.Attribute cellColor, string render, bool isPrimaryCell)
     {
         for (int i = 0; i < render.Length; i++)
