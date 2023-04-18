@@ -101,6 +101,8 @@ public partial class MergePlugin : IConsensusWrapperPlugin, ISynchronizationPlug
             _api.PoSSwitcher = _poSSwitcher;
             _api.DisposeStack.Push(_invalidChainTracker);
             _blockFinalizationManager = new ManualBlockFinalizationManager();
+            BlobTransactionsDbCleaner blobTransactionsDbCleaner = new(_blockFinalizationManager, _api.DbProvider.BlobTransactionsDb, _api.LogManager);
+            _api.DisposeStack.Push(blobTransactionsDbCleaner);
 
             _api.RewardCalculatorSource = new MergeRewardCalculatorSource(
                _api.RewardCalculatorSource ?? NoBlockRewards.Instance, _poSSwitcher);

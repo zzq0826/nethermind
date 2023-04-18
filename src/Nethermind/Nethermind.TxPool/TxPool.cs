@@ -189,7 +189,6 @@ namespace Nethermind.TxPool
                         {
                             ReAddReorganisedTransactions(args.PreviousBlock);
                             RemoveProcessedTransactions(args.Block);
-                            DeleteOldBlobTransactions(args.Block.Number);
                             UpdateBuckets();
                             _broadcaster.BroadcastPersistentTxs();
                             Metrics.TransactionCount = _transactions.Count;
@@ -297,14 +296,6 @@ namespace Nethermind.TxPool
             bool removed = RemoveTransaction(tx.Hash);
             _broadcaster.EnsureStopBroadcastUpToNonce(tx.SenderAddress!, tx.Nonce);
             return removed;
-        }
-
-        private void DeleteOldBlobTransactions(long blockNumber)
-        {
-            if (_blobTransactionsDb.KeyExists(blockNumber - 128))
-            {
-                _blobTransactionsDb.Delete(blockNumber - 128);
-            }
         }
 
         public void AddPeer(ITxPoolPeer peer)
