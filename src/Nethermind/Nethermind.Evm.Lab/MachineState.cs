@@ -9,6 +9,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Components;
 using Nethermind.Evm.Lab.Interfaces;
+using Nethermind.Evm.Lab.Parser;
 using Nethermind.Evm.Test;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Int256;
@@ -75,33 +76,10 @@ namespace Nethermind.Evm.Lab
             {
                 AvailableGas = VirtualMachineTestsBase.DefaultBlockGasLimit;
                 SelectedFork = Cancun.Instance;
-                RuntimeContext = CodeInfoFactory.CreateCodeInfo(ExtractBytecodeFromTrace(trace), SelectedFork);
+                RuntimeContext = CodeInfoFactory.CreateCodeInfo(BytecodeParser.ExtractBytecodeFromTrace(trace), SelectedFork);
                 CallData = Array.Empty<byte>();
             }
             return this;
-        }
-
-        private byte[] ExtractBytecodeFromTrace(GethLikeTxTrace trace)
-        {
-            //only works for non-eof code (immediate arguments are non-deducable
-            (bool isPreviousOpcodePush, int byteCount) = (false, 0);
-            var bytecode = new List<byte>();
-            for(int i = 0; i < trace.Entries.Count; i++)
-            {
-                if(isPreviousOpcodePush)
-                {
-                    byte[] stakcItem = Bytes.FromHexString(trace.Entries[i].Stack.Last());
-                    foreach (var byteElement in stakcItem.Slice(stakcItem.Length - byteCount))
-                    {
-                        bytecode.Add(byteElement);                        
-                    }
-                }
-                Enum.TryParse<Instruction>(trace.Entries[i].Operation, out Instruction opcode);
-                bytecode.Add((byte)opcode);
-                isPreviousOpcodePush = opcode is >= Instruction.PUSH1 && opcode <= Instruction.PUSH32;
-                byteCount = opcode - Instruction.PUSH0;
-            }
-            return bytecode.ToArray();
         }
 
         public GethTxTraceEntry Current => base.Entries[Index];

@@ -49,10 +49,12 @@ internal class StackView : IComponent<MachineState>
 
         var cleanedUpDataSource = innerState.Current.Stack.Select(entry =>
         {
-            int firstNonZeroBitIdx = 0;
-            while (firstNonZeroBitIdx < entry.Length && entry[firstNonZeroBitIdx] == '0') firstNonZeroBitIdx++;
-            int length = Math.Max(42, entry.Length - firstNonZeroBitIdx);
-            return entry[^length..];
+            entry = entry.StartsWith("0x") ? entry.Substring(2) : entry;
+            if(entry.Length <  32)
+            {
+                entry = entry.PadLeft(32 - entry.Length + 1, '0');
+            }
+        return entry;
         }).ToList();
 
         int index = 0;

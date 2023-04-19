@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Int256;
 using NUnit.Framework;
 
@@ -69,6 +70,29 @@ internal class BytecodeParser
             i += immediatesCount;
         }
         return opcodes;
+    }
+
+    public static  byte[] ExtractBytecodeFromTrace(GethLikeTxTrace trace)
+    {
+        //only works for non-eof code (immediate arguments are non-deducable
+        (bool isPreviousOpcodePush, int byteCount) = (false, 0);
+        var bytecode = new List<byte>();
+        for (int i = 0; i < trace.Entries.Count; i++)
+        {
+            if (isPreviousOpcodePush)
+            {
+                byte[] stakcItem = Bytes.FromHexString(trace.Entries[i].Stack.Last());
+                foreach (var byteElement in stakcItem.Slice(stakcItem.Length - byteCount))
+                {
+                    bytecode.Add(byteElement);
+                }
+            }
+            Enum.TryParse<Evm.Instruction>(trace.Entries[i].Operation, out Evm.Instruction opcode);
+            bytecode.Add((byte)opcode);
+            isPreviousOpcodePush = opcode is >= Evm.Instruction.PUSH1 && opcode <= Evm.Instruction.PUSH32;
+            byteCount = opcode - Evm.Instruction.PUSH0;
+        }
+        return bytecode.ToArray();
     }
 }
 

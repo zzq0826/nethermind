@@ -39,9 +39,12 @@ internal class StorageView : IComponent<MachineState>
         var dataTable = new DataTable();
         dataTable.Columns.Add("Address");
         dataTable.Columns.Add("Value");
-        foreach (var (k, v) in innerState.Current.Storage)
+        if(innerState.Current?.Storage is not null)
         {
-            dataTable.Rows.Add(k, v);
+            foreach (var (k, v) in innerState.Current.Storage)
+            {
+                dataTable.Rows.Add(k, v);
+            }
         }
 
         table ??= new TableView()

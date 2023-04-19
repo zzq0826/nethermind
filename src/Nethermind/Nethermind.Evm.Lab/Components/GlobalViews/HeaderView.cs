@@ -8,6 +8,7 @@ using MachineStateEvents;
 using Nethermind.Consensus.Tracing;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Tracing.GethStyle;
+using Newtonsoft.Json;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.GlobalViews;
@@ -50,7 +51,7 @@ internal class HeaderView : IComponent<GlobalState>
                         var fileName = Path.GetFileNameWithoutExtension (filePath);
                         var contentAsText = File.ReadAllText (filePath);
                         try {
-                            GethLikeTxTrace? traces = JsonSerializer.Deserialize<GethLikeTxTrace>(contentAsText);
+                            GethLikeTxTrace? traces = JsonConvert.DeserializeObject<GethLikeTxTrace>(contentAsText);
                             if(traces is not null)
                             {
                                 state.EventsSink.EnqueueEvent(new AddPage<MachineState>(fileName, new MachineState(traces)));
@@ -70,7 +71,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         if(saveOpenDialogue.Canceled) return;
                         var filePath = (string)saveOpenDialogue.FilePath;
                         var localState = state.GetState();
-                        var serializedData = System.Text.Json.JsonSerializer.Serialize(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
+                        var serializedData = JsonConvert.SerializeObject(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
                         File.WriteAllText(filePath, serializedData);
                     }),
                     new MenuItem ("_Quit", "", () => {
@@ -98,7 +99,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                             string filePath = (string)importOpenDialogue.FilePath;
                             string fileName = Path.GetFileNameWithoutExtension (filePath);
                             try {
-                                files[i] = new TraceStateEntry(fileName, new MachineState(JsonSerializer.Deserialize<GethLikeTxTrace>(File.ReadAllText (filePath))));
+                                files[i] = new TraceStateEntry(fileName, new MachineState(JsonConvert.DeserializeObject<GethLikeTxTrace>(File.ReadAllText (filePath))));
                             } catch
                             {
                                 MainView.ShowError("Failed to deserialize Traces Provided!");

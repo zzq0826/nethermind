@@ -68,8 +68,8 @@ namespace Nethermind.Evm.Lab.Componants
                     {
                         if (proeprtyName == "Opcode")
                         {
-                            var opcodeNane = innerState.Current.Operation;
-                            var Instruction = (byte)Enum.Parse<Evm.Instruction>(opcodeNane);
+                            var opcodeName = innerState.Current.Operation;
+                            var Instruction = (byte)Enum.Parse<Evm.Instruction>(opcodeName);
                             return (Object?)$"{Instruction:X4}";
                         }
                         else

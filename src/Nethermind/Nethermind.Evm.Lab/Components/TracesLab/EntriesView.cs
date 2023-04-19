@@ -81,7 +81,8 @@ internal class EntriesView : IComponent<MachineState>
             int RowIndex = 0;
             foreach (var entry in innerState.Entries)
             {
-                dataTable.Rows.Add(RowIndex++, $"0x{entry.Pc:X4}", entry.Operation, (int)Enum.Parse<Evm.Instruction>(entry.Operation), entry.GasCost, entry.Gas, entry.Depth, entry.Error);
+                var opcode = Enum.Parse<Evm.Instruction>(entry.Operation);
+                dataTable.Rows.Add(RowIndex++, $"0x{entry.Pc:X4}", opcode.ToString(), (int)opcode, entry.GasCost, entry.Gas, entry.Depth, entry.Error);
             }
 
             programView ??= new TableViewColored()
