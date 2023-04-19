@@ -9,19 +9,12 @@ using Nethermind.Logging;
 
 namespace Nethermind.Merge.Plugin;
 
-public interface IBlobTransactionsDbCleaner : IDisposable
-{
-    event EventHandler<FinalizeEventArgs> BlocksFinalized;
-}
-
-public class BlobTransactionsDbCleaner : IBlobTransactionsDbCleaner
+public class BlobTransactionsDbCleaner : IDisposable
 {
     private readonly IManualBlockFinalizationManager _finalizationManager;
     private readonly IDb _blobTransactionsDb;
     private readonly ILogger _logger;
     private long _lastFinalizedBlock = 0;
-
-    public event EventHandler<FinalizeEventArgs>? BlocksFinalized;
 
     public BlobTransactionsDbCleaner(IManualBlockFinalizationManager finalizationManager, IDb blobTransactionsDb, ILogManager logManager)
     {
@@ -34,12 +27,9 @@ public class BlobTransactionsDbCleaner : IBlobTransactionsDbCleaner
 
     private void OnBlocksFinalized(object? sender, FinalizeEventArgs e)
     {
-
-        long newlyFinalizedBlockNumber = e.FinalizingBlock.Number;
-
-        if (newlyFinalizedBlockNumber > _lastFinalizedBlock)
+        if (e.FinalizingBlock.Number > _lastFinalizedBlock)
         {
-            Task.Run(() => CleanBlobTransactionsDb(newlyFinalizedBlockNumber));
+            Task.Run(() => CleanBlobTransactionsDb(e.FinalizingBlock.Number));
         }
     }
 
@@ -47,11 +37,14 @@ public class BlobTransactionsDbCleaner : IBlobTransactionsDbCleaner
     {
         try
         {
-            for (long i = _lastFinalizedBlock; i < newlyFinalizedBlockNumber; i++)
+            if (_lastFinalizedBlock != 0)
             {
-                if (_blobTransactionsDb.KeyExists(i))
+                for (long i = _lastFinalizedBlock + 1; i <= newlyFinalizedBlockNumber; i++)
                 {
-                    _blobTransactionsDb.Delete(i);
+                    if (_blobTransactionsDb.KeyExists(i))
+                    {
+                        _blobTransactionsDb.Delete(i);
+                    }
                 }
             }
 
