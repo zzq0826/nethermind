@@ -76,8 +76,8 @@ public partial class VerkleTree
         {
             stem.CopyTo(key);
             key[31] = keyVal.Key;
-            Console.WriteLine("KA: " + EnumerableExtensions.ToString(key.ToArray()));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Value));
+            Console.WriteLine("KA: " + Core.Extensions.EnumerableExtensions.ToString(key.ToArray()));
+            Console.WriteLine("V: " + Core.Extensions.EnumerableExtensions.ToString(keyVal.Value));
         }
 #endif
 
