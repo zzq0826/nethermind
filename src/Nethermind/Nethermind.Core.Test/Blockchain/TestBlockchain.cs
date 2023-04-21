@@ -153,7 +153,7 @@ public class TestBlockchain : IDisposable
 
         ReceiptStorage = new InMemoryReceiptStorage();
         VirtualMachine virtualMachine = new(new BlockhashProvider(BlockTree, LogManager), SpecProvider, LogManager);
-        TxProcessor = new TransactionProcessor(SpecProvider, State, Storage, virtualMachine, LogManager);
+        TxProcessor = new TransactionProcessor(SpecProvider, State, Storage, virtualMachine, BlockTree, LogManager);
         BlockPreprocessorStep = new RecoverSignatures(EthereumEcdsa, TxPool, SpecProvider, LogManager);
         HeaderValidator = new HeaderValidator(BlockTree, Always.Valid, SpecProvider, LogManager);
 
@@ -164,6 +164,7 @@ public class TestBlockchain : IDisposable
             HeaderValidator,
             Always.Valid,
             SpecProvider,
+            BlockTree,
             LogManager);
 
         PoSSwitcher = NoPoS.Instance;
@@ -322,6 +323,7 @@ public class TestBlockchain : IDisposable
             Storage,
             ReceiptStorage,
             NullWitnessCollector.Instance,
+            _blockFinder,
             LogManager);
 
     public async Task WaitForNewHead()

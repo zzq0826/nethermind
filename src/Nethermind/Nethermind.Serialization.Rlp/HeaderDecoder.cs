@@ -10,7 +10,6 @@ namespace Nethermind.Serialization.Rlp
 {
     public class HeaderDecoder : IRlpValueDecoder<BlockHeader>, IRlpStreamDecoder<BlockHeader>
     {
-
         public BlockHeader? Decode(ref Rlp.ValueDecoderContext decoderContext,
             RlpBehaviors rlpBehaviors = RlpBehaviors.None)
         {
@@ -223,7 +222,7 @@ namespace Nethermind.Serialization.Rlp
 
             if (header.ExcessDataGas is not null)
             {
-                rlpStream.Encode(header.ExcessDataGas.Value);
+                rlpStream.Encode(header.ExcessDataGas ?? 0);
             }
         }
 

@@ -56,6 +56,14 @@ public class BlockDecoderTests
                 .WithUncles(uncles)
                 .WithWithdrawals(8)
                 .WithMixHash(Keccak.EmptyTreeHash)
+                .TestObject,
+            Build.A.Block
+                .WithNumber(1)
+                .WithTransactions(transactions)
+                .WithUncles(uncles)
+                .WithWithdrawals(8)
+                .WithExcessDataGas(0)
+                .WithMixHash(Keccak.EmptyTreeHash)
                 .TestObject
         };
     }

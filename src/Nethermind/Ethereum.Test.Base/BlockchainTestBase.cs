@@ -234,7 +234,7 @@ namespace Ethereum.Test.Base
             blockTree.SuggestBlock(genesisBlock);
 
             genesisProcessed.WaitOne();
-
+            BlockHeader parentBlockHeader = genesisBlock.Header;
             for (int i = 0; i < correctRlp.Count; i++)
             {
                 stopwatch?.Start();
@@ -251,7 +251,7 @@ namespace Ethereum.Test.Base
                     }
 
                     // TODO: mimic the actual behaviour where block goes through validating sync manager?
-                    if (!test.SealEngineUsed || blockValidator.ValidateSuggestedBlock(correctRlp[i].Block))
+                    if (!test.SealEngineUsed || blockValidator.ValidateSuggestedBlock(correctRlp[i].Block, parentBlockHeader))
                     {
                         blockTree.SuggestBlock(correctRlp[i].Block);
                     }

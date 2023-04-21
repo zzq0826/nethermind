@@ -324,6 +324,9 @@ namespace Nethermind.Synchronization.Blocks
                 }
 
                 ancestorLookupLevel = 0;
+                Block? parent = blocks.Length > 0 && blocks[0].ParentHash is not null
+                    ? _blockTree.FindBlock(blocks[0].ParentHash!)
+                    : null;
                 for (int blockIndex = 0; blockIndex < context.FullBlocksCount; blockIndex++)
                 {
                     if (cancellation.IsCancellationRequested)
@@ -341,7 +344,7 @@ namespace Nethermind.Synchronization.Blocks
                     }
 
                     // can move this to block tree now?
-                    if (!_blockValidator.ValidateSuggestedBlock(currentBlock))
+                    if (!_blockValidator.ValidateSuggestedBlock(currentBlock, parent!.Header))
                     {
                         throw new EthSyncException($"{bestPeer} sent an invalid block {currentBlock.ToString(Block.Format.Short)}.");
                     }
@@ -384,6 +387,7 @@ namespace Nethermind.Synchronization.Blocks
                         _blockTree.UpdateMainChain(new[] { currentBlock }, false);
                     }
 
+                    parent = currentBlock;
                     currentNumber += 1;
                 }
 
