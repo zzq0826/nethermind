@@ -50,7 +50,7 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
 
             nodeDictionary?.AddOrUpdate(trieNode.FullPath, addFunc, updateFunc);
             if (trieNode.PathToNode == Array.Empty<byte>())
-                nodeDictionary?.AddOrUpdate(trieNode.PathToNode, k => trieNode, (k, n) => trieNode);
+                nodeDictionary?.AddOrUpdate(trieNode.StoreNibblePathPrefix, k => trieNode, (k, n) => trieNode);
         }
     }
 
@@ -94,14 +94,16 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
     {
         if (_rootHashToBlock.TryGetValue(rootHash, out HashSet<long> blocks))
         {
+            if (_nodesByBlock.Count == 0) return null;
+
             long blockNo = blocks.Min();
             long minBlockNumberStored = _nodesByBlock.Keys.Min();
 
             while (blockNo >= minBlockNumberStored)
             {
-                if (_nodesByBlock.TryGetValue(blockNo, out ConcurrentDictionary<byte[], TrieNode> nodeDictrionary))
+                if (_nodesByBlock.TryGetValue(blockNo, out ConcurrentDictionary<byte[], TrieNode> nodeDictionary))
                 {
-                    if (nodeDictrionary.TryGetValue(path, out TrieNode node))
+                    if (nodeDictionary.TryGetValue(path, out TrieNode node))
                     {
                         Pruning.Metrics.LoadedFromCacheNodesCount++;
                         return node;
