@@ -84,15 +84,23 @@ namespace Nethermind.Trie
         {
             get
             {
-                if (IsLeaf && PathToNode is not null)
+                if (!IsLeaf || PathToNode is null)
                 {
-                    Debug.Assert(PathToNode.Length + Key.Length == 64);
-                    byte[] full = new byte[64];
-                    PathToNode.CopyTo(full, 0);
-                    Array.Copy(Key, 0, full, PathToNode.Length, 64 - PathToNode.Length);
-                    return full;
+                    if (StoreNibblePathPrefix.Length == 0)
+                    {
+                        return PathToNode;
+                    }
+                    Span<byte> fullPathToNode = new byte[StoreNibblePathPrefix.Length + (PathToNode?.Length ?? 0)];
+                    StoreNibblePathPrefix.CopyTo(fullPathToNode);
+                    PathToNode?.CopyTo(fullPathToNode.Slice(StoreNibblePathPrefix.Length));
+                    return fullPathToNode.ToArray();
                 }
-                return PathToNode;
+                Debug.Assert(PathToNode is not null);
+                Span<byte> full = new byte[StoreNibblePathPrefix.Length + 64];
+                StoreNibblePathPrefix.CopyTo(full);
+                PathToNode.CopyTo(full.Slice(StoreNibblePathPrefix.Length));
+                Key?[..(64 - PathToNode.Length)].CopyTo(full.Slice(StoreNibblePathPrefix.Length + PathToNode.Length));
+                return full.ToArray();
             }
         }
 
@@ -267,7 +275,7 @@ namespace Nethermind.Trie
 #if DEBUG
             return
                 $"[{NodeType}({FullRlp?.Length}){(FullRlp is not null && FullRlp?.Length < 32 ? $"{FullRlp.ToHexString()}" : "")}" +
-                $"|{Id}|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|";
+                $"|{Id}|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|FP:{FullPath?.ToHexString()}|SP:{StoreNibblePathPrefix.ToHexString()}";
 #else
             return $"[{NodeType}({FullRlp?.Length})|{Keccak?.ToShortString()}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|";
 #endif
@@ -691,10 +699,13 @@ namespace Nethermind.Trie
             return trieNode;
         }
 
+        public TrieNode CloneWithChangedKey(byte[] path, int removeLength) => CloneWithChangedKey(path, PathToNode!.AsSpan()[..^removeLength]);
+
         public TrieNode CloneNodeForDeletion()
         {
             TrieNode trieNode = new TrieNode(NodeType);
             if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
+            trieNode.StoreNibblePathPrefix = StoreNibblePathPrefix.Length == 0? Array.Empty<byte>(): (byte[])StoreNibblePathPrefix.Clone();
             if (Key is not null) trieNode.Key = (byte[])Key.Clone();
             trieNode._rlpStream = null;
             return trieNode;
@@ -717,8 +728,12 @@ namespace Nethermind.Trie
                 trieNode.FullRlp = FullRlp;
                 trieNode._rlpStream = FullRlp.AsRlpStream();
             }
+
             if (PathToNode is not null)
                 trieNode.PathToNode = (byte[])PathToNode.Clone();
+
+            trieNode.StoreNibblePathPrefix = StoreNibblePathPrefix.Length == 0? Array.Empty<byte>(): (byte[])StoreNibblePathPrefix.Clone();
+
             return trieNode;
         }
 
