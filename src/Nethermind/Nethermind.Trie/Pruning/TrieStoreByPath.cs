@@ -259,21 +259,21 @@ namespace Nethermind.Trie.Pruning
             return new TrieNode(NodeType.Unknown, keccak);
         }
 
-        public TrieNode FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath)
+        public TrieNode FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath, Span<byte> storagePrefix)
         {
             TrieNode node = _committedNodes.GetNode(nodePath.ToArray(), keccak);
             node ??= new TrieNode(NodeType.Unknown, nodePath);
             return node;
         }
 
-        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Keccak rootHash)
+        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash)
         {
             TrieNode node = _committedNodes.GetNode(rootHash, nodePath.ToArray());
             node ??= new TrieNode(NodeType.Unknown, nodePath);
             return node;
         }
 
-        internal TrieNode FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath, bool isReadOnly)
+        internal TrieNode FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath, Span<byte> storagePrefix, bool isReadOnly)
         {
             return _committedNodes.GetNode(keccak, nodePath.ToArray());
         }

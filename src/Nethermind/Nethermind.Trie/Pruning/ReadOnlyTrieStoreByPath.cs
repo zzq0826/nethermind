@@ -25,8 +25,8 @@ namespace Nethermind.Trie.Pruning
         public TrieNode FindCachedOrUnknown(Keccak hash) =>
             _trieStore.FindCachedOrUnknown(hash);
 
-        public TrieNode FindCachedOrUnknown(Keccak hash, Span<byte> nodePath) =>
-            _trieStore.FindCachedOrUnknown(hash, nodePath);
+        public TrieNode FindCachedOrUnknown(Keccak hash, Span<byte> nodePath, Span<byte> storagePrefix) =>
+            _trieStore.FindCachedOrUnknown(hash, nodePath, storagePrefix);
 
         public byte[] LoadRlp(Keccak hash) => _trieStore.LoadRlp(hash, _readOnlyStore);
 
@@ -62,7 +62,7 @@ namespace Nethermind.Trie.Pruning
 
         public bool ExistsInDB(Keccak hash, byte[] nodePathNibbles) => _trieStore.ExistsInDB(hash, nodePathNibbles);
 
-        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Keccak rootHash) => _trieStore.FindCachedOrUnknown(nodePath, rootHash);
+        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash) => _trieStore.FindCachedOrUnknown(nodePath, storagePrefix, rootHash);
 
         public byte[]? this[ReadOnlySpan<byte> key] => _trieStore[key];
     }

@@ -37,6 +37,18 @@ namespace Nethermind.Trie
         private RlpStream? _rlpStream;
         private object?[]? _data;
 
+        private byte[]? _storageNibblePathPrefix;
+        public byte[] StoreNibblePathPrefix {
+            get
+            {
+                return _storageNibblePathPrefix ?? Array.Empty<byte>();
+            }
+            set
+            {
+                _storageNibblePathPrefix = value;
+            }
+        }
+
         /// <summary>
         /// Ethereum Patricia Trie specification allows for branch values,
         /// although branched never have values as all the keys are of equal length.
@@ -554,7 +566,7 @@ namespace Nethermind.Trie
                 if (tree.Capability == TrieNodeResolverCapability.Hash)
                     child = tree.FindCachedOrUnknown(reference);
                 else
-                    child = tree.FindCachedOrUnknown(reference, childPath);
+                    child = tree.FindCachedOrUnknown(reference, childPath, StoreNibblePathPrefix);
             }
             else
             {
@@ -949,7 +961,7 @@ namespace Nethermind.Trie
                             {
                                 rlpStream.Position--;
                                 Keccak keccak = rlpStream.DecodeKeccak();
-                                TrieNode child = tree.FindCachedOrUnknown(keccak, path);
+                                TrieNode child = tree.FindCachedOrUnknown(keccak, path, StoreNibblePathPrefix);
                                 _data![i] = childOrRef = child;
 
                                 if (IsPersisted && !child.IsPersisted)
@@ -1021,7 +1033,7 @@ namespace Nethermind.Trie
                                     Key.CopyTo(childPath.Slice(PathToNode.Length));
                                     if (IsBranch)
                                         childPath[totalLen - 1] = (byte)i;
-                                    child = tree.FindCachedOrUnknown(keccak, childPath);
+                                    child = tree.FindCachedOrUnknown(keccak, childPath, StoreNibblePathPrefix);
                                     child.Keccak = keccak;
                                 }
                                 //Console.WriteLine($"At node:{PathToNode?.ToHexString()} / {Keccak}, child: {child?.PathToNode?.ToHexString()} / {child?.Keccak}");

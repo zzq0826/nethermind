@@ -25,8 +25,25 @@ namespace Nethermind.Trie
         private readonly ILogger _logger;
 
         public const int OneNodeAvgMemoryEstimate = 384;
+
         public const int StoragePrefixLength = Keccak.Size + 1;
         public const int StorageKeyLength = Keccak.Size;
+
+        private byte[]? _storageBytePathPrefix;
+        private byte[]? _storageNibblePathPrefix;
+        public byte[] StorageBytePathPrefix
+        {
+            get
+            {
+                return _storageBytePathPrefix ?? Array.Empty<byte>();
+            }
+            set
+            {
+                _storageBytePathPrefix = value;
+                _storageNibblePathPrefix = value.Length == 0 ? Array.Empty<byte>() : Nibbles.BytesToNibbleBytes(value);
+            }
+        }
+        public byte[] StoreNibblePathPrefix => _storageNibblePathPrefix ?? Array.Empty<byte>();
 
         /// <summary>
         ///     0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
@@ -325,7 +342,7 @@ namespace Nethermind.Trie
             }
             else if (resetObjects)
             {
-                RootRef = TrieStore.FindCachedOrUnknown(_rootHash, Array.Empty<byte>());
+                RootRef = TrieStore.FindCachedOrUnknown(_rootHash, Array.Empty<byte>(), StoreNibblePathPrefix);
             }
         }
 
@@ -1192,7 +1209,7 @@ namespace Nethermind.Trie
                         }
                         break;
                     case TrieNodeResolverCapability.Path:
-                        rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash, Array.Empty<byte>());
+                        rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash, Array.Empty<byte>(), StoreNibblePathPrefix);
                         try
                         {
                             if (rootRef.NodeType == NodeType.Unknown)

@@ -358,7 +358,7 @@ namespace Nethermind.Trie.Pruning
             return FindCachedOrUnknown(hash, false);
         }
 
-        public TrieNode FindCachedOrUnknown(Keccak? hash, Span<byte> nodePath)
+        public TrieNode FindCachedOrUnknown(Keccak? hash, Span<byte> nodePath, Span<byte> storagePrefix)
         {
             return FindCachedOrUnknown(hash, false);
         }
@@ -828,7 +828,7 @@ namespace Nethermind.Trie.Pruning
             });
         }
 
-        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Keccak rootHash)
+        public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash)
         {
             throw new NotImplementedException();
         }
