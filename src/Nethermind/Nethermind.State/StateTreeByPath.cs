@@ -38,44 +38,14 @@ namespace Nethermind.State
         public Account? Get(Address address, Keccak? rootHash = null)
         {
             byte[] addressKeyBytes = Keccak.Compute(address.Bytes).Bytes;
-            Keccak expectedRoot = rootHash ?? RootHash;
-
-            byte[]? bytes;
-            ///Scenarios to consider:
-            ///StateReader:
-            /// - RootRef is null and RootHash is hash of empty
-            /// - all calls will have rootHash param
-            ///StateProvider:
-            /// - Uncommitted tree - need to traverse to get the value
-            /// - Tree commited, so should have RootRef.IsDirty false
-            /// - RootRef can be set to a different hash then the latest one persissted, so need to check cache 1st
-            if (RootRef?.IsDirty == true)
-            {
-                bytes = Get(addressKeyBytes);
-            }
-            else
-            {
-                bytes = GetCachedAccount(addressKeyBytes, expectedRoot);
-                bytes ??= GetPersistedAccount(addressKeyBytes);
-            }
+            byte[]? bytes = Get(addressKeyBytes, rootHash);
             return bytes is null ? null : _decoder.Decode(bytes.AsRlpStream());
         }
 
         //[DebuggerStepThrough]
         internal Account? Get(Keccak keccak) // for testing
         {
-            byte[] addressKeyBytes = keccak.Bytes;
-            if (RootRef?.IsPersisted == true)
-            {
-                byte[]? nodeData = TrieStore[addressKeyBytes];
-                if (nodeData is not null)
-                {
-                    TrieNode node = new(NodeType.Unknown, nodeData);
-                    node.ResolveNode(TrieStore);
-                    return _decoder.Decode(node.Value.AsRlpStream());
-                }
-            }
-            byte[]? bytes = Get(addressKeyBytes);
+            byte[]? bytes = Get(keccak.Bytes);
             return bytes is null ? null : _decoder.Decode(bytes.AsRlpStream());
         }
 
@@ -93,38 +63,5 @@ namespace Nethermind.State
             Set(keccak.Bytes, rlp);
             return rlp;
         }
-
-        private byte[] GetCachedAccount(byte[] addressBytes, Keccak stateRoot)
-        {
-            Span<byte> nibbleBytes = stackalloc byte[64];
-            Nibbles.BytesToNibbleBytes(addressBytes, nibbleBytes);
-            TrieNode node = TrieStore.FindCachedOrUnknown(nibbleBytes,  Array.Empty<byte>(), stateRoot);
-            return node?.NodeType == NodeType.Leaf ? node.Value : null;
-        }
-
-        private byte[] GetPersistedAccount(byte[] addressBytes)
-        {
-            byte[]? nodeData = TrieStore[addressBytes];
-            if (nodeData is not null)
-            {
-                TrieNode node = new(NodeType.Unknown, nodeData);
-                node.ResolveNode(TrieStore);
-                return node.Value;
-            }
-            return null;
-        }
-
-        private TrieNode? GetPersistedRoot()
-        {
-            byte[]? nodeData = TrieStore[Nibbles.ToEncodedStorageBytes(Array.Empty<byte>())];
-            if (nodeData is not null)
-            {
-                TrieNode root = new(NodeType.Unknown, nodeData);
-                root.ResolveKey(TrieStore, true);
-                return root;
-            }
-            return null;
-        }
-
     }
 }

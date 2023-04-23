@@ -42,6 +42,10 @@ namespace Nethermind.Trie.Pruning
             return new(NodeType.Unknown, nodePath, hash);
         }
 
+        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        {
+            throw new NotImplementedException();
+        }
         public byte[] LoadRlp(Keccak hash)
         {
             return Array.Empty<byte>();

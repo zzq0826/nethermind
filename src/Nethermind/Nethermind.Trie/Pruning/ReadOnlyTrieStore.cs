@@ -28,6 +28,10 @@ namespace Nethermind.Trie.Pruning
         public TrieNode FindCachedOrUnknown(Keccak hash, Span<byte> nodePath, Span<byte> storagePrefix) =>
             _trieStore.FindCachedOrUnknown(hash, true);
 
+        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        {
+            return ((ITrieNodeResolver)_trieStore).TryLoadRlp(path, keyValueStore);
+        }
         public byte[] LoadRlp(Keccak hash) => _trieStore.LoadRlp(hash, _readOnlyStore);
 
         public bool IsPersisted(Keccak keccak) => _trieStore.IsPersisted(keccak);

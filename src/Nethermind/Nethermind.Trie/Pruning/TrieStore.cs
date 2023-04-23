@@ -330,6 +330,10 @@ namespace Nethermind.Trie.Pruning
             return rlp;
         }
 
+        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        {
+            throw new NotImplementedException();
+        }
         public byte[] LoadRlp(Keccak keccak) => LoadRlp(keccak, null);
 
         public bool IsPersisted(Keccak keccak)

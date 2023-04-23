@@ -346,8 +346,7 @@ namespace Nethermind.Trie
             }
         }
 
-        [DebuggerStepThrough]
-        public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+        protected byte[]? GetInternal(Span<byte> rawKey, Keccak? rootHash = null)
         {
             try
             {
@@ -367,7 +366,46 @@ namespace Nethermind.Trie
             }
         }
 
-        [DebuggerStepThrough]
+        public byte[]? Get(Span<byte> rawKey, Keccak? rootHash = null)
+        {
+            if (Capability == TrieNodeResolverCapability.Hash) return GetInternal(rawKey, rootHash);
+
+            if (rootHash is null)
+            {
+                if (RootRef is null)
+                {
+                    _logger.Error("RootRef is also null - tree not initialized");
+                    return null;
+                }
+
+                if (RootRef?.IsDirty == true)
+                {
+                    return GetInternal(rawKey);
+                }
+                rootHash = RootHash;
+            }
+
+            // get cached account
+            Span<byte> nibbleBytes = stackalloc byte[StoreNibblePathPrefix.Length + rawKey.Length * 2];
+            StoreNibblePathPrefix.CopyTo(nibbleBytes);
+            Nibbles.BytesToNibbleBytes(rawKey, nibbleBytes.Slice(StoreNibblePathPrefix.Length));
+            TrieNode? node = TrieStore.FindCachedOrUnknown(nibbleBytes.Slice(StoreNibblePathPrefix.Length), StoreNibblePathPrefix, rootHash);
+            // if (node is null) return null;
+            if (node.NodeType == NodeType.Leaf) return node.Value;
+
+            // if not in cached nodes - then check persisted nodes`
+            byte[] nodePath = nibbleBytes.Length is TrieStoreByPath.AccountLeafNibblesLength or TrieStoreByPath.StorageLeafNibblesLength
+                ? Nibbles.ToBytes(nibbleBytes)
+                : Nibbles.ToEncodedStorageBytes(nibbleBytes);
+
+            byte[]? nodeData = TrieStore.TryLoadRlp(nibbleBytes, null);
+            if (nodeData is null) return null;
+
+            node = new TrieNode(NodeType.Unknown, nodeData);
+            node.ResolveNode(TrieStore);
+            return node.Value;
+        }
+
         public void Set(Span<byte> rawKey, byte[] value)
         {
             if (_logger.IsTrace)

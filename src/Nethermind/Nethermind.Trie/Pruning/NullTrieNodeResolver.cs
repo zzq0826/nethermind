@@ -18,6 +18,10 @@ namespace Nethermind.Trie.Pruning
         public TrieNode FindCachedOrUnknown(Keccak hash) => new(NodeType.Unknown, hash);
         public TrieNode FindCachedOrUnknown(Keccak hash, Span<byte> nodePath, Span<byte> storagePrefix) => new(NodeType.Unknown, nodePath, hash);
 
+        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        {
+            throw new NotImplementedException();
+        }
         public byte[]? LoadRlp(Keccak hash) => null;
 
         public byte[]? LoadRlp(Span<byte> nodePath, Keccak rootHash)
