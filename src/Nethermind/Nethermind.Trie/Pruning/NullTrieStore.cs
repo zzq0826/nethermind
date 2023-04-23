@@ -57,7 +57,7 @@ namespace Nethermind.Trie.Pruning
 
         public TrieNode FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash)
         {
-            return new(NodeType.Unknown, nodePath.ToArray());
+            return new(NodeType.Unknown, nodePath){StoreNibblePathPrefix = storagePrefix.ToArray()};
         }
 
         public byte[]? LoadRlp(Span<byte> nodePath, Keccak rootHash)
