@@ -120,11 +120,6 @@ namespace Nethermind.Trie.Pruning
             {
                 TrieNode node = nodeCommitInfo.Node!;
 
-                if (node!.Keccak is null)
-                {
-                    throw new TrieStoreException($"The hash of {node} should be known at the time of committing.");
-                }
-
                 if (CurrentPackage is null)
                 {
                     throw new TrieStoreException($"{nameof(CurrentPackage)} is NULL when committing {node} at {blockNumber}.");
