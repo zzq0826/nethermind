@@ -26,6 +26,8 @@ namespace Nethermind.Trie.Pruning
         public const int AccountLeafNibblesLength = 64;
         public const int StorageLeafNibblesLength = PatriciaTree.StoragePrefixLength * 2 + 64;
 
+        private readonly ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
+
 
         private static readonly byte[] _rootKeyPath = Nibbles.ToEncodedStorageBytes(Array.Empty<byte>());
 
@@ -59,7 +61,7 @@ namespace Nethermind.Trie.Pruning
             _logger = logManager?.GetClassLogger<TrieStore>() ?? throw new ArgumentNullException(nameof(logManager));
             _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
             _persistenceStrategy = persistenceStrategy ?? throw new ArgumentNullException(nameof(persistenceStrategy));
-            _committedNodes = new TrieNodeBlockCache(this, 0, logManager);
+            _committedNodes = new TrieNodeBlockCache(this, historyBlockDepth, logManager);
         }
 
         public long LastPersistedBlockNumber
@@ -137,7 +139,16 @@ namespace Nethermind.Trie.Pruning
                     throw new TrieStoreException($"{nameof(TrieNode.LastSeen)} set on {node} committed at {blockNumber}.");
                 }
 
-                _committedNodes.AddNode(blockNumber, node);
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    _committedNodes.AddNode(blockNumber, node);
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                }
+
                 node.LastSeen = Math.Max(blockNumber, node.LastSeen ?? 0);
 
                 if (_committedNodes.MaxNumberOfBlocks == 0)
@@ -178,8 +189,15 @@ namespace Nethermind.Trie.Pruning
                             AnnounceReorgBoundaries();
                         }
                     }
-                    _committedNodes?.SetRootHashForBlock(set.BlockNumber, set.Root?.Keccak);
-
+                    _cacheLock.EnterWriteLock();
+                    try
+                    {
+                        _committedNodes?.SetRootHashForBlock(set.BlockNumber, set.Root?.Keccak);
+                    }
+                    finally
+                    {
+                        _cacheLock.ExitWriteLock();
+                    }
                     CurrentPackage = null;
                 }
             }
@@ -265,21 +283,36 @@ namespace Nethermind.Trie.Pruning
 
         public TrieNode? FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath, Span<byte> storagePrefix)
         {
-            TrieNode node = _committedNodes.GetNode(storagePrefix.ToArray().Concat(nodePath.ToArray()).ToArray(), keccak);
+            TrieNode node;
+            _cacheLock.EnterReadLock();
+            try
+            {
+                node = _committedNodes.GetNode(storagePrefix.ToArray().Concat(nodePath.ToArray()).ToArray(), keccak);
+            }
+            finally
+            {
+                _cacheLock.ExitReadLock();
+            }
             if (node is null)
             {
-                return new TrieNode(NodeType.Unknown, path: nodePath)
-                {
-                    StoreNibblePathPrefix = storagePrefix.ToArray()
-                };
+                return new TrieNode(NodeType.Unknown, path: nodePath) { StoreNibblePathPrefix = storagePrefix.ToArray() };
             }
-
+            // _logger.Info($"FindCachedOrUnknown(Keccak keccak, Span<byte> nodePath, Span<byte> storagePrefix) Loaded Node: {node}");
             return node.FullRlp is null ? null : node;
         }
 
         public TrieNode? FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash)
         {
-            TrieNode node = _committedNodes.GetNode(rootHash, storagePrefix.ToArray().Concat(nodePath.ToArray()).ToArray());
+            TrieNode node;
+            _cacheLock.EnterReadLock();
+            try
+            {
+                node = _committedNodes.GetNode(rootHash, storagePrefix.ToArray().Concat(nodePath.ToArray()).ToArray());
+            }
+            finally
+            {
+                _cacheLock.ExitReadLock();
+            }
             if (node is null)
             {
                 return new TrieNode(NodeType.Unknown, path: nodePath)
@@ -287,6 +320,7 @@ namespace Nethermind.Trie.Pruning
                     StoreNibblePathPrefix = storagePrefix.ToArray()
                 };
             }
+            // _logger.Info($"FindCachedOrUnknown(Span<byte> nodePath, Span<byte> storagePrefix, Keccak rootHash) Loaded Node: {node}");
             return node.FullRlp is null ? null : node;
         }
 
@@ -397,7 +431,16 @@ namespace Nethermind.Trie.Pruning
                 // if (_logger.IsDebug) _logger.Debug($"Persisting from root {commitSet.Root} in {commitSet.BlockNumber}");
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                _committedNodes.PersistUntilBlock(persistUntilBlock, _currentBatch);
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    _committedNodes.PersistUntilBlock(persistUntilBlock, _currentBatch);
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                }
+
                 stopwatch.Stop();
                 Metrics.SnapshotPersistenceTime = stopwatch.ElapsedMilliseconds;
 
@@ -592,9 +635,9 @@ namespace Nethermind.Trie.Pruning
                 }
                 else
                 {
+                    // _logger.Info($"Saving Leaf Node Pointer - PathToNode(Key): {pathToNodeBytes.ToHexString()} ActualPathInDb(Value): {newPath?.ToHexString()}");
                     keyValueStore[pathToNodeBytes] = newPath;
                 }
-                // _logger.Info($"Saving Leaf Node Pointer - PathToNode(Key): {pathToNodeBytes.ToHexString()} ActualPathInDb(Value): {newPath?.ToHexString()}");
             }
 
             if (trieNode.FullRlp is null)
