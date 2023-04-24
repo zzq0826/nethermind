@@ -29,7 +29,7 @@ public class TrieByPathWithPrefixTest
     [SetUp]
     public void SetUp()
     {
-        _logManager = NUnitLogManager.Instance;
+        _logManager = new NUnitLogManager(LogLevel.Trace);
         // new NUnitLogManager(LogLevel.Trace);
         _logger = _logManager.GetClassLogger();
     }
@@ -103,7 +103,7 @@ public class TrieByPathWithPrefixTest
     public void Single_leaf_update_next_blocks()
     {
         MemDb memDb = new MemDb();
-        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager, 0);
+        TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager);
         PatriciaTree patriciaTree = new(trieStore, _logManager)
         {
             StorageBytePathPrefix = _keyAccountA.Concat(new[] {(byte)128}).ToArray()
@@ -119,7 +119,7 @@ public class TrieByPathWithPrefixTest
         // leaf (root)
         // memDb.Keys.Should().HaveCount(2);
 
-        PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
+        PatriciaTree checkTree = CreateCheckTree(trieStore, patriciaTree);
         checkTree.Get(_keyAccountA).Should().NotBeEquivalentTo(_longLeaf1);
         checkTree.Get(_keyAccountA).Should().BeEquivalentTo(_longLeaf2);
     }
@@ -240,7 +240,7 @@ public class TrieByPathWithPrefixTest
     [Test]
     public void Branch_with_branch_and_leaf_then_deleted()
     {
-        MemDb memDb = new();
+        MemDb memDb = new MemDb();
         using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager);
         PatriciaTree patriciaTree = new(trieStore, _logManager)
         {
@@ -252,16 +252,15 @@ public class TrieByPathWithPrefixTest
         patriciaTree.Commit(0);
         patriciaTree.Set(_keyAccountA, Array.Empty<byte>());
         patriciaTree.Set(_keyAccountB, Array.Empty<byte>());
-        patriciaTree.Set(_keyAccountC, Array.Empty<byte>());
         patriciaTree.Commit(1);
         patriciaTree.UpdateRootHash();
 
         // leaf (root)
         // memDb.Keys.Should().HaveCount(6);
-        PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
+        PatriciaTree checkTree = CreateCheckTree(trieStore, patriciaTree);
         checkTree.Get(_keyAccountA).Should().BeNull();
         checkTree.Get(_keyAccountB).Should().BeNull();
-        checkTree.Get(_keyAccountC).Should().BeNull();
+        checkTree.Get(_keyAccountC).Should().BeEquivalentTo(_longLeaf1);
     }
 
     public void Test_add_many(int i)
@@ -374,7 +373,7 @@ public class TrieByPathWithPrefixTest
     private void Test_update_many_next_block(int i)
     {
         MemDb memDb = new();
-        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager, 0);
+        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager);
         PatriciaTree patriciaTree = new(trieStore, _logManager)
         {
             StorageBytePathPrefix = _keyAccountA.Concat(new[] {(byte)128}).ToArray()
@@ -400,7 +399,7 @@ public class TrieByPathWithPrefixTest
         patriciaTree.Commit(1);
         patriciaTree.UpdateRootHash();
 
-        PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
+        PatriciaTree checkTree = CreateCheckTree(trieStore, patriciaTree);
         for (int j = 0; j < i; j++)
         {
             Keccak key = TestItem.Keccaks[j];
@@ -565,6 +564,16 @@ public class TrieByPathWithPrefixTest
         return checkTree;
     }
 
+    private static PatriciaTree CreateCheckTree(ITrieStore trieStore, PatriciaTree patriciaTree)
+    {
+        PatriciaTree checkTree = new PatriciaTree(trieStore, NUnitLogManager.Instance)
+        {
+            StorageBytePathPrefix = _keyAccountA.Concat(new[] {(byte)128}).ToArray()
+        };;
+        checkTree.RootHash = patriciaTree.RootHash;
+        return checkTree;
+    }
+
     [Test]
     public void Extension_with_branch_with_two_different_children()
     {
@@ -716,7 +725,7 @@ public class TrieByPathWithPrefixTest
         byte[] key3 = Bytes.FromHexString("000000200000000cc").PadLeft(32);
 
         MemDb memDb = new();
-        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager, 0);
+        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.EveryBlock, _logManager);
         PatriciaTree patriciaTree = new(trieStore, _logManager)
         {
             StorageBytePathPrefix = _keyAccountA.Concat(new[] {(byte)128}).ToArray()
@@ -731,7 +740,7 @@ public class TrieByPathWithPrefixTest
         patriciaTree.Commit(1);
 
         // memDb.Keys.Should().HaveCount(8);
-        PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
+        PatriciaTree checkTree = CreateCheckTree(trieStore, patriciaTree);
         checkTree.Get(key1).Should().BeEquivalentTo(_longLeaf1);
         checkTree.Get(key2).Should().BeEquivalentTo(_longLeaf1);
         checkTree.Get(key3).Should().BeNull();
@@ -765,9 +774,9 @@ public class TrieByPathWithPrefixTest
         checkTree.Get(_keyAccountD).Should().BeEquivalentTo(_longLeaf1);
     }
 
-    // [TestCase(256, 128, 128, 32)]
+    [TestCase(256, 128, 128, 32)]
     [TestCase(128, 128, 8, 8)]
-    // [TestCase(4, 16, 4, 4)]
+    [TestCase(4, 16, 4, 4)]
     public void Fuzz_accounts(
         int accountsCount,
         int blocksCount,
@@ -789,7 +798,7 @@ public class TrieByPathWithPrefixTest
 
         MemDb memDb = new();
 
-        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.IfBlockOlderThan(lookupLimit), _logManager, 200);
+        using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.IfBlockOlderThan(lookupLimit), _logManager, 128);
         StateTreeByPath patriciaTree = new(trieStore, _logManager);
 
         byte[][] accounts = new byte[accountsCount][];
@@ -884,8 +893,8 @@ public class TrieByPathWithPrefixTest
         }
     }
 
-    // [TestCase(256, 128, 128, 32)]
-    // [TestCase(128, 128, 8, 8)]
+    [TestCase(256, 128, 128, 32, null)]
+    [TestCase(128, 128, 8, 8, null)]
     [TestCase(4, 16, 4, 4, null)]
     public void Fuzz_accounts_with_reorganizations(
         int accountsCount,
@@ -914,6 +923,7 @@ public class TrieByPathWithPrefixTest
 
         MemDb memDb = new();
 
+        _logger.Info("init trie store");
         using TrieStoreByPath trieStore = new(memDb, No.Pruning, Persist.IfBlockOlderThan(lookupLimit), _logManager);
         PatriciaTree patriciaTree = new(trieStore, _logManager)
         {

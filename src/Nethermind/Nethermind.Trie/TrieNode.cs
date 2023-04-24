@@ -274,13 +274,9 @@ namespace Nethermind.Trie
 
         public override string ToString()
         {
-#if DEBUG
             return
                 $"[{NodeType}({FullRlp?.Length}){(FullRlp is not null && FullRlp?.Length < 32 ? $"{FullRlp.ToHexString()}" : "")}" +
-                $"|{Id}|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|FP:{FullPath?.ToHexString()}|SP:{StoreNibblePathPrefix.ToHexString()}";
-#else
-            return $"[{NodeType}({FullRlp?.Length})|{Keccak?.ToShortString()}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|";
-#endif
+                $"|PTN {PathToNode is null} {PathToNode?.ToHexString()}|KEY {Key is null} {Key?.ToHexString()}|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|FP:{FullPath?.ToHexString()}|SP:{StoreNibblePathPrefix.ToHexString()}";
         }
 
         /// <summary>
@@ -304,8 +300,7 @@ namespace Nethermind.Trie
                 {
                     if (FullRlp is null)
                     {
-                        //|| PathToNode is temp until storage changes are merged
-                        if (tree.Capability == TrieNodeResolverCapability.Hash || PathToNode == null)
+                        if (tree.Capability == TrieNodeResolverCapability.Hash)
                         {
                             if (Keccak is null)
                                 throw new TrieException("Unable to resolve node without Keccak");
@@ -315,7 +310,11 @@ namespace Nethermind.Trie
                         else if (tree.Capability == TrieNodeResolverCapability.Path)
                         {
                             if (PathToNode is null)
+                            {
+                                Console.WriteLine(ToString());
                                 throw new TrieException("Unable to resolve node without its path");
+                            }
+
 
                             FullRlp = tree.LoadRlp(FullPath);
                         }
@@ -733,8 +732,7 @@ namespace Nethermind.Trie
             if (PathToNode is not null)
                 trieNode.PathToNode = (byte[])PathToNode.Clone();
 
-            if (StoreNibblePathPrefix is not null)
-                trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
+            trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
 
             return trieNode;
         }
@@ -979,6 +977,7 @@ namespace Nethermind.Trie
                             {
                                 rlpStream.Position--;
                                 Keccak keccak = rlpStream.DecodeKeccak();
+                                // Console.WriteLine("Resolving Child");
                                 TrieNode child = tree.FindCachedOrUnknown(keccak, path, StoreNibblePathPrefix);
                                 child.ResolveNode(tree);
                                 child.ResolveKey(tree, false);
@@ -1056,6 +1055,7 @@ namespace Nethermind.Trie
                                 rlpStream.Position--;
                                 Keccak keccak = rlpStream.DecodeKeccak();
 
+                                // TODO: is there a case when  FullPath is null in Path based trie?
                                 if (tree.Capability == TrieNodeResolverCapability.Hash || FullPath is null)
                                 {
                                     child = tree.FindCachedOrUnknown(keccak);
@@ -1071,7 +1071,7 @@ namespace Nethermind.Trie
                                     child = tree.FindCachedOrUnknown(keccak, childPath, StoreNibblePathPrefix);
                                     child.Keccak = keccak;
                                 }
-                                //Console.WriteLine($"At node:{PathToNode?.ToHexString()} / {Keccak}, child: {child?.PathToNode?.ToHexString()} / {child?.Keccak}");
+                                // Console.WriteLine($"At node:{PathToNode?.ToHexString()} / {Keccak}, child: {child?.PathToNode?.ToHexString()} / {child?.Keccak}");
                                 _data![i] = childOrRef = child;
 
                                 if (IsPersisted && !child.IsPersisted)

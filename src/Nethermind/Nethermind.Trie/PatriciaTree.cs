@@ -381,7 +381,6 @@ namespace Nethermind.Trie
 
                 if (RootRef?.IsDirty == true)
                 {
-                    _logger.Error("RootRef is also null - tree not initialized");
                     return GetInternal(rawKey);
                 }
 
@@ -468,7 +467,7 @@ namespace Nethermind.Trie
                 {
                     if (traverseContext.UpdateValue is not null)
                     {
-                        if (_logger.IsTrace) _logger.Trace($"Setting new leaf node with value {traverseContext.UpdateValue}");
+                        if (_logger.IsTrace) _logger.Trace($"Setting new leaf node with value {traverseContext.UpdateValue.ToHexString()}");
                         byte[] key = updatePath.Slice(0, nibblesCount).ToArray();
                         RootRef = Capability switch
                         {
@@ -532,11 +531,11 @@ namespace Nethermind.Trie
                 {
                     if (!(nextNode is null && !node.IsValidWithOneNodeLess))
                     {
+                        // _logger.Info("if (!(nextNode is null && !node.IsValidWithOneNodeLess))");
                         if (node.IsSealed)
                         {
                             node = node.Clone();
                         }
-
                         node.SetChild(parentOnStack.PathIndex, nextNode);
                         nextNode = node;
                     }
@@ -547,6 +546,7 @@ namespace Nethermind.Trie
                             // this only happens when we have branches with values
                             // which is not possible in the Ethereum protocol where keys are of equal lengths
                             // (it is possible in the more general trie definition)
+                            if (_logger.IsTrace) _logger.Trace($"Converting {node} to leaf");
                             TrieNode leafFromBranch = TrieNodeFactory.CreateLeaf(Array.Empty<byte>(), node.Value);
                             if (_logger.IsTrace) _logger.Trace($"Converting {node} into {leafFromBranch}");
                             nextNode = leafFromBranch;
@@ -577,7 +577,7 @@ namespace Nethermind.Trie
                                     break;
                                 }
                             }
-
+                            if (_logger.IsTrace) _logger.Trace($"TrieNode childNode = node.GetChild(TrieStore, childNodeIndex);");
                             TrieNode childNode = node.GetChild(TrieStore, childNodeIndex);
                             if (childNode is null)
                             {

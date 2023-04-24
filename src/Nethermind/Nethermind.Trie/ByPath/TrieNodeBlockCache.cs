@@ -61,8 +61,6 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
                 return trieNode;
             }
 
-
-
             nodeDictionary?.AddOrUpdate(trieNode.FullPath, addFunc, updateFunc);
             if (trieNode.PathToNode == Array.Empty<byte>())
                 nodeDictionary?.AddOrUpdate(trieNode.StoreNibblePathPrefix, k => trieNode, (k, n) => trieNode);
@@ -74,7 +72,7 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
     private readonly NodesByBlock _nodesByBlock = new();
     private readonly ConcurrentDictionary<Keccak, HashSet<long>> _rootHashToBlock = new();
     private long _highestBlockNumberCached = -1;
-    private int _maxNumberOfBlocks;
+    private readonly int _maxNumberOfBlocks;
     private int _count;
     private readonly ILogger _logger;
 
@@ -90,9 +88,9 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
 
     public TrieNode? GetNode(byte[] path, Keccak keccak)
     {
-        foreach (long blockNumer in _nodesByBlock.Keys.OrderByDescending(b => b))
+        foreach (long blockNumber in _nodesByBlock.Keys.OrderByDescending(b => b))
         {
-            ConcurrentDictionary<byte[], TrieNode> nodeDictionary = _nodesByBlock[blockNumer];
+            ConcurrentDictionary<byte[], TrieNode> nodeDictionary = _nodesByBlock[blockNumber];
             if (nodeDictionary.TryGetValue(path, out TrieNode node))
             {
                 if (node.Keccak == keccak)
