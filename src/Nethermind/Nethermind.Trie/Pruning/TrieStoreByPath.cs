@@ -189,16 +189,16 @@ namespace Nethermind.Trie.Pruning
                             AnnounceReorgBoundaries();
                         }
                     }
-                    _cacheLock.EnterWriteLock();
-                    try
-                    {
-                        _committedNodes?.SetRootHashForBlock(set.BlockNumber, set.Root?.Keccak);
-                    }
-                    finally
-                    {
-                        _cacheLock.ExitWriteLock();
-                    }
                     CurrentPackage = null;
+                }
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    _committedNodes?.SetRootHashForBlock(blockNumber, root?.Keccak);
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
                 }
             }
             finally
