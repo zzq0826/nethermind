@@ -47,14 +47,18 @@ internal class StackView : IComponent<MachineState>
         dataTable.Columns.Add("Index");
         dataTable.Columns.Add("Value");
 
+        int stringLen = 23;
         var cleanedUpDataSource = innerState.Current.Stack.Select(entry =>
         {
             entry = entry.StartsWith("0x") ? entry.Substring(2) : entry;
-            if(entry.Length <  32)
+            if(entry.Length < stringLen)
             {
-                entry = entry.PadLeft(32 - entry.Length + 1, '0');
+                entry = entry.PadLeft(stringLen - entry.Length, '0');
+            } else
+            {
+                entry = entry.Substring(entry.Length - stringLen);
             }
-        return entry;
+            return entry;
         }).ToList();
 
         int index = 0;
@@ -63,7 +67,6 @@ internal class StackView : IComponent<MachineState>
             dataTable.Rows.Add(index++, value);
         }
         stackView.Table = dataTable;
-
 
         if (!isCached)
             container.Add(stackView);

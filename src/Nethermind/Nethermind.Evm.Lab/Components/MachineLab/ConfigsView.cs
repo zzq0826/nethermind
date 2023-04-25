@@ -94,7 +94,7 @@ internal class ConfigsView : IComponent<MachineState>
                 }
             };
 
-            gasValueInput.KeyPress += (e) =>
+            gasValueInput.KeyUp += (e) =>
             {
                 if (e.KeyEvent.Key is not Key.Enter) return;
                 if (Int32.TryParse((string)gasValueInput.Text, out int gasValue))

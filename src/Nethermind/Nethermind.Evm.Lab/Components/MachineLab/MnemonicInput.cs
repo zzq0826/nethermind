@@ -135,6 +135,7 @@ internal class MnemonicInput : IComponent<MachineState>
         {
             newCodeSection.Body = (string)inputBodyField.Text;
         };
+
         inputBodyField.KeyPress += (e) =>
         {
             newCodeSection.Body = (string)inputBodyField.Text;

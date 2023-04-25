@@ -15,6 +15,7 @@ internal class InputsView : IComponent<MachineState>
     private TextField? calldataInputField = null;
     private Button? mnemonicInputViewBtn = null;
 
+    private int textChangedClicked = 0;
     public void Dispose()
     {
         container?.Dispose();
@@ -80,10 +81,12 @@ internal class InputsView : IComponent<MachineState>
 
         if (!isCached)
         {
+
             bytecodeInputField.KeyPress += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
+                    textChangedClicked++;
                     state.EventsSink.EnqueueEvent(new BytecodeInserted((string)bytecodeInputField.Text));
                 }
             };

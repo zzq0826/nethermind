@@ -52,7 +52,7 @@ internal class HeaderView : IComponent<GlobalState>
                         var contentAsText = File.ReadAllText (filePath);
                         try {
                             GethLikeTxTrace? traces = JsonConvert.DeserializeObject<GethLikeTxTrace>(contentAsText);
-                            if(traces is not null)
+                            if(traces is not null && traces.Entries.Count > 0)
                             {
                                 state.EventsSink.EnqueueEvent(new AddPage<MachineState>(fileName, new MachineState(traces)));
                                 return;

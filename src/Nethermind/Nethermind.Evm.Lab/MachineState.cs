@@ -186,7 +186,7 @@ namespace Nethermind.Evm.Lab
                     {
                         state.GetState().RuntimeContext = CodeInfoFactory.CreateCodeInfo(biMsg.bytecode, state.GetState().SelectedFork);
                         state.EventsSink.EnqueueEvent(new RunBytecode(), true);
-                        break;
+                        return state;
                     }
                 case CallDataInserted ciMsg:
                     {
