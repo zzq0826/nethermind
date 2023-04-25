@@ -699,13 +699,14 @@ namespace Nethermind.Trie
             return trieNode;
         }
 
+        // TODO: do we need this? why did i even write this
         public TrieNode CloneWithChangedKey(byte[] path, int removeLength) => CloneWithChangedKey(path, PathToNode!.AsSpan()[..^removeLength]);
 
         public TrieNode CloneNodeForDeletion()
         {
             TrieNode trieNode = new TrieNode(NodeType);
             if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
-            trieNode.StoreNibblePathPrefix = StoreNibblePathPrefix.Length == 0? Array.Empty<byte>(): (byte[])StoreNibblePathPrefix.Clone();
+            trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
             if (Key is not null) trieNode.Key = (byte[])Key.Clone();
             trieNode._rlpStream = null;
             return trieNode;
@@ -732,7 +733,7 @@ namespace Nethermind.Trie
             if (PathToNode is not null)
                 trieNode.PathToNode = (byte[])PathToNode.Clone();
 
-            trieNode.StoreNibblePathPrefix = StoreNibblePathPrefix.Length == 0? Array.Empty<byte>(): (byte[])StoreNibblePathPrefix.Clone();
+            trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
 
             return trieNode;
         }
@@ -975,8 +976,14 @@ namespace Nethermind.Trie
                         case 160:
                             {
                                 rlpStream.Position--;
-                                Keccak keccak = rlpStream.DecodeKeccak();
-                                TrieNode child = tree.FindCachedOrUnknown(keccak, path, StoreNibblePathPrefix);
+                                Keccak? keccak = rlpStream.DecodeKeccak();
+
+                                // TODO: this does not guarantee that you get the right child - because we are resolving using path
+                                // path based resolution does not guarantee right keccak because rootHash or the underlying database might
+                                // change in between this query. Potential ways to check for this?
+                                // 1. Resolve the node and key here and check validity
+                                // 2. introduce rootHash in the TrieNode class to identify nodes with rootHash also and assert while resolving
+                                TrieNode child = tree.FindCachedOrUnknown(keccak!, path, StoreNibblePathPrefix);
                                 _data![i] = childOrRef = child;
 
                                 if (IsPersisted && !child.IsPersisted)

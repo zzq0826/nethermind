@@ -33,6 +33,8 @@ namespace Nethermind.Trie
 
         public static TrieNode CreateLeaf(byte[] path, byte[]? value, Span<byte> pathToNode, Span<byte> storagePrefix)
         {
+            if (path.Length + pathToNode.Length != 64)
+                throw new ArgumentException("CreateLeaf: path.Length + pathToNode.Length != 64");
             Debug.Assert(path.Length + pathToNode.Length == 64);
             return new(NodeType.Leaf)
             {
