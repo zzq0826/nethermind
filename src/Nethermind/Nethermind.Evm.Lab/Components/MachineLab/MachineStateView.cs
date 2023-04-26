@@ -15,7 +15,7 @@ namespace Nethermind.Evm.Lab.Componants
         private FrameView? container = null;
         private (TableView? generalState, TableView? opcodeData) machinView = (null, null);
 
-        private static readonly string[] Columns_Overview = { "Pc", "Gas", "Depth", "Error" };
+        private static readonly string[] Columns_Overview = { "Pc", "GasAvailable", "GasUsed", "Depth", "Error" };
         private static readonly string[] Columns_Opcode = { "Opcode", "Operation", "GasCost" };
         public IState<MachineState> Update(IState<MachineState> currentState, ActionsBase action)
         {
@@ -54,7 +54,13 @@ namespace Nethermind.Evm.Lab.Componants
             }
 
             dataTable.Rows.Add(
-                Columns_Overview.Select(propertyName => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(innerState.Current)).ToArray()
+                Columns_Overview.Select(propertyName =>
+                propertyName switch
+                {
+                    "GasUsed" => innerState.AvailableGas - innerState.Current.Gas - GasCostOf.Transaction,
+                    "GasAvailable" => innerState.Current.Gas,
+                    _ => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(innerState.Current)
+                }).ToArray()
             );
 
             var opcodeData = new DataTable();

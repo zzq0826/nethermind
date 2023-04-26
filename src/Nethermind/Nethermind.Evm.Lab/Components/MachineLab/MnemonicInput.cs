@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Text;
 using MachineStateEvents;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm.CodeAnalysis;
@@ -22,15 +23,15 @@ internal class MnemonicInput : IComponent<MachineState>
         public string Body = string.Empty;
     }
     // keep view static and swap state instead 
-    bool isCached = false;
+    private bool isCached = false;
     private Dialog? container = null;
     private CheckBox? eofModeSelection= null;
     private List<CodeSection>? sectionsField= null;
     private TabView? tabView = null;
     private (Button submit, Button cancel) buttons;
     private (Button add, Button remove) actions;
+    private bool isEofMode = false;
     public event Action<byte[]> BytecodeChanged;
-    bool isEofMode = false;
 
 
     public void Dispose()
@@ -45,30 +46,33 @@ internal class MnemonicInput : IComponent<MachineState>
     }
 
 
-    private TextView CreateNewFunctionPage(bool select = true)
+    private bool CreateNewFunctionPage(bool isFirstRender, out TextView textView, bool select = true)
     {
-        if (sectionsField is null || tabView is null || sectionsField.Count == 23)
-            throw new System.Diagnostics.UnreachableException();
+        if ((!isFirstRender && !isEofMode) || sectionsField is null || tabView is null || sectionsField.Count == 23)
+        {
+            textView = null;
+            return false;
+        }
 
         var newCodeSection = new CodeSection(0, 0, 0);
         var container = new View()
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            ColorScheme = Colors.Menu
+            ColorScheme = Colors.Menu,
         };
 
         var inLabel = new Terminal.Gui.Label("Inputs Count")
         {
-            Width = Dim.Percent(30),
+            Width = Dim.Percent(33),
             ColorScheme = Colors.TopLevel
         };
         var inputCountField = new NumberInputField(0)
         {
             X = Pos.X(inLabel),
             Y = Pos.Bottom(inLabel),
-            Width = Dim.Percent(30),
-            Height = Dim.Percent(10),
+            Width = Dim.Width(inLabel),
+            Height = Dim.Percent(5),
             ColorScheme = Colors.TopLevel
         };
         inputCountField.AddFilter((_) => !isEofMode);
@@ -81,16 +85,16 @@ internal class MnemonicInput : IComponent<MachineState>
 
         var outLabel = new Terminal.Gui.Label("Outputs Count")
         {
-            X = Pos.Right(inLabel) + 2,
-            Width = Dim.Percent(30),
+            X = Pos.Right(inLabel) + 1,
+            Width = Dim.Percent(33),
             ColorScheme = Colors.TopLevel
         };
         var outputCountField = new NumberInputField(0)
         {
             X = Pos.X(outLabel),
             Y = Pos.Bottom(outLabel),
-            Width = Dim.Percent(30),
-            Height = Dim.Percent(10),
+            Width = Dim.Width(outLabel),
+            Height = Dim.Percent(5),
             ColorScheme = Colors.TopLevel
         };
         outputCountField.AddFilter((_) => !isEofMode);
@@ -104,16 +108,16 @@ internal class MnemonicInput : IComponent<MachineState>
 
         var maxLabel = new Terminal.Gui.Label("Max Stack Height")
         {
-            X = Pos.Right(outLabel) + 2,
-            Width = Dim.Percent(30),
+            X = Pos.Right(outLabel) + 1,
+            Width = Dim.Percent(35),
             ColorScheme = Colors.TopLevel
         };
         var stackHeightField = new NumberInputField(0)
         {
             X = Pos.X(maxLabel),
             Y = Pos.Bottom(maxLabel),
-            Width = Dim.Percent(30),
-            Height = Dim.Percent(10),
+            Width = Dim.Width(maxLabel),
+            Height = Dim.Percent(5),
             ColorScheme = Colors.TopLevel
         };
         stackHeightField.AddFilter((_) => !isEofMode);
@@ -126,7 +130,7 @@ internal class MnemonicInput : IComponent<MachineState>
 
         var inputBodyField = new Terminal.Gui.TextView
         {
-            Y = Pos.Bottom(stackHeightField),
+            Y = Pos.Bottom(outputCountField),
             Width = Dim.Fill(),
             Height = Dim.Percent(100),
             ColorScheme = Colors.Base
@@ -136,7 +140,7 @@ internal class MnemonicInput : IComponent<MachineState>
             newCodeSection.Body = (string)inputBodyField.Text;
         };
 
-        inputBodyField.KeyPress += (e) =>
+        inputBodyField.KeyPress += (_) =>
         {
             newCodeSection.Body = (string)inputBodyField.Text;
         };
@@ -152,7 +156,8 @@ internal class MnemonicInput : IComponent<MachineState>
         var currentTab = new TabView.Tab($"{sectionsField.Count}", container);
         sectionsField.Add(newCodeSection);
         tabView.AddTab(currentTab, select);
-        return inputBodyField;
+        textView = inputBodyField;
+        return true;
     }
 
     private void RemoveSelectedFunctionPage()
@@ -219,7 +224,7 @@ internal class MnemonicInput : IComponent<MachineState>
             sectionsField = new List<CodeSection>(eofCodeInfo._header.CodeSections.Length);
             for(int i = 0; i <  eofCodeInfo._header.CodeSections.Length; i++)
             {
-                var bodyInputFieldRef = CreateNewFunctionPage(i == 0);
+                CreateNewFunctionPage(false, out var bodyInputFieldRef, i == 0);
                 var codeSectionOffsets = eofCodeInfo._header.CodeSections[i];
                 var bytecodeMnemonics = BytecodeParser.Dissassemble(true, innerState.RuntimeContext.MachineCode[codeSectionOffsets.Start..codeSectionOffsets.EndOffset])
                     .ToMultiLineString(innerState.SelectedFork);
@@ -228,7 +233,7 @@ internal class MnemonicInput : IComponent<MachineState>
         } else
         {
             sectionsField = new List<CodeSection>();
-            var bodyInputFieldRef = CreateNewFunctionPage();
+            CreateNewFunctionPage(isFirstRender: true, out var bodyInputFieldRef);
             var bytecodeMnemonics = BytecodeParser.Dissassemble(false, innerState.RuntimeContext.CodeSection.Span)
                 .ToMultiLineString(innerState.SelectedFork);
             bodyInputFieldRef.Text = bytecodeMnemonics;
@@ -254,7 +259,6 @@ internal class MnemonicInput : IComponent<MachineState>
             {
                 try
                 {
-
                     if (!isEofMode && sectionsField.Count > 1)
                         throw new Exception("Cannot have more than one code section in non-Eof code");
 
@@ -276,7 +280,7 @@ internal class MnemonicInput : IComponent<MachineState>
                 Application.RequestStop();
             };
 
-            actions.add.Clicked += () => CreateNewFunctionPage(true);
+            actions.add.Clicked += () => CreateNewFunctionPage(isFirstRender: false, out _);
 
             actions.remove.Clicked += RemoveSelectedFunctionPage;
         }

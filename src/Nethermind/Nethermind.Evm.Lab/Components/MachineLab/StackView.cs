@@ -47,7 +47,7 @@ internal class StackView : IComponent<MachineState>
         dataTable.Columns.Add("Index");
         dataTable.Columns.Add("Value");
 
-        int stringLen = 23;
+        int stringLen = 32;
         var cleanedUpDataSource = innerState.Current.Stack.Select(entry =>
         {
             entry = entry.StartsWith("0x") ? entry.Substring(2) : entry;

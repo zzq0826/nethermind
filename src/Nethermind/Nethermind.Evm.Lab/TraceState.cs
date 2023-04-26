@@ -30,7 +30,7 @@ namespace Nethermind.Evm.Lab
         {
             var (targetEntries, subjectEntries) = (Traces.target.State.Entries, Traces.subject.State.Entries);
             for (DifferenceStartIndex = 0; DifferenceStartIndex < Math.Min(targetEntries.Count, subjectEntries.Count) && subjectEntries[DifferenceStartIndex] == subjectEntries[DifferenceStartIndex]; DifferenceStartIndex++) ;
-
+            DifferenceStartIndex--;
         }
         IState<TraceState> IState<TraceState>.Initialize(TraceState seed) => seed;
         public (TraceStateEntry target, TraceStateEntry subject) Traces;

@@ -21,21 +21,25 @@ class TableViewColored : TableView
 {
     public int DiffIndexStart = 2;
     public int RenderCellIndex = 0;
-
+    public bool RenderPastDiffLine = false;
     public override void Redraw(Rect bounds)
     {
         RenderCellIndex = 0;
+        RenderPastDiffLine = false;
         base.Redraw(bounds);
     }
+
     protected override void RenderCell(Terminal.Gui.Attribute cellColor, string render, bool isPrimaryCell)
     {
+        RenderPastDiffLine |= RenderCellIndex % 8 == 0
+            && Int32.Parse(render) == DiffIndexStart;
         for (int i = 0; i < render.Length; i++)
         {
-            if (RenderCellIndex >= DiffIndexStart * 8)
+            if (RenderPastDiffLine)
             {
-                if(SelectedRow * 8 == RenderCellIndex)
+                if (RenderCellIndex % 8 == 0)
                 {
-                    Driver.SetAttribute(Driver.MakeAttribute(Color.Brown, cellColor.Background));
+                    Driver.SetAttribute(Driver.MakeAttribute(Color.Magenta, cellColor.Background));
                 }
                 else
                 {
