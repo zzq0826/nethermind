@@ -11,8 +11,8 @@ namespace Nethermind.Verkle.Tree;
 
 public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
 {
-    private VerkleStateStore _verkleStateStore;
-    private VerkleMemoryDb _keyValueStore;
+    private readonly VerkleStateStore _verkleStateStore;
+    private readonly VerkleMemoryDb _keyValueStore;
 
     public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {

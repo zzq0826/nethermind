@@ -15,7 +15,6 @@ public enum DiffType
     Reverse
 }
 
-
 public class DiffLayer
 {
     private readonly DiffType _diffType;
@@ -32,7 +31,7 @@ public class DiffLayer
         if (stream.Data != null) DiffDb.Set(blockNumber, stream.Data);
     }
 
-    public VerkleMemoryDb FetchDiff(long blockNumber)
+    private VerkleMemoryDb FetchDiff(long blockNumber)
     {
         byte[]? diff = DiffDb.Get(blockNumber);
         if (diff is null) throw new ArgumentException(null, nameof(blockNumber));
