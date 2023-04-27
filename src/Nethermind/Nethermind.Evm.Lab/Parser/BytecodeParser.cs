@@ -34,7 +34,7 @@ internal class BytecodeParser
             if (Enum.TryParse<Evm.Instruction>(tokens[i++], out Evm.Instruction opcode))
             {
                 idx++;
-                int immCount = opcode.StackRequirements().immediates;
+                int immCount = opcode.GetImmediateCount(false);
                 if (immCount > 0)
                 {
                     parsed.Add(new Instruction(idx, opcode, new Immediate(immCount, Bytes.FromHexString(tokens[i++]))));
@@ -53,10 +53,10 @@ internal class BytecodeParser
         return parsed;
     }
 
-    public static IReadOnlyList<Instruction> Dissassemble(bool isEof, ReadOnlySpan<byte> bytecode)
+    public static IReadOnlyList<Instruction> Dissassemble(bool isEof, ReadOnlySpan<byte> bytecode, bool isTraceSourced = false)
     {
         var opcodes = new List<Instruction>();
-        for (int i = 0; i < bytecode.Length; i++)
+        for (int i = 0, j = 0; i < bytecode.Length; i++, j++)
         {
             var instruction = (Evm.Instruction)bytecode[i];
             if (!instruction.IsValid(isEof))
@@ -66,12 +66,11 @@ internal class BytecodeParser
             }
             int immediatesCount = instruction.GetImmediateCount(isEof, instruction is Evm.Instruction.RJUMPV ? bytecode[i+1] : (byte)0);
             ReadOnlySpan<byte> immediates = bytecode.Slice(i + 1, immediatesCount);
-            opcodes.Add(new Instruction(i, instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
+            opcodes.Add(new Instruction(isTraceSourced ? j : i, instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
             i += immediatesCount;
         }
         return opcodes;
     }
-
     public static  byte[] ExtractBytecodeFromTrace(GethLikeTxTrace trace)
     {
         //only works for non-eof code (immediate arguments are non-deducable

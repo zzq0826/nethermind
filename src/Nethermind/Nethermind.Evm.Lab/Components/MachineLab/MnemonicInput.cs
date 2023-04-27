@@ -218,7 +218,7 @@ internal class MnemonicInput : IComponent<MachineState>
             Height = Dim.Percent(95),
         };
 
-        if (innerState.RuntimeContext is EofCodeInfo)
+        if (isEofMode)
         {
             var eofCodeInfo = (EofCodeInfo)innerState.RuntimeContext;
             sectionsField = new List<CodeSection>(eofCodeInfo._header.CodeSections.Length);

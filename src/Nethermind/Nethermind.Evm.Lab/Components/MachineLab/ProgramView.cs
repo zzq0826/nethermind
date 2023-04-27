@@ -11,9 +11,15 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Componants;
 internal class ProgramView : IComponent<MachineState>
 {
-    bool isCached = false;
+    private bool isExternalSource = false;
+    private bool isCached = false;
     private FrameView? container = null;
     private TableView? programView = null;
+
+    public ProgramView(bool isExternalSource)
+    {
+        this.isExternalSource = isExternalSource;
+    }
 
     public void Dispose()
     {
@@ -24,7 +30,7 @@ internal class ProgramView : IComponent<MachineState>
     public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
     {
         var innerState = state.GetState();
-        var dissassembledBytecode = BytecodeParser.Dissassemble(innerState.RuntimeContext is EofCodeInfo, innerState.RuntimeContext.CodeSection.Span);
+        var dissassembledBytecode = BytecodeParser.Dissassemble(innerState.RuntimeContext is EofCodeInfo, innerState.RuntimeContext.CodeSection.Span, isExternalSource);
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -44,10 +50,11 @@ internal class ProgramView : IComponent<MachineState>
         dataTable.Columns.Add("Position");
         dataTable.Columns.Add("Operation");
         int selectedRow = 0;
+
         foreach (var instr in dissassembledBytecode)
         {
             dataTable.Rows.Add(instr.idx, instr.ToString(state.GetState().SelectedFork));
-            selectedRow += instr.idx < innerState.Entries[innerState.Index].Pc ? 1 : 0;
+            selectedRow += instr.idx < (isExternalSource ? innerState.Index : innerState.Entries[innerState.Index].Pc) ? 1 : 0;
         }
 
         programView ??= new TableView()

@@ -44,7 +44,7 @@ internal class HeaderView : IComponent<GlobalState>
                         }
                     }),
                     new MenuItem ("_Open", "", () => {
-                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a Traces file that contains EVM bytecode",  new List<string> { ".json" });
+                        using var fileOpenDialogue = new OpenDialog("Trace File", "Select a Traces file that contains EVM trace",  new List<string> { ".json" });
                         Application.Run(fileOpenDialogue);
                         if(fileOpenDialogue.Canceled) return;
                         var filePath = (string)fileOpenDialogue.FilePath;
@@ -54,7 +54,7 @@ internal class HeaderView : IComponent<GlobalState>
                             GethLikeTxTrace? traces = JsonConvert.DeserializeObject<GethLikeTxTrace>(contentAsText);
                             if(traces is not null && traces.Entries.Count > 0)
                             {
-                                state.EventsSink.EnqueueEvent(new AddPage<MachineState>(fileName, new MachineState(traces)));
+                                state.EventsSink.EnqueueEvent(new AddPage<MachineState>(fileName, new MachineState(traces), isExternalTrace: true));
                                 return;
                             }
                             else goto  error_section;
@@ -72,7 +72,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         var filePath = (string)saveOpenDialogue.FilePath;
                         var localState = state.GetState();
                         var serializedData = JsonConvert.SerializeObject(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
-                        File.WriteAllText(filePath, serializedData);
+                        File.WriteAllText($"{filePath}.json", serializedData);
                     }),
                     new MenuItem ("_Quit", "", () => {
                         Application.RequestStop ();
@@ -81,7 +81,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
 
                 new MenuBarItem ("_Action", new MenuItem [] {
                     new MenuItem ("_New", "", () => {
-                        state.EventsSink.EnqueueEvent(new AddPage < MachineState >($"Page {state.GetState().MachineStates.Count}"));
+                        state.EventsSink.EnqueueEvent(new AddPage<MachineState>($"Page {state.GetState().MachineStates.Count}", isExternalTrace: false));
                     }),
                     new MenuItem ("_Remove", "", () => {
                         state.EventsSink.EnqueueEvent(new RemovePage(state.GetState().SelectedState));
@@ -91,7 +91,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         TraceStateEntry[] files = new TraceStateEntry[2];
                         for(int i = 0; i < 2; i++)
                         {
-                            using var importOpenDialogue = new OpenDialog("traces File", "Select a two json trace files", new List<string> { ".json" });
+                            using var importOpenDialogue = new OpenDialog("traces File", $"Select the {i + 1}/2 json trace files", new List<string> { ".json" });
 
                             Application.Run(importOpenDialogue);
 

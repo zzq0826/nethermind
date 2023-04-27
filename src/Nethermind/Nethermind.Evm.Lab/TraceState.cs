@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Text.Json;
 using MachineStateEvents;
 using Nethermind.Evm.Lab;
 using Nethermind.Evm.Lab.Components;
@@ -29,8 +30,12 @@ namespace Nethermind.Evm.Lab
         private void CompareTraces()
         {
             var (targetEntries, subjectEntries) = (Traces.target.State.Entries, Traces.subject.State.Entries);
-            for (DifferenceStartIndex = 0; DifferenceStartIndex < Math.Min(targetEntries.Count, subjectEntries.Count) && subjectEntries[DifferenceStartIndex] == subjectEntries[DifferenceStartIndex]; DifferenceStartIndex++) ;
-            DifferenceStartIndex--;
+            for (
+                DifferenceStartIndex = 0;
+                DifferenceStartIndex < Math.Min(targetEntries.Count, subjectEntries.Count)
+                && JsonSerializer.Serialize<GethTxTraceEntry>(targetEntries[DifferenceStartIndex]) == JsonSerializer.Serialize<GethTxTraceEntry>(subjectEntries[DifferenceStartIndex]); // Work arround TODO : compare fields 1 by 1
+                DifferenceStartIndex++
+            );
         }
         IState<TraceState> IState<TraceState>.Initialize(TraceState seed) => seed;
         public (TraceStateEntry target, TraceStateEntry subject) Traces;

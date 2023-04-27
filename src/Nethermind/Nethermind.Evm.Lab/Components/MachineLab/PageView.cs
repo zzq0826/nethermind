@@ -17,10 +17,12 @@ internal class MachineView : IComponent<MachineState>
 {
     private View MainPanel;
     public MachineState? defaultValue;
+    private bool isExternalTraceVizView = false;
     public bool isCached = false;
     public IComponent<MachineState>[] _components;
-    public MachineView()
+    public MachineView(bool isExternalTraceViz)
     {
+        isExternalTraceVizView |= isExternalTraceViz;
         _components = new IComponent<MachineState>[]{
             new MachineOverview(),
             new StackView(),
@@ -28,9 +30,10 @@ internal class MachineView : IComponent<MachineState>
             new InputsView(),
             new ReturnView(),
             new StorageView(),
-            new ProgramView(),
+            new ProgramView(isExternalTraceViz),
             new ConfigsView()
         };
+
     }
 
 
@@ -89,6 +92,9 @@ internal class MachineView : IComponent<MachineState>
             Y = Pos.Bottom(config_view),
             Height = Dim.Percent(40),
         });
+
+        input_view.Enabled = !isExternalTraceVizView;
+        config_view.Enabled = !isExternalTraceVizView;
 
         if (!isCached)
         {

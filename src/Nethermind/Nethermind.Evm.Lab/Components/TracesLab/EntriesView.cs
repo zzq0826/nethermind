@@ -31,15 +31,16 @@ class TableViewColored : TableView
 
     protected override void RenderCell(Terminal.Gui.Attribute cellColor, string render, bool isPrimaryCell)
     {
+        int lineIndex = 0;
         RenderPastDiffLine |= RenderCellIndex % 8 == 0
-            && Int32.Parse(render) == DiffIndexStart;
+            && Int32.TryParse(render, out lineIndex) ? lineIndex >= DiffIndexStart : false;
         for (int i = 0; i < render.Length; i++)
         {
             if (RenderPastDiffLine)
             {
                 if (RenderCellIndex % 8 == 0)
                 {
-                    Driver.SetAttribute(Driver.MakeAttribute(Color.Magenta, cellColor.Background));
+                    Driver.SetAttribute(Driver.MakeAttribute(lineIndex == SelectedRow ? Color.Brown: Color.Magenta, cellColor.Background));
                 }
                 else
                 {

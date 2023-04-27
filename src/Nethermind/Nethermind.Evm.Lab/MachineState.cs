@@ -87,7 +87,6 @@ namespace Nethermind.Evm.Lab
         public int Depth { get; private set; }
         public long AvailableGas { get; set; }
         public IReleaseSpec SelectedFork { get; set; }
-
         public ICodeInfo RuntimeContext { get; set; }
         public byte[] CallData { get; set; }
 

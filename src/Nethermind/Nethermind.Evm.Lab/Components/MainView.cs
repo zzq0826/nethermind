@@ -24,9 +24,9 @@ internal class MainView : IComponent<GlobalState>
         header = new HeaderView();
     }
 
-    private void AddMachinePage(MachineState? state = null, string name = null)
+    private void AddMachinePage(MachineState? state = null, string name = null, bool isExternalTrace = false) // if name is null it means this is a internal viz
     {
-        var pageObj = new MachineView();
+        var pageObj = new MachineView(isExternalTrace);
         var pageState = state ?? new MachineState();
         pages.Add(pageObj);
         State.MachineStates.Add(pageState);
@@ -235,7 +235,7 @@ internal class MainView : IComponent<GlobalState>
         {
             case AddPage<MachineState> msgA:
                 {
-                    AddMachinePage(msgA.customState?.GetState(), name: msgA.name);
+                    AddMachinePage(msgA.customState?.GetState(), name: msgA.name, msgA.isExternalTrace);
                     break;
                 }
             case AddPage<TraceState> msgA:
