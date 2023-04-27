@@ -10,7 +10,6 @@ namespace Nethermind.Verkle.Tree.Serializers;
 public class StemStoreSerializer : IRlpStreamDecoder<StemStore>
 {
     private static SuffixTreeSerializer SuffixTreeSerializer => SuffixTreeSerializer.Instance;
-
     public static StemStoreSerializer Instance => new StemStoreSerializer();
 
     public int GetLength(StemStore item, RlpBehaviors rlpBehaviors)
@@ -43,6 +42,7 @@ public class StemStoreSerializer : IRlpStreamDecoder<StemStore>
         }
         return item;
     }
+
     public void Encode(RlpStream stream, StemStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Encode(item.Count);

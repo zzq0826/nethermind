@@ -16,9 +16,6 @@ public partial class VerkleTree
 
         using TrieVisitContext trieVisitContext = new TrieVisitContext
         {
-            // hacky but other solutions are not much better, something nicer would require a bit of thinking
-            // we introduced a notion of an account on the visit context level which should have no knowledge of account really
-            // but we know that we have multiple optimizations and assumptions on trees
             ExpectAccounts = visitingOptions.ExpectAccounts,
             MaxDegreeOfParallelism = visitingOptions.MaxDegreeOfParallelism,
             KeepTrackOfAbsolutePath = true
@@ -60,26 +57,34 @@ public partial class VerkleTree
             KeepTrackOfAbsolutePath = true
         };
 
-        if (!rootHash.Equals(Keccak.EmptyTreeHash))
+        try
         {
-            _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
+            if (!rootHash.Equals(Keccak.EmptyTreeHash))
+            {
+                _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
+            }
+            else
+            {
+                return;
+            }
+
+            visitor.VisitTree(rootHash.Bytes, trieVisitContext);
+            InternalNode? rootNode = _verkleStateStore.GetBranch(Array.Empty<byte>());
+            if (rootNode is null) throw new Exception("Root node should not be null");
+
+            RecurseNodes(visitor, rootNode, trieVisitContext);
         }
-        else
+        catch (Exception e)
         {
-            return;
+            visitor.VisitMissingNode(Array.Empty<byte>(), trieVisitContext);
         }
-
-        visitor.VisitTree(rootHash.Bytes, trieVisitContext);
-
-        RecurseNodes(visitor, _verkleStateStore.GetBranch(Array.Empty<byte>()), trieVisitContext);
-
     }
 
     private void RecurseNodes(IVerkleTreeVisitor visitor, InternalNode node, TrieVisitContext trieVisitContext)
     {
         switch (node._nodeType)
         {
-            case Nodes.NodeType.BranchNode:
+            case NodeType.BranchNode:
                 {
                     visitor.VisitBranchNode((BranchNode)node, trieVisitContext);
                     trieVisitContext.Level++;
@@ -96,7 +101,7 @@ public partial class VerkleTree
                     trieVisitContext.Level--;
                     break;
                 }
-            case Nodes.NodeType.StemNode:
+            case NodeType.StemNode:
                 {
                     visitor.VisitStemNode((StemNode)node, trieVisitContext);
                     byte[] stemKey = node.Stem;

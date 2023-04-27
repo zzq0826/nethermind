@@ -9,6 +9,7 @@ namespace Nethermind.Verkle.Tree.Serializers;
 public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>
 {
     public static LeafStoreSerializer Instance => new LeafStoreSerializer();
+
     public int GetLength(LeafStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);

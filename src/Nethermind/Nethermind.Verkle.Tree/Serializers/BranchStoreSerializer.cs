@@ -10,8 +10,8 @@ namespace Nethermind.Verkle.Tree.Serializers;
 public class BranchStoreSerializer : IRlpStreamDecoder<BranchStore>
 {
     private static InternalNodeSerializer InternalNodeSerializer => InternalNodeSerializer.Instance;
-
     public static BranchStoreSerializer Instance => new BranchStoreSerializer();
+
     public int GetLength(BranchStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
@@ -42,6 +42,7 @@ public class BranchStoreSerializer : IRlpStreamDecoder<BranchStore>
         }
         return item;
     }
+
     public void Encode(RlpStream stream, BranchStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Encode(item.Count);

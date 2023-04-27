@@ -6,19 +6,17 @@ using Nethermind.Verkle.Tree.Nodes;
 
 namespace Nethermind.Verkle.Tree.Serializers;
 
-
-public class SuffixTreeSerializer : IRlpStreamDecoder<SuffixTree>, IRlpObjectDecoder<SuffixTree>
+/// <summary>
+/// Serialize the suffix node to store in a key value store
+/// stem (31 bytes) + C1.Point (32 Bytes) + C2.Point (32 Bytes) + ExtensionCommitment.Point (32 Bytes)
+/// </summary>
+public class SuffixTreeSerializer : IRlpStreamDecoder<SuffixTree>
 {
     public static SuffixTreeSerializer Instance => new SuffixTreeSerializer();
+
     public int GetLength(SuffixTree item, RlpBehaviors rlpBehaviors)
     {
         return 31 + 32 + 32 + 32;
-    }
-
-    public int GetLength(SuffixTree item, RlpBehaviors rlpBehaviors, out int contentLength)
-    {
-        contentLength = GetLength(item, rlpBehaviors);
-        return Rlp.LengthOfSequence(contentLength);
     }
 
     public SuffixTree Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
@@ -29,6 +27,7 @@ public class SuffixTreeSerializer : IRlpStreamDecoder<SuffixTree>, IRlpObjectDec
         byte[] extCommit = rlpStream.Read(32).ToArray();
         return new SuffixTree(stem, c1, c2, extCommit);
     }
+
     public void Encode(RlpStream stream, SuffixTree item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Write(item.Stem);
@@ -36,13 +35,14 @@ public class SuffixTreeSerializer : IRlpStreamDecoder<SuffixTree>, IRlpObjectDec
         stream.Write(item.C2.Point.ToBytes());
         stream.Write(item.ExtensionCommitment.Point.ToBytes());
     }
-    public Rlp Encode(SuffixTree item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+
+    public byte[] Encode(SuffixTree item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         int length = GetLength(item, rlpBehaviors);
         RlpStream stream = new RlpStream(Rlp.LengthOfSequence(length));
         stream.StartSequence(length);
         Encode(stream, item, rlpBehaviors);
-        return new Rlp(stream.Data);
+        return stream.Data!;
     }
 
     public SuffixTree Decode(byte[] data, RlpBehaviors rlpBehaviors = RlpBehaviors.None)

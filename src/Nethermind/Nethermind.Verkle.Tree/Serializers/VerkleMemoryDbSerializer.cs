@@ -19,12 +19,6 @@ public class VerkleMemoryDbSerializer : IRlpStreamDecoder<VerkleMemoryDb>
         return length;
     }
 
-    public int GetLength(VerkleMemoryDb item, RlpBehaviors rlpBehaviors, out int contentLength)
-    {
-        contentLength = GetLength(item, rlpBehaviors);
-        return Rlp.LengthOfSequence(contentLength);
-    }
-
     public VerkleMemoryDb Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         return new VerkleMemoryDb(

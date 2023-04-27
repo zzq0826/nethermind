@@ -50,9 +50,9 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
         return value is not null;
     }
 
-    public void SetLeaf(byte[] leafKey, byte[] leafValue) => _setLeaf(leafKey, leafValue, LeafDb);
-    public void SetStem(byte[] stemKey, SuffixTree suffixTree) => _setStem(stemKey, suffixTree, StemDb);
-    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => _setBranch(branchKey, internalNodeValue, BranchDb);
+    public void SetLeaf(byte[] leafKey, byte[] leafValue) => SetLeaf(leafKey, leafValue, LeafDb);
+    public void SetStem(byte[] stemKey, SuffixTree suffixTree) => SetStem(stemKey, suffixTree, StemDb);
+    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => SetBranch(branchKey, internalNodeValue, BranchDb);
 
     public void RemoveLeaf(byte[] leafKey)
     {
@@ -73,7 +73,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
         using IBatch batch = LeafDb.StartBatch();
         foreach ((byte[] key, byte[]? value) in keyLeaf)
         {
-            _setLeaf(key, value, batch);
+            SetLeaf(key, value, batch);
         }
     }
     public void BatchStemInsert(IEnumerable<KeyValuePair<byte[], SuffixTree?>> suffixLeaf)
@@ -81,7 +81,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
         using IBatch batch = StemDb.StartBatch();
         foreach ((byte[] key, SuffixTree? value) in suffixLeaf)
         {
-            _setStem(key, value, batch);
+            SetStem(key, value, batch);
         }
     }
     public void BatchBranchInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> branchLeaf)
@@ -89,7 +89,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
         using IBatch batch = BranchDb.StartBatch();
         foreach ((byte[] key, InternalNode? value) in branchLeaf)
         {
-            _setBranch(key, value, batch);
+            SetBranch(key, value, batch);
         }
     }
 
@@ -121,15 +121,18 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb, IKeyValueStore
         }
     }
 
-    private static void _setLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db) => db[leafKey] = leafValue;
-    private static void _setStem(byte[] stemKey, SuffixTree? suffixTree, IKeyValueStore db)
+    private static void SetLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db)
     {
-        if (suffixTree != null) db[stemKey] = SuffixTreeSerializer.Instance.Encode(suffixTree).Bytes;
+        db[leafKey] = leafValue;
     }
-    private static void _setBranch(byte[] branchKey, InternalNode? internalNodeValue, IKeyValueStore db)
+    private static void SetStem(byte[] stemKey, SuffixTree? suffixTree, IKeyValueStore db)
     {
-        if (internalNodeValue != null) db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
+        if (suffixTree is null) return;
+        db[stemKey] = SuffixTreeSerializer.Instance.Encode(suffixTree);
     }
-
-
+    private static void SetBranch(byte[] branchKey, InternalNode? internalNodeValue, IKeyValueStore db)
+    {
+        if(internalNodeValue is null) return;
+        db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue);
+    }
 }
