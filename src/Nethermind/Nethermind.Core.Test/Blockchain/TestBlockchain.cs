@@ -160,7 +160,7 @@ public class TestBlockchain : IDisposable
         new ReceiptCanonicalityMonitor(BlockTree, ReceiptStorage, LogManager);
 
         BlockValidator = new BlockValidator(
-            new TxValidator(SpecProvider.ChainId),
+            new TxValidator(SpecProvider.ChainId, LimboLogs.Instance),
             HeaderValidator,
             Always.Valid,
             SpecProvider,
@@ -272,7 +272,7 @@ public class TestBlockchain : IDisposable
             EthereumEcdsa,
             new ChainHeadInfoProvider(new FixedForkActivationChainHeadSpecProvider(SpecProvider), BlockTree, ReadOnlyState),
             new TxPoolConfig(),
-            new TxValidator(SpecProvider.ChainId),
+            new TxValidator(SpecProvider.ChainId, LimboLogs.Instance),
             LogManager,
             TransactionComparerProvider.GetDefaultComparer());
 

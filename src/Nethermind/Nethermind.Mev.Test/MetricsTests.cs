@@ -110,7 +110,7 @@ namespace Nethermind.Mev.Test
 
             deltaBundlesReceived.Should().Be(4);
             deltaValidBundlesReceived.Should().Be(2);
-            deltaBundlesSimulated.Should().Be(0); // should not simulate invalid bundle 
+            deltaBundlesSimulated.Should().Be(0); // should not simulate invalid bundle
         }
 
         [Test]
@@ -146,7 +146,7 @@ namespace Nethermind.Mev.Test
 
             deltaBundlesReceived.Should().Be(4);
             deltaValidBundlesReceived.Should().Be(1);
-            deltaBundlesSimulated.Should().Be(0); // should not simulate invalid bundle 
+            deltaBundlesSimulated.Should().Be(0); // should not simulate invalid bundle
         }
 
         [Test]
@@ -213,7 +213,7 @@ namespace Nethermind.Mev.Test
                 blockTree,
                 Substitute.For<IBundleSimulator>(),
                 new ManualTimestamper(DateTimeOffset.UnixEpoch.DateTime),
-                new TxValidator(blockTree.ChainId),
+                new TxValidator(blockTree.ChainId, LimboLogs.Instance),
                 new TestSpecProvider(London.Instance),
                 config ?? new MevConfig() { TrustedRelays = $"{TestItem.AddressA},{TestItem.AddressB}" },
                 LimboLogs.Instance,
