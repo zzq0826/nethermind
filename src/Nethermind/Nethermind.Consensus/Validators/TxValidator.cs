@@ -70,7 +70,7 @@ namespace Nethermind.Consensus.Validators
                 return true;
 
             bool isValid = transaction.MaxFeePerGas >= transaction.MaxPriorityFeePerGas;
-            return true;
+            return isValid;
         }
 
         private bool ValidateChainId(Transaction transaction) =>
