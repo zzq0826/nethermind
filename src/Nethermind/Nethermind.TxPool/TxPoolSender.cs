@@ -7,6 +7,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Crypto;
 using Nethermind.Int256;
+using Nethermind.Logging;
 
 namespace Nethermind.TxPool
 {
@@ -16,21 +17,27 @@ namespace Nethermind.TxPool
         private readonly ITxSealer _sealer;
         private readonly INonceManager _nonceManager;
         private readonly IEthereumEcdsa _ecdsa;
+        private readonly ILogger _logger;
 
-        public TxPoolSender(ITxPool txPool, ITxSealer sealer, INonceManager nonceManager, IEthereumEcdsa ecdsa)
+        public TxPoolSender(ITxPool txPool, ITxSealer sealer, INonceManager nonceManager, IEthereumEcdsa ecdsa, ILogManager logManager)
         {
             _txPool = txPool ?? throw new ArgumentNullException(nameof(txPool));
             _sealer = sealer ?? throw new ArgumentNullException(nameof(sealer));
             _nonceManager = nonceManager ?? throw new ArgumentNullException(nameof(nonceManager));
             _ecdsa = ecdsa ?? throw new ArgumentException(nameof(ecdsa));
+            _logger = logManager?.GetClassLogger() ?? throw new ArgumentException(nameof(logManager));
         }
 
         public ValueTask<(Keccak, AcceptTxResult?)> SendTransaction(Transaction tx, TxHandlingOptions txHandlingOptions)
         {
+            _logger.Info($"TX IN TX SENDER");
             bool manageNonce = (txHandlingOptions & TxHandlingOptions.ManagedNonce) == TxHandlingOptions.ManagedNonce;
             tx.SenderAddress ??= _ecdsa.RecoverAddress(tx);
             if (tx.SenderAddress is null)
+            {
+                _logger.Info($"TX IN TX SENDER null sender, throwing");
                 throw new ArgumentNullException(nameof(tx.SenderAddress));
+            }
 
             AcceptTxResult result = manageNonce
                 ? SubmitTxWithManagedNonce(tx, txHandlingOptions)

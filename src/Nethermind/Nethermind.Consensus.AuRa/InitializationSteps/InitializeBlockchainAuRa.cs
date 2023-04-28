@@ -139,7 +139,7 @@ public class InitializeBlockchainAuRa : InitializeBlockchain
                 _api.ReceiptStorage,
                 _api.ValidatorStore,
                 _api.FinalizationManager,
-                new TxPoolSender(_api.TxPool, new TxSealer(_api.EngineSigner, _api.Timestamper), _api.NonceManager, _api.EthereumEcdsa),
+                new TxPoolSender(_api.TxPool, new TxSealer(_api.EngineSigner, _api.Timestamper), _api.NonceManager, _api.EthereumEcdsa, _api.LogManager),
                 _api.TxPool,
                 NethermindApi.Config<IBlocksConfig>(),
                 _api.LogManager,

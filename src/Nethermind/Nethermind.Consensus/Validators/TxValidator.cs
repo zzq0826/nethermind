@@ -21,7 +21,7 @@ namespace Nethermind.Consensus.Validators
         public TxValidator(ulong chainId, ILogManager logManager)
         {
             _chainIdValue = chainId;
-            _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
+            _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
         /* Full and correct validation is only possible in the context of a specific block

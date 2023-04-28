@@ -252,7 +252,7 @@ namespace Nethermind.Init.Steps
                 new(txSigner, getApi.Timestamper);
             INonceManager nonceManager = new NonceManager(chainHeadInfoProvider.AccountStateProvider);
             setApi.NonceManager = nonceManager;
-            setApi.TxSender = new TxPoolSender(txPool, nonceReservingTxSealer, nonceManager, getApi.EthereumEcdsa!);
+            setApi.TxSender = new TxPoolSender(txPool, nonceReservingTxSealer, nonceManager, getApi.EthereumEcdsa!, getApi.LogManager);
 
             setApi.TxPoolInfoProvider = new TxPoolInfoProvider(chainHeadInfoProvider.AccountStateProvider, txPool);
             setApi.GasPriceOracle = new GasPriceOracle(getApi.BlockTree, getApi.SpecProvider, _api.LogManager, blocksConfig.MinGasPrice);
