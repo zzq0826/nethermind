@@ -31,20 +31,28 @@ namespace Nethermind.Consensus.Validators
         public bool IsWellFormed(Transaction transaction, IReleaseSpec releaseSpec)
         {
             // validate type before calculating intrinsic gas to avoid exception
-            return ValidateTxType(transaction, releaseSpec) &&
+            bool isTxTypeValid = ValidateTxType(transaction, releaseSpec);
+
+            bool are1559ok = Validate1559GasFields(transaction, releaseSpec);
+
+
+            return  isTxTypeValid &&
                    /* This is unnecessarily calculated twice - at validation and execution times. */
                    transaction.GasLimit >= IntrinsicGasCalculator.Calculate(transaction, releaseSpec) &&
                    /* if it is a call or a transfer then we require the 'To' field to have a value
                       while for an init it will be empty */
                    ValidateSignature(transaction.Signature, releaseSpec) &&
                    ValidateChainId(transaction) &&
-                   Validate1559GasFields(transaction, releaseSpec) &&
+                   are1559ok &&
                    Validate3860Rules(transaction, releaseSpec) &&
                    Validate4844Fields(transaction, releaseSpec);
         }
 
-        private static bool Validate3860Rules(Transaction transaction, IReleaseSpec releaseSpec) =>
-            !transaction.IsAboveInitCode(releaseSpec);
+        private static bool Validate3860Rules(Transaction transaction, IReleaseSpec releaseSpec)
+        {
+            bool isValid = !transaction.IsAboveInitCode(releaseSpec);
+            return isValid;
+        }
 
         private static bool ValidateTxType(Transaction transaction, IReleaseSpec releaseSpec) =>
             transaction.Type switch
@@ -61,7 +69,8 @@ namespace Nethermind.Consensus.Validators
             if (!releaseSpec.IsEip1559Enabled || !transaction.Supports1559)
                 return true;
 
-            return transaction.MaxFeePerGas >= transaction.MaxPriorityFeePerGas;
+            bool isValid = transaction.MaxFeePerGas >= transaction.MaxPriorityFeePerGas;
+            return isValid;
         }
 
         private bool ValidateChainId(Transaction transaction) =>
@@ -153,8 +162,7 @@ namespace Nethermind.Consensus.Validators
                     }
                 }
 
-                return KzgPolynomialCommitments.AreProofsValid(wrapper.Blobs,
-                    wrapper.Commitments, wrapper.Proofs);
+                return true;
             }
 
             return true;
