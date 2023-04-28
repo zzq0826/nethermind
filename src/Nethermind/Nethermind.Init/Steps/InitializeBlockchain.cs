@@ -191,7 +191,7 @@ namespace Nethermind.Init.Steps
                 stateProvider.StateRoot = getApi.BlockTree.Head.StateRoot;
             }
 
-            TxValidator txValidator = setApi.TxValidator = new TxValidator(getApi.SpecProvider.ChainId);
+            TxValidator txValidator = setApi.TxValidator = new TxValidator(getApi.SpecProvider.ChainId, getApi.LogManager);
 
             ITxPool txPool = _api.TxPool = CreateTxPool();
 

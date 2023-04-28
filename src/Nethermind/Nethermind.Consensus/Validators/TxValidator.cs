@@ -8,6 +8,7 @@ using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Evm;
 using Nethermind.Int256;
+using Nethermind.Logging;
 using Nethermind.TxPool;
 
 namespace Nethermind.Consensus.Validators
@@ -15,10 +16,12 @@ namespace Nethermind.Consensus.Validators
     public class TxValidator : ITxValidator
     {
         private readonly ulong _chainIdValue;
+        private readonly ILogger _logger;
 
-        public TxValidator(ulong chainId)
+        public TxValidator(ulong chainId, ILogManager logManager)
         {
             _chainIdValue = chainId;
+            _logger = logManager.GetClassLogger();
         }
 
         /* Full and correct validation is only possible in the context of a specific block
@@ -32,20 +35,39 @@ namespace Nethermind.Consensus.Validators
         {
             // validate type before calculating intrinsic gas to avoid exception
             bool isTxTypeValid = ValidateTxType(transaction, releaseSpec);
+            _logger.Info($"TxVALIDATION: isTxTypeValid: {isTxTypeValid}");
+
+            /* This is unnecessarily calculated twice - at validation and execution times. */
+            bool isGasLimitOk = transaction.GasLimit >= IntrinsicGasCalculator.Calculate(transaction, releaseSpec);
+            _logger.Info($"TxVALIDATION: isGasLimitOk: {isGasLimitOk}, transaction.GasLimit: {transaction.GasLimit}, IntrinsicGasCalculator.Calculate(transaction, releaseSpec): {IntrinsicGasCalculator.Calculate(transaction, releaseSpec)}");
+
+            bool signatureOk = ValidateSignature(transaction.Signature, releaseSpec);
+            _logger.Info($"TxVALIDATION: signatureOk: {signatureOk}");
+
+            bool chainIdOk = ValidateChainId(transaction);
+            _logger.Info($"TxVALIDATION: chainIdOk: {chainIdOk}");
 
             bool are1559ok = Validate1559GasFields(transaction, releaseSpec);
+            _logger.Info($"TxVALIDATION: are1559ok: {are1559ok}");
+            _logger.Info($"{transaction.MaxFeePerGas} max fee");
+            _logger.Info($"{transaction.MaxPriorityFeePerGas} max priority fee");
+
+            bool ok3860Rules = Validate3860Rules(transaction, releaseSpec);
+            _logger.Info($"TxVALIDATION: ok3860Rules: {ok3860Rules}");
+
+            bool ok4844Fields = Validate4844Fields(transaction, releaseSpec);
+            _logger.Info($"TxVALIDATION: ok4844Fields: {ok4844Fields}");
 
 
             return  isTxTypeValid &&
-                   /* This is unnecessarily calculated twice - at validation and execution times. */
-                   transaction.GasLimit >= IntrinsicGasCalculator.Calculate(transaction, releaseSpec) &&
+                    isGasLimitOk&&
                    /* if it is a call or a transfer then we require the 'To' field to have a value
                       while for an init it will be empty */
-                   ValidateSignature(transaction.Signature, releaseSpec) &&
-                   ValidateChainId(transaction) &&
+                   signatureOk &&
+                   chainIdOk &&
                    are1559ok &&
-                   Validate3860Rules(transaction, releaseSpec) &&
-                   Validate4844Fields(transaction, releaseSpec);
+                   ok3860Rules &&
+                   ok4844Fields;
         }
 
         private static bool Validate3860Rules(Transaction transaction, IReleaseSpec releaseSpec)
