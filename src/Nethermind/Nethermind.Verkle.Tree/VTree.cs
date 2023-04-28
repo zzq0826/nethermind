@@ -233,6 +233,8 @@ public class VTree: IVerkleTree
 
 
             // instead on declaring new node here - use the node that is input in the function
+            branchKey = new byte[sharedPath.Count + 1];
+            sharedPath.CopyTo(branchKey);
             branchKey[^1] = oldLeafIndex;
             if (!_treeStore.GetStem(node.Stem, out SuffixTree? oldSuffixNode)) throw new ArgumentException();
             _treeStore.SetBranch(branchKey, new StemNode(node.Stem, oldSuffixNode!.ExtensionCommitment));

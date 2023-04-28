@@ -172,20 +172,18 @@ public partial class VerkleTree
             (FrE deltaHash, Commitment? suffixCommitment) = UpdateSuffixNode(traverseContext.Stem.ToArray(), traverseContext.LeafUpdateDelta, true);
 
             // creating the stem node for the new suffix node
-            _verkleStateStore.SetBranch(sharedPath.ToArray().Concat(new[]
-            {
-                newLeafIndex
-            }).ToArray(), new StemNode(traverseContext.Stem.ToArray(), suffixCommitment!));
+            byte[] branchKey = new byte[sharedPath.Count + 1];
+            sharedPath.CopyTo(branchKey);
+            branchKey[^1] = newLeafIndex;
+            _verkleStateStore.SetBranch(branchKey, new StemNode(traverseContext.Stem.ToArray(), suffixCommitment!));
             Banderwagon newSuffixCommitmentDelta = Committer.ScalarMul(deltaHash, newLeafIndex);
 
-
+            branchKey = new byte[sharedPath.Count + 1];
+            sharedPath.CopyTo(branchKey);
+            branchKey[^1] = oldLeafIndex;
             // instead on declaring new node here - use the node that is input in the function
             SuffixTree oldSuffixNode = _verkleStateStore.GetStem(node.Stem) ?? throw new ArgumentException();
-            _verkleStateStore.SetBranch(sharedPath.ToArray().Concat(new[]
-                {
-                    oldLeafIndex
-                }).ToArray(),
-                new StemNode(node.Stem, oldSuffixNode.ExtensionCommitment));
+            _verkleStateStore.SetBranch(branchKey, new StemNode(node.Stem, oldSuffixNode.ExtensionCommitment));
 
             Banderwagon oldSuffixCommitmentDelta =
                 Committer.ScalarMul(oldSuffixNode.ExtensionCommitment.PointAsField, oldLeafIndex);
