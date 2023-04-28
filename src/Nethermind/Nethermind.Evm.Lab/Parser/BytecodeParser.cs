@@ -34,7 +34,14 @@ internal class BytecodeParser
             if (Enum.TryParse<Evm.Instruction>(tokens[i++], out Evm.Instruction opcode))
             {
                 idx++;
-                int immCount = opcode.GetImmediateCount(false);
+                int immCount  = 0;
+                try
+                {
+                    immCount = opcode.StackRequirements().immediates;
+                } catch
+                {
+                    immCount = opcode.GetImmediateCount(false);
+                }
                 if (immCount > 0)
                 {
                     parsed.Add(new Instruction(idx, opcode, new Immediate(immCount, Bytes.FromHexString(tokens[i++]))));
