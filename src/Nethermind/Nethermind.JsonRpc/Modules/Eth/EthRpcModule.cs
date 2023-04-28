@@ -330,13 +330,20 @@ public partial class EthRpcModule : IEthRpcModule
     {
         try
         {
+            _logger.Info($"RECEIVED eth_sendRawTx");
             Transaction tx = Rlp.Decode<Transaction>(transaction,
                 RlpBehaviors.AllowUnsigned | RlpBehaviors.SkipTypedWrapping | RlpBehaviors.InNetworkForm);
+            _logger.Info($"DECODED eth_sendRawTx");
+
             return await SendTx(tx);
         }
         catch (RlpException)
         {
             return ResultWrapper<Keccak>.Fail("Invalid RLP.", ErrorCodes.TransactionRejected);
+        }
+        catch (Exception ex)
+        {
+            return ResultWrapper<Keccak>.Fail($"ADDED EXCEPTION CATCHER: {ex}");
         }
     }
 
