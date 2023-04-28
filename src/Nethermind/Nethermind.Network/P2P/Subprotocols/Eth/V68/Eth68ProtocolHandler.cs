@@ -97,10 +97,12 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
         if (tx.CanBeBroadcast())
         {
             base.SendNewTransactionCore(tx);
+            Logger.Info($"BROADCASTING full tx in eth68");
         }
         else
         {
             SendMessage(new byte[] { (byte)tx.Type }, new int[] { tx.GetLength() }, new Keccak[] { tx.Hash });
+            Logger.Info($"ANNOUNCING tx.Hash in eth68");
         }
     }
 
