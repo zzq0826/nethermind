@@ -23,12 +23,12 @@ public class VerkleProver
     public VerkleProver(IDbProvider dbProvider)
     {
         VerkleStateStore stateDb = new(dbProvider);
-        _stateDb = new VerkleStoreWithMemCache(stateDb);
+        _stateDb = new VerkleTrieStore(stateDb);
     }
 
     public VerkleProver(IVerkleStore stateStore)
     {
-        _stateDb = new VerkleStoreWithMemCache(stateStore);
+        _stateDb = new VerkleTrieStore(stateStore);
     }
 
     public VerkleProof CreateVerkleProof(List<byte[]> keys, out Banderwagon rootPoint)
