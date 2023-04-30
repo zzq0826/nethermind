@@ -36,16 +36,16 @@ public class VerkleProver
         _proofBranchPolynomialCache.Clear();
         _proofStemPolynomialCache.Clear();
 
-        HashSet<Banderwagon> commsSorted = new();
-        SortedDictionary<byte[], byte> depthsByStem = new(Bytes.Comparer);
-        SortedDictionary<byte[], ExtPresent> extPresentByStem = new(Bytes.Comparer);
+        HashSet<Banderwagon> sortedCommitments = new HashSet<Banderwagon>();
+        SortedDictionary<byte[], byte> depthsByStem = new SortedDictionary<byte[], byte>(Bytes.Comparer);
+        SortedDictionary<byte[], ExtPresent> extPresentByStem = new SortedDictionary<byte[], ExtPresent>(Bytes.Comparer);
 
-        List<byte[]> extPresent = new();
-        List<byte[]> extNone = new();
-        List<byte[]> extDifferent = new();
+        List<byte[]> extPresent = new List<byte[]>();
+        List<byte[]> extNone = new List<byte[]>();
+        List<byte[]> extDifferent = new List<byte[]>();
 
         // generate prover path for keys
-        Dictionary<byte[], SortedSet<byte>> neededOpenings = new(Bytes.EqualityComparer);
+        Dictionary<byte[], SortedSet<byte>> neededOpenings = new Dictionary<byte[], SortedSet<byte>>(Bytes.EqualityComparer);
 
         foreach (byte[] key in keys)
         {
@@ -60,6 +60,7 @@ public class VerkleProver
                     {
                         case NodeType.BranchNode:
                             CreateBranchProofPolynomialIfNotExist(currentPath);
+                            //TODO: optimize using updateFunc addFunc
                             neededOpenings.TryAdd(currentPath, new SortedSet<byte>());
                             neededOpenings[currentPath].Add(key[i]);
                             continue;
@@ -91,8 +92,8 @@ public class VerkleProver
             }
         }
 
-        List<VerkleProverQuery> queries = new();
-        SortedSet<byte[]> stemWithNoProofSet = new();
+        List<VerkleProverQuery> queries = new List<VerkleProverQuery>();
+        SortedSet<byte[]> stemWithNoProofSet = new SortedSet<byte[]>();
 
         foreach (KeyValuePair<byte[], SortedSet<byte>> elem in neededOpenings)
         {
@@ -113,13 +114,13 @@ public class VerkleProver
         rootPoint = root._nodeCommitPoint;
         foreach (VerkleProverQuery query in queries.Where(query => root._nodeCommitPoint != query._nodeCommitPoint))
         {
-            commsSorted.Add(query._nodeCommitPoint);
+            sortedCommitments.Add(query._nodeCommitPoint);
         }
 
-        MultiProof proofConstructor = new(CRS.Instance, PreComputeWeights.Init());
+        MultiProof proofConstructor = new MultiProof(CRS.Instance, PreComputeWeights.Init());
 
 
-        Transcript proverTranscript = new("vt");
+        Transcript proverTranscript = new Transcript("vt");
         VerkleProofStruct proof = proofConstructor.MakeMultiProof(proverTranscript, queries);
 
         foreach (byte[] stem in extPresent)
@@ -139,7 +140,7 @@ public class VerkleProver
 
         return new VerkleProof
         {
-            CommsSorted = commsSorted.ToArray(),
+            CommsSorted = sortedCommitments.ToArray(),
             Proof = proof,
             VerifyHint = new VerificationHint
             {

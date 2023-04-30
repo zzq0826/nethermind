@@ -59,10 +59,11 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         InitRootHash();
         StateRoot = GetStateRoot();
         FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
+        FullStateCacheBlock = -1;
 
         // TODO: why should we store using block number - use stateRoot to index everything
         // but i think block number is easy to understand and it maintains a sequence
-        if (FullStatePersistedBlock == -1) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
+        if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
     }
 
     public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
@@ -375,9 +376,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         {
             get
             {
-                if (key.IsZero()) return 0;
+                if (key.IsZero()) return -1;
                 byte[]? encodedBlock = _stateRootToBlock[key];
-                return encodedBlock is null ? -1 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
+                return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
             }
             set
             {
