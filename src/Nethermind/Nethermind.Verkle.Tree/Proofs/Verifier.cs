@@ -17,14 +17,10 @@ public class ListComparer : Comparer<List<byte>>
     {
         if (x is null)
         {
-            return y is null ? 0 : 1;
+            return y is null ? 0 : -1;
         }
 
-        if (y is null)
-        {
-            return -1;
-        }
-        return Bytes.Comparer.Compare(x.ToArray(), y.ToArray());
+        return y is null ? 1 : Bytes.Comparer.CompareDiffLength(x.ToArray(), y.ToArray());
     }
 }
 
