@@ -57,6 +57,7 @@ namespace Nethermind.Blockchain.Test.Receipts
                 _receiptsRecovery,
                 _blockTree,
                 _receiptConfig,
+                LimboLogs.Instance,
                 new ReceiptArrayStorageDecoder(_useCompactReceipts)
             )
             { MigratedBlockNumber = 0 };

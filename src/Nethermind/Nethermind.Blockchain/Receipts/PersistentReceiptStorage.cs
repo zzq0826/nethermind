@@ -10,6 +10,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 #pragma warning disable 618
 
@@ -31,6 +32,7 @@ namespace Nethermind.Blockchain.Receipts
 
         private const int CacheSize = 64;
         private readonly LruCache<KeccakKey, TxReceipt[]> _receiptsCache = new(CacheSize, CacheSize, "receipts");
+        private readonly ILogger _logger;
 
         public PersistentReceiptStorage(
             IColumnsDb<ReceiptsColumns> receiptsDb,
@@ -38,6 +40,7 @@ namespace Nethermind.Blockchain.Receipts
             IReceiptsRecovery receiptsRecovery,
             IBlockTree blockTree,
             IReceiptConfig receiptConfig,
+            ILogManager logManager,
             ReceiptArrayStorageDecoder? storageDecoder = null
         )
         {
@@ -56,6 +59,7 @@ namespace Nethermind.Blockchain.Receipts
             _lowestInsertedReceiptBlock = lowestBytes is null ? (long?)null : new RlpStream(lowestBytes).DecodeLong();
             _migratedBlockNumber = Get(MigrationBlockNumberKey, long.MaxValue);
 
+            _logger = logManager.GetClassLogger();
             _blockTree.BlockAddedToMain += BlockTreeOnBlockAddedToMain;
         }
 
@@ -85,6 +89,7 @@ namespace Nethermind.Blockchain.Receipts
 
         private void ClearTxIndexForBlock(Block block)
         {
+            _logger.Warn($"Clear tx for block {block.Hash}");
             foreach (Transaction transaction in block.Transactions)
             {
                 _transactionDb[transaction.Hash.Bytes] = null;
@@ -295,6 +300,7 @@ namespace Nethermind.Blockchain.Receipts
 
         private void RemoveBlockTx(Block block)
         {
+            _logger.Warn($"Removing tx for block {block.Hash}");
             using IBatch batch = _transactionDb.StartBatch();
             foreach (Transaction tx in block.Transactions)
             {

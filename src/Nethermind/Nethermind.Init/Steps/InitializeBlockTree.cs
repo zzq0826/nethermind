@@ -77,6 +77,7 @@ namespace Nethermind.Init.Steps
                     receiptsRecovery,
                     blockTree,
                     receiptConfig,
+                    _get.LogManager,
                     new ReceiptArrayStorageDecoder(receiptConfig.CompactReceiptStore))
                 : NullReceiptStorage.Instance;
 

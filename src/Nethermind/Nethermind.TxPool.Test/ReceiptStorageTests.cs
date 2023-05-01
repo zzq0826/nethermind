@@ -48,7 +48,8 @@ namespace Nethermind.TxPool.Test
                 _specProvider,
                 receiptsRecovery,
                 _blockTree,
-                new ReceiptConfig()
+                new ReceiptConfig(),
+                LimboLogs.Instance
             );
             _receiptFinder = new FullInfoReceiptFinder(_persistentStorage, receiptsRecovery, Substitute.For<IBlockFinder>());
             _inMemoryStorage = new InMemoryReceiptStorage();
