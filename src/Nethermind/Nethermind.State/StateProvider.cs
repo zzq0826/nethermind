@@ -288,6 +288,10 @@ namespace Nethermind.State
 
             return codeHash;
         }
+        public void UpdatePreImages(byte[] hash, byte[] value)
+        {
+            _codeDb[hash] = value;
+        }
 
         public Keccak GetCodeHash(Address address)
         {
@@ -639,6 +643,8 @@ namespace Nethermind.State
         private Account? GetState(Address address)
         {
             Metrics.StateTreeReads++;
+            byte[] hash = ValueKeccak.Compute(address.Bytes).BytesAsSpan.ToArray();
+            _codeDb[hash] = address.Bytes;
             Account? account = _tree.Get(address);
             return account;
         }
@@ -647,6 +653,8 @@ namespace Nethermind.State
         {
             _needsStateRootUpdate = true;
             Metrics.StateTreeWrites++;
+            byte[] hash = ValueKeccak.Compute(address.Bytes).BytesAsSpan.ToArray();
+            _codeDb[hash] = address.Bytes;
             _tree.Set(address, account);
         }
 

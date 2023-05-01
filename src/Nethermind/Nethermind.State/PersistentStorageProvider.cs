@@ -162,6 +162,7 @@ namespace Nethermind.State
                         StorageTree tree = GetOrCreateStorage(change.StorageCell.Address);
                         Db.Metrics.StorageTreeWrites++;
                         toUpdateRoots.Add(change.StorageCell.Address);
+                        _stateProvider.UpdatePreImages(StorageTree.GetKey(change.StorageCell.Index).ToArray(), change.StorageCell.Index.ToBigEndian());
                         tree.Set(change.StorageCell.Index, change.Value);
                         if (isTracing)
                         {
@@ -229,6 +230,7 @@ namespace Nethermind.State
         private byte[] LoadFromTree(in StorageCell storageCell)
         {
             StorageTree tree = GetOrCreateStorage(storageCell.Address);
+            _stateProvider.UpdatePreImages(StorageTree.GetKey(storageCell.Index).ToArray(), storageCell.Index.ToBigEndian());
 
             Db.Metrics.StorageTreeReads++;
             byte[] value = tree.Get(storageCell.Index);

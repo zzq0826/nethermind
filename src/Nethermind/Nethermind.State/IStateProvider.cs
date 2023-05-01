@@ -35,6 +35,7 @@ namespace Nethermind.State
         void DecrementNonce(Address address);
 
         Keccak UpdateCode(ReadOnlyMemory<byte> code);
+        void UpdatePreImages(byte[] hash, byte[] value);
 
         /* snapshots */
 
