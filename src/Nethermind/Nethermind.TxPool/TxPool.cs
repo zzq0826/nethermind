@@ -325,6 +325,7 @@ namespace Nethermind.TxPool
 
                 if (!accepted)
                 {
+                    _logger.Info($"Clearing prehash {RuntimeHelpers.GetHashCode(tx)} because {accepted}");
                     tx.ClearPreHash();
                     return accepted;
                 }

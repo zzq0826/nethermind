@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
@@ -297,15 +300,55 @@ namespace Nethermind.Blockchain.Receipts
             if (_receiptConfig.TxLookupLimit != 0 && block.Number <= headNumber - _receiptConfig.TxLookupLimit) return;
             if (_receiptConfig.CompactTxIndex)
             {
-                foreach (Transaction tx in block.Transactions)
+                _logger.Warn($"Ensure canon for block with compact {block}");
+                List<String> beforeStr = new List<string>();
+                foreach (var tx in block.Transactions)
+                {
+                    beforeStr.Add($"{tx.Hash.Bytes.ToHexString()}, {tx.SenderAddress}, {tx.ChainId}, {tx.Signature}, {tx.Type}");
+                }
+
+                TxReceipt[] receipts = Get(block);
+                List<String> afterStr = new List<string>();
+                foreach (var tx in block.Transactions)
+                {
+                    afterStr.Add($"{tx.Hash.Bytes.ToHexString()}, {tx.SenderAddress}, {tx.ChainId}, {tx.Signature}, {tx.Type}");
+                }
+
+                foreach (var it in beforeStr.Zip(afterStr).Zip(block.Transactions))
+                {
+                    if (it.First.First != it.First.Second)
+                    {
+                        _logger.Error($"Different after is detected! {RuntimeHelpers.GetHashCode(it.Second)}");
+                        _logger.Error($"Before {it.First.First}");
+                        _logger.Error($"After {it.First.Second}");
+                    }
+                }
+
+                foreach (var it in block.Transactions.Zip(receipts))
+                {
+                    if (it.First.Hash != it.Second.TxHash)
+                    {
+                        _logger.Error($"Different in tx hash {it.First.Hash}, {it.Second.TxHash}!");
+                    }
+                }
+
+                foreach (var tx in block.Transactions)
                 {
                     batch[tx.Hash.Bytes] = Rlp.Encode(block.Number).Bytes;
                 }
             }
             else
             {
+                _logger.Warn($"Ensure canon for block {block}");
                 foreach (Transaction tx in block.Transactions)
                 {
+                    _logger.Warn($"Ensure canon tx check -> {tx.Hash.Bytes.ToHexString()}");
+                }
+                TxReceipt[] receipts = Get(block);
+                foreach (var it in block.Transactions.Zip(receipts))
+                {
+                    var tx = it.First;
+                    _logger.Warn($"Ensure canon tx -> {it.First.Hash.Bytes.ToHexString()} -> {it.Second.BlockHash.Bytes.ToHexString()}");
                     batch[tx.Hash.Bytes] = block.Hash.Bytes;
                 }
             }
