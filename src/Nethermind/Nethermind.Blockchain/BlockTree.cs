@@ -1483,7 +1483,9 @@ namespace Nethermind.Blockchain
                 ? FindBlock(hashOfThePreviousMainBlock, BlockTreeLookupOptions.TotalDifficultyNotNeeded)
                 : null;
 
-            if (_logger.IsTrace) _logger.Trace($"Block added to main {block}, block TD {block.TotalDifficulty}");
+            _logger.Warn($"Block added to main {block}, block TD {block.TotalDifficulty}, previous {previous}, previous hash {hashOfThePreviousMainBlock}");
+            _logger.Warn($"All blocks on level {level.BlockInfos.Select((it) => it.BlockHash.ToShortString()).ToArray()}");
+
             BlockAddedToMain?.Invoke(this, new BlockReplacementEventArgs(block, previous));
 
             if (forceUpdateHeadBlock || block.IsGenesis || HeadImprovementRequirementsSatisfied(block.Header))
@@ -1687,6 +1689,7 @@ namespace Nethermind.Blockchain
                     int? foundIndex = FindIndex(hash, level);
                     if (!foundIndex.HasValue)
                     {
+                        _logger.Warn($"Add block info (existing level) {blockInfo.BlockHash}");
                         Array.Resize(ref blockInfos, blockInfos.Length + 1);
                     }
                     else
@@ -1711,6 +1714,7 @@ namespace Nethermind.Blockchain
                 }
                 else
                 {
+                    _logger.Warn($"Add block info {blockInfo.BlockHash}");
                     level = new ChainLevelInfo(false, new[] { blockInfo });
                 }
 
