@@ -89,11 +89,12 @@ namespace Nethermind.Blockchain.Receipts
 
         private void ClearTxIndexForBlock(Block block)
         {
-            _logger.Warn($"Clear old tx for block {block.Hash} {_receiptConfig.TxLookupLimit}");
+            _logger.Warn($"Clear old tx for block {block.Number} {block.Hash} {_receiptConfig.TxLookupLimit}");
+            using IBatch batch = _transactionDb.StartBatch();
             foreach (Transaction tx in block.Transactions)
             {
                 _logger.Warn($"Clear old tx {tx.Hash.Bytes.ToHexString()}");
-                _transactionDb[tx.Hash.Bytes] = null;
+                batch[tx.Hash.Bytes] = null;
             }
         }
 
