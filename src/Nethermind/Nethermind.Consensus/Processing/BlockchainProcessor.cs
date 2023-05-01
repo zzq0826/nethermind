@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
+using Nethermind.Consensus.Tracing;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
@@ -437,6 +438,11 @@ namespace Nethermind.Consensus.Processing
                 }
             }
 
+            IBlockTracer nTracer = new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace);
+            IBlockTracer compositeTracer = new CompositeBlockTracer(new List<IBlockTracer>()
+            {
+                tracer, nTracer
+            });
             Keccak? invalidBlockHash = null;
             Block[]? processedBlocks;
             try
@@ -445,10 +451,12 @@ namespace Nethermind.Consensus.Processing
                     processingBranch.Root,
                     processingBranch.BlocksToProcess,
                     options,
-                    tracer);
+                    compositeTracer);
             }
             catch (InvalidBlockException ex)
             {
+                BlockTraceDumper.LogDiagnosticTrace(nTracer, ex.InvalidBlock.Hash!, _logger);
+
                 InvalidBlock?.Invoke(this, new IBlockchainProcessor.InvalidBlockEventArgs
                 {
                     InvalidBlock = ex.InvalidBlock,
