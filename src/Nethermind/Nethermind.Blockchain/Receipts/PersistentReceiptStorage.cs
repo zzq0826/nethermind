@@ -89,10 +89,22 @@ namespace Nethermind.Blockchain.Receipts
 
         private void ClearTxIndexForBlock(Block block)
         {
-            _logger.Warn($"Clear tx for block {block.Hash}");
-            foreach (Transaction transaction in block.Transactions)
+            _logger.Warn($"Clear old tx for block {block.Hash} {_receiptConfig.TxLookupLimit}");
+            foreach (Transaction tx in block.Transactions)
             {
-                _transactionDb[transaction.Hash.Bytes] = null;
+                _logger.Warn($"Clear old tx {tx.Hash.Bytes.ToHexString()}");
+                _transactionDb[tx.Hash.Bytes] = null;
+            }
+        }
+
+        private void RemoveBlockTx(Block block)
+        {
+            _logger.Warn($"Removing tx for block {block.Hash}");
+            using IBatch batch = _transactionDb.StartBatch();
+            foreach (Transaction tx in block.Transactions)
+            {
+                _logger.Warn($"Removing tx {tx.Hash.Bytes.ToHexString()}");
+                batch[tx.Hash.Bytes] = null;
             }
         }
 
@@ -295,16 +307,6 @@ namespace Nethermind.Blockchain.Receipts
                 {
                     batch[tx.Hash.Bytes] = block.Hash.Bytes;
                 }
-            }
-        }
-
-        private void RemoveBlockTx(Block block)
-        {
-            _logger.Warn($"Removing tx for block {block.Hash}");
-            using IBatch batch = _transactionDb.StartBatch();
-            foreach (Transaction tx in block.Transactions)
-            {
-                batch[tx.Hash.Bytes] = null;
             }
         }
     }
