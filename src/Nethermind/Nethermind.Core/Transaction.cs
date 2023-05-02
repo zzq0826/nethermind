@@ -44,7 +44,7 @@ namespace Nethermind.Core
         public bool IsContractCreation => To is null;
         public bool IsMessageCall => To is not null;
 
-        private bool _isCalculatingHash = false;
+        private string? _isCalculatingHash = null;
 
         private Keccak? _hash;
 
@@ -64,8 +64,8 @@ namespace Nethermind.Core
 
                 void GenerateHash()
                 {
-                    if (_isCalculatingHash) throw new Exception("concurrent hash calculation");
-                    _isCalculatingHash = true;
+                    if (_isCalculatingHash != null) throw new Exception($"concurrent hash calculation. Prev stack {_isCalculatingHash}");
+                    _isCalculatingHash = Environment.StackTrace;
                     _hash = Keccak.Compute(_preHash.Span);
                     if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
                     {
@@ -94,7 +94,7 @@ namespace Nethermind.Core
         private ReadOnlyMemory<byte> _preHash;
         public void SetPreHash(ReadOnlySpan<byte> transactionSequence)
         {
-            _isCalculatingHash = false;
+            _isCalculatingHash = null;
             // Used to delay hash generation, as may be filtered as having too low gas etc
             _hash = null;
 
@@ -106,7 +106,7 @@ namespace Nethermind.Core
 
         public void ClearPreHash()
         {
-            _isCalculatingHash = false;
+            _isCalculatingHash = null;
             if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
             {
                 ArrayPool<byte>.Shared.Return(rentedArray.Array!);
