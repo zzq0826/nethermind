@@ -29,7 +29,6 @@ namespace Nethermind.TxPool.Filters
         {
             if (_hashCache.Get(tx.Hash!))
             {
-                if (_logger.IsInfo) _logger.Info($"Found tx in _hashCache. TxHash: {tx?.Hash}, Tx: {tx}");
                 Metrics.PendingTransactionsKnown++;
                 return AcceptTxResult.AlreadyKnown;
             }

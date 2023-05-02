@@ -45,6 +45,7 @@ namespace Nethermind.Core
         public bool IsMessageCall => To is not null;
 
         private Keccak? _hash;
+
         public Keccak? Hash
         {
             get
@@ -61,25 +62,31 @@ namespace Nethermind.Core
 
                 void GenerateHash()
                 {
-                    _hash = Keccak.Compute(_preHash.Span);
-                    if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
+                    lock (this)
                     {
-                        ArrayPool<byte>.Shared.Return(rentedArray.Array!);
-                    }
+                        _hash = Keccak.Compute(_preHash.Span);
+                        if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
+                        {
+                            ArrayPool<byte>.Shared.Return(rentedArray.Array!);
+                        }
 
-                    _preHash = default;
+                        _preHash = default;
+                    }
                 }
             }
             set
             {
                 if (_preHash.Length > 0)
                 {
-                    if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
+                    lock (this)
                     {
-                        ArrayPool<byte>.Shared.Return(rentedArray.Array!);
-                    }
+                        if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
+                        {
+                            ArrayPool<byte>.Shared.Return(rentedArray.Array!);
+                        }
 
-                    _preHash = default;
+                        _preHash = default;
+                    }
                 }
 
                 _hash = value;
