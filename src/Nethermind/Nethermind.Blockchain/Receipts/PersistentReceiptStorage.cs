@@ -328,7 +328,7 @@ namespace Nethermind.Blockchain.Receipts
                 {
                     if (it.First.Hash != it.Second.TxHash)
                     {
-                        _logger.Error($"Different in tx hash {it.First.Hash}, {it.Second.TxHash}!");
+                        _logger.Error($"Different in tx hash {it.First.Hash}, {it.Second.TxHash} {RuntimeHelpers.GetHashCode(it.First)}");
                     }
                 }
 

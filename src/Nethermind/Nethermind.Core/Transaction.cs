@@ -44,6 +44,8 @@ namespace Nethermind.Core
         public bool IsContractCreation => To is null;
         public bool IsMessageCall => To is not null;
 
+        private bool _isCalculatingHash = false;
+
         private Keccak? _hash;
 
         public Keccak? Hash
@@ -62,31 +64,27 @@ namespace Nethermind.Core
 
                 void GenerateHash()
                 {
-                    lock (this)
+                    if (_isCalculatingHash) throw new Exception("concurrent hash calculation");
+                    _isCalculatingHash = true;
+                    _hash = Keccak.Compute(_preHash.Span);
+                    if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
                     {
-                        _hash = Keccak.Compute(_preHash.Span);
-                        if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
-                        {
-                            ArrayPool<byte>.Shared.Return(rentedArray.Array!);
-                        }
-
-                        _preHash = default;
+                        ArrayPool<byte>.Shared.Return(rentedArray.Array!);
                     }
+
+                    _preHash = default;
                 }
             }
             set
             {
                 if (_preHash.Length > 0)
                 {
-                    lock (this)
+                    if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
                     {
-                        if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
-                        {
-                            ArrayPool<byte>.Shared.Return(rentedArray.Array!);
-                        }
-
-                        _preHash = default;
+                        ArrayPool<byte>.Shared.Return(rentedArray.Array!);
                     }
+
+                    _preHash = default;
                 }
 
                 _hash = value;
@@ -96,6 +94,7 @@ namespace Nethermind.Core
         private ReadOnlyMemory<byte> _preHash;
         public void SetPreHash(ReadOnlySpan<byte> transactionSequence)
         {
+            _isCalculatingHash = false;
             // Used to delay hash generation, as may be filtered as having too low gas etc
             _hash = null;
 
@@ -107,6 +106,7 @@ namespace Nethermind.Core
 
         public void ClearPreHash()
         {
+            _isCalculatingHash = false;
             if (MemoryMarshal.TryGetArray(_preHash, out ArraySegment<byte> rentedArray))
             {
                 ArrayPool<byte>.Shared.Return(rentedArray.Array!);
