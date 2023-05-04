@@ -59,6 +59,20 @@ namespace Nethermind.State
             KeccakHash.ComputeHashBytesToSpan(key, key);
         }
 
+        public static Span<byte> GetKey(in UInt256 index)
+        {
+            if (index < CacheSize)
+            {
+                return Cache[index];
+            }
+
+            Span<byte> span = stackalloc byte[32];
+            index.ToBigEndian(span);
+
+            // (1% allocations on archive sync) this ToArray can be pooled or just directly converted to nibbles
+            return ValueKeccak.Compute(span).BytesAsSpan.ToArray();
+        }
+
 
         [SkipLocalsInit]
         public byte[] Get(in UInt256 index, Keccak? storageRoot = null)
