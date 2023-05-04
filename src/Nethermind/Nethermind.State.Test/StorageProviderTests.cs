@@ -43,15 +43,14 @@ namespace Nethermind.Store.Test
         public void Empty_commit_restore()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
-            provider.Commit();
-            provider.Restore(Snapshot.Storage.Empty);
+            WorldState provider = BuildStorageProvider(ctx);
+            provider.Commit(Frontier.Instance);
+            provider.Restore(Snapshot.Empty);
         }
 
-        private StorageProvider BuildStorageProvider(Context ctx)
+        private WorldState BuildStorageProvider(Context ctx)
         {
-            StorageProvider provider = new(new TrieStore(new MemDb(), LogManager), ctx.StateProvider, LogManager);
-            return provider;
+            return ctx.StateProvider;
         }
 
         [TestCase(-1)]
@@ -61,11 +60,11 @@ namespace Nethermind.Store.Test
         public void Same_address_same_index_different_values_restore(int snapshot)
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[3]);
-            provider.Restore(snapshot);
+            provider.Restore(Snapshot.EmptyPosition, snapshot, Snapshot.EmptyPosition);
 
             Assert.AreEqual(_values[snapshot + 1], provider.Get(new StorageCell(ctx.Address1, 1)));
         }
@@ -74,16 +73,16 @@ namespace Nethermind.Store.Test
         public void Keep_in_cache()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
-            provider.Restore(-1);
+            provider.Restore(Snapshot.EmptyPosition, -1, Snapshot.EmptyPosition);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
-            provider.Restore(-1);
+            provider.Restore(Snapshot.EmptyPosition, -1, Snapshot.EmptyPosition);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
-            provider.Restore(-1);
+            provider.Restore(Snapshot.EmptyPosition, -1, Snapshot.EmptyPosition);
             Assert.AreEqual(_values[1], provider.Get(new StorageCell(ctx.Address1, 1)));
         }
 
@@ -94,11 +93,11 @@ namespace Nethermind.Store.Test
         public void Same_address_different_index(int snapshot)
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 2), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 3), _values[3]);
-            provider.Restore(snapshot);
+            provider.Restore(Snapshot.EmptyPosition, snapshot, Snapshot.EmptyPosition);
 
             Assert.AreEqual(_values[Math.Min(snapshot + 1, 1)], provider.Get(new StorageCell(ctx.Address1, 1)));
         }
@@ -107,24 +106,24 @@ namespace Nethermind.Store.Test
         public void Commit_restore()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 2), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 3), _values[3]);
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
             provider.Set(new StorageCell(ctx.Address2, 1), _values[4]);
             provider.Set(new StorageCell(ctx.Address2, 2), _values[5]);
             provider.Set(new StorageCell(ctx.Address2, 3), _values[6]);
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[7]);
             provider.Set(new StorageCell(ctx.Address1, 2), _values[8]);
             provider.Set(new StorageCell(ctx.Address1, 3), _values[9]);
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
             provider.Set(new StorageCell(ctx.Address2, 1), _values[10]);
             provider.Set(new StorageCell(ctx.Address2, 2), _values[11]);
             provider.Set(new StorageCell(ctx.Address2, 3), _values[12]);
-            provider.Commit();
-            provider.Restore(-1);
+            provider.Commit(Frontier.Instance);
+            provider.Restore(Snapshot.Empty);
 
             Assert.AreEqual(_values[7], provider.Get(new StorageCell(ctx.Address1, 1)));
             Assert.AreEqual(_values[8], provider.Get(new StorageCell(ctx.Address1, 2)));
@@ -138,12 +137,12 @@ namespace Nethermind.Store.Test
         public void Commit_no_changes()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 2), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 3), _values[3]);
-            provider.Restore(-1);
-            provider.Commit();
+            provider.Restore(Snapshot.Empty);
+            provider.Commit(Frontier.Instance);
 
             Assert.IsTrue(provider.Get(new StorageCell(ctx.Address1, 1)).IsZero());
         }
@@ -152,27 +151,27 @@ namespace Nethermind.Store.Test
         public void Commit_no_changes_2()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[3]);
-            provider.Restore(2);
-            provider.Restore(1);
-            provider.Restore(0);
+            provider.Restore(Snapshot.EmptyPosition, 2, Snapshot.EmptyPosition);
+            provider.Restore(Snapshot.EmptyPosition, 1, Snapshot.EmptyPosition);
+            provider.Restore(Snapshot.EmptyPosition, 0, Snapshot.EmptyPosition);
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[3]);
-            provider.Restore(-1);
+            provider.Restore(Snapshot.EmptyPosition, -1, Snapshot.EmptyPosition);
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
             provider.Get(new StorageCell(ctx.Address1, 1));
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
 
             Assert.True(provider.Get(new StorageCell(ctx.Address1, 1)).IsZero());
         }
@@ -182,18 +181,17 @@ namespace Nethermind.Store.Test
         {
             Context ctx = new();
             // block 1
-            StorageProvider storageProvider = BuildStorageProvider(ctx);
+            WorldState storageProvider = BuildStorageProvider(ctx);
             storageProvider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
-            storageProvider.Commit();
+            storageProvider.Commit(Frontier.Instance);
 
             ctx.StateProvider.Commit(Frontier.Instance);
-            storageProvider.CommitTrees(0);
             ctx.StateProvider.CommitTree(0);
 
             // block 2
             Keccak stateRoot = ctx.StateProvider.StateRoot;
             storageProvider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
-            storageProvider.Commit();
+            storageProvider.Commit(Frontier.Instance);
             ctx.StateProvider.Commit(Frontier.Instance);
 
             // revert
@@ -211,13 +209,13 @@ namespace Nethermind.Store.Test
         {
             Context ctx = new();
             // block 1
-            StorageProvider storageProvider = BuildStorageProvider(ctx);
+            WorldState storageProvider = BuildStorageProvider(ctx);
             for (int i = 0; i < Resettable.StartCapacity; i++)
             {
                 storageProvider.Set(new StorageCell(ctx.Address1, 1), _values[i % 2]);
             }
 
-            storageProvider.Commit();
+            storageProvider.Commit(Frontier.Instance);
             ctx.StateProvider.Commit(Frontier.Instance);
 
             byte[] valueAfter = storageProvider.Get(new StorageCell(ctx.Address1, 1));
@@ -231,7 +229,7 @@ namespace Nethermind.Store.Test
         public void Can_tload_uninitialized_locations()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
             // Should be 0 if not set
             Assert.True(provider.GetTransientState(new StorageCell(ctx.Address1, 1)).IsZero());
 
@@ -249,8 +247,8 @@ namespace Nethermind.Store.Test
         [Test]
         public void Can_tload_after_tstore()
         {
-            Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            Context ctx = new Context();
+            WorldState provider = BuildStorageProvider(ctx);
 
             provider.SetTransientState(new StorageCell(ctx.Address1, 2), _values[1]);
             Assert.AreEqual(_values[1], provider.GetTransientState(new StorageCell(ctx.Address1, 2)));
@@ -267,19 +265,19 @@ namespace Nethermind.Store.Test
         public void Tload_same_address_same_index_different_values_restore(int snapshot)
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
-            Snapshot.Storage[] snapshots = new Snapshot.Storage[4];
-            snapshots[0] = ((IStorageProvider)provider).TakeSnapshot();
+            WorldState provider = BuildStorageProvider(ctx);
+            Snapshot[] snapshots = new Snapshot[4];
+            snapshots[0] = provider.TakeSnapshot();
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[1]);
-            snapshots[1] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[1] = provider.TakeSnapshot();
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[2]);
-            snapshots[2] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[2] = provider.TakeSnapshot();
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[3]);
-            snapshots[3] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[3] = provider.TakeSnapshot();
 
-            Assert.AreEqual(snapshots[snapshot + 1].TransientStorageSnapshot, snapshot);
+            Assert.AreEqual(snapshots[snapshot + 1].StorageSnapshot.TransientStorageSnapshot, snapshot);
             // Persistent storage is unimpacted by transient storage
-            Assert.AreEqual(snapshots[snapshot + 1].PersistentStorageSnapshot, -1);
+            Assert.AreEqual(snapshots[snapshot + 1].StorageSnapshot.PersistentStorageSnapshot, -1);
             provider.Restore(snapshots[snapshot + 1]);
 
             Assert.AreEqual(_values[snapshot + 1], provider.GetTransientState(new StorageCell(ctx.Address1, 1)));
@@ -292,12 +290,12 @@ namespace Nethermind.Store.Test
         public void Commit_resets_transient_state()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
 
             provider.SetTransientState(new StorageCell(ctx.Address1, 2), _values[1]);
             Assert.AreEqual(_values[1], provider.GetTransientState(new StorageCell(ctx.Address1, 2)));
 
-            provider.Commit();
+            provider.Commit(Frontier.Instance);
             Assert.True(provider.GetTransientState(new StorageCell(ctx.Address1, 2)).IsZero());
         }
 
@@ -308,7 +306,7 @@ namespace Nethermind.Store.Test
         public void Reset_resets_transient_state()
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
+            WorldState provider = BuildStorageProvider(ctx);
 
             provider.SetTransientState(new StorageCell(ctx.Address1, 2), _values[1]);
             Assert.AreEqual(_values[1], provider.GetTransientState(new StorageCell(ctx.Address1, 2)));
@@ -328,24 +326,24 @@ namespace Nethermind.Store.Test
         public void Transient_state_restores_independent_of_persistent_state(int snapshot)
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
-            Snapshot.Storage[] snapshots = new Snapshot.Storage[4];
+            WorldState provider = BuildStorageProvider(ctx);
+            Snapshot[] snapshots = new Snapshot[4];
 
             // No updates
-            snapshots[0] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[0] = provider.TakeSnapshot();
 
             // Only update transient
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[1]);
-            snapshots[1] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[1] = provider.TakeSnapshot();
 
             // Update both
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[2]);
             provider.Set(new StorageCell(ctx.Address1, 1), _values[9]);
-            snapshots[2] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[2] = provider.TakeSnapshot();
 
             // Only update persistent
             provider.Set(new StorageCell(ctx.Address1, 1), _values[8]);
-            snapshots[3] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[3] = provider.TakeSnapshot();
 
             provider.Restore(snapshots[snapshot + 1]);
 
@@ -354,12 +352,10 @@ namespace Nethermind.Store.Test
             {
                 snapshot--;
             }
-
-            snapshots.Should().Equal(
-                Snapshot.Storage.Empty,
-                new Snapshot.Storage(Snapshot.EmptyPosition, 0),
-                new Snapshot.Storage(0, 1),
-                new Snapshot.Storage(1, 1));
+            snapshots[0].StorageSnapshot.Should().BeEquivalentTo(Snapshot.Storage.Empty);
+            snapshots[1].StorageSnapshot.Should().BeEquivalentTo(new Snapshot.Storage(Snapshot.EmptyPosition, 0));
+            snapshots[2].StorageSnapshot.Should().BeEquivalentTo(new Snapshot.Storage(0, 1));
+            snapshots[3].StorageSnapshot.Should().BeEquivalentTo(new Snapshot.Storage(1, 1));
 
             _values[snapshot + 1].Should().BeEquivalentTo(provider.GetTransientState(new StorageCell(ctx.Address1, 1)));
         }
@@ -375,24 +371,24 @@ namespace Nethermind.Store.Test
         public void Persistent_state_restores_independent_of_transient_state(int snapshot)
         {
             Context ctx = new();
-            StorageProvider provider = BuildStorageProvider(ctx);
-            Snapshot.Storage[] snapshots = new Snapshot.Storage[4];
+            WorldState provider = BuildStorageProvider(ctx);
+            Snapshot[] snapshots = new Snapshot[4];
 
             // No updates
-            snapshots[0] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[0] = (provider).TakeSnapshot();
 
             // Only update persistent
             provider.Set(new StorageCell(ctx.Address1, 1), _values[1]);
-            snapshots[1] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[1] = (provider).TakeSnapshot();
 
             // Update both
             provider.Set(new StorageCell(ctx.Address1, 1), _values[2]);
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[9]);
-            snapshots[2] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[2] = (provider).TakeSnapshot();
 
             // Only update transient
             provider.SetTransientState(new StorageCell(ctx.Address1, 1), _values[8]);
-            snapshots[3] = ((IStorageProvider)provider).TakeSnapshot();
+            snapshots[3] = (provider).TakeSnapshot();
 
             provider.Restore(snapshots[snapshot + 1]);
 
@@ -403,24 +399,25 @@ namespace Nethermind.Store.Test
             }
 
             snapshots.Should().Equal(
-                Snapshot.Storage.Empty,
-                new Snapshot.Storage(0, Snapshot.EmptyPosition),
-                new Snapshot.Storage(1, 0),
-                new Snapshot.Storage(1, 1));
+                Snapshot.Empty,
+                new Snapshot(Snapshot.EmptyPosition, new Snapshot.Storage(0, Snapshot.EmptyPosition)),
+                new Snapshot(Snapshot.EmptyPosition, new Snapshot.Storage(1, 0)),
+                new Snapshot(Snapshot.EmptyPosition, new Snapshot.Storage(1, 1))
+            );
 
             _values[snapshot + 1].Should().BeEquivalentTo(provider.Get(new StorageCell(ctx.Address1, 1)));
         }
 
         private class Context
         {
-            public IStateProvider StateProvider { get; }
+            public WorldState StateProvider { get; }
 
             public readonly Address Address1 = new(Keccak.Compute("1"));
             public readonly Address Address2 = new(Keccak.Compute("2"));
 
             public Context()
             {
-                StateProvider = new StateProvider(new TrieStore(new MemDb(), LimboLogs.Instance), Substitute.For<IDb>(), LogManager);
+                StateProvider = new WorldState(new TrieStore(new MemDb(), LimboLogs.Instance), Substitute.For<IDb>(), LogManager);
                 StateProvider.CreateAccount(Address1, 0);
                 StateProvider.CreateAccount(Address2, 0);
                 StateProvider.Commit(Frontier.Instance);
