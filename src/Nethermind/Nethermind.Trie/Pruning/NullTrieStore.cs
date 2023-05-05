@@ -48,5 +48,7 @@ namespace Nethermind.Trie.Pruning
         {
             return null;
         }
+
+        public bool IsFullySynced(Keccak stateRoot) => false;
     }
 }

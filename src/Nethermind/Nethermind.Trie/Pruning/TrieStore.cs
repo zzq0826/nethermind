@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -835,6 +836,24 @@ namespace Nethermind.Trie.Pruning
                    && trieNode.FullRlp is not null
                 ? trieNode.FullRlp
                 : _currentBatch?.Get(key, flags) ?? _keyValueStore.Get(key, flags);
+        }
+
+        public bool IsFullySynced(Keccak stateRoot)
+        {
+            if (stateRoot == Keccak.EmptyTreeHash)
+            {
+                return true;
+            }
+
+            TrieNode trieNode = FindCachedOrUnknown(stateRoot);
+            bool stateRootIsInMemory = trieNode.NodeType != NodeType.Unknown;
+            // We check whether one of below happened:
+            //   1) the block has been processed but not yet persisted (pruning) OR
+            //   2) the block has been persisted and removed from cache already OR
+            //   3) the full block state has been synced in the state nodes sync (fast sync)
+            // In 2) and 3) the state root will be saved in the database.
+            // In fast sync we never save the state root unless all the descendant nodes have been stored in the DB.
+            return stateRootIsInMemory || _keyValueStore.Get(stateRoot.Bytes) is not null;
         }
     }
 }
