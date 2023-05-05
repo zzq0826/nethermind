@@ -11,7 +11,6 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Eip2930;
 using Nethermind.Int256;
 using Nethermind.State;
-using Nethermind.Verkle.Tree;
 
 namespace Nethermind.Evm
 {
@@ -110,13 +109,12 @@ namespace Nethermind.Evm
         /// <summary>
         /// Verkle Tree: to maintain a list of all accessed subtrees and leaves
         /// </summary>
-        public IVerkleWitness VerkleTreeWitness => _verkleWitness;
+        public IVerkleWitness? VerkleTreeWitness { get; }
 
         private readonly JournalSet<Address> _accessedAddresses;
         private readonly JournalSet<StorageCell> _accessedStorageCells;
         private readonly JournalCollection<LogEntry> _logs;
         private readonly JournalSet<Address> _destroyList;
-        private readonly IVerkleWitness _verkleWitness;
         private readonly int _accessedAddressesSnapshot;
         private readonly int _accessedStorageKeysSnapshot;
         private readonly int _destroyListSnapshot;
@@ -145,33 +143,7 @@ namespace Nethermind.Evm
                 false,
                 null,
                 isContinuation,
-                false,
-                new VerkleWitness())
-        {
-            GasAvailable = gasAvailable;
-            Env = env;
-        }
-
-        public EvmState(
-            long gasAvailable,
-            ExecutionEnvironment env,
-            ExecutionType executionType,
-            bool isTopLevel,
-            Snapshot snapshot,
-            bool isContinuation,
-            IVerkleWitness verkleWitness)
-            : this(gasAvailable,
-                env,
-                executionType,
-                isTopLevel,
-                snapshot,
-                0L,
-                0L,
-                false,
-                null,
-                isContinuation,
-                false,
-                verkleWitness)
+                false)
         {
             GasAvailable = gasAvailable;
             Env = env;
@@ -188,35 +160,7 @@ namespace Nethermind.Evm
             bool isStatic,
             EvmState? stateForAccessLists,
             bool isContinuation,
-            bool isCreateOnPreExistingAccount) :
-            this(gasAvailable,
-                env,
-                executionType,
-                isTopLevel,
-                snapshot,
-                outputDestination,
-                outputLength,
-                isStatic,
-                stateForAccessLists,
-                isContinuation,
-                isCreateOnPreExistingAccount,
-                new VerkleWitness()
-            )
-        { }
-
-        internal EvmState(
-            long gasAvailable,
-            ExecutionEnvironment env,
-            ExecutionType executionType,
-            bool isTopLevel,
-            Snapshot snapshot,
-            long outputDestination,
-            long outputLength,
-            bool isStatic,
-            EvmState? stateForAccessLists,
-            bool isContinuation,
-            bool isCreateOnPreExistingAccount,
-            IVerkleWitness verkleWitness)
+            bool isCreateOnPreExistingAccount)
         {
             if (isTopLevel && isContinuation)
             {
@@ -234,7 +178,6 @@ namespace Nethermind.Evm
             IsStatic = isStatic;
             IsContinuation = isContinuation;
             IsCreateOnPreExistingAccount = isCreateOnPreExistingAccount;
-            _verkleWitness = verkleWitness;
             if (stateForAccessLists is not null)
             {
                 // if we are sub-call, then we use the main collection for this transaction
@@ -242,7 +185,7 @@ namespace Nethermind.Evm
                 _accessedStorageCells = stateForAccessLists._accessedStorageCells;
                 _destroyList = stateForAccessLists._destroyList;
                 _logs = stateForAccessLists._logs;
-                _verkleWitness = stateForAccessLists._verkleWitness;
+                VerkleTreeWitness = stateForAccessLists.VerkleTreeWitness;
             }
             else
             {
@@ -251,15 +194,14 @@ namespace Nethermind.Evm
                 _accessedStorageCells = new JournalSet<StorageCell>();
                 _destroyList = new JournalSet<Address>();
                 _logs = new JournalCollection<LogEntry>();
-                _verkleWitness = new VerkleWitness();
+                VerkleTreeWitness = env.VerkleWitness;
             }
 
             _accessedAddressesSnapshot = _accessedAddresses.TakeSnapshot();
             _accessedStorageKeysSnapshot = _accessedStorageCells.TakeSnapshot();
             _destroyListSnapshot = _destroyList.TakeSnapshot();
             _logsSnapshot = _logs.TakeSnapshot();
-
-            _verkleWitnessSnapshot = _verkleWitness.TakeSnapshot();
+            _verkleWitnessSnapshot = VerkleTreeWitness?.TakeSnapshot() ?? 0;
         }
 
         public Address From
@@ -361,7 +303,7 @@ namespace Nethermind.Evm
                 _destroyList.Restore(_destroyListSnapshot);
                 _accessedAddresses.Restore(_accessedAddressesSnapshot);
                 _accessedStorageCells.Restore(_accessedStorageKeysSnapshot);
-                _verkleWitness.Restore(_verkleWitnessSnapshot);
+                VerkleTreeWitness.Restore(_verkleWitnessSnapshot);
             }
         }
     }

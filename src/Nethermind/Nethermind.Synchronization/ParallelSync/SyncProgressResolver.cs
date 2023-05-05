@@ -10,6 +10,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.State.Snap;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
@@ -25,7 +26,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         private readonly IBlockTree _blockTree;
         private readonly IReceiptStorage _receiptStorage;
-        private readonly ITrieNodeResolver _trieNodeResolver;
+        private readonly ISyncTrieStore _trieNodeResolver;
         private readonly ProgressTracker _progressTracker;
         private readonly ISyncConfig _syncConfig;
 
@@ -37,7 +38,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         public SyncProgressResolver(IBlockTree blockTree,
             IReceiptStorage receiptStorage,
-            ITrieNodeResolver trieNodeResolver,
+            ISyncTrieStore trieNodeResolver,
             ProgressTracker progressTracker,
             ISyncConfig syncConfig,
             ILogManager logManager)

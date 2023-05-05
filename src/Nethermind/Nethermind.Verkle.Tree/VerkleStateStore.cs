@@ -9,7 +9,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public class VerkleStateStore : IVerkleStore
+public class VerkleStateStore : IVerkleStore, ISyncTrieStore, IStoreWithReorgBoundary
 {
     public byte[] RootHash
     {

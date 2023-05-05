@@ -9,7 +9,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public class ReadOnlyVerkleStateStore : IVerkleStore
+public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore, IStoreWithReorgBoundary
 {
     private VerkleStateStore _verkleStateStore;
     private VerkleMemoryDb _keyValueStore;
