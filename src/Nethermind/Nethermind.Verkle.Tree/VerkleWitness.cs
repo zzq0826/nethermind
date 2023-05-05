@@ -1,15 +1,11 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
-using Nethermind.Logging;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
@@ -18,7 +14,6 @@ namespace Nethermind.Verkle.Tree;
 //       already calculate keys in StateProvider - or we maintain pre images?
 public struct VerkleWitness : IVerkleWitness
 {
-    private ILogger _logger;
     [Flags]
     private enum AccountHeaderAccess
     {
@@ -44,9 +39,8 @@ public struct VerkleWitness : IVerkleWitness
     private readonly Dictionary<int, int[]> _snapshots = new Dictionary<int, int[]>();
     private int NextSnapshot;
 
-    public VerkleWitness(ILogger logManager)
+    public VerkleWitness()
     {
-        _logger = logManager;
         _accessedSubtrees = new JournalSet<byte[]>(Bytes.EqualityComparer);
         _accessedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);
         _modifiedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);
