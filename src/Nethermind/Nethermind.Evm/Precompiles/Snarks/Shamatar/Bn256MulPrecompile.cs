@@ -4,6 +4,7 @@
 using System;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
+using Nethermind.Crypto;
 using Nethermind.Crypto.Bls;
 
 namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
@@ -14,7 +15,7 @@ namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
     public class Bn256MulPrecompile : IPrecompile
     {
         public static IPrecompile Instance = new Bn256MulPrecompile();
-
+        public bool UsePairings = false;
         public Address Address { get; } = Address.FromNumber(7);
 
         public long BaseGasCost(IReleaseSpec releaseSpec)
@@ -30,23 +31,43 @@ namespace Nethermind.Evm.Precompiles.Snarks.Shamatar
         public (ReadOnlyMemory<byte>, bool) Run(in ReadOnlyMemory<byte> inputData, IReleaseSpec releaseSpec)
         {
             Metrics.Bn256MulPrecompile++;
+            
             Span<byte> inputDataSpan = stackalloc byte[96];
             inputData.PrepareEthInput(inputDataSpan);
 
             Span<byte> output = stackalloc byte[64];
-            bool success = ShamatarLib.Bn256Mul(inputDataSpan, output);
-
-            (byte[], bool) result;
-            if (success)
+            if(!UsePairings)
             {
-                result = (output.ToArray(), true);
-            }
-            else
-            {
-                result = (Array.Empty<byte>(), false);
-            }
+                bool success = ShamatarLib.Bn256Mul(inputDataSpan, output);
 
-            return result;
+                (byte[], bool) result;
+                if (success)
+                {
+                    result = (output.ToArray(), true);
+                }
+                else
+                {
+                    result = (Array.Empty<byte>(), false);
+                }
+
+                return result;
+
+            } else
+            {
+                bool success = Pairings.Bn254Mul(inputDataSpan, output);
+
+                (byte[], bool) result;
+                if (success)
+                {
+                    result = (output.ToArray(), true);
+                }
+                else
+                {
+                    result = (Array.Empty<byte>(), false);
+                }
+
+                return result;
+            }
         }
     }
 }
