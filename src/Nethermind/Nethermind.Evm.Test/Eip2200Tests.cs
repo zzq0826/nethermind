@@ -71,7 +71,7 @@ namespace Nethermind.Evm.Test
             TestState.Commit(RopstenSpecProvider.Instance.GenesisSpec);
 
             TestAllTracerWithOutput receipt = Execute(BlockNumber, 21000 + gasUsed + (2300 - 800), Bytes.FromHexString(codeHex));
-            Assert.AreEqual(outOfGasExpected ? 0 : 1, receipt.StatusCode);
+            Assert.That(receipt.StatusCode, Is.EqualTo(outOfGasExpected ? 0 : 1));
         }
 
         [TestCase("0x60006000556000600055", 1612, 0, 0)]
@@ -84,7 +84,7 @@ namespace Nethermind.Evm.Test
             TestState.Commit(RopstenSpecProvider.Instance.GenesisSpec);
 
             TestAllTracerWithOutput receipt = Execute(BlockNumber, 21000 + gasUsed + (2301 - 800), Bytes.FromHexString(codeHex));
-            Assert.AreEqual(1, receipt.StatusCode);
+            Assert.That(receipt.StatusCode, Is.EqualTo(1));
         }
 
         [TestCase("0x60006000556000600055", 1612, 0, 0)]
@@ -97,7 +97,7 @@ namespace Nethermind.Evm.Test
             TestState.Commit(RopstenSpecProvider.Instance.GenesisSpec);
 
             TestAllTracerWithOutput receipt = Execute(BlockNumber, 21000 + gasUsed + (2299 - 800), Bytes.FromHexString(codeHex));
-            Assert.AreEqual(0, receipt.StatusCode);
+            Assert.That(receipt.StatusCode, Is.EqualTo(0));
         }
     }
 }
