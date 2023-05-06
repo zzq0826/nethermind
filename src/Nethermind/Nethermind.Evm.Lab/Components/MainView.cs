@@ -4,9 +4,12 @@
 using System.Diagnostics;
 using GlobalStateEvents.Actions;
 using Nethermind.Evm.Lab.Componants;
+using Nethermind.Evm.Lab.Components.Differ;
 using Nethermind.Evm.Lab.Components.GlobalViews;
+using Nethermind.Evm.Lab.Components.TracerView;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
+
 namespace Nethermind.Evm.Lab.Components;
 
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views

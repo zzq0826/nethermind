@@ -10,7 +10,7 @@ using Nethermind.Evm.Lab.Parser;
 using Terminal.Gui;
 using static Nethermind.Evm.Test.EofTestsBase;
 
-namespace Nethermind.Evm.Lab.Components.MachineLab;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class MnemonicInput : IComponent<MachineState>
 {
     private class CodeSection

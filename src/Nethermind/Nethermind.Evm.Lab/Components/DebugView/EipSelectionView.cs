@@ -9,7 +9,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Specs;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Components.MachineLab;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class EipSelectionView : IComponent<MachineState>
 {
     bool isCached = false;

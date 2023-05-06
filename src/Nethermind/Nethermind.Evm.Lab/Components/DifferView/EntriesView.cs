@@ -16,7 +16,7 @@ using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
 using static Microsoft.FSharp.Core.ByRefKinds;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.Differ;
 class TableViewColored : TableView
 {
     public int DiffIndexStart = 2;

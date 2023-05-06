@@ -5,12 +5,12 @@ using MachineStateEvents;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Componants;
 using Nethermind.Evm.Lab.Components.GlobalViews;
-using Nethermind.Evm.Lab.Components.MachineLab;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Specs.Forks;
 using Terminal.Gui;
-namespace Nethermind.Evm.Lab.Components;
+
+namespace Nethermind.Evm.Lab.Components.TracerView;
 
 // Note(Ayman) : Add possibility to run multiple bytecodes at once using tabular views
 internal class MachineView : IComponent<MachineState>

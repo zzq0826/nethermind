@@ -4,7 +4,7 @@
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class MemoryView : IComponent<MachineState>
 {
     bool isCached = false;

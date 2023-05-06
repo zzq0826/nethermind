@@ -5,7 +5,7 @@ using MachineStateEvents;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.TracerView;
 internal class MediaLikeView<T> : IComponent<T> where T : IState<T>, new()
 {
     bool isCached = false;

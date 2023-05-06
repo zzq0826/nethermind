@@ -11,7 +11,7 @@ using Org.BouncyCastle.Asn1.Crmf;
 using Terminal.Gui;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.Differ;
 internal class TracesView : IComponent<TraceState>
 {
     bool isCached = false;

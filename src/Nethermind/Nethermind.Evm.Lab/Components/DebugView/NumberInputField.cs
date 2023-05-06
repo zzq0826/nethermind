@@ -4,7 +4,7 @@
 using NStack;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Components.MachineLab;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 
 internal class FilteredInputField : TextField
 {

@@ -10,12 +10,13 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Evm.CodeAnalysis;
+using Nethermind.Evm.Lab.Components.TracerView;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.Differ;
 internal class HalfPageView : IComponent<TraceState>
 {
     bool isCached = false;

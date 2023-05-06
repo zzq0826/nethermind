@@ -8,7 +8,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Componants;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class ProgramView : IComponent<MachineState>
 {
     private bool isExternalSource = false;

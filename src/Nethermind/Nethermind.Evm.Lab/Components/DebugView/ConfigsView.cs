@@ -9,7 +9,7 @@ using Nethermind.Evm.Test;
 using Nethermind.Specs.Forks;
 using Terminal.Gui;
 
-namespace Nethermind.Evm.Lab.Components.MachineLab;
+namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class ConfigsView : IComponent<MachineState>
 {
     bool isCached = false;
