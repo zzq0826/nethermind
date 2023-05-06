@@ -649,13 +649,6 @@ namespace Nethermind.Evm
                 state.DataStackHead = stackHead;
             }
 
-            static void ApplyExternalState(EvmState state, out int pc, out long gas, out int stackHead)
-            {
-                pc = state.ProgramCounter ;
-                gas = state.GasAvailable ;
-                stackHead = state.DataStackHead;
-            }
-
             if (previousCallResult is not null)
             {
                 stack.PushBytes(previousCallResult);
@@ -676,15 +669,8 @@ namespace Nethermind.Evm
 
             while (programCounter < codeSection.Length)
             {
-                if(_txTracer.IsLiveTrace)
-                {
-                    _txTracer.Wait(vmState);
-                    ApplyExternalState(vmState, out programCounter, out gasAvailable, out stack.Head);
-                }
-
                 Instruction instruction = (Instruction)codeSection[programCounter];
                 // Console.WriteLine(instruction);
-
                 if (traceOpcodes)
                 {
                     StartInstructionTrace(instruction, vmState, gasAvailable, programCounter, in stack);
@@ -2534,49 +2520,35 @@ namespace Nethermind.Evm
                         }
                 }
 
-                if (_txTracer.IsLiveTrace)
-                {
-                    UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
-                }
-
                 if (traceOpcodes) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
             }
 
             UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
 // Fall through to Empty: label
 
 // Common exit errors, goto labels to reduce in loop code duplication and to keep loop body smaller
 Empty:
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.Empty(0);
 OutOfGas:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.OutOfGas);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.OutOfGasException;
 EmptyTrace:
             if (traceOpcodes) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.Empty(0);
 InvalidInstruction:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.BadInstruction);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.InvalidInstructionException;
 StaticCallViolation:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.StaticCallViolation);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.StaticCallViolationException;
 StackOverflow:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.StackOverflow);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.StackOverflowException;
 InvalidJumpDestination:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.InvalidJumpDestination);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.InvalidJumpDestination;
 AccessViolation:
             if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.AccessViolation);
-            if (_txTracer.IsLiveTrace) _txTracer.Wait(vmState);
             return CallResult.AccessViolationException;
 
             [DoesNotReturn]

@@ -11,7 +11,6 @@ using Nethermind.Evm.Lab.Components;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Nethermind.Evm.Test;
-using Nethermind.Evm.Tracing.DebugTrace;
 using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Int256;
 using Nethermind.Specs.Forks;
