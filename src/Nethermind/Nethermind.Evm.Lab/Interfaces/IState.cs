@@ -3,7 +3,7 @@
 
 namespace Nethermind.Evm.Lab.Interfaces;
 
-public interface IStateObject{
+public interface IStateObject {
     Task<bool> MoveNext();
     EventsSink EventsSink { get; }
 }

@@ -5,7 +5,6 @@ using System.Text.Json;
 using Nethermind.Evm;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab;
-using Nethermind.Evm.Lab.Componants;
 using Nethermind.Evm.Lab.Components;
 using Nethermind.Evm.Tracing.DebugTrace;
 using Nethermind.Evm.Tracing.GethStyle;
@@ -17,7 +16,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Evm.Tracing;
 
-#if DEBUG
+#if false
 byte[] bytecode = Nethermind.Core.Extensions.Bytes.FromHexString("5b601760005600");
 EthereumRestrictedInstance context = new(Cancun.Instance);
 DebugTracer tracer = new DebugTracer(new GethLikeTxTracer(GethTraceOptions.Default))

@@ -27,10 +27,12 @@ internal class ProgramView : IComponent<MachineState>
         programView?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public event Func<int, bool> BreakPointRequested;
+    private HashSet<int> breakpoints = new();
+
+    public (View, Rectangle?) View(MachineState state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-        var dissassembledBytecode = BytecodeParser.Dissassemble(innerState.RuntimeContext is EofCodeInfo, innerState.RuntimeContext.CodeSection.Span, isExternalSource);
+        var dissassembledBytecode = BytecodeParser.Dissassemble(state.RuntimeContext is EofCodeInfo, state.RuntimeContext.CodeSection.Span, isExternalSource);
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -47,14 +49,15 @@ internal class ProgramView : IComponent<MachineState>
         };
 
         var dataTable = new DataTable();
+        dataTable.Columns.Add("    ");
         dataTable.Columns.Add("Position");
         dataTable.Columns.Add("Operation");
         int selectedRow = 0;
 
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add(instr.idx, instr.ToString(state.GetState().SelectedFork));
-            selectedRow += instr.idx < (isExternalSource ? innerState.Index : innerState.Entries[innerState.Index].Pc) ? 1 : 0;
+            dataTable.Rows.Add("[ ]", instr.idx, instr.ToString(state.SelectedFork));
+            selectedRow += instr.idx < (isExternalSource ? state.Index : state.Entries[state.Index].Pc) ? 1 : 0;
         }
 
         programView ??= new TableView()
@@ -62,21 +65,26 @@ internal class ProgramView : IComponent<MachineState>
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
-            Height = Dim.Percent(80),
+            Height = Dim.Fill(),
         };
         programView.Table = dataTable;
         programView.SelectedRow = selectedRow;
 
+        programView.SelectedCellChanged += e =>
+        {
+            if (BreakPointRequested?.Invoke(e.NewRow) ?? false)
+            {
+                dataTable.Rows[e.NewRow]["    "] = "[v]";
+            }
+            else
+            {
+                dataTable.Rows[e.NewRow]["    "] = "[ ]";
+            }
+        };
+
         if (!isCached)
         {
-            var mediaLikeView = new MediaLikeView<MachineState>()
-                .View(state, new Rectangle
-                {
-                    X = 0,
-                    Y = Pos.AnchorEnd(2),
-                    Height = Dim.Percent(20),
-                });
-            container.Add(programView, mediaLikeView.Item1);
+            container.Add(programView);
         }
         isCached = true;
         return (container, frameBoundaries);

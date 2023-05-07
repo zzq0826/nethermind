@@ -6,19 +6,21 @@ using MachineStateEvents;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Test;
+using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class ConfigsView : IComponent<MachineState>
+internal class ConfigsView : IComponent<(IReleaseSpec Spec, long GasAvailable)>
 {
     bool isCached = false;
     private FrameView? container = null;
     private ComboBox? forksChoice = null;
     private NumberInputField? gasValueInput = null;
+    public event Action<ActionsBase> ConfigsChanged;
     //private CheckBox? ignoreGasCheck = null;
 
-    private List<string> Forks = typeof(Shanghai).Module.GetTypes().Where(type => type.Namespace == typeof(Shanghai).Namespace && type.GetCustomAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>() == null).Select(type => type.Name).Append("Custom").ToList();
+    private List<string> Forks = typeof(ReleaseSpec).Module.GetTypes().Where(type => type.Namespace == typeof(ReleaseSpec).Namespace && type.GetCustomAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>() == null).Select(type => type.Name).Append("Custom").ToList();
 
     public void Dispose()
     {
@@ -27,9 +29,8 @@ internal class ConfigsView : IComponent<MachineState>
         gasValueInput?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View((IReleaseSpec Spec, long GasAvailable) state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -49,7 +50,7 @@ internal class ConfigsView : IComponent<MachineState>
             Width = Dim.Fill(),
         };
 
-        var label_forkChosen = new Label(innerState.SelectedFork.Name)
+        var label_forkChosen = new Label(state.Spec.Name)
         {
             Width = Dim.Percent(75)
         };
@@ -72,7 +73,7 @@ internal class ConfigsView : IComponent<MachineState>
             Y = Pos.Bottom(label_gasSetter),
             Width = Dim.Fill(),
         };
-        gasValueInput.Text = innerState.AvailableGas.ToString();
+        gasValueInput.Text = state.GasAvailable.ToString();
 
 
         if (!isCached)
@@ -85,12 +86,13 @@ internal class ConfigsView : IComponent<MachineState>
                 if (forkName != "Custom")
                 {
                     var chosenFork = (IReleaseSpec)typeof(Frontier).Module.GetTypes().First(type => type.Name == forkName).GetProperty("Instance", BindingFlags.Static | BindingFlags.Public).GetValue(null);
-                    state.EventsSink.EnqueueEvent(new SetForkChoice(chosenFork));
+                    ConfigsChanged?.Invoke(new SetForkChoice(chosenFork));
                 }
                 else
                 {
-                    var eipSelectionDialog = new EipSelectionView().View(state).Item1;
-                    Application.Run((Dialog)eipSelectionDialog);
+                    var eipSelectionDialog = new EipSelectionView();
+                    eipSelectionDialog.EipSelectionChanged += (msg) => ConfigsChanged?.Invoke(msg);
+                    Application.Run((Dialog)eipSelectionDialog.View(state.Spec).Item1);
                 }
             };
 
@@ -99,7 +101,7 @@ internal class ConfigsView : IComponent<MachineState>
                 if (e.KeyEvent.Key is not Key.Enter) return;
                 if (Int32.TryParse((string)gasValueInput.Text, out int gasValue))
                 {
-                    state.EventsSink.EnqueueEvent(new SetGasMode(false, gasValue));
+                    ConfigsChanged?.Invoke(new SetGasMode(false, gasValue));
                 }
             };
             //ignoreGasCheck.Add(gasValueInput);
@@ -107,5 +109,10 @@ internal class ConfigsView : IComponent<MachineState>
         }
         isCached = true;
         return (container, frameBoundaries);
+    }
+
+    private void EipSelectionDialog_EipSelectionChanged(SetForkChoice obj)
+    {
+        throw new NotImplementedException();
     }
 }

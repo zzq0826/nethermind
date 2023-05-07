@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using GlobalStateEvents.Actions;
-using Nethermind.Evm.Lab.Componants;
 using Nethermind.Evm.Lab.Components.Differ;
 using Nethermind.Evm.Lab.Components.GlobalViews;
 using Nethermind.Evm.Lab.Components.TracerView;
@@ -144,7 +143,7 @@ internal class MainView : IComponent<GlobalState>
             {
                 try
                 {
-                    state = Update(state, currentEvent).GetState();
+                    state = Update(state, currentEvent);
                 }
                 catch (Exception ex)
                 {
@@ -199,9 +198,8 @@ internal class MainView : IComponent<GlobalState>
         Application.Run();
         Application.Shutdown();
     }
-    public (View, Rectangle?) View(IState<GlobalState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(GlobalState innerState, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -224,7 +222,7 @@ internal class MainView : IComponent<GlobalState>
 
         if(!isCached)
         {
-            table.SelectedTabChanged += (s, e) => state.GetState().SelectedState = GetTabIndex(e.NewTab);
+            table.SelectedTabChanged += (s, e) => innerState.SelectedState = GetTabIndex(e.NewTab);
             AddMachinePage();
             container.Add(table);
             isCached = true;
@@ -232,7 +230,7 @@ internal class MainView : IComponent<GlobalState>
         return (container, frameBoundaries);
     }
 
-    public IState<GlobalState> Update(IState<GlobalState> state, ActionsBase msg)
+    public GlobalState Update(GlobalState state, ActionsBase msg)
     {
         switch (msg)
         {
@@ -248,7 +246,7 @@ internal class MainView : IComponent<GlobalState>
                 }
             case RemovePage msgR:
                 {
-                    RemoveMachinePage(state.GetState().SelectedState);
+                    RemoveMachinePage(state.SelectedState);
                     break;
                 }
         }

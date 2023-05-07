@@ -10,12 +10,14 @@ using Nethermind.Specs;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class EipSelectionView : IComponent<MachineState>
+internal class EipSelectionView : IComponent<IReleaseSpec>
 {
     bool isCached = false;
     private Dialog? container = null;
     private CheckBox[]? EipCheckBoxes = null;
     private string[] eipNumbers;
+
+    public event Action<SetForkChoice> EipSelectionChanged;
 
     Dictionary<string, bool> _currentSpecMap = new Dictionary<string, bool>();
     private Dictionary<string /*actually int*/, bool> CurrentSelectedEips(IReleaseSpec spec)
@@ -39,10 +41,8 @@ internal class EipSelectionView : IComponent<MachineState>
         }
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(IReleaseSpec state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? Pos.Center(),
                 Y: rect?.Y ?? Pos.Center(),
@@ -55,7 +55,7 @@ internal class EipSelectionView : IComponent<MachineState>
             eipNumbers ??= typeof(ReleaseSpec).GetProperties().Where(prop => prop.PropertyType == typeof(bool) && Regex.IsMatch(prop.Name, "IsEip(\\d+)Enabled"))
                     .Select(prop => prop.Name[5..^7]).ToArray();
 
-            var currentSelectedEips = CurrentSelectedEips(innerState.SelectedFork);
+            var currentSelectedEips = CurrentSelectedEips(state);
 
             CheckBox? previousCheckbox = null;
             int heightAcc = 0;
@@ -106,7 +106,7 @@ internal class EipSelectionView : IComponent<MachineState>
 
             submit.Clicked += () =>
             {
-                state.EventsSink.EnqueueEvent(new SetForkChoice(_releaseSpec));
+                EipSelectionChanged?.Invoke(new SetForkChoice(_releaseSpec));
                 Application.RequestStop();
             };
 

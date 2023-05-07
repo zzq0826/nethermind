@@ -6,7 +6,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class StorageView : IComponent<MachineState>
+internal class StorageView : IComponent<Dictionary<string, string>>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -18,10 +18,8 @@ internal class StorageView : IComponent<MachineState>
         table?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(Dictionary<string, string> state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -39,9 +37,9 @@ internal class StorageView : IComponent<MachineState>
         var dataTable = new DataTable();
         dataTable.Columns.Add("Address");
         dataTable.Columns.Add("Value");
-        if(innerState.Current?.Storage is not null)
+        if(state is not null)
         {
-            foreach (var (k, v) in innerState.Current.Storage)
+            foreach (var (k, v) in state)
             {
                 dataTable.Rows.Add(k, v);
             }

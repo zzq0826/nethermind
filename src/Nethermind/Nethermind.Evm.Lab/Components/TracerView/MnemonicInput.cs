@@ -4,6 +4,7 @@
 using System.Text;
 using MachineStateEvents;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
@@ -11,7 +12,7 @@ using Terminal.Gui;
 using static Nethermind.Evm.Test.EofTestsBase;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MnemonicInput : IComponent<MachineState>
+internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec)>
 {
     private class CodeSection
     {
@@ -176,7 +177,7 @@ internal class MnemonicInput : IComponent<MachineState>
         }
     }
 
-    private void SubmitBytecodeChanges(IState<MachineState> state, bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
+    private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
     {
         byte[] bytecode = Array.Empty<byte>();
         if(!isEofContext)
@@ -188,13 +189,11 @@ internal class MnemonicInput : IComponent<MachineState>
             bytecode = scenario.Bytecode;
         }
         BytecodeChanged?.Invoke(bytecode);
-        state.EventsSink.EnqueueEvent(new BytecodeInsertedB(bytecode), true);
-    } 
+    }
 
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View((ICodeInfo Bytecode, IReleaseSpec Spec) state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
 
 
         var frameBoundaries = new Rectangle(
@@ -204,7 +203,7 @@ internal class MnemonicInput : IComponent<MachineState>
                 Height: rect?.Height ?? Dim.Percent(75)
             );
 
-        eofModeSelection ??= new CheckBox("Is Eof Mode Enabled", innerState.SelectedFork.IsEip3540Enabled)
+        eofModeSelection ??= new CheckBox("Is Eof Mode Enabled", state.Spec.IsEip3540Enabled)
         {
             Width = Dim.Fill(),
             Height = Dim.Percent(5),
@@ -220,22 +219,22 @@ internal class MnemonicInput : IComponent<MachineState>
 
         if (isEofMode)
         {
-            var eofCodeInfo = (EofCodeInfo)innerState.RuntimeContext;
+            var eofCodeInfo = (EofCodeInfo)state.Bytecode;
             sectionsField = new List<CodeSection>(eofCodeInfo._header.CodeSections.Length);
             for(int i = 0; i <  eofCodeInfo._header.CodeSections.Length; i++)
             {
                 CreateNewFunctionPage(false, out var bodyInputFieldRef, i == 0);
                 var codeSectionOffsets = eofCodeInfo._header.CodeSections[i];
-                var bytecodeMnemonics = BytecodeParser.Dissassemble(true, innerState.RuntimeContext.MachineCode[codeSectionOffsets.Start..codeSectionOffsets.EndOffset])
-                    .ToMultiLineString(innerState.SelectedFork);
+                var bytecodeMnemonics = BytecodeParser.Dissassemble(true, state.Bytecode.MachineCode[codeSectionOffsets.Start..codeSectionOffsets.EndOffset])
+                    .ToMultiLineString(state.Spec);
                 bodyInputFieldRef.Text = bytecodeMnemonics;
             }
         } else
         {
             sectionsField = new List<CodeSection>();
             CreateNewFunctionPage(isFirstRender: true, out var bodyInputFieldRef);
-            var bytecodeMnemonics = BytecodeParser.Dissassemble(false, innerState.RuntimeContext.CodeSection.Span)
-                .ToMultiLineString(innerState.SelectedFork);
+            var bytecodeMnemonics = BytecodeParser.Dissassemble(false, state.Bytecode.CodeSection.Span)
+                .ToMultiLineString(state.Spec);
             bodyInputFieldRef.Text = bytecodeMnemonics;
         }
 
@@ -262,7 +261,7 @@ internal class MnemonicInput : IComponent<MachineState>
                     if (!isEofMode && sectionsField.Count > 1)
                         throw new Exception("Cannot have more than one code section in non-Eof code");
 
-                    SubmitBytecodeChanges(state, isEofMode, sectionsField);
+                    SubmitBytecodeChanges(isEofMode, sectionsField);
                     Application.RequestStop();
                 } catch (Exception ex)
                 {
@@ -272,7 +271,7 @@ internal class MnemonicInput : IComponent<MachineState>
 
             eofModeSelection.Toggled += (e) =>
             {
-                eofModeSelection.Checked = isEofMode = eofModeSelection.Checked && innerState.SelectedFork.IsEip3540Enabled;
+                eofModeSelection.Checked = isEofMode = eofModeSelection.Checked && state.Spec.IsEip3540Enabled;
             };
 
             buttons.cancel.Clicked += () =>

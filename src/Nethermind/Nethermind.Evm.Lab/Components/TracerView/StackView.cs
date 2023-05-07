@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Data;
+using Nethermind.Core.Extensions;
 using Nethermind.Evm.Lab.Interfaces;
+using Nethermind.Int256;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class StackView : IComponent<MachineState>
+internal class StackView : IComponent<UInt256[]>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -18,9 +20,8 @@ internal class StackView : IComponent<MachineState>
         stackView?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(UInt256[] state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -48,17 +49,18 @@ internal class StackView : IComponent<MachineState>
         dataTable.Columns.Add("Value");
 
         int stringLen = 32;
-        var cleanedUpDataSource = innerState.Current.Stack.Select(entry =>
+        var cleanedUpDataSource = state.Select(entry =>
         {
-            entry = entry.StartsWith("0x") ? entry.Substring(2) : entry;
-            if(entry.Length < stringLen)
+
+            string entryStr = entry.ToHexString(false);
+            if(entryStr.Length < stringLen)
             {
-                entry = entry.PadLeft(stringLen - entry.Length, '0');
+                entryStr = entryStr.PadLeft(stringLen - entryStr.Length, '0');
             } else
             {
-                entry = entry.Substring(entry.Length - stringLen);
+                entryStr = entryStr.Substring(entryStr.Length - stringLen);
             }
-            return entry;
+            return entryStr;
         }).ToList();
 
         int index = 0;

@@ -5,14 +5,14 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.GlobalViews;
-internal class FooterView : IComponent<MachineState>
+internal class FooterView : IComponent
 {
     public void Dispose()
     {
         throw new NotImplementedException();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> _, Rectangle? rect = null)
+    public (View, Rectangle?) View(Rectangle? rect = null)
     {
         throw new NotImplementedException();
     }

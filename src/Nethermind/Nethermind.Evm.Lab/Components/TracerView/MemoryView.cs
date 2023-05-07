@@ -5,7 +5,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MemoryView : IComponent<MachineState>
+internal class MemoryView : IComponent<byte[]>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -17,10 +17,8 @@ internal class MemoryView : IComponent<MachineState>
         memoryView?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(byte[] ram, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-        var ram = Nethermind.Core.Extensions.Bytes.FromHexString(String.Join(string.Empty, innerState.Current.Memory.Select(row => row.Replace("0x", String.Empty))));
         var streamFromBuffer = new MemoryStream(ram);
 
         var frameBoundaries = new Rectangle(

@@ -22,7 +22,7 @@ internal class HeaderView : IComponent<GlobalState>
         menu?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<GlobalState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(GlobalState state, Rectangle? rect = null)
     {
         if(!IsCached)
         {
@@ -34,8 +34,7 @@ internal class HeaderView : IComponent<GlobalState>
                         if(fileOpenDialogue.Canceled) return;
                         var filePath = (string)fileOpenDialogue.FilePath;
                         var contentAsText = File.ReadAllText (filePath);
-                        var innerState = state.GetState();
-                        if(innerState.MachineStates[innerState.SelectedState] is MachineState substate)
+                        if(state.MachineStates[state.SelectedState] is MachineState substate)
                         {
                             substate.EventsSink.EnqueueEvent(new BytecodeInserted(contentAsText));
                         } else
@@ -70,8 +69,7 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         Application.Run(saveOpenDialogue);
                         if(saveOpenDialogue.Canceled) return;
                         var filePath = (string)saveOpenDialogue.FilePath;
-                        var localState = state.GetState();
-                        var serializedData = JsonConvert.SerializeObject(localState.MachineStates[localState.SelectedState] as GethLikeTxTrace);
+                        var serializedData = JsonConvert.SerializeObject(state.MachineStates[state.SelectedState] as GethLikeTxTrace);
                         File.WriteAllText($"{filePath}.json", serializedData);
                     }),
                     new MenuItem ("_Quit", "", () => {
@@ -81,10 +79,10 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
 
                 new MenuBarItem ("_Action", new MenuItem [] {
                     new MenuItem ("_New", "", () => {
-                        state.EventsSink.EnqueueEvent(new AddPage<MachineState>($"Page {state.GetState().MachineStates.Count}", isExternalTrace: false));
+                        state.EventsSink.EnqueueEvent(new AddPage<MachineState>($"Page {state.MachineStates.Count}", isExternalTrace: false));
                     }),
                     new MenuItem ("_Remove", "", () => {
-                        state.EventsSink.EnqueueEvent(new RemovePage(state.GetState().SelectedState));
+                        state.EventsSink.EnqueueEvent(new RemovePage(state.SelectedState));
                     }),
                     new MenuItem ("_Diff", "",  () => {
                         // open trace file

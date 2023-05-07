@@ -3,11 +3,13 @@
 
 using MachineStateEvents;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Specs;
+using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class InputsView : IComponent<MachineState>
+internal class InputsView : IComponent<(ICodeInfo CodeInfo, byte[] CallData, IReleaseSpec Spec)>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -15,7 +17,6 @@ internal class InputsView : IComponent<MachineState>
     private TextField? calldataInputField = null;
     private Button? mnemonicInputViewBtn = null;
 
-    private int textChangedClicked = 0;
     public void Dispose()
     {
         container?.Dispose();
@@ -24,12 +25,10 @@ internal class InputsView : IComponent<MachineState>
         mnemonicInputViewBtn?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public event Action<ActionsBase> InputChanged;
+
+    public (View, Rectangle?) View((ICodeInfo CodeInfo, byte[] CallData, IReleaseSpec Spec) state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-
-        var streamFromBuffer = new MemoryStream(innerState.ReturnValue);
-
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -49,7 +48,7 @@ internal class InputsView : IComponent<MachineState>
             Width = Dim.Fill(),
             Height = Dim.Percent(10)
         };
-        bytecodeInputField ??= new TextField(state.GetState().RuntimeContext.MachineCode.ToHexString(true))
+        bytecodeInputField ??= new TextField(state.CodeInfo.MachineCode.ToHexString(true))
         {
             Y = Pos.Bottom(label_bytecode),
             Width = Dim.Percent(80),
@@ -70,7 +69,7 @@ internal class InputsView : IComponent<MachineState>
             Width = Dim.Fill(),
             Height = Dim.Percent(10)
         };
-        calldataInputField ??= new TextField(state.GetState().CallData.ToHexString(true))
+        calldataInputField ??= new TextField(state.CallData.ToHexString(true))
         {
             Y = Pos.Bottom(label_calldata),
             Width = Dim.Fill(),
@@ -86,15 +85,14 @@ internal class InputsView : IComponent<MachineState>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    textChangedClicked++;
-                    state.EventsSink.EnqueueEvent(new BytecodeInserted((string)bytecodeInputField.Text));
+                    InputChanged?.Invoke(new BytecodeInserted((string)bytecodeInputField.Text));
                 }
             };
             calldataInputField.KeyPress += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    state.EventsSink.EnqueueEvent(new CallDataInserted((string)calldataInputField.Text));
+                    InputChanged?.Invoke(new CallDataInserted((string)calldataInputField.Text));
                 }
             };
 
@@ -104,8 +102,9 @@ internal class InputsView : IComponent<MachineState>
                 mnemonicInputView.BytecodeChanged += (nbcode) =>
                 {
                     bytecodeInputField.Text = nbcode.ToHexString(true);
+                    InputChanged?.Invoke(new BytecodeInserted((string)bytecodeInputField.Text));
                 };
-                Application.Run((Dialog)mnemonicInputView.View(state).Item1);
+                Application.Run((Dialog)mnemonicInputView.View((state.CodeInfo, state.Spec)).Item1);
             };
 
             container.Add(label_bytecode, bytecodeInputField, label_calldata, calldataInputField, mnemonicInputViewBtn);

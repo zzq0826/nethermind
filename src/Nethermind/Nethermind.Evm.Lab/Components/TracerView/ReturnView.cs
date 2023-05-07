@@ -5,7 +5,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class ReturnView : IComponent<MachineState>
+internal class ReturnView : IComponent<byte[]>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -17,11 +17,9 @@ internal class ReturnView : IComponent<MachineState>
         memoryView?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(byte[] state, Rectangle? rect = null)
     {
-        var innerState = state.GetState();
-
-        var streamFromBuffer = new MemoryStream(innerState.ReturnValue);
+        var streamFromBuffer = new MemoryStream(state);
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,

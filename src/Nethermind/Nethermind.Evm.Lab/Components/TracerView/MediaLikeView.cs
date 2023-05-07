@@ -6,19 +6,23 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MediaLikeView<T> : IComponent<T> where T : IState<T>, new()
+internal class MediaLikeView : IComponent
 {
     bool isCached = false;
     private FrameView? container = null;
-
+    public MediaLikeView(Action<ActionsBase> actionHandler = null)
+    {
+        ActionRequested += actionHandler;
+    }
     public void Dispose()
     {
         container?.Dispose();
     }
 
-    public (View, Rectangle?) View(IState<T> state, Rectangle? rect = null)
+    public event Action<ActionsBase> ActionRequested;
+
+    public (View, Rectangle?) View(Rectangle? rect = null)
     {
-        var innerState = state.GetState();
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
                 Y: rect?.Y ?? 0,
@@ -47,7 +51,7 @@ internal class MediaLikeView<T> : IComponent<T> where T : IState<T>, new()
                 };
                 actionButton.Clicked += () =>
                 {
-                    state.EventsSink.EnqueueEvent(msg);
+                    ActionRequested?.Invoke(msg);
                 };
                 previousButton = actionButton;
                 return actionButton;

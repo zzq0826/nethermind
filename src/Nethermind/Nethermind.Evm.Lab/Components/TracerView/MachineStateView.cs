@@ -8,30 +8,16 @@ using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MachineOverview : IComponent<MachineState>
+internal class MachineDataView : IComponent<GethTxTraceEntry>
 {
     bool isCached = false;
     private FrameView? container = null;
     private (TableView? generalState, TableView? opcodeData) machinView = (null, null);
 
-    private static readonly string[] Columns_Overview = { "Pc", "GasAvailable", "GasUsed", "Depth", "Error" };
+    private static readonly string[] Columns_Overview = { "Pc", "Gas", "Depth", "Error" };
     private static readonly string[] Columns_Opcode = { "Opcode", "Operation", "GasCost" };
-    public IState<MachineState> Update(IState<MachineState> currentState, ActionsBase action)
+    public (View, Rectangle?) View(GethTxTraceEntry state, Rectangle? rect = null)
     {
-        var innerState = currentState.GetState();
-        return action switch
-        {
-            MoveNext => innerState?.Next(),
-            MoveBack _ => innerState?.Previous(),
-            Goto act => innerState?.Goto(act.index),
-            _ => currentState
-        };
-    }
-
-    public (View, Rectangle?) View(IState<MachineState> state, Rectangle? rect = null)
-    {
-        var innerState = state.GetState();
-
         var frameBoundaries = new Rectangle(
             X: rect?.X ?? 0,
             Y: rect?.Y ?? 0,
@@ -53,13 +39,7 @@ internal class MachineOverview : IComponent<MachineState>
         }
 
         dataTable.Rows.Add(
-            Columns_Overview.Select(propertyName =>
-            propertyName switch
-            {
-                "GasUsed" => innerState.AvailableGas - innerState.Current.Gas - GasCostOf.Transaction,
-                "GasAvailable" => innerState.Current.Gas,
-                _ => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(innerState.Current)
-            }).ToArray()
+            Columns_Overview.Select(propertyName => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(state)).ToArray()
         );
 
         var opcodeData = new DataTable();
@@ -73,13 +53,13 @@ internal class MachineOverview : IComponent<MachineState>
                 {
                     if (proeprtyName == "Opcode")
                     {
-                        var opcodeName = innerState.Current.Operation;
+                        var opcodeName = state.Operation;
                         var Instruction = (byte)Enum.Parse<Evm.Instruction>(opcodeName);
                         return (Object?)$"{Instruction:X4}";
                     }
                     else
                     {
-                        return typeof(GethTxTraceEntry).GetProperty(proeprtyName)?.GetValue(innerState.Current);
+                        return typeof(GethTxTraceEntry).GetProperty(proeprtyName)?.GetValue(state);
                     }
                 }
             ).ToArray()

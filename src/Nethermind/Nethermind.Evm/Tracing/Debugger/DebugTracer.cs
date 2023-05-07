@@ -16,7 +16,7 @@ using Nethermind.Int256;
 using Nethermind.State;
 
 namespace Nethermind.Evm.Tracing.DebugTrace;
-internal class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
+public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
 {
     public enum DebugPhase
     {
@@ -114,10 +114,11 @@ internal class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
         _autoResetEvent.Set();
     }
 
-    public void MoveNext()
+    public void MoveNext(bool executeOneStep = false)
     {
         lock (_lock)
         {
+            IsStepByStepModeOn = executeOneStep;
             CurrentPhase = DebugPhase.Running;
         }
         _autoResetEvent.Set();
