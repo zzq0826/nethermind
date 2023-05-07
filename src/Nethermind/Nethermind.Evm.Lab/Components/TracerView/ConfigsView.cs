@@ -57,7 +57,7 @@ internal class ConfigsView : IComponent<(IReleaseSpec Spec, long GasAvailable)>
         forksChoice ??= new ComboBox("Fork Selection")
         {
             Y = Pos.Bottom(label_forkChoser),
-            Height = Dim.Percent(25),
+            Height = Dim.Percent(50),
             Width = Dim.Fill(),
             HideDropdownListOnClick = true
         };

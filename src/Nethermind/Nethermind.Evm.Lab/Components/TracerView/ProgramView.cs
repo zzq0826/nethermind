@@ -46,14 +46,13 @@ internal class ProgramView : IComponent<MachineState>
         };
 
         var dataTable = new DataTable();
-        dataTable.Columns.Add("    ");
         dataTable.Columns.Add("Position");
         dataTable.Columns.Add("Operation");
         int selectedRow = 0;
 
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add("[ ]", instr.idx, instr.ToString(state.SelectedFork));
+            dataTable.Rows.Add(instr.idx, instr.ToString(state.SelectedFork));
             selectedRow += instr.idx < (isExternalSource ? state.Index : state.Entries[state.Index].Pc) ? 1 : 0;
         }
 

@@ -9,8 +9,8 @@ using Nethermind.Evm.Lab.Interfaces;
 
 namespace GlobalStateEvents.Actions
 {
-    public record AddPage<T>(string name, IState<T>? customState = null, bool isExternalTrace = false) : ActionsBase
-        where T : IState<T>, new();
+    public record AddPage<T>(string name, T? customState = default, bool isExternalTrace = false) : ActionsBase
+        where T : new();
     public record RemovePage(int index) : ActionsBase;
     public record Reset : ActionsBase;
 

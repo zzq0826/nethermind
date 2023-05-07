@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using GlobalStateEvents.Actions;
+using Nethermind.Evm.Lab.Components.DebugView;
 using Nethermind.Evm.Lab.Components.Differ;
 using Nethermind.Evm.Lab.Components.GlobalViews;
 using Nethermind.Evm.Lab.Components.TracerView;
@@ -43,9 +44,23 @@ internal class MainView : IComponent<GlobalState>
     private void AddTracesPage(TraceState state = null, string name = null)
     {
         var pageObj = new TracesView();
+        var pageState = state ?? new TraceState();
         pages.Add(pageObj);
-        State.MachineStates.Add(state);
-        var tab = new TabView.Tab(name ?? "Default", pageObj.View(state).Item1);
+        State.MachineStates.Add(pageState);
+        var tab = new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1);
+        table.AddTab(tab, true);
+    }
+    private void AddDebugPage(DebuggerState state = null, string name = null)
+    {
+        var pageObj = new DebuggerView();
+        var pageState = state ?? new DebuggerState();
+        pages.Add(pageObj);
+        State.MachineStates.Add(pageState);
+        if (state is null)
+        {
+            pageState.Initialize(true);
+        }
+        var tab = new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1);
         table.AddTab(tab, true);
     }
 
@@ -236,12 +251,17 @@ internal class MainView : IComponent<GlobalState>
         {
             case AddPage<MachineState> msgA:
                 {
-                    AddMachinePage(msgA.customState?.GetState(), name: msgA.name, msgA.isExternalTrace);
+                    AddMachinePage(msgA.customState, name: msgA.name, msgA.isExternalTrace);
                     break;
                 }
             case AddPage<TraceState> msgA:
                 {
-                    AddTracesPage(msgA.customState.GetState(), name: msgA.name);
+                    AddTracesPage(msgA.customState, name: msgA.name);
+                    break;
+                }
+            case AddPage<DebuggerState> msgA:
+                {
+                    AddDebugPage(msgA.customState, name: msgA.name);
                     break;
                 }
             case RemovePage msgR:

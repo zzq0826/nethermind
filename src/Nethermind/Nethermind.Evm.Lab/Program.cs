@@ -80,7 +80,7 @@ while (!vmTask.IsCompleted)
     }
 }
 #else
-GlobalState.initialCmdArgument = args.Length == 0 ? "604260005260206000F3" : args[0];
+GlobalState.initialCmdArgument = args.Length == 0 ? "0xef00010100080200020009000203000000000000020201000260426000b00001500001b1" : args[0];
 var mainView = new MainView();
 mainView.Run(mainView.State);
 #endif

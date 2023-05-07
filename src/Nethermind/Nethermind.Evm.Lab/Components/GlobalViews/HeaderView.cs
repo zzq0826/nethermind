@@ -84,6 +84,9 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                     new MenuItem ("_Remove", "", () => {
                         state.EventsSink.EnqueueEvent(new RemovePage(state.SelectedState));
                     }),
+                    new MenuItem ("_Debug", "", () => {
+                        state.EventsSink.EnqueueEvent(new AddPage<DebuggerState>($"Page {state.MachineStates.Count}", isExternalTrace: false));
+                    }),
                     new MenuItem ("_Diff", "",  () => {
                         // open trace file
                         TraceStateEntry[] files = new TraceStateEntry[2];

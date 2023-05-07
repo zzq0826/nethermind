@@ -15,6 +15,7 @@ using Nethermind.Evm.Tracing.GethStyle;
 using Nethermind.Int256;
 using Nethermind.Specs.Forks;
 using Nethermind.Evm.Tracing.DebugTrace;
+using Nethermind.Evm;
 
 namespace DebuggerStateEvents
 {
@@ -27,14 +28,17 @@ namespace DebuggerStateEvents
     public record SetForkChoice(IReleaseSpec forkName) : ActionsBase;
     public record ThrowError(string error) : ActionsBase;
     public record SetGasMode(bool ignore, long gasValue) : ActionsBase;
-    public record RunBytecode : ActionsBase;
+    public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null) : ActionsBase;
+    public record SetGlobalCheck(Func<EvmState, bool> condition = null) : ActionsBase;
+    public record Start : ActionsBase;
     public record Reset : ActionsBase;
+    public record Abort : ActionsBase;
 
 }
 
 namespace Nethermind.Evm.Lab
 {
-    public class DebuggerState : GethLikeTxTrace, IState<DebuggerState>
+    public class DebuggerState : IState<DebuggerState>
     {
         public EthereumRestrictedInstance context = new(Cancun.Instance);
         public DebugTracer Tracer = new(new GethLikeTxTracer(GethTraceOptions.Default));
@@ -49,7 +53,7 @@ namespace Nethermind.Evm.Lab
 
             context = new(SelectedFork);
             Tracer = new(new GethLikeTxTracer(GethTraceOptions.Default));
-            return this;
+            return this.Setup();
         }
         public DebuggerState()
         {
@@ -161,28 +165,40 @@ namespace Nethermind.Evm.Lab
                 case BytecodeInsertedB biMsg:
                     {
                         state.GetState().RuntimeContext = CodeInfoFactory.CreateCodeInfo(biMsg.bytecode, state.GetState().SelectedFork);
-                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
                         return state;
                     }
                 case SetForkChoice frkMsg:
                     {
                         state.GetState().context = new(frkMsg.forkName);
-                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
                         return state.GetState().SetFork(frkMsg.forkName);
                     }
                 case SetGasMode gasMsg:
                     {
-                        state.GetState().SetGas(gasMsg.ignore ? int.MaxValue : gasMsg.gasValue);
-                        state.EventsSink.EnqueueEvent(new RunBytecode(), true);
+                        return state.GetState().SetGas(gasMsg.ignore ? int.MaxValue : gasMsg.gasValue);
+                    }
+
+                case SetBreakpoint brkMsg:
+                    {
+                        state.GetState().Tracer.SetBreakPoint(brkMsg.pc, brkMsg.condition);
                         break;
                     }
-                case RunBytecode _:
+                case SetGlobalCheck chkMsg:
                     {
+                        state.GetState().Tracer.SetCondtion(chkMsg.condition);
                         break;
+                    }
+
+                case Start _:
+                    {
+                        return state.GetState().Start();
                     }
                 case Reset _:
                     {
-                        return state.GetState().Initialize();
+                        return state.GetState().Abort().Initialize();
+                    }
+                case Abort _:
+                    {
+                        return state.GetState().Abort().Setup();
                     }
                 case ThrowError errMsg:
                     {

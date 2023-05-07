@@ -38,32 +38,35 @@ internal class MachineDataView : IComponent<GethTxTraceEntry>
             dataTable.Columns.Add(h);
         }
 
-        dataTable.Rows.Add(
-            Columns_Overview.Select(propertyName => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(state)).ToArray()
-        );
+        if(state is not null)
+            dataTable.Rows.Add(
+                Columns_Overview.Select(propertyName => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(state)).ToArray()
+            );
 
         var opcodeData = new DataTable();
         foreach (var h in Columns_Opcode)
         {
             opcodeData.Columns.Add(h);
         }
-        opcodeData.Rows.Add(
-            Columns_Opcode.Select(
-                proeprtyName =>
-                {
-                    if (proeprtyName == "Opcode")
+
+        if(state is not null)
+            opcodeData.Rows.Add(
+                Columns_Opcode.Select(
+                    proeprtyName =>
                     {
-                        var opcodeName = state.Operation;
-                        var Instruction = (byte)Enum.Parse<Evm.Instruction>(opcodeName);
-                        return (Object?)$"{Instruction:X4}";
+                        if (proeprtyName == "Opcode")
+                        {
+                            var opcodeName = state.Operation;
+                            var Instruction = (byte)Enum.Parse<Evm.Instruction>(opcodeName);
+                            return (Object?)$"{Instruction:X4}";
+                        }
+                        else
+                        {
+                            return typeof(GethTxTraceEntry).GetProperty(proeprtyName)?.GetValue(state);
+                        }
                     }
-                    else
-                    {
-                        return typeof(GethTxTraceEntry).GetProperty(proeprtyName)?.GetValue(state);
-                    }
-                }
-            ).ToArray()
-        );
+                ).ToArray()
+            );
 
         machinView.generalState ??= new TableView()
         {

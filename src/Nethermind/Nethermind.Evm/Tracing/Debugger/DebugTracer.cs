@@ -64,12 +64,12 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
     private Dictionary<int, Func<EvmState, bool>> _breakPoints = new();
     public void SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
     {
-        if(CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) _breakPoints[programCounter] = condition;
+        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) _breakPoints[programCounter] = condition;
     }
     private Func<EvmState, bool> _globalBreakCondition = null;
     public void SetCondtion(Func<EvmState, bool> condition = null)
     {
-        if(CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) _globalBreakCondition = condition;
+        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) _globalBreakCondition = condition;
     }
 
     private object _lock = new();
@@ -114,11 +114,11 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
         _autoResetEvent.Set();
     }
 
-    public void MoveNext(bool executeOneStep = false)
+    public void MoveNext(bool? executeOneStep = null)
     {
         lock (_lock)
         {
-            IsStepByStepModeOn = executeOneStep;
+            IsStepByStepModeOn = executeOneStep ?? IsStepByStepModeOn;
             CurrentPhase = DebugPhase.Running;
         }
         _autoResetEvent.Set();
@@ -134,11 +134,10 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
             {
                 Block();
             }
-                _autoResetEvent.WaitOne();
         }
         else
         {
-            if(_globalBreakCondition?.Invoke(CurrentState) ?? false)
+            if (_globalBreakCondition?.Invoke(CurrentState) ?? false)
             {
                 Block();
             }
