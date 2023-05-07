@@ -69,6 +69,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         var _component_cnfg = _components.ConfigComponent;
         var _component_cntrl = _components.ControlsComponent;
         var _component_check = _components.ConditionComponent;
+
         GethTxTraceEntry currentEntry = state.Tracer.GetCurrentEntry();
 
         MainPanel ??= new View()
@@ -78,12 +79,12 @@ internal class DebuggerView : IComponent<DebuggerState>
         };
 
         var (cpu_view, cpu_rect) = _component_cpu.View(currentEntry, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
-        var (stack_view, stack_rect) = _component_stk.View(state.Tracer?.CurrentState?.DataStack.Chunk(32).Select(chunk => new UInt256(chunk)).ToArray() ?? Array.Empty<UInt256>(), cpu_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = _component_stk.View(state.Tracer?.CurrentState?.DataStack?.Take(32 * state.Tracer?.CurrentState?.DataStackHead ?? 0).Chunk(32).Select(chunk => new UInt256(chunk, true)).ToArray() ?? Array.Empty<UInt256>(), cpu_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)
         });
-        var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
+        var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
         {
             Y = Pos.Bottom(stack_view),
             Width = Dim.Fill(),
@@ -112,7 +113,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             Height = Dim.Percent(7),
         });
 
-        var (program_view, program_rect) = _component_pgr.View((state.RuntimeContext, state.SelectedFork), condition_rect.Value with
+        var (program_view, program_rect) = _component_pgr.View((state.Tracer, state.RuntimeContext, state.SelectedFork), condition_rect.Value with
         {
             Y = Pos.Bottom(condition_view),
             Height = Dim.Percent(33),
@@ -122,6 +123,11 @@ internal class DebuggerView : IComponent<DebuggerState>
             Y = Pos.Bottom(program_view),
             Height = Dim.Percent(7),
         });
+
+
+        cpu_view.Enabled = stack_view.Enabled = ram_view.Enabled = input_view.Enabled = storage_view.Enabled = state.IsActive;
+        config_view.Enabled = condition_view.Enabled = program_view.Enabled = controls_view.Enabled = true;
+
 
         if (!isCached)
         {

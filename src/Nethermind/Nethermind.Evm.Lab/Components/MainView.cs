@@ -204,6 +204,9 @@ internal class MainView : IComponent<GlobalState>
                                 case TracesView traceView:
                                     _ = traceView.View(State.MachineStates[i] as TraceState).Item1;
                                     break;
+                                case DebuggerView debugView:
+                                    _ = debugView.View(State.MachineStates[i] as DebuggerState).Item1;
+                                    break;
                             }
                         }
                     }

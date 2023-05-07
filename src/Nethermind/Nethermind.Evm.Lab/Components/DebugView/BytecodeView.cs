@@ -7,10 +7,11 @@ using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
+using Nethermind.Evm.Tracing.DebugTrace;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.DebugView;
-internal class BytecodeView : IComponent<(ICodeInfo RuntimeContext, IReleaseSpec Spec)>
+internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec)>
 {
     private bool isCached = false;
     private TabView? container = null;
@@ -23,7 +24,7 @@ internal class BytecodeView : IComponent<(ICodeInfo RuntimeContext, IReleaseSpec
 
     public event Func<int, int, bool> BreakPointRequested;
 
-    public (View, Rectangle?) View((ICodeInfo RuntimeContext, IReleaseSpec Spec) state, Rectangle? rect = null)
+    public (View, Rectangle?) View((DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec) state, Rectangle? rect = null)
     {
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -39,6 +40,7 @@ internal class BytecodeView : IComponent<(ICodeInfo RuntimeContext, IReleaseSpec
             Height = frameBoundaries.Height,
         };
 
+        ClearExistingTabs(container);
         if (state.RuntimeContext is EofCodeInfo eofRuntimeContext)
         {
             for(int i = 0; i < eofRuntimeContext._header.CodeSections.Length; i++)
@@ -54,11 +56,18 @@ internal class BytecodeView : IComponent<(ICodeInfo RuntimeContext, IReleaseSpec
             container.AddTab(new TabView.Tab("Section 0", programView), true);
         }
 
-        isCached = true;
         return (container, frameBoundaries);
     }
 
-    private TableView AddCodeSection((ICodeInfo RuntimeContext, IReleaseSpec Spec) state, (bool isEof, int index, byte[] bytecode) codeSection)
+    private void ClearExistingTabs(TabView view)
+    {
+        foreach(TabView.Tab tabView in view.Tabs.ToArray())
+        {
+            view.RemoveTab(tabView);
+        }
+    }
+
+    private TableView AddCodeSection((DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec) state, (bool isEof, int index, byte[] bytecode) codeSection)
     {
         var dissassembledBytecode = BytecodeParser.Dissassemble(codeSection.isEof, codeSection.bytecode);
 
@@ -70,7 +79,7 @@ internal class BytecodeView : IComponent<(ICodeInfo RuntimeContext, IReleaseSpec
 
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add("[ ]", instr.idx, instr.ToString(state.Spec));
+            dataTable.Rows.Add(state.txTracer.BreakPoints.ContainsKey(instr.idx) ? "[v]" : "[ ]", instr.idx, instr.ToString(state.Spec));
         }
 
         var programView = new TableView()

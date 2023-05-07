@@ -23,14 +23,14 @@ namespace DebuggerStateEvents
     public record BytecodeInserted(string bytecode) : ActionsBase;
     public record BytecodeInsertedB(byte[] bytecode) : ActionsBase;
     public record FileLoaded(string filePath) : ActionsBase;
-    public record TracesLoaded(string filePath) : ActionsBase;
-    public record UpdateState(GethLikeTxTrace traces) : ActionsBase;
     public record SetForkChoice(IReleaseSpec forkName) : ActionsBase;
     public record ThrowError(string error) : ActionsBase;
     public record SetGasMode(bool ignore, long gasValue) : ActionsBase;
     public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null) : ActionsBase;
     public record SetGlobalCheck(Func<EvmState, bool> condition = null) : ActionsBase;
     public record Start : ActionsBase;
+    public record Lock : ActionsBase;
+    public record Update : ActionsBase;
     public record Reset : ActionsBase;
     public record Abort : ActionsBase;
 
@@ -53,6 +53,18 @@ namespace Nethermind.Evm.Lab
 
             context = new(SelectedFork);
             Tracer = new(new GethLikeTxTracer(GethTraceOptions.Default));
+
+            Tracer.BreakPointReached += () =>
+            {
+                EventsSink.EnqueueEvent(new Update());
+            };
+
+            Tracer.ExecutionThreadSet += () =>
+            {
+                EventsSink.EnqueueEvent(new Lock());
+                
+            };
+
             return this.Setup();
         }
         public DebuggerState()
@@ -195,6 +207,14 @@ namespace Nethermind.Evm.Lab
                 case Reset _:
                     {
                         return state.GetState().Abort().Initialize();
+                    }
+                case Update _:
+                    {
+                        return state.GetState();
+                    }
+                case Lock _:
+                    {
+                        return state.GetState();
                     }
                 case Abort _:
                     {

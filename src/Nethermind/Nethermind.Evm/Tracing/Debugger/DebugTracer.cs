@@ -34,6 +34,10 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
 
     private AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
 
+    public event Action BreakPointReached;
+    public event Action ExecutionThreadSet;
+
+
     public bool IsTracingReceipt => ((ITxTracer)InnerTracer).IsTracingReceipt;
 
     public bool IsTracingActions => ((ITxTracer)InnerTracer).IsTracingActions;
@@ -61,10 +65,10 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
     public bool IsTracingStorage => ((IStorageTracer)InnerTracer).IsTracingStorage;
 
 
-    private Dictionary<int, Func<EvmState, bool>> _breakPoints = new();
+    internal Dictionary<int, Func<EvmState, bool>> BreakPoints = new();
     public void SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
     {
-        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) _breakPoints[programCounter] = condition;
+        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) BreakPoints[programCounter] = condition;
     }
     private Func<EvmState, bool> _globalBreakCondition = null;
     public void SetCondtion(Func<EvmState, bool> condition = null)
@@ -101,6 +105,7 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
         lock (_lock)
         {
             CurrentPhase = DebugPhase.Blocked;
+            BreakPointReached?.Invoke();
         }
         _autoResetEvent.WaitOne();
     }
@@ -120,15 +125,16 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
         {
             IsStepByStepModeOn = executeOneStep ?? IsStepByStepModeOn;
             CurrentPhase = DebugPhase.Running;
+            ExecutionThreadSet?.Invoke();
         }
         _autoResetEvent.Set();
     }
 
     public void CheckBreakPoint()
     {
-        if (_breakPoints.ContainsKey(CurrentState.ProgramCounter))
+        if (BreakPoints.ContainsKey(CurrentState.ProgramCounter))
         {
-            Func<EvmState, bool> condition = _breakPoints[CurrentState.ProgramCounter];
+            Func<EvmState, bool> condition = BreakPoints[CurrentState.ProgramCounter];
             bool conditionResults = condition is null ? true : condition.Invoke(CurrentState);
             if (conditionResults)
             {
