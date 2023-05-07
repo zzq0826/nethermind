@@ -23,8 +23,6 @@ namespace Nethermind.Evm.CodeAnalysis
             MachineCode = code;
         }
 
-        public int SectionOffset(int _) => 0;
-
         public bool IsPrecompile => Precompile is not null;
 
         public CodeInfo(IPrecompile precompile)

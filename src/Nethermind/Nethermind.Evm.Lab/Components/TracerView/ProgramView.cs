@@ -27,9 +27,6 @@ internal class ProgramView : IComponent<MachineState>
         programView?.Dispose();
     }
 
-    public event Func<int, bool> BreakPointRequested;
-    private HashSet<int> breakpoints = new();
-
     public (View, Rectangle?) View(MachineState state, Rectangle? rect = null)
     {
         var dissassembledBytecode = BytecodeParser.Dissassemble(state.RuntimeContext is EofCodeInfo, state.RuntimeContext.CodeSection.Span, isExternalSource);
@@ -69,18 +66,6 @@ internal class ProgramView : IComponent<MachineState>
         };
         programView.Table = dataTable;
         programView.SelectedRow = selectedRow;
-
-        programView.SelectedCellChanged += e =>
-        {
-            if (BreakPointRequested?.Invoke(e.NewRow) ?? false)
-            {
-                dataTable.Rows[e.NewRow]["    "] = "[v]";
-            }
-            else
-            {
-                dataTable.Rows[e.NewRow]["    "] = "[ ]";
-            }
-        };
 
         if (!isCached)
         {

@@ -14,7 +14,7 @@ namespace Nethermind.Evm.Test
     {
         protected override long BlockNumber => RopstenSpecProvider.ConstantinopleBlockNumber;
 
-        protected override ISpecProvider SpecProvider => RopstenSpecProvider.Instance;
+        internal override ISpecProvider SpecProvider => RopstenSpecProvider.Instance;
 
         private void AssertEip145(TestAllTracerWithOutput receipt, string result)
         {
