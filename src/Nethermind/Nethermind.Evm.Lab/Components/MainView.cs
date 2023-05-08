@@ -58,7 +58,7 @@ internal class MainView : IComponent<GlobalState>
         State.MachineStates.Add(pageState);
         if (state is null)
         {
-            pageState.Initialize(true);
+            pageState.Initialize();
         }
         var tab = new TabView.Tab(name ?? "Default", pageObj.View(pageState).Item1);
         table.AddTab(tab, true);

@@ -83,14 +83,14 @@ internal class InputsView : IComponent<(ICodeInfo CodeInfo, byte[] CallData, IRe
 
             bytecodeInputField.KeyPress += (e) =>
             {
-                if (e.KeyEvent.Key == Key.Enter)
+                if (e.KeyEvent.Key == Key.Enter && bytecodeInputField.HasFocus)
                 {
                     InputChanged?.Invoke(new BytecodeInserted((string)bytecodeInputField.Text));
                 }
             };
             calldataInputField.KeyPress += (e) =>
             {
-                if (e.KeyEvent.Key == Key.Enter)
+                if (e.KeyEvent.Key == Key.Enter && calldataInputField.HasFocus)
                 {
                     InputChanged?.Invoke(new CallDataInserted((string)calldataInputField.Text));
                 }

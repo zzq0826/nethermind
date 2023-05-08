@@ -11,6 +11,7 @@ internal class MediaLikeView : IComponent<bool>
     bool isCached = false;
     private FrameView? container = null;
     private Button[] buttons;
+    private Button StartResetButtom;
     public MediaLikeView(Action<ActionsBase> actionHandler = null)
     {
         ActionRequested += actionHandler;
@@ -41,14 +42,15 @@ internal class MediaLikeView : IComponent<bool>
 
         if (!isCached)
         {
-            string[] labels = new[] { "next", "step", "start", "abort" };
-            ActionsBase[] events = new ActionsBase[] { new MoveNext(true), new MoveNext(false), new Start(), new Abort() };
+            string[] labels = new[] { "next", "step", "abort" };
+            ActionsBase[] events = new ActionsBase[] { new MoveNext(true), new MoveNext(false), new Abort() };
             Button? previousButton = null;
             buttons = labels.Zip(events).Select(pair =>
             {
                 (string label, ActionsBase msg) = pair;
                 var actionButton = new Button(label)
                 {
+                    Width = Dim.Percent(25),
                     X = previousButton is null ? 0 : Pos.Right(previousButton),
                 };
                 actionButton.Clicked += () =>
@@ -63,8 +65,23 @@ internal class MediaLikeView : IComponent<bool>
 
         if (isVmThreadOn)
         {
-            buttons[2].Text = "reset";
-            buttons[2].Clicked += () => ActionRequested?.Invoke(new Reset());
+            container.Remove(StartResetButtom);
+            StartResetButtom = new Button("reset")
+            {
+                X = Pos.Right(buttons[2])
+            };
+            StartResetButtom.Clicked += () => ActionRequested?.Invoke(new Reset());
+            container.Add(StartResetButtom);
+        }
+        else
+        {
+            container.Remove(StartResetButtom);
+            StartResetButtom = new Button("start")
+            {
+                X = Pos.Right(buttons[2])
+            };
+            StartResetButtom.Clicked += () => ActionRequested?.Invoke(new Start());
+            container.Add(StartResetButtom);
         }
 
         isCached = true;

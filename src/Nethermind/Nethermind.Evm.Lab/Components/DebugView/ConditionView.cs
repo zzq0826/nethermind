@@ -51,9 +51,11 @@ internal class ConditionView : IComponent
         {
             conditionBox.KeyPress += (e) =>
             {
-                if (e.KeyEvent.Key == Key.Enter)
+                if (e.KeyEvent.Key == Key.Enter && conditionBox.HasFocus)
                 {
-                    var condition = CSharpScript.EvaluateAsync<Func<EvmState, bool>>((string)conditionBox.Text, ScriptOptions.Default.WithReferences(typeof(Nethermind.Evm.EvmState).Assembly)).Result;
+                    var condition =
+                        String.IsNullOrWhiteSpace((string)conditionBox.Text) ? null : 
+                        CSharpScript.EvaluateAsync<Func<EvmState, bool>>((string)conditionBox.Text, ScriptOptions.Default.WithReferences(typeof(Nethermind.Evm.EvmState).Assembly)).Result;
                     ActionRequested?.Invoke(new SetGlobalCheck(condition));
                 }
             };

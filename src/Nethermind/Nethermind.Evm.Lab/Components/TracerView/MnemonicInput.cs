@@ -194,7 +194,7 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
 
     public (View, Rectangle?) View((ICodeInfo Bytecode, IReleaseSpec Spec) state, Rectangle? rect = null)
     {
-
+        isEofMode = state.Bytecode is EofCodeInfo;
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? Pos.Center(),

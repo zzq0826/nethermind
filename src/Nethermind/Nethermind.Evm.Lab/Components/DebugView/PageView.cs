@@ -79,7 +79,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         };
 
         var (cpu_view, cpu_rect) = _component_cpu.View(currentEntry, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
-        var (stack_view, stack_rect) = _component_stk.View(state.Tracer?.CurrentState?.DataStack?.Take(32 * state.Tracer?.CurrentState?.DataStackHead ?? 0).Chunk(32).Select(chunk => new UInt256(chunk, true)) ?? Enumerable.Empty<UInt256>(), cpu_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = _component_stk.View((state.Tracer?.CurrentState?.DataStack ?? Array.Empty<byte>(), state.Tracer?.CurrentState?.DataStackHead ?? 0), cpu_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)
@@ -136,6 +136,17 @@ internal class DebuggerView : IComponent<DebuggerState>
             _component_ram.ByteEdited += (idx, newValue) =>
             {
                 state.Tracer.CurrentState.Memory.SaveByte((UInt256)idx, newValue);
+                state.EventsSink.EnqueueEvent(new Update(), true);
+            };
+            _component_stk.ByteEdited += (idx, newValue) =>
+            {
+                state.Tracer.CurrentState.DataStack[idx] = newValue;
+                state.EventsSink.EnqueueEvent(new Update(), true);
+            };
+            _component_stk.StackHeightChangeRequest+= (heightDelta) =>
+            {
+                state.Tracer.CurrentState.DataStackHead += heightDelta;
+                state.EventsSink.EnqueueEvent(new Update(), true);
             };
 
             HookKeyboardEvents(state);

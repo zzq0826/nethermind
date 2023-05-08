@@ -82,6 +82,7 @@ internal class ConfigsView : IComponent<(IReleaseSpec Spec, long GasAvailable)>
             forksChoice.SetSource(Forks);
             forksChoice.SelectedItemChanged += (e) =>
             {
+                if (!forksChoice.HasFocus) return;
                 var forkName = e.Value.ToString();
                 if (forkName != "Custom")
                 {
@@ -98,7 +99,7 @@ internal class ConfigsView : IComponent<(IReleaseSpec Spec, long GasAvailable)>
 
             gasValueInput.KeyPress += (e) =>
             {
-                if (e.KeyEvent.Key is not Key.Enter) return;
+                if (e.KeyEvent.Key is not Key.Enter || !gasValueInput.HasFocus) return;
                 if (Int32.TryParse((string)gasValueInput.Text, out int gasValue))
                 {
                     ConfigsChanged?.Invoke(new SetGasMode(false, gasValue));
