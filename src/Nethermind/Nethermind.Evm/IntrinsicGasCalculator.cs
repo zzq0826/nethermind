@@ -24,10 +24,7 @@ namespace Nethermind.Evm
 
         public static long Calculate(Transaction transaction, IReleaseSpec releaseSpec, ref VerkleWitness witness)
         {
-            long result = GasCostOf.Transaction;
-            result += DataCost(transaction, releaseSpec);
-            result += CreateCost(transaction, releaseSpec);
-            result += AccessListCost(transaction, releaseSpec);
+            long result = Calculate(transaction, releaseSpec);
             if (releaseSpec.IsVerkleTreeEipEnabled)
                 result += witness.AccessForTransaction(transaction.SenderAddress!, transaction.To!, !transaction.Value.IsZero);
             return result;
