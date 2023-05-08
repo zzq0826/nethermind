@@ -3,7 +3,7 @@
 
 namespace Nethermind.State;
 
-public enum TreeType
+public enum StateType
 {
     MerkleTree = 0,
     VerkleTree = 1

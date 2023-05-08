@@ -303,7 +303,7 @@ namespace Nethermind.Evm
                 _destroyList.Restore(_destroyListSnapshot);
                 _accessedAddresses.Restore(_accessedAddressesSnapshot);
                 _accessedStorageCells.Restore(_accessedStorageKeysSnapshot);
-                VerkleTreeWitness.Restore(_verkleWitnessSnapshot);
+                VerkleTreeWitness?.Restore(_verkleWitnessSnapshot);
             }
         }
     }
