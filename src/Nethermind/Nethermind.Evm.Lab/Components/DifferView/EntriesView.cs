@@ -15,6 +15,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Nethermind.Evm.Tracing.GethStyle;
 using Terminal.Gui;
+using Terminal.Gui.Trees;
 using static Microsoft.FSharp.Core.ByRefKinds;
 
 namespace Nethermind.Evm.Lab.Components.Differ;
@@ -61,12 +62,21 @@ internal class EntriesView : IComponent<MachineState>
             };
 
             programView.Table = dataTable;
-
+            programView.LineLenght = 8;
+            programView.OverrideLineIndex += (table, word) =>
+            {
+                int lineIndex = 0;
+                if (table.RenderCellIndex % table.LineLenght == 0
+                    && Int32.TryParse(word, out lineIndex))
+                {
+                    return lineIndex;
+                }
+                else return null;
+            };
             isCached = true;
         }
         programView.RenderCellIndex = 0;
-        programView.DiffIndexStart = startDiffColoringAt;
-
+        programView.ColoredRanges.Add(new Range(startDiffColoringAt, int.MaxValue));
         programView.SelectedRow = state.Index;
 
         return (programView, frameBoundaries);

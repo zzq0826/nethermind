@@ -60,7 +60,7 @@ internal class BytecodeParser
         return parsed;
     }
 
-    public static IReadOnlyList<Instruction> Dissassemble(bool isEof, ReadOnlySpan<byte> bytecode, bool isTraceSourced = false)
+    public static IReadOnlyList<Instruction> Dissassemble(bool isEof, ReadOnlySpan<byte> bytecode, bool isTraceSourced = false, int offsetInstructionIndexesBy = 0)
     {
         var opcodes = new List<Instruction>();
         for (int i = 0, j = 0; i < bytecode.Length; i++, j++)
@@ -73,7 +73,7 @@ internal class BytecodeParser
             }
             int immediatesCount = instruction.GetImmediateCount(isEof, instruction is Evm.Instruction.RJUMPV ? bytecode[i+1] : (byte)0);
             ReadOnlySpan<byte> immediates = bytecode.Slice(i + 1, immediatesCount);
-            opcodes.Add(new Instruction(isTraceSourced ? j : i, instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
+            opcodes.Add(new Instruction(offsetInstructionIndexesBy + (isTraceSourced ? j : i), instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
             i += immediatesCount;
         }
         return opcodes;

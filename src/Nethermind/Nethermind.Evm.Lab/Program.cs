@@ -16,6 +16,17 @@ using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Evm.Tracing;
 
+// TODO : Fix thread syncing issues
+// TODO : Add state manipulation
+// TODO : Add breakpoint conditions
+// TODO : Fix breakpoint setting on code section > 0
+// TODO : persist bytecode change from InputView
+// TODO : persist configs change from configs view
+// TODO : add way to manipulate stack
+// TODO : fix mnemonic view givign wrong Eof code
+// TODO : lock and unlock mediaLikeControls depending on thread state
+
+
 #if false
 byte[] bytecode = Nethermind.Core.Extensions.Bytes.FromHexString("5b601760005600");
 EthereumRestrictedInstance context = new(Cancun.Instance);

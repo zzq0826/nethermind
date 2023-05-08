@@ -5,7 +5,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MemoryView : IComponent<byte[]>
+internal class MemoryView : IComponent<IEnumerable<byte>>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -17,9 +17,11 @@ internal class MemoryView : IComponent<byte[]>
         memoryView?.Dispose();
     }
 
-    public (View, Rectangle?) View(byte[] ram, Rectangle? rect = null)
+    public event Action<long, byte> ByteEdited;
+
+    public (View, Rectangle?) View(IEnumerable<byte> ram, Rectangle? rect = null)
     {
-        var streamFromBuffer = new MemoryStream(ram);
+        var streamFromBuffer = new MemoryStream(ram.ToArray());
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -41,6 +43,11 @@ internal class MemoryView : IComponent<byte[]>
             Height = Dim.Fill(2),
         };
         memoryView.Source = streamFromBuffer;
+
+        memoryView.Edited += (e) =>
+        {
+            ByteEdited?.Invoke(e.Key, e.Value);
+        };
 
         if (!isCached)
         {

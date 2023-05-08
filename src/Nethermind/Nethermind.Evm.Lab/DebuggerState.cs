@@ -53,16 +53,10 @@ namespace Nethermind.Evm.Lab
 
             context = new(SelectedFork);
             Tracer = new(new GethLikeTxTracer(GethTraceOptions.Default));
-
+            Tracer.SetBreakPoint(0);
             Tracer.BreakPointReached += () =>
             {
-                EventsSink.EnqueueEvent(new Update());
-            };
-
-            Tracer.ExecutionThreadSet += () =>
-            {
-                EventsSink.EnqueueEvent(new Lock());
-                
+                EventsSink.EnqueueEvent(new Update(), true);
             };
 
             return this.Setup();

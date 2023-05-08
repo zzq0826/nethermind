@@ -79,7 +79,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         };
 
         var (cpu_view, cpu_rect) = _component_cpu.View(currentEntry, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
-        var (stack_view, stack_rect) = _component_stk.View(state.Tracer?.CurrentState?.DataStack?.Take(32 * state.Tracer?.CurrentState?.DataStackHead ?? 0).Chunk(32).Select(chunk => new UInt256(chunk, true)).ToArray() ?? Array.Empty<UInt256>(), cpu_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = _component_stk.View(state.Tracer?.CurrentState?.DataStack?.Take(32 * state.Tracer?.CurrentState?.DataStackHead ?? 0).Chunk(32).Select(chunk => new UInt256(chunk, true)) ?? Enumerable.Empty<UInt256>(), cpu_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)
@@ -125,27 +125,18 @@ internal class DebuggerView : IComponent<DebuggerState>
         });
 
 
-        cpu_view.Enabled = stack_view.Enabled = ram_view.Enabled = input_view.Enabled = storage_view.Enabled = state.IsActive;
-        config_view.Enabled = condition_view.Enabled = program_view.Enabled = controls_view.Enabled = true;
+        cpu_view.Enabled = stack_view.Enabled = ram_view.Enabled = storage_view.Enabled = state.IsActive;
+        input_view.Enabled = config_view.Enabled = condition_view.Enabled = program_view.Enabled = controls_view.Enabled = true;
 
 
         if (!isCached)
         {
-            _component_pgr.BreakPointRequested += (sectionId, pc) =>
-            {
-                if(state.RuntimeContext is EofCodeInfo eofCodeInfo)
-                {
-                    state.EventsSink.EnqueueEvent(new SetBreakpoint(pc + eofCodeInfo.SectionOffset(sectionId).Offset));
-                }
-                else
-                {
-                    state.EventsSink.EnqueueEvent(new SetBreakpoint(pc + 0));
-                }
-                return true;
-            };
-
+            _component_pgr.BreakPointRequested += (e) => FireEvent(state, e);
             _component_check.ActionRequested += (e) => FireEvent(state, e);
-
+            _component_ram.ByteEdited += (idx, newValue) =>
+            {
+                state.Tracer.CurrentState.Memory.SaveByte((UInt256)idx, newValue);
+            };
 
             HookKeyboardEvents(state);
             _component_cntrl.ActionRequested += e => FireEvent(state, e);
@@ -157,7 +148,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         return (MainPanel, null);
     }
 
-    private void FireEvent(DebuggerState state, ActionsBase eventMessage) => state.EventsSink.EnqueueEvent(eventMessage);
+    private void FireEvent(DebuggerState state, ActionsBase eventMessage) => state.EventsSink.EnqueueEvent(eventMessage, true);
 
     private void HookKeyboardEvents(DebuggerState state)
     {

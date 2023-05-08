@@ -66,9 +66,22 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
 
 
     internal Dictionary<int, Func<EvmState, bool>> BreakPoints = new();
-    public void SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
+    public bool SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
     {
-        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting) BreakPoints[programCounter] = condition;
+        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting)
+        {
+            if (!BreakPoints.ContainsKey(programCounter))
+            {
+                BreakPoints[programCounter] = condition;
+                return true;
+            }
+            else
+            {
+                BreakPoints.Remove(programCounter);
+                return false;
+            }
+        }
+        return false;
     }
     private Func<EvmState, bool> _globalBreakCondition = null;
     public void SetCondtion(Func<EvmState, bool> condition = null)
