@@ -15,16 +15,9 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Evm.Tracing;
+using Nethermind.Evm.Lab.Interfaces;
 
-// TODO : Fix thread syncing issues
-// TODO : Add state manipulation
-// TODO : Add breakpoint conditions
-// TODO : Fix breakpoint setting on code section > 0
-// TODO : persist bytecode change from InputView
-// TODO : persist configs change from configs view
-// TODO : add way to manipulate stack
-// TODO : fix mnemonic view givign wrong Eof code
-// TODO : lock and unlock mediaLikeControls depending on thread state
+// TODO : Fix breakpoint setting on code section > 0 (requires alot of stuff)
 
 
 #if false
