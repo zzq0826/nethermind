@@ -65,23 +65,22 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
     public bool IsTracingStorage => ((IStorageTracer)InnerTracer).IsTracingStorage;
 
 
-    internal Dictionary<int, Func<EvmState, bool>> BreakPoints = new();
-    public bool SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
+    internal Dictionary<int, Func<EvmState, bool>> _breakPoints = new();
+    public bool IsBreakpoitnSet(int programCounter)
+        => _breakPoints.ContainsKey(programCounter);
+    public void SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
     {
         if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting)
         {
-            if (!BreakPoints.ContainsKey(programCounter))
-            {
-                BreakPoints[programCounter] = condition;
-                return true;
-            }
-            else
-            {
-                BreakPoints.Remove(programCounter);
-                return false;
-            }
+            _breakPoints[programCounter] = condition;
         }
-        return false;
+    }
+    public void UnsetBreakPoint(int programCounter)
+    {
+        if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting)
+        {
+            _breakPoints.Remove(programCounter);
+        }
     }
     private Func<EvmState, bool> _globalBreakCondition = null;
     public void SetCondtion(Func<EvmState, bool> condition = null)
@@ -113,6 +112,19 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
             CheckBreakPoint();
         }
     }
+
+    public void Reset(ITxTracer newInnerTracer)
+    {
+        lock (_lock)
+        {
+            CurrentPhase = DebugPhase.Starting;
+            _breakPoints.Clear();
+            CurrentState = null;
+            InnerTracer = newInnerTracer;
+        }
+        _autoResetEvent.Reset();
+    }
+
     private void Block()
     {
         lock (_lock)
@@ -145,9 +157,9 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
 
     public void CheckBreakPoint()
     {
-        if (BreakPoints.ContainsKey(CurrentState.ProgramCounter))
+        if (_breakPoints.ContainsKey(CurrentState.ProgramCounter))
         {
-            Func<EvmState, bool> condition = BreakPoints[CurrentState.ProgramCounter];
+            Func<EvmState, bool> condition = _breakPoints[CurrentState.ProgramCounter];
             bool conditionResults = condition is null ? true : condition.Invoke(CurrentState);
             if (conditionResults)
             {

@@ -21,7 +21,7 @@ using MachineStateEvents;
 namespace DebuggerStateEvents
 {
     public record MoveNext(bool onlyOneStep) : ActionsBase;
-    public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null) : ActionsBase;
+    public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null, bool unsetBreakpoint = false) : ActionsBase;
     public record SetGlobalCheck(Func<EvmState, bool> condition = null) : ActionsBase;
     public record Start : ActionsBase;
     public record Lock : ActionsBase;
@@ -42,7 +42,7 @@ namespace Nethermind.Evm.Lab
             return SetFork(spec ?? Cancun.Instance)
                 .SetBytecode(bytecode ?? Bytes.FromHexString(Uri.IsWellFormedUriString(GlobalState.initialCmdArgument, UriKind.Absolute) ? File.OpenText(GlobalState.initialCmdArgument).ReadToEnd() : GlobalState.initialCmdArgument))
                 .SetGas(gasAvailable ?? VirtualMachineTestsBase.DefaultBlockGasLimit)
-                .ResetTracer()
+                .ResetTracer(true)
                 .Setup(); ;
         }
         public DebuggerState() => Initialize();
@@ -56,11 +56,23 @@ namespace Nethermind.Evm.Lab
 
         public DebuggerState Setup()
         {
-            WorkThread = new Thread(() => context.Execute(Tracer, AvailableGas, RuntimeContext.MachineCode));
+            WorkThread = new Thread(() => {
+                try
+                {
+                    context.Execute(Tracer, AvailableGas, RuntimeContext.MachineCode);
+                } catch
+                {
+                    Console.WriteLine("Thread Stopped");
+                } finally
+                {
+                    EventsSink.EnqueueEvent(new Update());
+                }
+            });
             return this;
         }
         public DebuggerState Start()
         {
+            Tracer.SetBreakPoint(0);
             WorkThread?.Start();
             return this;
         }
@@ -100,15 +112,17 @@ namespace Nethermind.Evm.Lab
             RuntimeContext = CodeInfoFactory.CreateCodeInfo(bytecode, SelectedFork);
             return this;
         }
-        public DebuggerState ResetTracer()
+        public DebuggerState ResetTracer(bool hookEvent = false)
         {
-            Abort();
-            Tracer = new(new GethLikeTxTracer(GethTraceOptions.Default));
-            Tracer.SetBreakPoint(0);
-            Tracer.BreakPointReached += () =>
+            WorkThread?.Interrupt();
+            Tracer.Reset(new GethLikeTxTracer(GethTraceOptions.Default));
+            if (hookEvent)
             {
-                EventsSink.EnqueueEvent(new Update(), true);
-            };
+                Tracer.BreakPointReached += () =>
+                {
+                    EventsSink.EnqueueEvent(new Update(), true);
+                };
+            }
             return this;
         }
 
@@ -174,7 +188,15 @@ namespace Nethermind.Evm.Lab
 
                 case DebuggerStateEvents.SetBreakpoint brkMsg:
                     {
-                        state.Tracer.SetBreakPoint(brkMsg.pc, brkMsg.condition);
+                        if(brkMsg.unsetBreakpoint)
+                        {
+                            state.Tracer.UnsetBreakPoint(brkMsg.pc);
+                        }
+                        else
+                        {
+                            state.Tracer.SetBreakPoint(brkMsg.pc, brkMsg.condition);
+                        }
+                        state.EventsSink.EnqueueEvent(new Update(), true);
                         break;
                     }
                 case DebuggerStateEvents.SetGlobalCheck chkMsg:
