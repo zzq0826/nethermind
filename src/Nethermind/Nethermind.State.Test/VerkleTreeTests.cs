@@ -29,11 +29,13 @@ public class VerkleTreeTests
         IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
         VerkleStateTree stateTree = new VerkleStateTree(dbProvider);
         stateTree.Set(TestItem.AddressA, account);
-        stateTree.Flush(0);
+        stateTree.Commit();
+        stateTree.CommitTree(0);
 
         account = account.WithChangedBalance(2);
         stateTree.Set(TestItem.AddressA, account);
-        stateTree.Flush(0);
+        stateTree.Commit();
+        stateTree.CommitTree(0);
 
         Account accountRestored = stateTree.Get(TestItem.AddressA);
         Assert.That(accountRestored.Balance, Is.EqualTo((UInt256)2));
@@ -47,11 +49,13 @@ public class VerkleTreeTests
         VerkleStateTree stateTree = new VerkleStateTree(dbProvider);
         stateTree.Set(TestItem.AddressA, account);
         stateTree.Set(TestItem.AddressB, account);
-        stateTree.Flush(0);
+        stateTree.Commit();
+        stateTree.CommitTree(0);
 
         account = account.WithChangedBalance(2);
         stateTree.Set(TestItem.AddressA, account);
-        stateTree.Flush(0);
+        stateTree.Commit();
+        stateTree.CommitTree(0);
 
         Account accountRestored = stateTree.Get(TestItem.AddressA);
         Assert.That(accountRestored.Balance, Is.EqualTo((UInt256)2));
@@ -64,8 +68,9 @@ public class VerkleTreeTests
         IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
         VerkleStateTree stateTree = new VerkleStateTree(dbProvider);
         stateTree.Set(new Address("0x0000000000000000000000000000000000000000"), account);
-        stateTree.Flush(0);
-        Console.WriteLine(EnumerableExtensions.ToString(stateTree.RootHash));
+        stateTree.Commit();
+        stateTree.CommitTree(0);
+        Console.WriteLine(EnumerableExtensions.ToString(stateTree.StateRoot));
     }
 
     // [Test]

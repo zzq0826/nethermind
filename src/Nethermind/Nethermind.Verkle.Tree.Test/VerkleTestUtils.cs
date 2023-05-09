@@ -101,7 +101,8 @@ public class VerkleTestUtils
         tree.Insert(_keyNonce, _emptyArray);
         tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
         tree.Insert(_keyCodeSize, _emptyArray);
-        tree.Flush(0);
+        tree.Commit();
+        tree.CommitTree(0);
 
         tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
         tree.Get(_keyBalance).Should().BeEquivalentTo(_emptyArray);
@@ -114,7 +115,8 @@ public class VerkleTestUtils
         tree.Insert(_keyNonce, _arrayAll0Last2);
         tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
         tree.Insert(_keyCodeSize, _arrayAll0Last2);
-        tree.Flush(1);
+        tree.Commit();
+        tree.CommitTree(1);
 
         tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last2);
         tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last2);
@@ -127,7 +129,8 @@ public class VerkleTestUtils
         tree.Insert(_keyNonce, _arrayAll0Last3);
         tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
         tree.Insert(_keyCodeSize, _arrayAll0Last3);
-        tree.Flush(2);
+        tree.Commit();
+        tree.CommitTree(2);
 
         tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last3);
         tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last3);
@@ -140,7 +143,8 @@ public class VerkleTestUtils
         tree.Insert(_keyNonce, _arrayAll0Last4);
         tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
         tree.Insert(_keyCodeSize, _arrayAll0Last4);
-        tree.Flush(3);
+        tree.Commit();
+        tree.CommitTree(3);
 
         tree.Get(_keyVersion).Should().BeEquivalentTo(_arrayAll0Last4);
         tree.Get(_keyBalance).Should().BeEquivalentTo(_arrayAll0Last4);

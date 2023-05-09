@@ -126,8 +126,7 @@ namespace Nethermind.Blockchain.Test.Producers
             dbProvider.RegisterDb(DbNames.Code, new MemDb());
             dbProvider.RegisterDb(DbNames.Metadata, new MemDb());
             dbProvider.RegisterDb(DbNames.Leaf, new MemDb());
-            dbProvider.RegisterDb(DbNames.Branch, new MemDb());
-            dbProvider.RegisterDb(DbNames.Stem, new MemDb());
+            dbProvider.RegisterDb(DbNames.InternalNodes, new MemDb());
             dbProvider.RegisterDb(DbNames.ForwardDiff, new MemDb());
             dbProvider.RegisterDb(DbNames.ReverseDiff, new MemDb());
             dbProvider.RegisterDb(DbNames.StateRootToBlock, new MemDb());

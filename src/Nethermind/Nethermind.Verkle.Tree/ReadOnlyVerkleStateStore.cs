@@ -9,7 +9,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore, IStoreWithReorgBoundary
+public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
     private VerkleMemoryDb _keyValueStore;
@@ -30,27 +30,18 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore, IStoreWith
         if (_keyValueStore.GetLeaf(key, out byte[]? value)) return value;
         return _verkleStateStore.GetLeaf(key);
     }
-    public SuffixTree? GetStem(byte[] key)
+    public InternalNode? GetInternalNode(byte[] key)
     {
-        if (_keyValueStore.GetStem(key, out var value)) return value;
-        return _verkleStateStore.GetStem(key);
-    }
-    public InternalNode? GetBranch(byte[] key)
-    {
-        if (_keyValueStore.GetBranch(key, out var value)) return value;
-        return _verkleStateStore.GetBranch(key);
+        if (_keyValueStore.GetInternalNode(key, out var value)) return value;
+        return _verkleStateStore.GetInternalNode(key);
     }
     public void SetLeaf(byte[] leafKey, byte[] leafValue)
     {
         _keyValueStore.SetLeaf(leafKey, leafValue);
     }
-    public void SetStem(byte[] stemKey, SuffixTree suffixTree)
+    public void SetInternalNode(byte[] InternalNodeKey, InternalNode internalNodeValue)
     {
-        _keyValueStore.SetStem(stemKey, suffixTree);
-    }
-    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue)
-    {
-        _keyValueStore.SetBranch(branchKey, internalNodeValue);
+        _keyValueStore.SetInternalNode(InternalNodeKey, internalNodeValue);
     }
     public void Flush(long blockNumber) { }
 
@@ -62,9 +53,9 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore, IStoreWith
     {
         return _verkleStateStore.GetStateRoot();
     }
-    public void MoveToStateRoot(byte[] stateRoot)
+    public bool MoveToStateRoot(byte[] stateRoot)
     {
-        _verkleStateStore.MoveToStateRoot(stateRoot);
+        return _verkleStateStore.MoveToStateRoot(stateRoot);
     }
 
     public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)

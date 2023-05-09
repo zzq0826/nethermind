@@ -8,64 +8,116 @@ using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Nodes;
 
-public class StemNode : InternalNode
-{
-    public StemNode(byte[] stem, Commitment suffixCommitment) : base(NodeType.StemNode, stem, suffixCommitment)
-    {
-    }
-}
-
-public class BranchNode : InternalNode
-{
-    public BranchNode() : base(NodeType.BranchNode)
-    {
-    }
-}
-
 public class InternalNode
 {
-    public bool IsStem => _nodeType == NodeType.StemNode;
-    public bool IsBranchNode => _nodeType == NodeType.BranchNode;
+    public bool IsStem => NodeType == VerkleNodeType.StemNode;
+    public bool IsBranchNode => NodeType == VerkleNodeType.BranchNode;
+    public VerkleNodeType NodeType { get; }
+    public Commitment InternalCommitment { get; }
 
-    public readonly Commitment _internalCommitment;
 
-    public readonly NodeType _nodeType;
+    /// <summary>
+    ///  C1, C2, InitCommitmentHash - only relevant for stem nodes
+    /// </summary>
+    public Commitment? C1 { get; }
+    public Commitment? C2 { get; }
+    public FrE? InitCommitmentHash { get; }
 
-    private byte[]? _stem;
-    public byte[] Stem
+    private static readonly Banderwagon _initFirstElementCommitment = Committer.ScalarMul(FrE.One, 0);
+
+    public byte[]? Stem { get; }
+
+    public InternalNode Clone()
     {
-        get
+        return NodeType switch
         {
-            Debug.Assert(_stem != null, nameof(_stem) + " != null");
-            return _stem;
-        }
+            VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup(), InitCommitmentHash!.Value.Dup()),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
-    protected InternalNode(NodeType nodeType, byte[] stem, Commitment suffixCommitment)
+    public InternalNode(VerkleNodeType nodeType)
     {
-        switch (nodeType)
-        {
-            case NodeType.StemNode:
-                _nodeType = NodeType.StemNode;
-                _stem = stem;
-                _internalCommitment = suffixCommitment;
-                break;
-            case NodeType.BranchNode:
-            default:
-                throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null);
-        }
+        NodeType = nodeType;
+        InternalCommitment = new Commitment();
     }
 
-    protected InternalNode(NodeType nodeType)
+    public InternalNode(VerkleNodeType nodeType, Commitment commitment)
     {
-        _nodeType = nodeType;
-        _internalCommitment = new Commitment();
+        NodeType = nodeType;
+        InternalCommitment = commitment;
+    }
+
+    public InternalNode(VerkleNodeType nodeType, byte[] stem)
+    {
+        NodeType = nodeType;
+        Stem = stem;
+        C1 = new Commitment();
+        C2 = new Commitment();
+        InternalCommitment = new Commitment();
+        Banderwagon stemCommitment = GetInitialCommitment();
+        InternalCommitment.AddPoint(stemCommitment);
+        InitCommitmentHash = InternalCommitment.PointAsField.Dup();
+    }
+
+    private InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment c1, Commitment c2, Commitment internalCommitment, FrE initCommitment)
+    {
+        NodeType = nodeType;
+        Stem = stem;
+        C1 = c1;
+        C2 = c2;
+        InternalCommitment = internalCommitment;
+        InitCommitmentHash = initCommitment;
+    }
+
+    internal InternalNode(VerkleNodeType nodeType, byte[] stem, byte[] c1, byte[] c2, byte[] extCommit)
+    {
+        NodeType = nodeType;
+        Stem = stem;
+        C1 = new Commitment(new Banderwagon(c1));
+        C2 = new Commitment(new Banderwagon(c2));
+        InternalCommitment = new Commitment(new Banderwagon(extCommit));
+        InitCommitmentHash = FrE.Zero;
+
+    }
+
+    private Banderwagon GetInitialCommitment()
+    {
+        return _initFirstElementCommitment +
+               Committer.ScalarMul(FrE.FromBytesReduced(Stem!.Reverse().ToArray()), 1);
     }
 
     public FrE UpdateCommitment(Banderwagon point)
     {
-        FrE prevCommit = _internalCommitment.PointAsField.Dup();
-        _internalCommitment.AddPoint(point);
-        return _internalCommitment.PointAsField - prevCommit;
+        Debug.Assert(NodeType == VerkleNodeType.BranchNode);
+        FrE prevCommit = InternalCommitment.PointAsField.Dup();
+        InternalCommitment.AddPoint(point);
+        return InternalCommitment.PointAsField - prevCommit;
+    }
+
+    public FrE UpdateCommitment(LeafUpdateDelta deltaLeafCommitment)
+    {
+        Debug.Assert(NodeType == VerkleNodeType.StemNode);
+        FrE deltaC1Commit = FrE.Zero;
+        FrE deltaC2Commit = FrE.Zero;
+
+        if (deltaLeafCommitment.DeltaC1 is not null)
+        {
+            FrE oldC1Value = C1!.PointAsField.Dup();
+            C1.AddPoint(deltaLeafCommitment.DeltaC1.Value);
+            deltaC1Commit = C1.PointAsField - oldC1Value;
+        }
+        if (deltaLeafCommitment.DeltaC2 is not null)
+        {
+            FrE oldC2Value = C2!.PointAsField.Dup();
+            C2.AddPoint(deltaLeafCommitment.DeltaC2.Value);
+            deltaC2Commit = C2.PointAsField - oldC2Value;
+        }
+
+        Banderwagon deltaCommit = Committer.ScalarMul(deltaC1Commit, 2)
+                                  + Committer.ScalarMul(deltaC2Commit, 3);
+
+        return InternalCommitment.UpdateCommitmentGetDelta(deltaCommit);
     }
 }

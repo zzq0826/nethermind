@@ -7,12 +7,12 @@ using Nethermind.Verkle.Tree.Nodes;
 namespace Nethermind.Verkle.Tree.Serializers;
 
 
-public class BranchStoreSerializer : IRlpStreamDecoder<BranchStore>
+public class InternalStoreSerializer : IRlpStreamDecoder<InternalStore>
 {
     private static InternalNodeSerializer InternalNodeSerializer => InternalNodeSerializer.Instance;
 
-    public static BranchStoreSerializer Instance => new BranchStoreSerializer();
-    public int GetLength(BranchStore item, RlpBehaviors rlpBehaviors)
+    public static InternalStoreSerializer Instance => new InternalStoreSerializer();
+    public int GetLength(InternalStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
         foreach (KeyValuePair<byte[], InternalNode?> pair in item)
@@ -23,9 +23,9 @@ public class BranchStoreSerializer : IRlpStreamDecoder<BranchStore>
         return length;
     }
 
-    public BranchStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public InternalStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        BranchStore item = new BranchStore();
+        InternalStore item = new InternalStore();
         int length = rlpStream.DecodeInt();
         for (int i = 0; i < length; i++)
         {
@@ -42,7 +42,7 @@ public class BranchStoreSerializer : IRlpStreamDecoder<BranchStore>
         }
         return item;
     }
-    public void Encode(RlpStream stream, BranchStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public void Encode(RlpStream stream, InternalStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Encode(item.Count);
         foreach (KeyValuePair<byte[], InternalNode?> pair in item)

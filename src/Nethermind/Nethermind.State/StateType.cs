@@ -5,6 +5,6 @@ namespace Nethermind.State;
 
 public enum StateType
 {
-    MerkleTree = 0,
-    VerkleTree = 1
+    Merkle = 0,
+    Verkle = 1
 }

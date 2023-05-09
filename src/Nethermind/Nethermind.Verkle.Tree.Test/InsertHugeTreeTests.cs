@@ -103,7 +103,8 @@ public class InsertHugeTreeTests
             tree.Insert(key, value);
         }
         DateTime check1 = DateTime.Now;
-        tree.Flush(block++);
+        tree.Commit();
+        tree.CommitTree(block++);
         DateTime check2 = DateTime.Now;
         Console.WriteLine($"{block} Insert: {(check1 - start).TotalMilliseconds}");
         Console.WriteLine($"{block} Flush: {(check2 - check1).TotalMilliseconds}");
@@ -119,7 +120,8 @@ public class InsertHugeTreeTests
                 tree.Insert(key, value);
             }
             DateTime check3 = DateTime.Now;
-            tree.Flush(block++);
+            tree.Commit();
+            tree.CommitTree(block++);
             DateTime check4 = DateTime.Now;
             Console.WriteLine($"{block} Insert: {(check3 - check5).TotalMilliseconds}");
             Console.WriteLine($"{block} Flush: {(check4 - check3).TotalMilliseconds}");

@@ -13,41 +13,47 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
     public static InternalNodeSerializer Instance => new InternalNodeSerializer();
     public int GetLength(InternalNode item, RlpBehaviors rlpBehaviors)
     {
-        return item._nodeType switch
+        return item.NodeType switch
         {
-            NodeType.BranchNode => 32 + 1,
-            NodeType.StemNode => 32 + 31 + 1,
-            var _ => throw new ArgumentOutOfRangeException()
+            VerkleNodeType.BranchNode => 1 + 32, // NodeType + InternalCommitment
+            VerkleNodeType.StemNode => 1 + 31 + 32 + 32 + 32, // NodeType + C1 + C2 + InternalCommitment
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 
     public InternalNode Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        NodeType nodeType = (NodeType)rlpStream.ReadByte();
+        VerkleNodeType nodeType = (VerkleNodeType)rlpStream.ReadByte();
         switch (nodeType)
         {
-            case NodeType.BranchNode:
-                BranchNode node = new BranchNode();
+            case VerkleNodeType.BranchNode:
+                InternalNode node = new InternalNode(VerkleNodeType.BranchNode);
                 node.UpdateCommitment(new Banderwagon(rlpStream.Read(32).ToArray()));
                 return node;
-            case NodeType.StemNode:
-                return new StemNode(rlpStream.Read(31).ToArray(), new Commitment(new Banderwagon(rlpStream.Read(32).ToArray())));
+            case VerkleNodeType.StemNode:
+                byte[] stem = rlpStream.Read(31).ToArray();
+                byte[] c1 = rlpStream.Read(32).ToArray();
+                byte[] c2 = rlpStream.Read(32).ToArray();
+                byte[] extCommit = rlpStream.Read(32).ToArray();
+                return new InternalNode(VerkleNodeType.StemNode, stem, c1, c2, extCommit);
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
     public void Encode(RlpStream stream, InternalNode item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        switch (item._nodeType)
+        switch (item.NodeType)
         {
-            case NodeType.BranchNode:
-                stream.WriteByte((byte)NodeType.BranchNode);
-                stream.Write(item._internalCommitment.Point.ToBytes());
+            case VerkleNodeType.BranchNode:
+                stream.WriteByte((byte)VerkleNodeType.BranchNode);
+                stream.Write(item.InternalCommitment.Point.ToBytes());
                 break;
-            case NodeType.StemNode:
-                stream.WriteByte((byte)NodeType.StemNode);
-                stream.Write(item.Stem);
-                stream.Write(item._internalCommitment.Point.ToBytes());
+            case VerkleNodeType.StemNode:
+                stream.WriteByte((byte)VerkleNodeType.StemNode);
+                stream.Write(item.Stem!);
+                stream.Write(item.C1!.Point.ToBytes());
+                stream.Write(item.C2!.Point.ToBytes());
+                stream.Write(item.InternalCommitment.Point.ToBytes());
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

@@ -17,8 +17,7 @@ namespace Nethermind.Db
         public const string CHT = "canonicalHashTrie";
         public const string Metadata = "metadata";
         public const string Leaf = "leaf";
-        public const string Stem = "stem";
-        public const string Branch = "branch";
+        public const string InternalNodes = "internalNodes";
         public const string ForwardDiff = "forwardDiff";
         public const string ReverseDiff = "reverseDiff";
         public const string Preimages = "preimages";

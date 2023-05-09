@@ -14,9 +14,9 @@ public interface IVerkleTreeVisitor
 
     void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext);
 
-    void VisitBranchNode(BranchNode node, TrieVisitContext trieVisitContext);
+    void VisitBranchNode(InternalNode node, TrieVisitContext trieVisitContext);
 
-    void VisitStemNode(StemNode node, TrieVisitContext trieVisitContext);
+    void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext);
 
     void VisitLeafNode(byte[] nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue);
 

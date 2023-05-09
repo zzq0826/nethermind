@@ -43,11 +43,11 @@ public class VerkleTreeDumper : IVerkleTreeVisitor
     {
         _builder.AppendLine($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeKey}");
     }
-    public void VisitBranchNode(BranchNode node, TrieVisitContext trieVisitContext)
+    public void VisitBranchNode(InternalNode node, TrieVisitContext trieVisitContext)
     {
-        _builder.AppendLine($"{GetPrefix(trieVisitContext)}BRANCH | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
+        _builder.AppendLine($"{GetPrefix(trieVisitContext)}InternalNode | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
     }
-    public void VisitStemNode(StemNode node, TrieVisitContext trieVisitContext)
+    public void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext)
     {
         _builder.AppendLine($"{GetPrefix(trieVisitContext)}STEM | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
     }

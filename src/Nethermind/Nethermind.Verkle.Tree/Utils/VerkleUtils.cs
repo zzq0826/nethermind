@@ -40,13 +40,6 @@ namespace Nethermind.Verkle.Tree.Utils
                 return FrE.SetElement(res.u0, res.u1, res.u2, res.u3);
             }
         }
-        public static Span<byte> ToAddress32(ReadOnlySpan<byte> address20)
-        {
-            Span<byte> address32 = new byte[32];
-            Span<byte> x = address32[12..];
-            address20.CopyTo(x);
-            return address32;
-        }
 
         public static (FrE, FrE) BreakValueInLowHigh(byte[]? value)
         {

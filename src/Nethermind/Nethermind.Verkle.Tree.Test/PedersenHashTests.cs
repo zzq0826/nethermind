@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Nethermind.Int256;
-using Nethermind.Verkle.Utils;
-using NUnit.Framework;
+using Nethermind.Verkle.Tree.Utils;
 using PedersenHash = Nethermind.Verkle.Tree.Utils.PedersenHash;
 
 namespace Nethermind.Verkle.Tree.Test
@@ -12,7 +11,7 @@ namespace Nethermind.Verkle.Tree.Test
         private readonly byte[] _testAddressBytesZero;
         public PedersenHashTests()
         {
-            _testAddressBytesZero = new byte[32];
+            _testAddressBytesZero = new byte[20];
         }
 
         [Test]
@@ -26,7 +25,7 @@ namespace Nethermind.Verkle.Tree.Test
         [Test]
         public void PedersenHashTreeKey1()
         {
-            Span<byte> address32 = VerkleUtils.ToAddress32(Convert.FromHexString("71562b71999873DB5b286dF957af199Ec94617f7"));
+            Span<byte> address32 = Convert.FromHexString("71562b71999873DB5b286dF957af199Ec94617f7");
             byte[] hash = PedersenHash.Hash(address32, UInt256.Zero);
             hash[31] = 0;
             Convert.ToHexString(hash).Should().BeEquivalentTo("274cde18dd9dbb04caf16ad5ee969c19fe6ca764d5688b5e1d419f4ac6cd1600");

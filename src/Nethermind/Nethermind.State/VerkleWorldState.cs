@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core;
+using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
@@ -36,6 +37,8 @@ public class VerkleWorldState : IWorldState
     private readonly VerkleStateTree _tree;
     private readonly VerkleStorageProvider _storageProvider;
 
+    // private readonly LruCache<>
+
     public VerkleWorldState(VerkleStateTree verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
@@ -57,8 +60,8 @@ public class VerkleWorldState : IWorldState
 
     public Keccak StateRoot
     {
-        get => new Keccak(_tree.RootHash);
-        set => _tree.RootHash = value.Bytes;
+        get => new Keccak(_tree.StateRoot);
+        set => _tree.StateRoot = value.Bytes;
     }
 
 
@@ -535,7 +538,7 @@ public class VerkleWorldState : IWorldState
 
     public void CommitTree(long blockNumber)
     {
-        _tree.Flush(blockNumber);
+        _tree.CommitTree(blockNumber);
     }
 
 
@@ -736,6 +739,7 @@ public class VerkleWorldState : IWorldState
             }
         }
 
+        _tree.Commit();
         Resettable<Change>.Reset(ref _changes, ref _capacity, ref _currentPosition);
         _committedThisRound.Reset();
         _readsForTracing.Clear();

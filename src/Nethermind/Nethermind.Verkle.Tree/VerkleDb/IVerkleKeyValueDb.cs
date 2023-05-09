@@ -8,6 +8,5 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 public interface IVerkleKeyValueDb
 {
     public IDb LeafDb { get; }
-    public IDb StemDb { get; }
-    public IDb BranchDb { get; }
+    public IDb InternalNodeDb { get; }
 }

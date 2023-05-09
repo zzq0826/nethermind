@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
+
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
@@ -71,22 +72,22 @@ public partial class VerkleTree
 
         visitor.VisitTree(rootHash.Bytes, trieVisitContext);
 
-        RecurseNodes(visitor, _verkleStateStore.GetBranch(Array.Empty<byte>()), trieVisitContext);
+        RecurseNodes(visitor, _verkleStateStore.GetInternalNode(Array.Empty<byte>()), trieVisitContext);
 
     }
 
     private void RecurseNodes(IVerkleTreeVisitor visitor, InternalNode node, TrieVisitContext trieVisitContext)
     {
-        switch (node._nodeType)
+        switch (node.NodeType)
         {
-            case Nodes.NodeType.BranchNode:
+            case VerkleNodeType.BranchNode:
                 {
-                    visitor.VisitBranchNode((BranchNode)node, trieVisitContext);
+                    visitor.VisitBranchNode(node, trieVisitContext);
                     trieVisitContext.Level++;
                     for (int i = 0; i < 256; i++)
                     {
                         trieVisitContext.AbsolutePathIndex.Add((byte)i);
-                        InternalNode? childNode = _verkleStateStore.GetBranch(trieVisitContext.AbsolutePathIndex.ToArray());
+                        InternalNode? childNode = _verkleStateStore.GetInternalNode(trieVisitContext.AbsolutePathIndex.ToArray());
                         if (childNode is not null && visitor.ShouldVisit(trieVisitContext.AbsolutePathIndex.ToArray()))
                         {
                             RecurseNodes(visitor, childNode!, trieVisitContext);
@@ -96,9 +97,9 @@ public partial class VerkleTree
                     trieVisitContext.Level--;
                     break;
                 }
-            case Nodes.NodeType.StemNode:
+            case VerkleNodeType.StemNode:
                 {
-                    visitor.VisitStemNode((StemNode)node, trieVisitContext);
+                    visitor.VisitStemNode(node, trieVisitContext);
                     byte[] stemKey = node.Stem;
                     Span<byte> childKey = stackalloc byte[32];
                     stemKey.CopyTo(childKey);

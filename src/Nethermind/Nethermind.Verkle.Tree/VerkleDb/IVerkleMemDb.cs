@@ -9,6 +9,5 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 public interface IVerkleMemDb
 {
     public ConcurrentDictionary<byte[], byte[]?> LeafTable { get; }
-    public ConcurrentDictionary<byte[], SuffixTree?> StemTable { get; }
-    public ConcurrentDictionary<byte[], InternalNode?> BranchTable { get; }
+    public ConcurrentDictionary<byte[], InternalNode?> InternalTable { get; }
 }

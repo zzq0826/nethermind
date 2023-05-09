@@ -38,7 +38,7 @@ namespace Nethermind.Consensus.Producers
         protected readonly ITransactionComparerProvider _transactionComparerProvider;
         protected readonly IBlocksConfig _blocksConfig;
         protected readonly ILogManager _logManager;
-        protected readonly TreeType _treeType;
+        protected readonly StateType _stateType;
 
         public IBlockTransactionsExecutorFactory TransactionsExecutorFactory { get; set; }
 
@@ -68,7 +68,7 @@ namespace Nethermind.Consensus.Producers
             _transactionComparerProvider = transactionComparerProvider;
             _blocksConfig = blocksConfig;
             _logManager = logManager;
-            _treeType = TreeType.MerkleTree;
+            _stateType = StateType.Merkle;
 
             TransactionsExecutorFactory = new BlockProducerTransactionsExecutorFactory(specProvider, logManager);
         }
@@ -99,7 +99,7 @@ namespace Nethermind.Consensus.Producers
             _transactionComparerProvider = transactionComparerProvider;
             _blocksConfig = blocksConfig;
             _logManager = logManager;
-            _treeType = TreeType.VerkleTree;
+            _stateType = StateType.Verkle;
 
             TransactionsExecutorFactory = new BlockProducerTransactionsExecutorFactory(specProvider, logManager);
         }
@@ -146,10 +146,10 @@ namespace Nethermind.Consensus.Producers
 
         protected virtual ReadOnlyTxProcessingEnv CreateReadonlyTxProcessingEnv(ReadOnlyDbProvider readOnlyDbProvider, ReadOnlyBlockTree readOnlyBlockTree)
         {
-            return _treeType switch
+            return _stateType switch
             {
-                TreeType.MerkleTree => new ReadOnlyTxProcessingEnv(readOnlyDbProvider, _readOnlyTrieStore, readOnlyBlockTree, _specProvider, _logManager),
-                TreeType.VerkleTree => new ReadOnlyTxProcessingEnv(readOnlyDbProvider, _readOnlyVerkleTrieStore, readOnlyBlockTree, _specProvider, _logManager),
+                StateType.Merkle => new ReadOnlyTxProcessingEnv(readOnlyDbProvider, _readOnlyTrieStore, readOnlyBlockTree, _specProvider, _logManager),
+                StateType.Verkle => new ReadOnlyTxProcessingEnv(readOnlyDbProvider, _readOnlyVerkleTrieStore, readOnlyBlockTree, _specProvider, _logManager),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

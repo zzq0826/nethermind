@@ -39,7 +39,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         private readonly IReadOnlyBlockTree _blockTree;
         private readonly ISyncModeSelector _syncModeSelector;
         private ILogger _logger;
-        protected readonly TreeType _treeType;
+        protected readonly StateType _stateType;
 
         public DebugModuleFactory(
             IDbProvider dbProvider,
@@ -70,7 +70,7 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
             _logger = logManager.GetClassLogger();
-            _treeType = TreeType.MerkleTree;
+            _stateType = StateType.Merkle;
         }
 
         public DebugModuleFactory(
@@ -102,16 +102,16 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
             _logger = logManager.GetClassLogger();
-            _treeType = TreeType.VerkleTree;
+            _stateType = StateType.Verkle;
         }
 
         public override IDebugRpcModule Create()
         {
 
-            ReadOnlyTxProcessingEnv txEnv = _treeType switch
+            ReadOnlyTxProcessingEnv txEnv = _stateType switch
             {
-                TreeType.MerkleTree => new ReadOnlyTxProcessingEnv(_dbProvider, _trieStore, _blockTree, _specProvider, _logManager),
-                TreeType.VerkleTree => new ReadOnlyTxProcessingEnv(_dbProvider, _verkleTrieStore, _blockTree, _specProvider, _logManager),
+                StateType.Merkle => new ReadOnlyTxProcessingEnv(_dbProvider, _trieStore, _blockTree, _specProvider, _logManager),
+                StateType.Verkle => new ReadOnlyTxProcessingEnv(_dbProvider, _verkleTrieStore, _blockTree, _specProvider, _logManager),
                 _ => throw new ArgumentOutOfRangeException()
             };
 

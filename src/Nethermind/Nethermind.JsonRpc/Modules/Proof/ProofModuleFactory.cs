@@ -30,7 +30,7 @@ namespace Nethermind.JsonRpc.Modules.Proof
         private readonly ReadOnlyDbProvider _dbProvider;
         private readonly IReadOnlyTrieStore _trieStore;
         private readonly ReadOnlyVerkleStateStore _verkleTrieStore;
-        protected readonly TreeType _treeType;
+        protected readonly StateType _stateType;
 
         public ProofModuleFactory(
             IDbProvider dbProvider,
@@ -48,7 +48,7 @@ namespace Nethermind.JsonRpc.Modules.Proof
             _dbProvider = dbProvider.AsReadOnly(false);
             _blockTree = blockTree.AsReadOnly();
             _trieStore = trieStore;
-            _treeType = TreeType.MerkleTree;
+            _stateType = StateType.Merkle;
         }
 
         public ProofModuleFactory(
@@ -67,15 +67,15 @@ namespace Nethermind.JsonRpc.Modules.Proof
             _dbProvider = dbProvider.AsReadOnly(false);
             _blockTree = blockTree.AsReadOnly();
             _verkleTrieStore = trieStore;
-            _treeType = TreeType.VerkleTree;
+            _stateType = StateType.Verkle;
         }
 
         public override IProofRpcModule Create()
         {
-            ReadOnlyTxProcessingEnv txProcessingEnv = _treeType switch
+            ReadOnlyTxProcessingEnv txProcessingEnv = _stateType switch
             {
-                TreeType.MerkleTree => new ReadOnlyTxProcessingEnv(_dbProvider, _trieStore, _blockTree, _specProvider, _logManager),
-                TreeType.VerkleTree => new ReadOnlyTxProcessingEnv(_dbProvider, _verkleTrieStore, _blockTree, _specProvider, _logManager),
+                StateType.Merkle => new ReadOnlyTxProcessingEnv(_dbProvider, _trieStore, _blockTree, _specProvider, _logManager),
+                StateType.Verkle => new ReadOnlyTxProcessingEnv(_dbProvider, _verkleTrieStore, _blockTree, _specProvider, _logManager),
                 _ => throw new ArgumentOutOfRangeException()
             };
 

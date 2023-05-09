@@ -13,8 +13,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
     private readonly IDbProvider _dbProvider;
 
     public IDb LeafDb => _dbProvider.LeafDb;
-    public IDb StemDb => _dbProvider.StemDb;
-    public IDb BranchDb => _dbProvider.BranchDb;
+    public IDb InternalNodeDb => _dbProvider.InternalNodesDb;
 
     public VerkleKeyValueDb(IDbProvider dbProvider)
     {
@@ -22,15 +21,10 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
     }
 
     public byte[]? GetLeaf(byte[] key) => LeafDb.Get(key);
-    public SuffixTree? GetStem(byte[] key)
-    {
-        byte[]? value = StemDb[key];
-        return value is null ? null : SuffixTreeSerializer.Instance.Decode(value);
-    }
 
-    public InternalNode? GetBranch(byte[] key)
+    public InternalNode? GetInternalNode(byte[] key)
     {
-        byte[]? value = BranchDb[key];
+        byte[]? value = InternalNodeDb[key];
         return value is null ? null : InternalNodeSerializer.Instance.Decode(value);
     }
 
@@ -39,32 +33,24 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
         value = GetLeaf(key);
         return value is not null;
     }
-    public bool GetStem(byte[] key, out SuffixTree? value)
+
+    public bool GetInternalNode(byte[] key, out InternalNode? value)
     {
-        value = GetStem(key);
-        return value is not null;
-    }
-    public bool GetBranch(byte[] key, out InternalNode? value)
-    {
-        value = GetBranch(key);
+        value = GetInternalNode(key);
         return value is not null;
     }
 
     public void SetLeaf(byte[] leafKey, byte[] leafValue) => _setLeaf(leafKey, leafValue, LeafDb);
-    public void SetStem(byte[] stemKey, SuffixTree suffixTree) => _setStem(stemKey, suffixTree, StemDb);
-    public void SetBranch(byte[] branchKey, InternalNode internalNodeValue) => _setBranch(branchKey, internalNodeValue, BranchDb);
+    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue) => _setInternalNode(internalNodeKey, internalNodeValue, InternalNodeDb);
 
     public void RemoveLeaf(byte[] leafKey)
     {
         LeafDb.Remove(leafKey);
     }
-    public void RemoveStem(byte[] stemKey)
+
+    public void RemoveInternalNode(byte[] internalNodeKey)
     {
-        StemDb.Remove(stemKey);
-    }
-    public void RemoveBranch(byte[] branchKey)
-    {
-        BranchDb.Remove(branchKey);
+        InternalNodeDb.Remove(internalNodeKey);
     }
 
 
@@ -76,20 +62,13 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
             _setLeaf(key, value, batch);
         }
     }
-    public void BatchStemInsert(IEnumerable<KeyValuePair<byte[], SuffixTree?>> suffixLeaf)
+
+    public void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNode)
     {
-        using IBatch batch = StemDb.StartBatch();
-        foreach ((byte[] key, SuffixTree? value) in suffixLeaf)
+        using IBatch batch = InternalNodeDb.StartBatch();
+        foreach ((byte[] key, InternalNode? value) in internalNode)
         {
-            _setStem(key, value, batch);
-        }
-    }
-    public void BatchBranchInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> branchLeaf)
-    {
-        using IBatch batch = BranchDb.StartBatch();
-        foreach ((byte[] key, InternalNode? value) in branchLeaf)
-        {
-            _setBranch(key, value, batch);
+            _setInternalNode(key, value, batch);
         }
     }
 
@@ -100,8 +79,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
             return key.Length switch
             {
                 32 => LeafDb[key],
-                31 => StemDb[key],
-                _ => BranchDb[key]
+                _ => InternalNodeDb[key]
             };
         }
         set
@@ -111,23 +89,16 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
                 case 32:
                     LeafDb[key] = value;
                     break;
-                case 31:
-                    StemDb[key] = value;
-                    break;
                 default:
-                    BranchDb[key] = value;
+                    InternalNodeDb[key] = value;
                     break;
             }
         }
     }
 
     private static void _setLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db) => db[leafKey] = leafValue;
-    private static void _setStem(byte[] stemKey, SuffixTree? suffixTree, IKeyValueStore db)
+    private static void _setInternalNode(byte[] internalNodeKey, InternalNode? internalNodeValue, IKeyValueStore db)
     {
-        if (suffixTree != null) db[stemKey] = SuffixTreeSerializer.Instance.Encode(suffixTree).Bytes;
-    }
-    private static void _setBranch(byte[] branchKey, InternalNode? internalNodeValue, IKeyValueStore db)
-    {
-        if (internalNodeValue != null) db[branchKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
+        if (internalNodeValue != null) db[internalNodeKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
     }
 }

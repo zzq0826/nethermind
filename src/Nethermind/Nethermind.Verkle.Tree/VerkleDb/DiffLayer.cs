@@ -53,13 +53,9 @@ public class DiffLayer
                     {
                         mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
                     }
-                    foreach (KeyValuePair<byte[], InternalNode?> item in reverseDiff.BranchTable)
+                    foreach (KeyValuePair<byte[], InternalNode?> item in reverseDiff.InternalTable)
                     {
-                        mergedDiff.BranchTable.TryAdd(item.Key, item.Value);
-                    }
-                    foreach (KeyValuePair<byte[], SuffixTree?> item in reverseDiff.StemTable)
-                    {
-                        mergedDiff.StemTable.TryAdd(item.Key, item.Value);
+                        mergedDiff.InternalTable.TryAdd(item.Key, item.Value);
                     }
                 }
                 break;
@@ -72,13 +68,9 @@ public class DiffLayer
                     {
                         mergedDiff.LeafTable.TryAdd(item.Key, item.Value);
                     }
-                    foreach (KeyValuePair<byte[], InternalNode?> item in forwardDiff.BranchTable)
+                    foreach (KeyValuePair<byte[], InternalNode?> item in forwardDiff.InternalTable)
                     {
-                        mergedDiff.BranchTable.TryAdd(item.Key, item.Value);
-                    }
-                    foreach (KeyValuePair<byte[], SuffixTree?> item in forwardDiff.StemTable)
-                    {
-                        mergedDiff.StemTable.TryAdd(item.Key, item.Value);
+                        mergedDiff.InternalTable.TryAdd(item.Key, item.Value);
                     }
                 }
                 break;

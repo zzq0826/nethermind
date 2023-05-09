@@ -1,3 +1,4 @@
+using Nethermind.Core.Caching;
 using Nethermind.Int256;
 
 namespace Nethermind.Verkle.Tree.Utils;
@@ -11,24 +12,21 @@ public readonly struct AccountHeader
     public const int CodeSize = 4;
 
     private const int MainStorageOffsetExponent = 31;
-    private static readonly UInt256 MainStorageOffsetBase = 256;
-    private static readonly UInt256 MainStorageOffset = MainStorageOffsetBase << MainStorageOffsetExponent;
+    private const int MainStorageOffsetBase = 256;
+    private const int HeaderStorageOffset = 64;
+    private const int CodeOffset = 128;
+    private const int VerkleNodeWidth = 256;
 
-    private static readonly UInt256 HeaderStorageOffset = 64;
-    private static readonly UInt256 CodeOffset = 128;
-    private static readonly UInt256 VerkleNodeWidth = 256;
+    private static readonly UInt256 MainStorageOffset = (UInt256)MainStorageOffsetBase << MainStorageOffsetExponent;
 
-    public static byte[] GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
+    private static readonly LruCache<(byte[], UInt256), byte[]> _keyCache = new(1000000, 10000, "Verkle Key Cache");
+
+    private static byte[] GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
     {
-        return PedersenHash.Hash(ToAddress32(address20), treeIndex);
-    }
-
-    public static Span<byte> ToAddress32(ReadOnlySpan<byte> address20)
-    {
-        Span<byte> destination = (Span<byte>)new byte[32];
-        Span<byte> sl = destination[12..];
-        address20.CopyTo(sl);
-        return destination;
+        if (_keyCache.TryGet((address20.ToArray(), treeIndex), out byte[] value)) return value;
+        value = PedersenHash.Hash(address20, treeIndex);
+        _keyCache.Set((address20.ToArray(), treeIndex), value);
+        return value;
     }
 
     public static byte[] GetTreeKeyPrefixAccount(byte[] address) => GetTreeKeyPrefix(address, 0);
@@ -39,13 +37,6 @@ public readonly struct AccountHeader
         treeKeyPrefix[31] = subIndexBytes;
         return treeKeyPrefix;
     }
-
-    public static byte[] GetTreeKeyForVersion(byte[] address) => GetTreeKey(address, UInt256.Zero, Version);
-    public static byte[] GetTreeKeyForBalance(byte[] address) => GetTreeKey(address, UInt256.Zero, Balance);
-    public static byte[] GetTreeKeyForNonce(byte[] address) => GetTreeKey(address, UInt256.Zero, Nonce);
-    public static byte[] GetTreeKeyForCodeCommitment(byte[] address) => GetTreeKey(address, UInt256.Zero, CodeHash);
-    public static byte[] GetTreeKeyForCodeSize(byte[] address) => GetTreeKey(address, UInt256.Zero, CodeSize);
-
 
     public static byte[] GetTreeKeyForCodeChunk(byte[] address, UInt256 chunk)
     {
