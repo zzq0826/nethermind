@@ -4,6 +4,7 @@
 using System.Data;
 using System.Security.Cryptography.Xml;
 using DebuggerStateEvents;
+using MachineStateEvents;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
@@ -11,13 +12,17 @@ using Nethermind.Evm.Lab.Components.Differ;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Evm.Lab.Parser;
 using Nethermind.Evm.Tracing.DebugTrace;
+using Nethermind.Specs;
 using Terminal.Gui;
+using static Microsoft.FSharp.Core.ByRefKinds;
 
 namespace Nethermind.Evm.Lab.Components.DebugView;
 internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec)>
 {
     private bool isCached = false;
+    private ContextMenu contextMenu = new ContextMenu();
     private TabView? container = null;
+    private Point mousePosition;
     private ICodeInfo cachedRuntimeContext;
     public void Dispose()
     {
@@ -46,6 +51,11 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             Height = frameBoundaries.Height,
         };
 
+        if(!isCached )
+        {
+            Application.RootMouseEvent += Application_RootMouseEvent;
+        }
+
         if (!isCached || shouldRerender)
         {
             ClearExistingTabs(container);
@@ -67,7 +77,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         {
             foreach (var tab in container.Tabs)
             {
-                UpdateCodeSectionTab(state, tab);
+                UpdateCodeSectionTab(state, (container, tab));
             }
         }
         isCached = true;
@@ -82,19 +92,28 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         }
     }
 
-    private void UpdateCodeSectionTab((DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec) state, TabView.Tab page)
+    private void UpdateCodeSectionTab((DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec) state, (TabView parent, TabView.Tab page) container)
     {
-        TableViewColored content = (TableViewColored)page.View;
-        for(int i = 0; i < content.Table.Rows.Count; i++)
+        TableViewColored content = (TableViewColored)container.page.View;
+        content.ClearColoredRegions();
+        content.HighlightRow(-1);
+        for (int i = 0; i < content.Table.Rows.Count; i++)
         {
-            if (state.txTracer.BreakPoints.ContainsKey(Int32.Parse((string)content.Table.Rows[i]["Position"])))
+            int pc = Int32.Parse((string)content.Table.Rows[i]["Position"]);
+            if (pc == state.txTracer.CurrentState?.ProgramCounter)
             {
-                content.Table.Rows[i]["    "] = "[v]";
+                content.HighlightRow(i);
+                container.parent.SelectedTab = container.page;
+            }
+
+            if (state.txTracer._breakPoints.ContainsKey(pc))
+            {
+                content.Table.Rows[i][1] = "[x]";
                 content.ColoredRanges.Add(new Range(i, i + 1));
             }
             else
             {
-                content.Table.Rows[i]["    "] = "[ ]";
+                content.Table.Rows[i][1] = "[ ]";
                 content.ColoredRanges.Remove(new Range(i, i + 1));
             }
         }
@@ -115,7 +134,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         int line = 0;
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add(line, state.txTracer.BreakPoints.ContainsKey(instr.idx) ? "[v]" : "[ ]", instr.idx, instr.ToString(state.Spec));
+            dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(instr.idx) ? "[x]" : "[ ]", instr.idx, instr.ToString(state.Spec));
             if(instr.idx == (state.txTracer?.CurrentState?.ProgramCounter ?? 0))
             {
                 selectedRow = line;
@@ -145,12 +164,89 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
 
         programView.SelectedCellChanged += e =>
         {
-            BreakPointRequested?.Invoke(new SetBreakpoint(dissassembledBytecode[e.NewRow].idx));
+            int pc = dissassembledBytecode[e.NewRow].idx;
+            BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: state.txTracer.IsBreakpoitnSet(pc)));
         };
         if(selectedRow is not null)
         {
             programView.SelectedRow = selectedRow.Value;
         }
+
+        programView.MouseClick += (e) => {
+            var cell = programView.ScreenToCell(e.MouseEvent.X, e.MouseEvent.Y);
+
+            if(cell is not null && cell.Value.X == 1)
+            {
+                int pc = Int32.Parse((string)programView.Table.Rows[cell.Value.Y]["Position"]);
+                if (e.MouseEvent.Flags == contextMenu.MouseFlags)
+                {
+                    ShowContextMenu(pc, mousePosition.X, mousePosition.Y, state.txTracer.IsBreakpoitnSet(pc));
+                    e.Handled = true;
+                }
+            }
+
+        };
+
         return (selectedRow is not null, programView);
+    }
+
+    private void ShowContextMenu(int pc, int x, int y, bool isAlreadySet)
+    {
+        Dialog CreateConditionView()
+        {
+            var submit = new Button("Submit");
+            var cancel = new Button("Cancel");
+            Dialog container = new Dialog("Condition Input", 30, 6, submit, cancel)
+            {
+                X = x,
+                Y = y,
+            };
+
+            ConditionView conditionView = new ConditionView(
+                (msg) => BreakPointRequested?.Invoke(new SetBreakpoint(pc, (msg as SetGlobalCheck).condition, unsetBreakpoint: false))
+            );
+
+            submit.Clicked += () =>
+            {
+                conditionView.SubmitCondition();
+                Application.RequestStop();
+            };
+
+            cancel.Clicked += () =>
+            {
+                Application.RequestStop();
+            };
+
+            container.Add(conditionView.View(new Rectangle
+            {
+                Height = 3, Width = 28
+            }).Item1);
+            return container;
+        }
+
+
+        contextMenu = new ContextMenu(x, y,
+            new MenuBarItem(new MenuItem[] {
+                    isAlreadySet
+                        ? new MenuItem ("_RemoveBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: true)))
+                        : new MenuItem ("_AddBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: false))),
+                    isAlreadySet
+                        ? new MenuBarItem ("_Conditions", new MenuItem [] {
+                            new MenuItem ("_AddCondition", string.Empty, () => Application.Run(CreateConditionView())),
+                            new MenuItem ("_RemoveCondition", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: false)))
+                        })
+                        : null,
+            })
+        )
+        { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true};
+
+
+        contextMenu.Show();
+    }
+
+
+	void Application_RootMouseEvent(MouseEvent me)
+    {
+        mousePosition = new Point(me.X, me.Y);
     }
 }

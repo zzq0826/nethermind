@@ -8,6 +8,7 @@ namespace Nethermind.Evm.Lab.Components.Differ;
 class TableViewColored : TableView
 {
     public List<Range> ColoredRanges = new List<Range>();
+    public int HighlightedRow = -1;
     public int LineLenght = 8;
     public int DiffIndexStart = 2;
     public int RenderCellIndex = 0;
@@ -21,6 +22,13 @@ class TableViewColored : TableView
     {
         RenderCellIndex = 0;
         base.Redraw(bounds);
+    }
+
+    public void ClearColoredRegions() => ColoredRanges.Clear();
+
+    public void HighlightRow(int rowIndex)
+    {
+        HighlightedRow = rowIndex;
     }
 
     protected override void RenderCell(Terminal.Gui.Attribute cellColor, string render, bool isPrimaryCell)
@@ -40,7 +48,20 @@ class TableViewColored : TableView
                     Driver.SetAttribute(Driver.MakeAttribute(Color.Red, cellColor.Background));
                 }
             } else {
-                Driver.SetAttribute(cellColor);
+                if(RenderLineIndex == HighlightedRow)
+                {
+                    if (RenderCellIndex % 8 == 0)
+                    {
+                        Driver.SetAttribute(Driver.MakeAttribute(Color.Brown, cellColor.Background));
+                    }
+                    else
+                    {
+                        Driver.SetAttribute(Driver.MakeAttribute(Color.BrightMagenta, cellColor.Background));
+                    }
+                } else
+                {
+                    Driver.SetAttribute(cellColor);
+                }
             }
 
             Driver.AddRune(render[i]);

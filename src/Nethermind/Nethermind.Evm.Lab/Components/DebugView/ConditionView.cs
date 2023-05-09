@@ -53,10 +53,7 @@ internal class ConditionView : IComponent
             {
                 if (e.KeyEvent.Key == Key.Enter && conditionBox.HasFocus)
                 {
-                    var condition =
-                        String.IsNullOrWhiteSpace((string)conditionBox.Text) ? null : 
-                        CSharpScript.EvaluateAsync<Func<EvmState, bool>>((string)conditionBox.Text, ScriptOptions.Default.WithReferences(typeof(Nethermind.Evm.EvmState).Assembly)).Result;
-                    ActionRequested?.Invoke(new SetGlobalCheck(condition));
+                    SubmitCondition();
                 }
             };
             container.Add(conditionBox);
@@ -64,5 +61,12 @@ internal class ConditionView : IComponent
 
         isCached = true;
         return (container, frameBoundaries);
+    }
+
+    public void SubmitCondition()
+    {
+        var condition = String.IsNullOrWhiteSpace((string)conditionBox.Text) ? null :
+            CSharpScript.EvaluateAsync<Func<EvmState, bool>>((string)conditionBox.Text, ScriptOptions.Default.WithReferences(typeof(Nethermind.Evm.EvmState).Assembly)).Result;
+        ActionRequested?.Invoke(new SetGlobalCheck(condition));
     }
 }
