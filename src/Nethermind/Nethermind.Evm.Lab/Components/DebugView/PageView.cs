@@ -118,7 +118,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             Y = Pos.Bottom(condition_view),
             Height = Dim.Percent(33),
         });
-        var (controls_view, controls_rect) = _component_cntrl.View(state.Tracer.CurrentPhase is not DebugTracer.DebugPhase.Starting, program_rect.Value with
+        var (controls_view, controls_rect) = _component_cntrl.View((state.Tracer.CurrentPhase is not DebugTracer.DebugPhase.Starting, state.Tracer.CanReadState) , program_rect.Value with
         {
             Y = Pos.Bottom(program_view),
             Height = Dim.Percent(7),

@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using DebuggerStateEvents;
+using Nethermind.Core.Collections;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.DebugView;
-internal class MediaLikeView : IComponent<bool>
+internal class MediaLikeView : IComponent<(bool isThreadOn, bool canReadState)>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -23,7 +24,7 @@ internal class MediaLikeView : IComponent<bool>
 
     public event Action<ActionsBase> ActionRequested;
 
-    public (View, Rectangle?) View(bool isVmThreadOn, Rectangle? rect = null)
+    public (View, Rectangle?) View((bool isThreadOn, bool canReadState) state, Rectangle? rect = null)
     {
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -63,7 +64,7 @@ internal class MediaLikeView : IComponent<bool>
             container.Add(buttons);
         }
 
-        if (isVmThreadOn)
+        if (state.isThreadOn)
         {
             container.Remove(StartResetButtom);
             StartResetButtom = new Button("reset")
@@ -72,6 +73,7 @@ internal class MediaLikeView : IComponent<bool>
             };
             StartResetButtom.Clicked += () => ActionRequested?.Invoke(new Reset());
             container.Add(StartResetButtom);
+
         }
         else
         {
@@ -83,6 +85,8 @@ internal class MediaLikeView : IComponent<bool>
             StartResetButtom.Clicked += () => ActionRequested?.Invoke(new Start());
             container.Add(StartResetButtom);
         }
+
+        buttons.ForEach(btn => btn.Enabled = state.canReadState);
 
         isCached = true;
         return (container, frameBoundaries);
