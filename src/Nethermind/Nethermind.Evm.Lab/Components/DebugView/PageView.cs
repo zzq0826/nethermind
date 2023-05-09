@@ -79,7 +79,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         };
 
         var (cpu_view, cpu_rect) = _component_cpu.View(currentEntry, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
-        var (stack_view, stack_rect) = _component_stk.View((state.Tracer?.CurrentState?.DataStack ?? Array.Empty<byte>(), state.Tracer?.CurrentState?.DataStackHead ?? 0), cpu_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = _component_stk.View((state.Tracer?.CurrentState?.DataStack ?? Array.Empty<byte>(), state.Tracer?.CurrentState?.DataStackHead ?? 0, state.Tracer?.CurrentState is null), cpu_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)

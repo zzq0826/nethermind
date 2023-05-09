@@ -18,6 +18,8 @@ using Nethermind.Evm.Tracing;
 using Nethermind.Evm.Lab.Interfaces;
 
 // TODO : Fix breakpoint setting on code section > 0 (requires alot of stuff)
+// TODO : Handle Storage UI
+// TODO : Refactor code or (switch completely to MVVM or Imgui like style)
 
 
 #if false

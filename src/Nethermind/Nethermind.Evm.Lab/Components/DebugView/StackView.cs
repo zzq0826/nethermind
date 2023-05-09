@@ -8,13 +8,14 @@ using Nethermind.Int256;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.DebugView;
-internal class StackView : IComponent<(byte[] memory, int height)>
+internal class StackView : IComponent<(byte[] memory, int height, bool isNewState)>, IDisposable
 {
     bool isCached = false;
     private FrameView? container = null;
     private TableView? stackView = null;
     private HexView? rawStackView = null;
     private TabView? viewsAggregator = null;
+    private MemoryStream? memoryStream = null; 
     private (Button Push, Button Pop) Actions;
     public void Dispose()
     {
@@ -25,7 +26,7 @@ internal class StackView : IComponent<(byte[] memory, int height)>
     }
     public event Action<long, byte> ByteEdited;
     public event Action<int> StackHeightChangeRequest;
-    public (View, Rectangle?) View((byte[] memory, int height) stack, Rectangle? rect = null)
+    public (View, Rectangle?) View((byte[] memory, int height, bool isNewState) stack, Rectangle? rect = null)
     {
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -71,7 +72,7 @@ internal class StackView : IComponent<(byte[] memory, int height)>
 
 
         AddClassicalStackView(Uint256Stack);
-        AddRawStackView(stack.memory);
+        AddRawStackView(stack.memory, stack.isNewState);
 
         if (!isCached)
         {
@@ -89,21 +90,29 @@ internal class StackView : IComponent<(byte[] memory, int height)>
         return (container, frameBoundaries);
     }
 
-    private void AddRawStackView(byte[] state)
+    private void AddRawStackView(byte[] state, bool isNewState)
     {
-        var streamFromBuffer = new MemoryStream(state);
         rawStackView ??= new HexView()
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
         };
-        rawStackView.Source = streamFromBuffer;
 
-        rawStackView.Edited += (e) =>
+        memoryStream?.Dispose();
+        memoryStream = new MemoryStream(state);
+        rawStackView.Source = memoryStream;
+
+        if (isNewState)
         {
-            ByteEdited?.Invoke(e.Key, e.Value);
-        };
+            rawStackView.DiscardEdits();
+        }
 
+        if(!isCached) {
+            rawStackView.Edited += (e) =>
+            {
+                ByteEdited?.Invoke(e.Key, e.Value);
+            };
+        }
     }
 
     private void AddClassicalStackView(IEnumerable<UInt256>? state)
