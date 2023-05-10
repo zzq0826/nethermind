@@ -10,13 +10,7 @@ namespace Nethermind.Verkle.Tree.Utils
 
         public static Banderwagon Commit(FrE[] value)
         {
-            Banderwagon elem = Banderwagon.Identity();
-            for (int i = 0; i < value.Length; i++)
-            {
-                elem += value[i] * Constants.BasisG[i];
-            }
-
-            return elem;
+            return Banderwagon.MultiScalarMul(Constants.BasisG, value);
         }
 
         public static Banderwagon ScalarMul(FrE value, int index)
@@ -36,7 +30,7 @@ namespace Nethermind.Verkle.Tree.Utils
 
         public Commitment()
         {
-            Point = Banderwagon.Identity();
+            Point = Banderwagon.Identity;
         }
         public Banderwagon Point { get; private set; }
         public FrE PointAsField
@@ -57,8 +51,7 @@ namespace Nethermind.Verkle.Tree.Utils
 
         private void SetCommitmentToField()
         {
-            byte[] mapToBytes = Point.MapToField();
-            PointAsField = FrE.FromBytesReduced(mapToBytes);
+            PointAsField = Point.MapToScalarField();
         }
 
         public void AddPoint(Banderwagon point)
@@ -70,7 +63,7 @@ namespace Nethermind.Verkle.Tree.Utils
 
         public FrE UpdateCommitmentGetDelta(Banderwagon point)
         {
-            FrE prevPointAsField = PointAsField.Dup();
+            FrE prevPointAsField = PointAsField;
             Point += point;
             _pointAsField = null;
             SetCommitmentToField();

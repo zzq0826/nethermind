@@ -23,7 +23,7 @@ namespace Nethermind.Verkle.Tree.Utils
             }
             CRS crs = CRS.Instance;
 
-            Banderwagon res = Banderwagon.Identity();
+            Banderwagon res = Banderwagon.Identity;
             for (int i = 0; i < pedersenVec.Length; i++)
             {
                 res += crs.BasisG[i] * pedersenVec[i];

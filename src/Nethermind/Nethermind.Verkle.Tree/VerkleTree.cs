@@ -8,6 +8,7 @@ using Nethermind.Db;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Proofs;
 using Committer = Nethermind.Verkle.Tree.Utils.Committer;
 using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 
@@ -42,6 +43,8 @@ public partial class VerkleTree: IVerkleTree
         _verkleStateStore = new VerkleTrieStore(verkleStateStore);
         _leafUpdateCache = new Dictionary<byte[], LeafUpdateDelta>(Bytes.EqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
+        ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
+        ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
     }
 
     protected VerkleTree(IVerkleStore verkleStateStore)
@@ -49,6 +52,8 @@ public partial class VerkleTree: IVerkleTree
         _verkleStateStore = verkleStateStore;
         _leafUpdateCache = new ();
         _stateRoot = _verkleStateStore.RootHash;
+        ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
+        ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
     }
 
     public bool MoveToStateRoot(byte[] stateRoot)

@@ -1,3 +1,4 @@
+using System.Numerics;
 using Nethermind.Int256;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -32,21 +33,15 @@ namespace Nethermind.Verkle.Tree.Utils
 
     public static class VerkleUtils
     {
-        private static FrE ValueExistsMarker
-        {
-            get
-            {
-                new UInt256(2).Exp(128, out UInt256 res);
-                return FrE.SetElement(res.u0, res.u1, res.u2, res.u3);
-            }
-        }
+        private static readonly FrE ValueExistsMarker = FrE.SetElement(BigInteger.Pow(2, 128));
 
         public static (FrE, FrE) BreakValueInLowHigh(byte[]? value)
         {
             if (value is null) return (FrE.Zero, FrE.Zero);
             if (value.Length != 32) throw new ArgumentException();
-            FrE lowFr = FrE.FromBytes(value[..16].Reverse().ToArray()) + ValueExistsMarker;
-            FrE highFr = FrE.FromBytes(value[16..].Reverse().ToArray());
+            UInt256 valueFr = new(value);
+            FrE lowFr = FrE.SetElement(valueFr.u0, valueFr.u1) + ValueExistsMarker;
+            FrE highFr = FrE.SetElement(valueFr.u2, valueFr.u3);
             return (lowFr, highFr);
         }
 

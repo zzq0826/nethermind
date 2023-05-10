@@ -61,7 +61,7 @@ namespace Nethermind.JsonRpc.Modules.Trace
             _poSSwitcher = poSSwitcher ?? throw new ArgumentNullException(nameof(poSSwitcher));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             logManager.GetClassLogger();
-            _stateType = StateType.Verkle;
+            _stateType = StateType.Merkle;
         }
 
         public TraceModuleFactory(

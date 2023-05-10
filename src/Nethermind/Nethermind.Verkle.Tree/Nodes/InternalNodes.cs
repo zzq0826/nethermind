@@ -32,7 +32,7 @@ public class InternalNode
         return NodeType switch
         {
             VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
-            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup(), InitCommitmentHash!.Value.Dup()),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup(), InitCommitmentHash!.Value),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -58,10 +58,10 @@ public class InternalNode
         InternalCommitment = new Commitment();
         Banderwagon stemCommitment = GetInitialCommitment();
         InternalCommitment.AddPoint(stemCommitment);
-        InitCommitmentHash = InternalCommitment.PointAsField.Dup();
+        InitCommitmentHash = InternalCommitment.PointAsField;
     }
 
-    private InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment c1, Commitment c2, Commitment internalCommitment, FrE initCommitment)
+    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment c1, Commitment c2, Commitment internalCommitment, FrE initCommitment)
     {
         NodeType = nodeType;
         Stem = stem;
@@ -75,9 +75,9 @@ public class InternalNode
     {
         NodeType = nodeType;
         Stem = stem;
-        C1 = new Commitment(new Banderwagon(c1));
-        C2 = new Commitment(new Banderwagon(c2));
-        InternalCommitment = new Commitment(new Banderwagon(extCommit));
+        C1 = new Commitment(Banderwagon.FromBytes(c1, subgroupCheck: false)!.Value);
+        C2 = new Commitment(Banderwagon.FromBytes(c2, subgroupCheck: false)!.Value);
+        InternalCommitment = new Commitment(Banderwagon.FromBytes(extCommit, subgroupCheck: false)!.Value);
         InitCommitmentHash = FrE.Zero;
 
     }
@@ -91,7 +91,7 @@ public class InternalNode
     public FrE UpdateCommitment(Banderwagon point)
     {
         Debug.Assert(NodeType == VerkleNodeType.BranchNode);
-        FrE prevCommit = InternalCommitment.PointAsField.Dup();
+        FrE prevCommit = InternalCommitment.PointAsField;
         InternalCommitment.AddPoint(point);
         return InternalCommitment.PointAsField - prevCommit;
     }
@@ -104,13 +104,13 @@ public class InternalNode
 
         if (deltaLeafCommitment.DeltaC1 is not null)
         {
-            FrE oldC1Value = C1!.PointAsField.Dup();
+            FrE oldC1Value = C1!.PointAsField;
             C1.AddPoint(deltaLeafCommitment.DeltaC1.Value);
             deltaC1Commit = C1.PointAsField - oldC1Value;
         }
         if (deltaLeafCommitment.DeltaC2 is not null)
         {
-            FrE oldC2Value = C2!.PointAsField.Dup();
+            FrE oldC2Value = C2!.PointAsField;
             C2.AddPoint(deltaLeafCommitment.DeltaC2.Value);
             deltaC2Commit = C2.PointAsField - oldC2Value;
         }

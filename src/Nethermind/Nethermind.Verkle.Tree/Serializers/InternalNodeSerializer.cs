@@ -27,8 +27,8 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
         switch (nodeType)
         {
             case VerkleNodeType.BranchNode:
-                InternalNode node = new InternalNode(VerkleNodeType.BranchNode);
-                node.UpdateCommitment(new Banderwagon(rlpStream.Read(32).ToArray()));
+                InternalNode node = new(VerkleNodeType.BranchNode);
+                node.UpdateCommitment(Banderwagon.FromBytes(rlpStream.Read(32).ToArray(), subgroupCheck: false)!.Value);
                 return node;
             case VerkleNodeType.StemNode:
                 byte[] stem = rlpStream.Read(31).ToArray();
