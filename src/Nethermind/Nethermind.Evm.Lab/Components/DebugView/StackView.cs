@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Data;
+using DebuggerStateEvents;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm.Lab.Interfaces;
 using Nethermind.Int256;
@@ -15,8 +16,11 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
     private TableView? stackView = null;
     private HexView? rawStackView = null;
     private TabView? viewsAggregator = null;
-    private MemoryStream? memoryStream = null; 
+    private MemoryStream? memoryStream = null;
     private (Button Push, Button Pop) Actions;
+    private ContextMenu contextMenu = new ContextMenu();
+    private Point mousePosition;
+
     public void Dispose()
     {
         container?.Dispose();
@@ -24,6 +28,7 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
         viewsAggregator?.Dispose();
         rawStackView?.Dispose();
     }
+    public event Action<ActionsBase> EventRequested;
     public event Action<long, byte> ByteEdited;
     public event Action<int> StackHeightChangeRequest;
     public (View, Rectangle?) View((byte[] memory, int height, bool isNewState) stack, Rectangle? rect = null)
@@ -42,10 +47,6 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
             Height = frameBoundaries.Height,
         };
 
-        var Uint256Stack = stack.memory
-            ?.Take(32 * stack.height).Chunk(32)
-             .Select(chunk => new UInt256(chunk, true))
-             .Reverse();
 
         viewsAggregator ??= new TabView()
         {
@@ -71,11 +72,13 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
         };
 
 
-        AddClassicalStackView(Uint256Stack);
+        AddClassicalStackView(stack.memory, stack.height);
         AddRawStackView(stack.memory, stack.isNewState);
 
         if (!isCached)
         {
+            Application.RootMouseEvent += Application_RootMouseEvent;
+
             var normalStackTab = new TabView.Tab("Stack", stackView);
             var rawStackTab = new TabView.Tab("Stack Memory", rawStackView);
 
@@ -115,8 +118,13 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
         }
     }
 
-    private void AddClassicalStackView(IEnumerable<UInt256>? state)
+    private void AddClassicalStackView(byte[] stack, int stackhead)
     {
+        var Uint256Stack = stack
+            ?.Take(32 * stackhead).Chunk(32)
+             .Select(chunk => new UInt256(chunk, true))
+             .Reverse();
+
         stackView ??= new TableView()
         {
             X = 0,
@@ -130,7 +138,7 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
         dataTable.Columns.Add("Value");
 
         int stringLen = 42;
-        var cleanedUpDataSource = state.Select(entry =>
+        var cleanedUpDataSource = Uint256Stack.Select(entry =>
         {
 
             string entryStr = entry.ToHexString(false);
@@ -145,11 +153,88 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
             return entryStr;
         }).ToList();
 
+        stackView.MouseClick += (e) => {
+            var cell = stackView.ScreenToCell(e.MouseEvent.X, e.MouseEvent.Y);
+
+            if (cell is not null && cell.Value.X == 1)
+            {
+                int pc = stackhead - Int32.Parse((string)stackView.Table.Rows[cell.Value.Y]["Index"]);
+                if (e.MouseEvent.Flags == contextMenu.MouseFlags)
+                {
+                    ShowContextMenu(stack, pc - 1, mousePosition.X, mousePosition.Y);
+                    e.Handled = true;
+                }
+            }
+
+        };
+
         int index = 0;
         foreach (var value in cleanedUpDataSource)
         {
             dataTable.Rows.Add(index++, value);
         }
         stackView.Table = dataTable;
+    }
+
+    private void ShowContextMenu(byte[] arena, int pc, int x, int y)
+    {
+        Dialog CreateConditionView()
+        {
+            var submit = new Button("Submit");
+            var cancel = new Button("Cancel");
+            Dialog container = new Dialog("Stack Item Edit View", 50, 5, submit, cancel)
+            {
+                X = x,
+                Y = y,
+            };
+
+            TextField itemView = new TextField()
+            {
+                Height = 3,
+                Width = 48
+            };
+
+            Span<byte> item = arena.Slice(32 * pc, 32);
+            itemView.Text = item.ToHexString();
+
+            submit.Clicked += () =>
+            {
+                try
+                {
+                    byte[] bytes = Bytes.FromHexString(((string)itemView.Text));
+                    EventRequested?.Invoke(new UpdateStack(pc, bytes, false));
+                } catch(Exception ex) 
+                {
+                    MainView.ShowError(ex.Message);
+                } finally
+                {
+                    Application.RequestStop();
+                }
+            };
+
+            cancel.Clicked += () =>
+            {
+                Application.RequestStop();
+            };
+
+            container.Add(itemView);
+            return container;
+        }
+
+
+        contextMenu = new ContextMenu(x, y,
+            new MenuBarItem(new MenuItem[] {
+                new MenuItem ("_Pop", string.Empty, () => EventRequested?.Invoke(new UpdateStack(pc, null, true))),
+                new MenuItem ("_Edit", string.Empty, () =>  Application.Run(CreateConditionView()))
+            })
+        ) { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true };
+
+
+        contextMenu.Show();
+    }
+
+    void Application_RootMouseEvent(MouseEvent me)
+    {
+        mousePosition = new Point(me.X, me.Y);
     }
 }

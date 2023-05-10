@@ -17,12 +17,15 @@ using Nethermind.Specs.Forks;
 using Nethermind.Evm.Tracing.DebugTrace;
 using Nethermind.Evm;
 using MachineStateEvents;
+using FluentAssertions.Equivalency.Tracing;
+using System;
 
 namespace DebuggerStateEvents
 {
     public record MoveNext(bool onlyOneStep) : ActionsBase;
     public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null, bool unsetBreakpoint = false) : ActionsBase;
     public record SetGlobalCheck(Func<EvmState, bool> condition = null) : ActionsBase;
+    public record UpdateStack(int stackIndex, byte[] newBytes, bool isPop) : ActionsBase;
     public record Start : ActionsBase;
     public record Lock : ActionsBase;
     public record Update : ActionsBase;
@@ -231,6 +234,25 @@ namespace Nethermind.Evm.Lab
                 case MachineStateEvents.ThrowError errMsg:
                     {
                         throw new Exception(errMsg.error);
+                    }
+                case DebuggerStateEvents.UpdateStack stkMsg:
+                    {
+                        byte[] memory = state.Tracer.CurrentState.DataStack;
+                        int dataStackHead = state.Tracer.CurrentState.DataStackHead;
+                        if (stkMsg.isPop)
+                        {
+                            // get subarray after item
+                            byte[] afterBytes = memory.Slice(32 * (stkMsg.stackIndex + 1));
+                            Array.Copy(afterBytes, 0, memory, 32 * stkMsg.stackIndex, afterBytes.Length);
+                            dataStackHead--;
+                        } else
+                        {
+                            Array.Copy(stkMsg.newBytes, 0, memory, 32 * stkMsg.stackIndex, stkMsg.newBytes.Length);
+                        }
+
+                        state.Tracer.CurrentState.DataStack = memory;
+                        state.Tracer.CurrentState.DataStackHead = dataStackHead;
+                        return state;
                     }
             }
             return state;

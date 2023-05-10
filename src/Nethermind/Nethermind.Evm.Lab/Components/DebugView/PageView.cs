@@ -131,8 +131,6 @@ internal class DebuggerView : IComponent<DebuggerState>
 
         if (!isCached)
         {
-            _component_pgr.BreakPointRequested += (e) => FireEvent(state, e);
-            _component_check.ActionRequested += (e) => FireEvent(state, e);
             _component_ram.ByteEdited += (idx, newValue) =>
             {
                 state.Tracer.CurrentState.Memory.SaveByte((UInt256)idx, newValue);
@@ -153,6 +151,10 @@ internal class DebuggerView : IComponent<DebuggerState>
             _component_cntrl.ActionRequested += e => FireEvent(state, e);
             _component_cnfg.ConfigsChanged += e => FireEvent(state, e);
             _component_inpt.InputChanged += e => FireEvent(state, e);
+            _component_pgr.BreakPointRequested += (e) => FireEvent(state, e);
+            _component_check.ActionRequested += (e) => FireEvent(state, e);
+            _component_stk.EventRequested += (e) => FireEvent(state, e);
+
             MainPanel.Add(program_view, config_view, storage_view, input_view, ram_view, stack_view, cpu_view, controls_view, condition_view);
         }
         isCached = true;
