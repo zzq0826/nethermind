@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using MachineStateEvents;
+using Nethermind.Core.Extensions;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Components.GlobalViews;
 using Nethermind.Evm.Lab.Interfaces;
@@ -77,7 +78,7 @@ internal class MachineView : IComponent<MachineState>
         };
 
         var (cpu_view, cpu_rect) = _component_cpu.View((state.Current), new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
-        var (stack_view, stack_rect) = _component_stk.View((state.Current.Stack.Select(entryStr => UInt256.Parse(entryStr)).ToArray()), cpu_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = _component_stk.View((state.Current.Stack.Select(entryStr => Bytes.FromHexString(entryStr)).ToArray()), cpu_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)

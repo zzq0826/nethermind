@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nethermind.Core.Extensions;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Components.TracerView;
 using Nethermind.Evm.Lab.Interfaces;
@@ -74,7 +75,7 @@ internal class HalfPageView : IComponent<TraceState>
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(30)
         });
-        var (stack_view, stack_rect) = stackView.View(innerState.Current.Stack.Select(entry => UInt256.Parse(entry)).ToArray(), entries_rect.Value with // h:50 w:30
+        var (stack_view, stack_rect) = stackView.View(innerState.Current.Stack.Select(entry => Bytes.FromHexString(entry)).ToArray(), entries_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(entries_view),
             Height = Dim.Percent(25)

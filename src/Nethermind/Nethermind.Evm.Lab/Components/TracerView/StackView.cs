@@ -8,7 +8,7 @@ using Nethermind.Int256;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class StackView : IComponent<IEnumerable<UInt256>>
+internal class StackView : IComponent<IEnumerable<byte[]>>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -20,7 +20,7 @@ internal class StackView : IComponent<IEnumerable<UInt256>>
         stackView?.Dispose();
     }
 
-    public (View, Rectangle?) View(IEnumerable<UInt256> state, Rectangle? rect = null)
+    public (View, Rectangle?) View(IEnumerable<byte[]> state, Rectangle? rect = null)
     {
         state = state.Reverse();
         var frameBoundaries = new Rectangle(
@@ -49,7 +49,7 @@ internal class StackView : IComponent<IEnumerable<UInt256>>
         dataTable.Columns.Add("Index");
         dataTable.Columns.Add("Value");
 
-        int stringLen = 32;
+        int stringLen = 42;
         var cleanedUpDataSource = state.Select(entry =>
         {
 
