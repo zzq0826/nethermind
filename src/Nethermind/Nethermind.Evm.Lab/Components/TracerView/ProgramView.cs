@@ -11,15 +11,9 @@ using Terminal.Gui;
 namespace Nethermind.Evm.Lab.Components.TracerView;
 internal class ProgramView : IComponent<MachineState>
 {
-    private bool isExternalSource = false;
     private bool isCached = false;
     private FrameView? container = null;
     private TableView? programView = null;
-
-    public ProgramView(bool isExternalSource)
-    {
-        this.isExternalSource = isExternalSource;
-    }
 
     public void Dispose()
     {
@@ -29,7 +23,11 @@ internal class ProgramView : IComponent<MachineState>
 
     public (View, Rectangle?) View(MachineState state, Rectangle? rect = null)
     {
-        var dissassembledBytecode = BytecodeParser.Dissassemble(state.RuntimeContext is EofCodeInfo, state.RuntimeContext.CodeSection.Span, isExternalSource);
+        var dissassembledBytecode = BytecodeParser.Dissassemble(
+            state.RuntimeContext is EofCodeInfo,
+            BytecodeParser.ExtractBytecodeFromTrace(state),
+            isTraceSourced: true
+        );
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -52,8 +50,9 @@ internal class ProgramView : IComponent<MachineState>
 
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add(instr.idx, instr.ToString(state.SelectedFork));
-            selectedRow += instr.idx < (isExternalSource ? state.Index : state.Entries[state.Index].Pc) ? 1 : 0;
+            string opcode = instr.ToString(state.SelectedFork);
+            dataTable.Rows.Add(instr.idx, $"{(opcode.Length > 13 ? $"{opcode.Substring(0, 13)}..." : opcode)}");
+            selectedRow = state.Index;
         }
 
         programView ??= new TableView()

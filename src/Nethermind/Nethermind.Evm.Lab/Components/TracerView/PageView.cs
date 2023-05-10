@@ -51,7 +51,7 @@ internal class MachineView : IComponent<MachineState>
             new ReturnView(),
             new InputsView(),
             new StorageView(),
-            new ProgramView(isExternalTraceViz),
+            new ProgramView(),
             new ConfigsView(),
             new MediaLikeView()
         );
