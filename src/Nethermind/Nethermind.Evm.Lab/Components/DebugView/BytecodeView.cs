@@ -34,8 +34,9 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
 
     public (View, Rectangle?) View((DebugTracer txTracer, ICodeInfo RuntimeContext, IReleaseSpec Spec) state, Rectangle? rect = null)
     {
-        bool shouldRerender = cachedRuntimeContext != state.RuntimeContext;
-        cachedRuntimeContext = state.RuntimeContext;
+        var codeInfo = state.txTracer.CurrentState?.Env.CodeInfo ?? state.RuntimeContext;
+        bool shouldRerender = cachedRuntimeContext != codeInfo;
+        cachedRuntimeContext = codeInfo;
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -59,7 +60,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         if (!isCached || shouldRerender)
         {
             ClearExistingTabs(container);
-            if (state.RuntimeContext is EofCodeInfo eofRuntimeContext)
+            if (codeInfo is EofCodeInfo eofRuntimeContext)
             {
                 for (int i = 0; i < eofRuntimeContext._header.CodeSections.Length; i++)
                 {
@@ -70,7 +71,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             }
             else
             {
-                (_, TableView programView) = AddCodeSectionTab(state, (false, 0, state.RuntimeContext.MachineCode, 0));
+                (_, TableView programView) = AddCodeSectionTab(state, (false, 0, codeInfo.MachineCode, 0));
                 container.AddTab(new TabView.Tab("Section 0", programView), true);
             }
         } else
@@ -134,7 +135,8 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         int line = 0;
         foreach (var instr in dissassembledBytecode)
         {
-            dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(instr.idx) ? "[x]" : "[ ]", instr.idx, instr.ToString(state.Spec));
+            string opcode = instr.ToString(state.Spec);
+            dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(instr.idx) ? "[x]" : "[ ]", instr.idx, $"{(opcode.Length > 13 ? $"{opcode.Substring(0, 13)}..." : opcode)}");
             if(instr.idx == (state.txTracer?.CurrentState?.ProgramCounter ?? 0))
             {
                 selectedRow = line;

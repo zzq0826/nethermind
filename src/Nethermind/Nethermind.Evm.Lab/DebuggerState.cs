@@ -125,6 +125,11 @@ namespace Nethermind.Evm.Lab
             }
             return this;
         }
+        public DebuggerState Reset()
+        {
+            context = new(Cancun.Instance);
+            return this.ResetTracer();
+        }
 
 
         IState<DebuggerState> IState<DebuggerState>.Initialize(DebuggerState seed) => seed;
@@ -168,8 +173,8 @@ namespace Nethermind.Evm.Lab
                 case MachineStateEvents.BytecodeInsertedB biMsg:
                     {
                         return state
+                            .Reset()
                             .SetBytecode(biMsg.bytecode)
-                            .ResetTracer()
                             .Setup();
 
                     }
@@ -211,7 +216,8 @@ namespace Nethermind.Evm.Lab
                     }
                 case DebuggerStateEvents.Reset _:
                     {
-                        return state.ResetTracer().Setup();
+                        return state.Reset()
+                            .Setup();
                     }
                 case DebuggerStateEvents.Update _ or DebuggerStateEvents.Lock _:
                     {
@@ -219,7 +225,8 @@ namespace Nethermind.Evm.Lab
                     }
                 case DebuggerStateEvents.Abort _:
                     {
-                        return state.Abort().Setup();
+                        return state.Abort()
+                            .Setup();
                     }
                 case MachineStateEvents.ThrowError errMsg:
                     {

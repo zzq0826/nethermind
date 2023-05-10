@@ -129,7 +129,7 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
         dataTable.Columns.Add("Index");
         dataTable.Columns.Add("Value");
 
-        int stringLen = 32;
+        int stringLen = 42;
         var cleanedUpDataSource = state.Select(entry =>
         {
 

@@ -23,7 +23,8 @@ using Nethermind.Evm.Lab.Interfaces;
 
 
 #if false
-byte[] bytecode = Nethermind.Core.Extensions.Bytes.FromHexString("5b601760005600");
+
+byte[] bytecode = Nethermind.Core.Extensions.Bytes.FromHexString("716860176017601701500060005260096017f3600052601260006000f0");
 EthereumRestrictedInstance context = new(Cancun.Instance);
 DebugTracer tracer = new DebugTracer(new GethLikeTxTracer(GethTraceOptions.Default))
 {
@@ -73,7 +74,10 @@ while (!vmTask.IsCompleted)
     if(tracer.CanReadState)
     {
         Console.WriteLine(
-            JsonSerializer.Serialize<EvmState>(tracer.CurrentState)
+            JsonSerializer.Serialize<EvmState>(tracer.CurrentState, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            })
         );
 
         if(ParseCommand(Console.ReadLine(), out (int lineBreak, Func<EvmState, bool>? conditoon)? BreakPoint))
@@ -86,7 +90,7 @@ while (!vmTask.IsCompleted)
     }
 }
 #else
-GlobalState.initialCmdArgument = args.Length == 0 ? "0xef00010100080200020009000203000000000000020201000260426000b00001500001b1" : args[0];
+GlobalState.initialCmdArgument = args.Length == 0 ? "0x716860176017601701500060005260096017f36000526012600e6000f0" : args[0];
 var mainView = new MainView();
 mainView.Run(mainView.State);
 #endif
