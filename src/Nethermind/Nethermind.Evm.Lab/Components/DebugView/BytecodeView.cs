@@ -198,7 +198,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         {
             var submit = new Button("Submit");
             var cancel = new Button("Cancel");
-            Dialog container = new Dialog("Condition Input", 30, 6, submit, cancel)
+            Dialog container = new Dialog("Condition Input", 35, 6, submit, cancel)
             {
                 X = x,
                 Y = y,
@@ -207,6 +207,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             ConditionView conditionView = new ConditionView(
                 (msg) => BreakPointRequested?.Invoke(new SetBreakpoint(pc, (msg as SetGlobalCheck).condition, unsetBreakpoint: false))
             );
+            conditionView.AutocompleteOn = false;
 
             submit.Clicked += () =>
             {
@@ -221,7 +222,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
 
             container.Add(conditionView.View(new Rectangle
             {
-                Height = 3, Width = 28
+                Height = 3, Width = 33
             }).Item1);
             return container;
         }

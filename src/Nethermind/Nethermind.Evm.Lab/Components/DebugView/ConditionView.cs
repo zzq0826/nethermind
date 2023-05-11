@@ -14,8 +14,9 @@ internal class ConditionView : IComponent
     bool isCached = false;
     private FrameView? container = null;
     private TextField conditionBox = null;
-    private Point mousePosition;
     private ContextMenu contextMenu = new ContextMenu();
+
+    public bool AutocompleteOn { get; set; } = true;
     public ConditionView(Action<ActionsBase> actionHandler = null)
     {
         ActionRequested += actionHandler;
@@ -52,13 +53,12 @@ internal class ConditionView : IComponent
 
         if (!isCached)
         {
-            Application.RootMouseEvent += Application_RootMouseEvent;
             conditionBox.KeyPress += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter && conditionBox.HasFocus)
                 {
                     SubmitCondition();
-                } else if(e.KeyEvent.KeyValue == '.')
+                } else if(AutocompleteOn && e.KeyEvent.KeyValue == '.')
                 {
                     string getToken(string text)
                     {
@@ -109,11 +109,5 @@ internal class ConditionView : IComponent
 
             contextMenu.Show();
         }
-    }
-
-
-    void Application_RootMouseEvent(MouseEvent me)
-    {
-        mousePosition = new Point(me.X, me.Y);
     }
 }
