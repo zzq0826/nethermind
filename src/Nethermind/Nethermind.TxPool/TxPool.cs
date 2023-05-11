@@ -262,7 +262,7 @@ namespace Nethermind.TxPool
 
                 if (transaction.SupportsBlobs)
                 {
-                    blobTxs ??= new List<Transaction>();
+                    blobTxs ??= new List<Transaction>(Eip4844Constants.MaxBlobsPerBlock);
                     blobTxs.Add(transaction);
                 }
 
@@ -279,7 +279,7 @@ namespace Nethermind.TxPool
 
             if (blobTxs is not null)
             {
-                _blobTransactionsDb.Set(block.Number, _txDecoder.EncodeToNewNettyStream(blobTxs.ToArray()).DecodeByteArray());
+                _blobTransactionsDb.Set(block.Number, _txDecoder.EncodeToNewNettyStream(blobTxs.ToArray()).Data!);
             }
 
             long transactionsInBlock = blockTransactions.Length;
