@@ -217,7 +217,7 @@ namespace Nethermind.TxPool
                 for (int i = 0; i < txs.Length; i++)
                 {
                     Transaction tx = txs[i];
-                    if (tx.Type == TxType.Blob)
+                    if (tx.SupportsBlobs)
                     {
                         continue;
                     }
@@ -260,7 +260,7 @@ namespace Nethermind.TxPool
                     discoveredForHashCache++;
                 }
 
-                if (transaction.Type == TxType.Blob)
+                if (transaction.SupportsBlobs)
                 {
                     blobTxs ??= new List<Transaction>();
                     blobTxs.Add(transaction);
