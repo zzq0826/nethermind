@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
 using System.Collections.Generic;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
@@ -33,7 +32,6 @@ public class EnrRecordParserTest
         };
 
         NodeRecord baseRecord = parser.ParseRecord(baseEnr);
-        Console.WriteLine($"baseRecord.Enr ${baseRecord.EnrString}");
         foreach ((_, string enr) in ambiguous)
         {
             NodeRecord record = parser.ParseRecord(enr);
