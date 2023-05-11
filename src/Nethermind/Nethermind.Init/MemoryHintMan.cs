@@ -37,14 +37,14 @@ namespace Nethermind.Init
             ITxPoolConfig txPoolConfig,
             uint cpuCount)
         {
-            TotalMemory = initConfig.MemoryHint ?? 2.GB();
+            TotalMemory = initConfig.MemoryHint ?? 2.GiB();
             ValidateCpuCount(cpuCount);
 
             checked
             {
                 if (_logger.IsInfo) _logger.Info("Setting up memory allowances");
                 if (_logger.IsInfo) _logger.Info($"  memory hint:        {TotalMemory / 1000 / 1000}MB");
-                _remainingMemory = initConfig.MemoryHint ?? 2.GB();
+                _remainingMemory = initConfig.MemoryHint ?? 2.GiB();
                 _remainingMemory -= GeneralMemory;
                 if (_logger.IsInfo) _logger.Info($"  general memory:     {GeneralMemory / 1000 / 1000}MB");
                 AssignPeersMemory(networkConfig);
@@ -72,7 +72,7 @@ namespace Nethermind.Init
         private long _remainingMemory;
 
         public long TotalMemory = 1024 * 1024 * 1024;
-        public long GeneralMemory { get; } = 32.MB();
+        public long GeneralMemory { get; } = 32.MiB();
         public long FastBlocksMemory { get; private set; }
         public long DbMemory { get; private set; }
         public long NettyMemory { get; private set; }
@@ -88,7 +88,7 @@ namespace Nethermind.Init
 
         private void AssignPeersMemory(INetworkConfig networkConfig)
         {
-            PeersMemory = networkConfig.MaxActivePeers.MB();
+            PeersMemory = networkConfig.MaxActivePeers.MiB();
             if (PeersMemory > _remainingMemory * 0.75)
             {
                 throw new InvalidDataException(
@@ -124,11 +124,11 @@ namespace Nethermind.Init
             {
                 if (!syncConfig.DownloadBodiesInFastSync && !syncConfig.DownloadReceiptsInFastSync)
                 {
-                    FastBlocksMemory = Math.Min(128.MB(), (long)(0.1 * _remainingMemory));
+                    FastBlocksMemory = Math.Min(128.MiB(), (long)(0.1 * _remainingMemory));
                 }
                 else
                 {
-                    FastBlocksMemory = Math.Min(1.GB(), (long)(0.1 * _remainingMemory));
+                    FastBlocksMemory = Math.Min(1.GiB(), (long)(0.1 * _remainingMemory));
                 }
 
                 Synchronization.MemoryAllowance.FastBlocksMemory = (ulong)FastBlocksMemory;
@@ -275,8 +275,8 @@ namespace Nethermind.Init
             // remove optimize for point lookup here?
             return new DbNeeds(
                 preferredBuffers,
-                1.MB(), // min buffer size
-                64.MB(), // max buffer size
+                4.MiB(), // min buffer size
+                64.MiB(), // max buffer size
                 0, // min block cache
                 0, // max block cache
                 1m); // db memory %
@@ -288,10 +288,10 @@ namespace Nethermind.Init
             // remove optimize for point lookup here?
             return new DbNeeds(
                 preferredBuffers,
-                1.MB(), // min buffer size
-                8.MB(), // max buffer size
-                1.MB(), // min block cache
-                512.MB(), // max block cache
+                4.MiB(), // min buffer size
+                16.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                512.MiB(), // max block cache
                 0.02m); // db memory %
         }
 
@@ -300,10 +300,10 @@ namespace Nethermind.Init
             uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
-                1.MB(), // min buffer size
-                8.MB(), // max buffer size
-                1.MB(), // min block cache
-                1.GB(), // max block cache
+                4.MiB(), // min buffer size
+                16.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                16.GiB(), // max block cache
                 0.02m); // db memory %
         }
 
@@ -312,10 +312,10 @@ namespace Nethermind.Init
             uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
-                4.MB(), // min buffer size
-                64.MB(), // max buffer size
-                8.MB(), // min block cache
-                2.GB(), // max block cache
+                4.MiB(), // min buffer size
+                64.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                2.GiB(), // max block cache
                 0.04m); // db memory %
         }
 
@@ -324,10 +324,10 @@ namespace Nethermind.Init
             uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
-                2.MB(), // min buffer size
-                64.MB(), // max buffer size
-                8.MB(), // min block cache
-                2.GB(), // max block cache
+                4.MiB(), // min buffer size
+                64.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                2.GiB(), // max block cache
                 0.01m); // db memory %
         }
 
@@ -335,10 +335,10 @@ namespace Nethermind.Init
         {
             return new DbNeeds(
                 4,
-                1.MB(), // min buffer size
-                16.MB(), // max buffer size
-                2.MB(), // min block cache
-                128.MB(), // max block cache
+                4.MiB(), // min buffer size
+                32.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                128.MiB(), // max block cache
                 0.01m); // db memory %
         }
 
@@ -347,10 +347,10 @@ namespace Nethermind.Init
             uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
-                1.MB(), // min buffer size
-                4.MB(), // max buffer size
-                0, // min block cache
-                0, // max block cache
+                4.MiB(), // min buffer size
+                32.MiB(), // max buffer size
+                16.MiB(), // min block cache
+                64.MiB(), // max block cache
                 0); // db memory %
         }
 
@@ -358,7 +358,7 @@ namespace Nethermind.Init
         {
             ValidateCpuCount(cpuCount);
 
-            NettyMemory = Math.Min(512.MB(), (long)(0.2 * _remainingMemory));
+            NettyMemory = Math.Min(512.MiB(), (long)(0.2 * _remainingMemory));
 
             uint arenaCount = (uint)Math.Min(cpuCount * 2, networkConfig.MaxNettyArenaCount);
 
