@@ -30,6 +30,7 @@ namespace Nethermind.Api
 
         public string RpcDbUrl { get; set; } = String.Empty;
         public long? MemoryHint { get; set; }
+        public bool EnableWarmup { get; set; } = true;
 
         [Obsolete("Use DiagnosticMode with MemDb instead")]
         public bool UseMemDb

@@ -202,6 +202,11 @@ namespace Nethermind.Init.Steps
             _api.BlockPreprocessor.AddFirst(
                 new RecoverSignatures(getApi.EthereumEcdsa, txPool, getApi.SpecProvider, getApi.LogManager));
 
+            if (initConfig.EnableWarmup)
+            {
+                _api.BlockPreprocessor.AddLast(new WarmUpStep(worldState));
+            }
+
             // blockchain processing
             BlockhashProvider blockhashProvider = new(
                 getApi.BlockTree, getApi.LogManager);
