@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Text.Json;
 using DebuggerStateEvents;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.Evm.Lab.Components.GlobalViews;
@@ -21,7 +22,7 @@ internal class DebuggerView : IComponent<DebuggerState>
     public record Components(
         MachineDataView MachineOverview, StackView StackComponent, MemoryView RamComponent, InputsView InputComponent,
         StorageView StorageComponent, BytecodeView ProgramComponent, ConfigsView ConfigComponent, MediaLikeView ControlsComponent,
-        ConditionView ConditionComponent
+        ConditionView ConditionComponent, FooterView FooterComponent
     ) : IDisposable
     {
         public void Dispose()
@@ -34,7 +35,8 @@ internal class DebuggerView : IComponent<DebuggerState>
             ProgramComponent?.Dispose();
             ConfigComponent?.Dispose();
             ControlsComponent?.Dispose();
-            ConditionComponent?.Dispose();   
+            ConditionComponent?.Dispose();
+            FooterComponent?.Dispose();
         }
     }
     private View MainPanel;
@@ -52,7 +54,8 @@ internal class DebuggerView : IComponent<DebuggerState>
             new BytecodeView(),
             new ConfigsView(),
             new MediaLikeView(),
-            new ConditionView()
+            new ConditionView(),
+            new FooterView()
         );
     }
 
@@ -69,6 +72,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         var _component_cnfg = _components.ConfigComponent;
         var _component_cntrl = _components.ControlsComponent;
         var _component_check = _components.ConditionComponent;
+        var _component_foot = _components.FooterComponent;
 
         GethTxTraceEntry currentEntry = state.Tracer.GetCurrentEntry();
 
@@ -81,15 +85,25 @@ internal class DebuggerView : IComponent<DebuggerState>
         var (cpu_view, cpu_rect) = _component_cpu.View(currentEntry, new Rectangle(0, 0, Dim.Percent(30), Dim.Percent(25))); // h:10 w:30
         var (stack_view, stack_rect) = _component_stk.View((state.Tracer?.CurrentState?.DataStack ?? Array.Empty<byte>(), state.Tracer?.CurrentState?.DataStackHead ?? 0, state.Tracer?.CurrentState is null), cpu_rect.Value with // h:50 w:30
         {
+            X = 0,
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)
         });
+
         var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
         {
             Y = Pos.Bottom(stack_view),
             Width = Dim.Fill(),
+            Height = Dim.Percent(30)
+        });
+
+        var (footer_view, footer_rect) = _component_foot.View(state?.Tracer.CurrentState, ram_rect.Value with
+        {
+            Y = Pos.Bottom(ram_view),
+            Width = Dim.Fill(),
             Height = Dim.Fill()
         });
+
         var (input_view, input_rect) = _component_inpt.View((state.RuntimeContext, Array.Empty<byte>(), state.SelectedFork), cpu_rect.Value with // h: 10, w : 80
         {
             X = Pos.Right(cpu_view),
@@ -155,7 +169,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             _component_check.ActionRequested += (e) => FireEvent(state, e);
             _component_stk.EventRequested += (e) => FireEvent(state, e);
 
-            MainPanel.Add(program_view, config_view, storage_view, input_view, ram_view, stack_view, cpu_view, controls_view, condition_view);
+            MainPanel.Add(program_view, config_view, storage_view, input_view, ram_view, stack_view, cpu_view, controls_view, condition_view, footer_view);
         }
         isCached = true;
         return (MainPanel, null);

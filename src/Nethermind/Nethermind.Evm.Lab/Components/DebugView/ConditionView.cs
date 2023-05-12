@@ -63,7 +63,7 @@ internal class ConditionView : IComponent
                     string getToken(string text)
                     {
                         int currentIndex = text.Length - 1;
-                        while (Char.IsLetter(text[currentIndex]) || text[currentIndex] == '_') {
+                        while (currentIndex >= 0 && (Char.IsLetter(text[currentIndex]) || text[currentIndex] == '_')) {
                             currentIndex--;
                         }
 
@@ -91,18 +91,26 @@ internal class ConditionView : IComponent
 
     private void ShowContextMenu(string expandedToken, int x, int y)
     {
-        var namedState = (string)conditionBox.Text.Substring(0, conditionBox.Text.IndexOf("=>")).TrimSpace();
+        int indexOfArrow = conditionBox.Text.IndexOf("=>");
+        if(indexOfArrow == -1)
+        {
+            return;
+        }
+
+        var namedState = (string)conditionBox.Text.Substring(0, indexOfArrow).TrimSpace();
         if(expandedToken == namedState)
         {
             conditionBox.Text += ".";
             Type evmstateType = typeof(EvmState);
-            var props = evmstateType.GetProperties().Select(prop => prop.Name);
+            var props = evmstateType.GetProperties().Select(prop => (prop.Name, prop.PropertyType.Name))
+                .Concat(evmstateType.GetFields().Select(prop => (prop.Name, prop.FieldType.Name)));
+
             contextMenu = new ContextMenu(x, y,
                 new MenuBarItem(
-                    props.Select(name => new MenuItem(name, string.Empty, () =>
+                    props.Select(prop => new MenuItem(prop.Item1, prop.Item2, () =>
                     {
-                        conditionBox.Text += name;
-                        conditionBox.CursorPosition += name.Length + 1;
+                        conditionBox.Text += prop.Item1;
+                        conditionBox.CursorPosition += prop.Item1.Length + 1;
                     })).ToArray()
             ))
             { ForceMinimumPosToZero = false, UseSubMenusSingleFrame = false};
