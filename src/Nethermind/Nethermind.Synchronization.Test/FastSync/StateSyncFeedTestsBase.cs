@@ -321,12 +321,15 @@ namespace Nethermind.Synchronization.Test.FastSync
                 throw new NotImplementedException();
             }
 
-            public async Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+            public async Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> valueHashes, CancellationToken token)
             {
                 if (_maxRandomizedLatencyMs != 0)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(TestContext.CurrentContext.Random.NextLong() % _maxRandomizedLatencyMs));
                 }
+
+                // Trying to prevent too many change. Rewrote this when convenient
+                List<Keccak> hashes = valueHashes.Select((k) => k.ToKeccak()).ToList();
 
                 if (_executorResultFunction is not null) return await _executorResultFunction(hashes);
 

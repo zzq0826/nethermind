@@ -12,7 +12,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V63
     [Parallelizable(ParallelScope.All)]
     public class GetNodeDataMessageSerializerTests
     {
-        private static void Test(Keccak[] keys)
+        private static void Test(ValueKeccak[] keys)
         {
             GetNodeDataMessage message = new(keys);
             GetNodeDataMessageSerializer serializer = new();
@@ -23,14 +23,14 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V63
         [Test]
         public void Roundtrip()
         {
-            Keccak[] keys = { TestItem.KeccakA, TestItem.KeccakB, TestItem.KeccakC };
+            ValueKeccak[] keys = { TestItem.KeccakA, TestItem.KeccakB, TestItem.KeccakC };
             Test(keys);
         }
 
         [Test]
         public void Roundtrip_with_nulls()
         {
-            Keccak[] keys = { null, TestItem.KeccakA, null, TestItem.KeccakB, null, null };
+            ValueKeccak[] keys = { null, TestItem.KeccakA, null, TestItem.KeccakB, null, null };
             Test(keys);
         }
     }

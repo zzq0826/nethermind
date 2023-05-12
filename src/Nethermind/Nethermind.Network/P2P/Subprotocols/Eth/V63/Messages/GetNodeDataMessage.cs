@@ -6,12 +6,12 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages
 {
-    public class GetNodeDataMessage : HashesMessage
+    public class GetNodeDataMessage : ValueHashesMessage
     {
         public override int PacketType { get; } = Eth63MessageCode.GetNodeData;
         public override string Protocol { get; } = "eth";
 
-        public GetNodeDataMessage(IReadOnlyList<Keccak> keys)
+        public GetNodeDataMessage(IReadOnlyList<ValueKeccak> keys)
             : base(keys)
         {
         }

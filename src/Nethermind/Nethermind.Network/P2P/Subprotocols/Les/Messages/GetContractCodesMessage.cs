@@ -17,6 +17,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Les.Messages
         public Keccak[] RequestAddresses =>
             Requests.Select(request => request.AccountKey).ToArray();
 
+        public ValueKeccak[] RequestAddressesValue =>
+            Requests.Select(request => (ValueKeccak) request.AccountKey).ToArray();
+
         public GetContractCodesMessage()
         {
         }

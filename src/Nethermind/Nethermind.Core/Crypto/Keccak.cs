@@ -108,6 +108,17 @@ namespace Nethermind.Core.Crypto
             return result;
         }
 
+        [DebuggerStepThrough]
+        public static ValueKeccak Compute(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return OfAnEmptyString;
+            }
+
+            return InternalCompute(System.Text.Encoding.UTF8.GetBytes(input));
+        }
+
         private static ValueKeccak InternalCompute(byte[] input)
         {
             ValueKeccak result = default;

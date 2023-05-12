@@ -632,7 +632,7 @@ namespace Nethermind.Synchronization.Test
                 throw new NotImplementedException();
             }
 
-            public Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+            public Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token)
             {
                 throw new NotImplementedException();
             }
@@ -1171,7 +1171,7 @@ namespace Nethermind.Synchronization.Test
                 return await Task.FromResult(_receiptsSerializer.Deserialize(messageSerialized).TxReceipts);
             }
 
-            public Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+            public Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token)
             {
                 throw new NotImplementedException();
             }

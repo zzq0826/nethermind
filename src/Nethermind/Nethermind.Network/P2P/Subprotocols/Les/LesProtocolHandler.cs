@@ -225,7 +225,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Les
 
         public void Handle(GetContractCodesMessage getContractCodes)
         {
-            var codes = SyncServer.GetNodeData(getContractCodes.RequestAddresses, NodeDataType.Code);
+            var codes = SyncServer.GetNodeData(getContractCodes.RequestAddressesValue, NodeDataType.Code);
             // todo - implement cost tracking
             Send(new ContractCodesMessage(codes, getContractCodes.RequestId, int.MaxValue));
         }

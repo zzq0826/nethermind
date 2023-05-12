@@ -123,7 +123,7 @@ namespace Nethermind.Synchronization.Test
                 return Task.FromResult(Array.Empty<TxReceipt[]>());
             }
 
-            public Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+            public Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token)
             {
                 return Task.FromResult(Array.Empty<byte[]>());
             }

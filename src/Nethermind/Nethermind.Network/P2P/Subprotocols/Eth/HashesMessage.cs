@@ -22,4 +22,19 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             return $"{GetType().Name}({Hashes.Count})";
         }
     }
+
+    public abstract class ValueHashesMessage : P2PMessage
+    {
+        protected ValueHashesMessage(IReadOnlyList<ValueKeccak> hashes)
+        {
+            Hashes = hashes ?? throw new ArgumentNullException(nameof(hashes));
+        }
+
+        public IReadOnlyList<ValueKeccak> Hashes { get; }
+
+        public override string ToString()
+        {
+            return $"{GetType().Name}({Hashes.Count})";
+        }
+    }
 }

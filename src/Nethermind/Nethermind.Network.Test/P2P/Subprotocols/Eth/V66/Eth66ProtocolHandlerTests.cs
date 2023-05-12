@@ -6,7 +6,6 @@ using System.Net;
 using System.Threading;
 using DotNetty.Buffers;
 using FluentAssertions;
-using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Consensus;
 using Nethermind.Core;
@@ -210,7 +209,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V66
         [Test]
         public void Can_handle_get_node_data()
         {
-            var msg63 = new GetNodeDataMessage(new[] { Keccak.Zero, TestItem.KeccakA });
+            var msg63 = new GetNodeDataMessage(new[] { ValueKeccak.Zero, TestItem.KeccakA });
             var msg66 = new Network.P2P.Subprotocols.Eth.V66.Messages.GetNodeDataMessage(1111, msg63);
 
             HandleIncomingStatusMessage();
@@ -231,7 +230,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V66
             });
 
             HandleIncomingStatusMessage();
-            ((ISyncPeer)_handler).GetNodeData(new List<Keccak>(new[] { Keccak.Zero }), CancellationToken.None);
+            ((ISyncPeer)_handler).GetNodeData(new List<ValueKeccak>(new[] { ValueKeccak.Zero }), CancellationToken.None);
             HandleZeroMessage(msg66, Eth66MessageCode.NodeData);
         }
 

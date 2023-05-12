@@ -30,7 +30,7 @@ namespace Nethermind.Synchronization.FastSync
             Rightness = original.Rightness;
         }
 
-        public Keccak Hash { get; }
+        public ValueKeccak Hash { get; }
 
         /// <summary>
         /// Account part of the path if the item is a Storage node.

@@ -376,7 +376,7 @@ namespace Nethermind.Synchronization.Test
         public void Can_retrieve_node_values()
         {
             _stateDb.Set(TestItem.KeccakA, TestItem.RandomDataA);
-            byte[][] values = _syncServer.GetNodeData(new[] { TestItem.KeccakA, TestItem.KeccakB });
+            byte[][] values = _syncServer.GetNodeData(new[] { TestItem.ValueKeccakA, TestItem.ValueKeccakB });
             Assert.That(values.Length, Is.EqualTo(2), "data.Length");
             Assert.That(values[0], Is.EqualTo(TestItem.RandomDataA), "data[0]");
             Assert.That(values[1], Is.EqualTo(null), "data[1]");

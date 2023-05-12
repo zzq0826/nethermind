@@ -175,7 +175,7 @@ namespace Nethermind.Synchronization.Test
             return Task.FromResult(result);
         }
 
-        public Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token) => Task.FromResult(_remoteSyncServer?.GetNodeData(hashes))!;
+        public Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token) => Task.FromResult(_remoteSyncServer?.GetNodeData(hashes))!;
 
         public void RegisterSatelliteProtocol<T>(string protocol, T protocolHandler) where T : class
         {

@@ -47,7 +47,7 @@ namespace Nethermind.Synchronization.StateSync
                 if (batch.NodeDataType == NodeDataType.Code)
                 {
                     hashList = HashList.Rent(batch.RequestedNodes);
-                    task = handler.GetByteCodes(new KeccakToValueKeccakList(hashList), cancellationToken);
+                    task = handler.GetByteCodes(hashList, cancellationToken);
                 }
                 else
                 {
@@ -152,7 +152,7 @@ namespace Nethermind.Synchronization.StateSync
         /// Present an array of StateSyncItem[] as IReadOnlyList<Keccak> to avoid allocating secondary array
         /// Also Rent and Return cache for single item to try and avoid allocating the HashList in common case
         /// </summary>
-        private sealed class HashList : IReadOnlyList<Keccak>
+        private sealed class HashList : IReadOnlyList<ValueKeccak>
         {
             private static HashList s_cache;
 
@@ -181,11 +181,11 @@ namespace Nethermind.Synchronization.StateSync
                 _items = null;
             }
 
-            public Keccak this[int index] => _items[index].Hash;
+            public ValueKeccak this[int index] => _items[index].Hash;
 
             public int Count => _items.Count;
 
-            public IEnumerator<Keccak> GetEnumerator()
+            public IEnumerator<ValueKeccak> GetEnumerator()
             {
                 foreach (StateSyncItem item in _items)
                 {
@@ -194,36 +194,6 @@ namespace Nethermind.Synchronization.StateSync
             }
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-
-        /// <summary>
-        /// Transition class to prevent even larger change. Need to be removed later.
-        /// </summary>
-        private sealed class KeccakToValueKeccakList : IReadOnlyList<ValueKeccak>
-        {
-            private HashList _innerList;
-
-            internal KeccakToValueKeccakList(HashList innerList)
-            {
-                _innerList = innerList;
-            }
-
-            public IEnumerator<ValueKeccak> GetEnumerator()
-            {
-                foreach (Keccak keccak in _innerList)
-                {
-                    yield return keccak;
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-
-            public int Count => _innerList.Count;
-
-            public ValueKeccak this[int index] => _innerList[index];
         }
     }
 }

@@ -63,6 +63,15 @@ namespace Nethermind.Core.Test.Builders
         public static Keccak KeccakG = Keccak.Compute("G");
         public static Keccak KeccakH = Keccak.Compute("H");
 
+        public static ValueKeccak ValueKeccakA = ValueKeccak.Compute("A");
+        public static ValueKeccak ValueKeccakB = ValueKeccak.Compute("B");
+        public static ValueKeccak ValueKeccakC = ValueKeccak.Compute("C");
+        public static ValueKeccak ValueKeccakD = ValueKeccak.Compute("D");
+        public static ValueKeccak ValueKeccakE = ValueKeccak.Compute("E");
+        public static ValueKeccak ValueKeccakF = ValueKeccak.Compute("F");
+        public static ValueKeccak ValueKeccakG = ValueKeccak.Compute("G");
+        public static ValueKeccak ValueKeccakH = ValueKeccak.Compute("H");
+
         public static PrivateKey PrivateKeyA = new("010102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f");
         public static PrivateKey PrivateKeyB = new("020102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f");
         public static PrivateKey PrivateKeyC = new("030102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f");

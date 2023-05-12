@@ -173,7 +173,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             throw new NotSupportedException("Fast sync not supported by eth62 protocol");
         }
 
-        public virtual Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+        public virtual Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token)
         {
             throw new NotSupportedException("Fast sync not supported by eth62 protocol");
         }

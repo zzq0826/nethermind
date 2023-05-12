@@ -99,7 +99,7 @@ namespace Nethermind.Synchronization.Test
             throw new NotImplementedException();
         }
 
-        public Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> hashes, CancellationToken token)
+        public Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> hashes, CancellationToken token)
         {
             throw new NotImplementedException();
         }

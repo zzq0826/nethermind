@@ -24,7 +24,7 @@ namespace Nethermind.Synchronization
         public CanonicalHashTrie? GetCHT();
         Keccak? FindHash(long number);
         BlockHeader[] FindHeaders(Keccak hash, int numberOfBlocks, int skip, bool reverse);
-        byte[]?[] GetNodeData(IReadOnlyList<Keccak> keys, NodeDataType includedTypes = NodeDataType.Code | NodeDataType.State);
+        byte[]?[] GetNodeData(IReadOnlyList<ValueKeccak> keys, NodeDataType includedTypes = NodeDataType.Code | NodeDataType.State);
         int GetPeerCount();
         ulong NetworkId { get; }
         BlockHeader Genesis { get; }

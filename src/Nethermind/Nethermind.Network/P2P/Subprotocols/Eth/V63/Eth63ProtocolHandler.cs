@@ -109,7 +109,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63
             _nodeDataRequests.Handle(msg.Data, size);
         }
 
-        public override async Task<byte[][]> GetNodeData(IReadOnlyList<Keccak> keys, CancellationToken token)
+        public override async Task<byte[][]> GetNodeData(IReadOnlyList<ValueKeccak> keys, CancellationToken token)
         {
             if (keys.Count == 0)
             {
