@@ -778,14 +778,14 @@ namespace Nethermind.Synchronization.FastSync
                     DependentItem dependentBranch = new(currentStateSyncItem, currentResponseItem, 16);
 
                     // children may have the same hashes (e.g. a set of accounts with the same code at different addresses)
-                    HashSet<Keccak?> alreadyProcessedChildHashes = new();
+                    HashSet<ValueKeccak?> alreadyProcessedChildHashes = new();
 
                     Span<byte> branchChildPath = stackalloc byte[currentStateSyncItem.PathNibbles.Length + 1];
                     currentStateSyncItem.PathNibbles.CopyTo(branchChildPath[..currentStateSyncItem.PathNibbles.Length]);
 
                     for (int childIndex = 15; childIndex >= 0; childIndex--)
                     {
-                        Keccak? childHash = trieNode.GetChildHash(childIndex);
+                        ValueKeccak? childHash = trieNode.GetChildHashAsValueKeccak(childIndex);
                         if (childHash is not null &&
                             alreadyProcessedChildHashes.Contains(childHash))
                         {
@@ -800,7 +800,7 @@ namespace Nethermind.Synchronization.FastSync
                             branchChildPath[currentStateSyncItem.PathNibbles.Length] = (byte)childIndex;
 
                             AddNodeResult addChildResult = AddNodeToPending(
-                                new StateSyncItem(childHash, currentStateSyncItem.AccountPathNibbles, branchChildPath.ToArray(), nodeDataType, currentStateSyncItem.Level + 1, CalculateRightness(trieNode.NodeType, currentStateSyncItem, childIndex))
+                                new StateSyncItem(childHash.Value, currentStateSyncItem.AccountPathNibbles, branchChildPath.ToArray(), nodeDataType, currentStateSyncItem.Level + 1, CalculateRightness(trieNode.NodeType, currentStateSyncItem, childIndex))
                                 {
                                     BranchChildIndex = (short)childIndex,
                                     ParentBranchChildIndex = currentStateSyncItem.BranchChildIndex
@@ -831,7 +831,7 @@ namespace Nethermind.Synchronization.FastSync
 
                     break;
                 case NodeType.Extension:
-                    Keccak? next = trieNode.GetChild(NullTrieNodeResolver.Instance, 0)?.Keccak;
+                    ValueKeccak? next = trieNode.GetChild(NullTrieNodeResolver.Instance, 0)?.Keccak;
                     if (next is not null)
                     {
                         DependentItem dependentItem = new(currentStateSyncItem, currentResponseItem, 1);
@@ -843,7 +843,7 @@ namespace Nethermind.Synchronization.FastSync
 
                         AddNodeResult addResult = AddNodeToPending(
                             new StateSyncItem(
-                                next,
+                                next.Value,
                                 currentStateSyncItem.AccountPathNibbles,
                                 childPath.ToArray(),
                                 nodeDataType,
@@ -871,7 +871,7 @@ namespace Nethermind.Synchronization.FastSync
                     {
                         _pendingItems.MaxStateLevel = 64;
                         DependentItem dependentItem = new(currentStateSyncItem, currentResponseItem, 2, true);
-                        (Keccak codeHash, Keccak storageRoot) = AccountDecoder.DecodeHashesOnly(new RlpStream(trieNode.Value));
+                        (ValueKeccak codeHash, ValueKeccak storageRoot) = AccountDecoder.DecodeHashesOnly(new RlpStream(trieNode.Value));
                         if (codeHash != Keccak.OfAnEmptyString)
                         {
                             // prepare a branch without the code DB

@@ -10,7 +10,7 @@ namespace Nethermind.Synchronization.FastSync
     [DebuggerDisplay("{Level} {NodeDataType} {Hash}")]
     public class StateSyncItem
     {
-        public StateSyncItem(Keccak hash, byte[]? accountPathNibbles, byte[]? pathNibbles, NodeDataType nodeType, int level = 0, uint rightness = 0)
+        public StateSyncItem(ValueKeccak hash, byte[]? accountPathNibbles, byte[]? pathNibbles, NodeDataType nodeType, int level = 0, uint rightness = 0)
         {
             Hash = hash;
             AccountPathNibbles = accountPathNibbles ?? Array.Empty<byte>();

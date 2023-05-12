@@ -17,9 +17,9 @@ namespace Nethermind.Core.Test.Encoding
             Account account = new Account(100).WithChangedCodeHash(TestItem.KeccakA).WithChangedStorageRoot(TestItem.KeccakB);
             AccountDecoder decoder = new();
             Rlp rlp = decoder.Encode(account);
-            (Keccak codeHash, Keccak storageRoot) = decoder.DecodeHashesOnly(new RlpStream(rlp.Bytes));
-            Assert.That(TestItem.KeccakA, Is.EqualTo(codeHash));
-            Assert.That(TestItem.KeccakB, Is.EqualTo(storageRoot));
+            (ValueKeccak codeHash, ValueKeccak storageRoot) = decoder.DecodeHashesOnly(new RlpStream(rlp.Bytes));
+            Assert.That(TestItem.ValueKeccakA, Is.EqualTo(codeHash));
+            Assert.That(TestItem.ValueKeccakB, Is.EqualTo(storageRoot));
         }
 
         [Test]

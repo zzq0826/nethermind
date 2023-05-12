@@ -20,14 +20,14 @@ namespace Nethermind.Serialization.Rlp
             _slimFormat = slimFormat;
         }
 
-        public (Keccak CodeHash, Keccak StorageRoot) DecodeHashesOnly(RlpStream rlpStream)
+        public (ValueKeccak CodeHash, ValueKeccak StorageRoot) DecodeHashesOnly(RlpStream rlpStream)
         {
             rlpStream.SkipLength();
             rlpStream.SkipItem();
             rlpStream.SkipItem();
 
-            Keccak storageRoot = DecodeStorageRoot(rlpStream);
-            Keccak codeHash = DecodeCodeHash(rlpStream);
+            ValueKeccak storageRoot = DecodeStorageRootValue(rlpStream);
+            ValueKeccak codeHash = DecodeCodeHashValue(rlpStream);
 
             return (codeHash, storageRoot);
         }
@@ -195,6 +195,38 @@ namespace Nethermind.Serialization.Rlp
             else
             {
                 codeHash = rlpStream.DecodeKeccak();
+            }
+
+            return codeHash;
+        }
+
+        private ValueKeccak DecodeStorageRootValue(RlpStream rlpStream)
+        {
+            ValueKeccak storageRoot;
+            if (_slimFormat && rlpStream.IsNextItemEmptyArray())
+            {
+                rlpStream.ReadByte();
+                storageRoot = ValueKeccak.EmptyTreeHash;
+            }
+            else
+            {
+                storageRoot = rlpStream.DecodeValueKeccak().Value;
+            }
+
+            return storageRoot;
+        }
+
+        private ValueKeccak DecodeCodeHashValue(RlpStream rlpStream)
+        {
+            ValueKeccak codeHash;
+            if (_slimFormat && rlpStream.IsNextItemEmptyArray())
+            {
+                rlpStream.ReadByte();
+                codeHash = ValueKeccak.OfAnEmptyString;
+            }
+            else
+            {
+                codeHash = rlpStream.DecodeValueKeccak().Value;
             }
 
             return codeHash;
