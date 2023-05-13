@@ -36,7 +36,7 @@ namespace Nethermind.Evm.Test
         protected ITransactionProcessor _processor;
         private IDb _stateDb;
 
-        protected VirtualMachine Machine { get; private set; }
+        protected VirtualMachine Machine { get; set; }
         protected IWorldState TestState { get; private set; }
         protected static Address Contract { get; } = new("0xd75a3a95360e44a3874e691fb48d77855f127069");
         protected static Address Sender { get; } = TestItem.AddressA;
@@ -78,6 +78,7 @@ namespace Nethermind.Evm.Test
             ITrieStore trieStore = new TrieStore(_stateDb, logManager);
             TestState = new WorldState(trieStore, codeDb, logManager);
             _ethereumEcdsa = new EthereumEcdsa(SpecProvider.ChainId, logManager);
+            IBlockhashProvider blockhashProvider = TestBlockhashProvider.Instance;
             Machine = new VirtualMachine(blockhashProvider, SpecProvider, logManager);
             _processor = new TransactionProcessor(SpecProvider, TestState, Machine, logManager);
         }

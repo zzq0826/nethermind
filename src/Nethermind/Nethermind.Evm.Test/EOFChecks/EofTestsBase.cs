@@ -131,7 +131,7 @@ namespace Nethermind.Evm.Test
             ILogManager logManager = GetLogManager();
             TestSpecProvider customSpecProvider = new(Frontier.Instance, spec);
             Machine = new VirtualMachine(TestBlockhashProvider.Instance, customSpecProvider, logManager);
-            _processor = new TransactionProcessor(customSpecProvider, TestState, Storage, Machine, LimboLogs.Instance);
+            _processor = new TransactionProcessor(customSpecProvider, TestState, Machine, LimboLogs.Instance);
             (Block block, Transaction transaction) = PrepareInitTx(BlockNumber, 100000, createContract);
 
             var txTracer = new TestAllTracerWithOutput();
