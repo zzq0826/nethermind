@@ -122,8 +122,9 @@ namespace Nethermind.Evm
         private readonly int _destroyListSnapshot;
         private readonly int _logsSnapshot;
 
-        public int DataStackHead = 0;
 
+        public int DataStackHead = 0;
+        public int FunctionIndex = 0;
         public int ReturnStackHead = 0;
         private bool _canRestore = true;
 
@@ -144,7 +145,8 @@ namespace Nethermind.Evm
                 false,
                 null,
                 isContinuation,
-                false)
+                false,
+                0)
         {
             GasAvailable = gasAvailable;
             Env = env;
@@ -161,13 +163,15 @@ namespace Nethermind.Evm
             bool isStatic,
             EvmState? stateForAccessLists,
             bool isContinuation,
-            bool isCreateOnPreExistingAccount)
+            bool isCreateOnPreExistingAccount,
+            int sectionIndex)
         {
             if (isTopLevel && isContinuation)
             {
                 throw new InvalidOperationException("Top level continuations are not valid");
             }
 
+            FunctionIndex = sectionIndex;
             GasAvailable = gasAvailable;
             ExecutionType = executionType;
             IsTopLevel = isTopLevel;

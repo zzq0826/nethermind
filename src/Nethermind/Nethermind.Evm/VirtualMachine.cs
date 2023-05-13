@@ -646,11 +646,12 @@ public class VirtualMachine : IVirtualMachine
         ReadOnlySpan<byte> dataSection = env.CodeInfo.DataSection.Span;
         ReadOnlySpan<byte> typeSection = env.CodeInfo.TypeSection.Span;
 
-        static void UpdateCurrentState(EvmState state, int pc, long gas, int stackHead)
+        static void UpdateCurrentState(EvmState state, int pc, long gas, int stackHead, int functionIndex)
         {
             state.ProgramCounter = pc;
             state.GasAvailable = gas;
             state.DataStackHead = stackHead;
+            state.FunctionIndex = functionIndex;
         }
 
 #pragma warning disable CS8321 // Local function is declared but never used
@@ -698,7 +699,7 @@ public class VirtualMachine : IVirtualMachine
             {
                 case Instruction.STOP:
                     {
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         goto EmptyTrace;
                     }
                 case Instruction.ADD:
@@ -2078,8 +2079,9 @@ public class VirtualMachine : IVirtualMachine
                             vmState.IsStatic,
                             vmState,
                             false,
-                            accountExists);
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                            accountExists,
+                            sectionIndex);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         return new CallResult(callState);
                     }
                 case Instruction.RETURN:
@@ -2090,7 +2092,7 @@ public class VirtualMachine : IVirtualMachine
                         if (!UpdateMemoryCost(vmState, ref gasAvailable, in memoryPos, length)) goto OutOfGas;
                         ReadOnlySpan<byte> returnData = vmState.Memory.Load(in memoryPos, length).Span;
 
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         if (traceOpcodes) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
                         return new CallResult(returnData.ToArray(), null, env.CodeInfo.EofVersion());
                     }
@@ -2239,9 +2241,10 @@ public class VirtualMachine : IVirtualMachine
                             instruction == Instruction.STATICCALL || vmState.IsStatic,
                             vmState,
                             false,
-                            false);
+                            false,
+                            sectionIndex);
 
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         if (traceOpcodes) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
                         return new CallResult(callState);
                     }
@@ -2255,7 +2258,7 @@ public class VirtualMachine : IVirtualMachine
                         if (!UpdateMemoryCost(vmState, ref gasAvailable, in memoryPos, length)) goto OutOfGas;
                         ReadOnlyMemory<byte> errorDetails = vmState.Memory.Load(in memoryPos, length);
 
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         if (traceOpcodes) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
                         return new CallResult(errorDetails.ToArray(), null, env.CodeInfo.EofVersion(), true);
                     }
@@ -2302,7 +2305,7 @@ public class VirtualMachine : IVirtualMachine
 
                         _state.SubtractFromBalance(env.ExecutingAccount, ownerBalance, spec);
 
-                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+                        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
                         goto EmptyTrace;
                     }
                 case Instruction.SHL:
@@ -2543,11 +2546,11 @@ public class VirtualMachine : IVirtualMachine
                 EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
             }
 #if DEBUG
-            UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+            UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
 #endif
         }
 
-        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head);
+        UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
 // Fall through to Empty: label
 
 // Common exit errors, goto labels to reduce in loop code duplication and to keep loop body smaller

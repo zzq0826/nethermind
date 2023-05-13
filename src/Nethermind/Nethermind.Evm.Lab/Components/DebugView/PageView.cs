@@ -22,7 +22,7 @@ internal class DebuggerView : IComponent<DebuggerState>
     public record Components(
         MachineDataView MachineOverview, StackView StackComponent, MemoryView RamComponent, InputsView InputComponent,
         StorageView StorageComponent, BytecodeView ProgramComponent, ConfigsView ConfigComponent, MediaLikeView ControlsComponent,
-        ConditionView ConditionComponent, FooterView FooterComponent
+        ConditionView ConditionComponent, FooterView FooterComponent, StacktraceView StacktraceComponent
     ) : IDisposable
     {
         public void Dispose()
@@ -37,6 +37,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             ControlsComponent?.Dispose();
             ConditionComponent?.Dispose();
             FooterComponent?.Dispose();
+            StacktraceComponent?.Dispose();
         }
     }
     private View MainPanel;
@@ -55,7 +56,8 @@ internal class DebuggerView : IComponent<DebuggerState>
             new ConfigsView(),
             new MediaLikeView(),
             new ConditionView(),
-            new FooterView()
+            new FooterView(),
+            new StacktraceView()
         );
     }
 
@@ -73,6 +75,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         var _component_cntrl = _components.ControlsComponent;
         var _component_check = _components.ConditionComponent;
         var _component_foot = _components.FooterComponent;
+        var _component_strace = _components.StacktraceComponent;
 
         GethTxTraceEntry currentEntry = state.Tracer.GetCurrentEntry();
 
@@ -90,17 +93,26 @@ internal class DebuggerView : IComponent<DebuggerState>
             Height = Dim.Percent(40)
         });
 
-        var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
+
+        var (stacktrace_view, stacktrace_rect) = _component_strace.View(state.Tracer, stack_rect.Value with // h: 100, w:100
         {
             Y = Pos.Bottom(stack_view),
-            Width = Dim.Fill(),
+            Width = Dim.Percent(30),
             Height = Dim.Percent(30)
         });
 
-        var (footer_view, footer_rect) = _component_foot.View(state?.Tracer.CurrentState, ram_rect.Value with
+        var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
         {
-            Y = Pos.Bottom(ram_view),
+            X = Pos.Right(stacktrace_view),
+            Y = Pos.Bottom(stack_view),
             Width = Dim.Fill(),
+            Height = Dim.Fill()
+        });
+
+        var (footer_view, footer_rect) = _component_foot.View(state?.Tracer.CurrentState, stacktrace_rect.Value with
+        {
+            Y = Pos.Bottom(stacktrace_view),
+            Width = Dim.Width(stacktrace_view),
             Height = Dim.Fill()
         });
 
@@ -139,7 +151,7 @@ internal class DebuggerView : IComponent<DebuggerState>
         });
 
 
-        cpu_view.Enabled = stack_view.Enabled = ram_view.Enabled = storage_view.Enabled = state.IsActive;
+        cpu_view.Enabled = stack_view.Enabled = ram_view.Enabled = storage_view.Enabled = stacktrace_view.Enabled = footer_view.Enabled = state.IsActive;
         input_view.Enabled = config_view.Enabled = condition_view.Enabled = program_view.Enabled = controls_view.Enabled = true;
 
 
@@ -169,7 +181,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             _component_check.ActionRequested += (e) => FireEvent(state, e);
             _component_stk.EventRequested += (e) => FireEvent(state, e);
 
-            MainPanel.Add(program_view, config_view, storage_view, input_view, ram_view, stack_view, cpu_view, controls_view, condition_view, footer_view);
+            MainPanel.Add(program_view, config_view, storage_view, input_view, ram_view, stack_view, cpu_view, controls_view, condition_view, footer_view, stacktrace_view);
         }
         isCached = true;
         return (MainPanel, null);

@@ -248,7 +248,8 @@ namespace Nethermind.Evm.Test
                     false,
                     parentEvmState,
                     isContinuation,
-                    false);
+                    false,
+                    0);
 
         public class Context { }
     }
