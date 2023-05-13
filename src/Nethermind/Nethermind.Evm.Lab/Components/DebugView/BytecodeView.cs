@@ -107,7 +107,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
                 container.parent.SelectedTab = container.page;
             }
 
-            if (state.txTracer._breakPoints.ContainsKey(pc))
+            if (state.txTracer._breakPoints.ContainsKey((state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc)))
             {
                 content.Table.Rows[i][1] = "[x]";
                 content.ColoredRanges.Add(new Range(i, i + 1));
@@ -136,7 +136,8 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         foreach (var instr in dissassembledBytecode)
         {
             string opcode = instr.ToString(state.Spec);
-            dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(instr.idx) ? "[x]" : "[ ]", instr.idx, $"{(opcode.Length > 13 ? $"{opcode.Substring(0, 13)}..." : opcode)}");
+            var breakpoint = (state.txTracer.CurrentState?.Env.CallDepth ?? 0, instr.idx);
+            dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(breakpoint) ? "[x]" : "[ ]", instr.idx, $"{(opcode.Length > 13 ? $"{opcode.Substring(0, 13)}..." : opcode)}");
             if(instr.idx == (state.txTracer?.CurrentState?.ProgramCounter ?? 0))
             {
                 selectedRow = line;
@@ -167,7 +168,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         programView.SelectedCellChanged += e =>
         {
             int pc = dissassembledBytecode[e.NewRow].idx;
-            BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: state.txTracer.IsBreakpoitnSet(pc)));
+            BreakPointRequested?.Invoke(new SetBreakpoint(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc, unsetBreakpoint: state.txTracer.IsBreakpoitnSet(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc)));
         };
         if(selectedRow is not null)
         {
@@ -182,7 +183,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
                 int pc = Int32.Parse((string)programView.Table.Rows[cell.Value.Y]["Position"]);
                 if (e.MouseEvent.Flags == contextMenu.MouseFlags)
                 {
-                    ShowContextMenu(pc, mousePosition.X, mousePosition.Y, state.txTracer.IsBreakpoitnSet(pc));
+                    ShowContextMenu(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc, mousePosition.X, mousePosition.Y, state.txTracer.IsBreakpoitnSet(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc));
                     e.Handled = true;
                 }
             }
@@ -192,7 +193,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         return (selectedRow is not null, programView);
     }
 
-    private void ShowContextMenu(int pc, int x, int y, bool isAlreadySet)
+    private void ShowContextMenu(int depth, int pc, int x, int y, bool isAlreadySet)
     {
         Dialog CreateConditionView()
         {
@@ -205,7 +206,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             };
 
             ConditionView conditionView = new ConditionView(
-                (msg) => BreakPointRequested?.Invoke(new SetBreakpoint(pc, (msg as SetGlobalCheck).condition, unsetBreakpoint: false))
+                (msg) => BreakPointRequested?.Invoke(new SetBreakpoint(depth, pc, (msg as SetGlobalCheck).condition, unsetBreakpoint: false))
             );
             conditionView.AutocompleteOn = false;
 
@@ -231,12 +232,12 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
         contextMenu = new ContextMenu(x, y,
             new MenuBarItem(new MenuItem[] {
                     isAlreadySet
-                        ? new MenuItem ("_RemoveBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: true)))
-                        : new MenuItem ("_AddBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: false))),
+                        ? new MenuItem ("_RemoveBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(depth, pc, unsetBreakpoint: true)))
+                        : new MenuItem ("_AddBreakpoint", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(depth, pc, unsetBreakpoint: false))),
                     isAlreadySet
                         ? new MenuBarItem ("_Conditions", new MenuItem [] {
                             new MenuItem ("_AddCondition", string.Empty, () => Application.Run(CreateConditionView())),
-                            new MenuItem ("_RemoveCondition", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(pc, unsetBreakpoint: false)))
+                            new MenuItem ("_RemoveCondition", string.Empty, () => BreakPointRequested?.Invoke(new SetBreakpoint(depth, pc, unsetBreakpoint: false)))
                         })
                         : null,
             })

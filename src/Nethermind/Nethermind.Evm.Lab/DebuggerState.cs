@@ -23,7 +23,7 @@ using System;
 namespace DebuggerStateEvents
 {
     public record MoveNext(bool onlyOneStep) : ActionsBase;
-    public record SetBreakpoint(int pc, Func<EvmState, bool> condition = null, bool unsetBreakpoint = false) : ActionsBase;
+    public record SetBreakpoint(int depth, int pc, Func<EvmState, bool> condition = null, bool unsetBreakpoint = false) : ActionsBase;
     public record SetGlobalCheck(Func<EvmState, bool> condition = null) : ActionsBase;
     public record UpdateStack(int stackIndex, byte[] newBytes, bool isPop) : ActionsBase;
     public record Start : ActionsBase;
@@ -75,7 +75,8 @@ namespace Nethermind.Evm.Lab
         }
         public DebuggerState Start()
         {
-            Tracer.SetBreakPoint(0);
+            var start = (0, 0);
+            Tracer.SetBreakPoint(start);
             WorkThread?.Start();
             return this;
         }
@@ -196,13 +197,14 @@ namespace Nethermind.Evm.Lab
 
                 case DebuggerStateEvents.SetBreakpoint brkMsg:
                     {
+                        var breakpoint = (brkMsg.depth, brkMsg.pc);
                         if(brkMsg.unsetBreakpoint)
                         {
-                            state.Tracer.UnsetBreakPoint(brkMsg.pc);
+                            state.Tracer.UnsetBreakPoint(breakpoint.depth, breakpoint.pc);
                         }
                         else
                         {
-                            state.Tracer.SetBreakPoint(brkMsg.pc, brkMsg.condition);
+                            state.Tracer.SetBreakPoint(breakpoint, brkMsg.condition);
                         }
                         state.EventsSink.EnqueueEvent(new Update(), true);
                         break;

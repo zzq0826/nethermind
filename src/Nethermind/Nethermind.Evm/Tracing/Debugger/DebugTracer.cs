@@ -65,21 +65,21 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
     public bool IsTracingStorage => ((IStorageTracer)InnerTracer).IsTracingStorage;
 
 
-    internal Dictionary<int, Func<EvmState, bool>> _breakPoints = new();
-    public bool IsBreakpoitnSet(int programCounter)
-        => _breakPoints.ContainsKey(programCounter);
-    public void SetBreakPoint(int programCounter, Func<EvmState, bool> condition = null)
+    internal Dictionary<(int depth, int pc), Func<EvmState, bool>> _breakPoints = new();
+    public bool IsBreakpoitnSet(int depth, int programCounter)
+        => _breakPoints.ContainsKey((depth, programCounter));
+    public void SetBreakPoint((int depth, int pc) point, Func<EvmState, bool> condition = null)
     {
         if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting)
         {
-            _breakPoints[programCounter] = condition;
+            _breakPoints[point] = condition;
         }
     }
-    public void UnsetBreakPoint(int programCounter)
+    public void UnsetBreakPoint(int depth, int programCounter)
     {
         if (CurrentPhase is DebugPhase.Blocked or DebugPhase.Starting)
         {
-            _breakPoints.Remove(programCounter);
+            _breakPoints.Remove((depth, programCounter));
         }
     }
     private Func<EvmState, bool> _globalBreakCondition = null;
@@ -157,9 +157,10 @@ public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
 
     public void CheckBreakPoint()
     {
-        if (_breakPoints.ContainsKey(CurrentState.ProgramCounter))
+        var breakpoint = (CurrentState.Env.CallDepth, CurrentState.ProgramCounter);
+        if (_breakPoints.ContainsKey(breakpoint))
         {
-            Func<EvmState, bool> condition = _breakPoints[CurrentState.ProgramCounter];
+            Func<EvmState, bool> condition = _breakPoints[breakpoint];
             bool conditionResults = condition is null ? true : condition.Invoke(CurrentState);
             if (conditionResults)
             {

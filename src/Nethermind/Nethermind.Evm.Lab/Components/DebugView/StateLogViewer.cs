@@ -53,11 +53,17 @@ internal class FooterView : IComponent<EvmState>, IDisposable
         if (!isCached)
         {
             _logsOpener.Clicked += () => {
-                Dialog dialog = new Dialog("State logs", 50, 40);
+                var cancel = new Button("Cancel");
+                cancel.Clicked += () =>
+                {
+                    Application.RequestStop();
+                };
+
+                Dialog dialog = new Dialog("State logs", 50, 43, cancel);
                 TextView text = new TextView()
                 {
                     Width = Dim.Fill(),
-                    Height = Dim.Fill(),
+                    Height = Dim.Percent(95),
                 };
                 text.KeyPress += (e) => e.Handled = true;
 
