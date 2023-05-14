@@ -24,7 +24,7 @@ internal class HeaderView : IComponent<GlobalState>
 
     public (View, Rectangle?) View(GlobalState state, Rectangle? rect = null)
     {
-        if(!IsCached)
+        if (!IsCached)
         {
             menu ??= new MenuBar(new MenuBarItem[] {
                 new MenuBarItem ("_File", new MenuItem [] {

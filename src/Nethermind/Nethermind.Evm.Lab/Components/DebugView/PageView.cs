@@ -62,7 +62,7 @@ internal class DebuggerView : IComponent<DebuggerState>
     }
 
 
-    
+
     public (View, Rectangle?) View(DebuggerState state, Rectangle? rect = null)
     {
         var _component_cpu = _components.MachineOverview;
@@ -144,7 +144,7 @@ internal class DebuggerView : IComponent<DebuggerState>
             Y = Pos.Bottom(condition_view),
             Height = Dim.Percent(33),
         });
-        var (controls_view, controls_rect) = _component_cntrl.View((state.Tracer.CurrentPhase is not DebugTracer.DebugPhase.Starting, state.Tracer.CanReadState) , program_rect.Value with
+        var (controls_view, controls_rect) = _component_cntrl.View((state.Tracer.CurrentPhase is not DebugTracer.DebugPhase.Starting, state.Tracer.CanReadState), program_rect.Value with
         {
             Y = Pos.Bottom(program_view),
             Height = Dim.Percent(7),
@@ -167,7 +167,7 @@ internal class DebuggerView : IComponent<DebuggerState>
                 state.Tracer.CurrentState.DataStack[idx] = newValue;
                 state.EventsSink.EnqueueEvent(new Update(), true);
             };
-            _component_stk.StackHeightChangeRequest+= (heightDelta) =>
+            _component_stk.StackHeightChangeRequest += (heightDelta) =>
             {
                 state.Tracer.CurrentState.DataStackHead += heightDelta;
                 state.EventsSink.EnqueueEvent(new Update(), true);

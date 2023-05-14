@@ -38,7 +38,7 @@ internal class MachineDataView : IComponent<GethTxTraceEntry>
             dataTable.Columns.Add(h);
         }
 
-        if(state is not null)
+        if (state is not null)
             dataTable.Rows.Add(
                 Columns_Overview.Select(propertyName => typeof(GethTxTraceEntry).GetProperty(propertyName)?.GetValue(state)).ToArray()
             );
@@ -49,7 +49,7 @@ internal class MachineDataView : IComponent<GethTxTraceEntry>
             opcodeData.Columns.Add(h);
         }
 
-        if(state is not null)
+        if (state is not null)
             opcodeData.Rows.Add(
                 Columns_Opcode.Select(
                     proeprtyName =>

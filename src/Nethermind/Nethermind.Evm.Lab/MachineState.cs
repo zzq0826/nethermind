@@ -102,7 +102,7 @@ namespace Nethermind.Evm.Lab
         }
         public MachineState Goto(int index)
         {
-            if(index >= base.Entries.Count) Index = base.Entries.Count - 1;
+            if (index >= base.Entries.Count) Index = base.Entries.Count - 1;
             else Index = index;
             return this;
         }

@@ -8,7 +8,7 @@ namespace Nethermind.Evm.Lab.Components.TracerView;
 
 internal class FilteredInputField : TextField
 {
-    protected List<Func<ustring,bool>> _filters = new();
+    protected List<Func<ustring, bool>> _filters = new();
     public FilteredInputField(ustring defaultValue) : base(defaultValue.ToString()) { }
     public FilteredInputField(Func<ustring, bool> filter, ustring defaultValue) : base(defaultValue)
         => _filters.Add(filter);
@@ -26,5 +26,5 @@ internal class NumberInputField : FilteredInputField
         => _filters.Add(bool (ustring s) => s.Where(c => Char.IsAsciiLetter((char)c)).Any());
 
     public void AddFilter(Func<ustring, bool> filter)
-        => _filters.Add(filter); 
+        => _filters.Add(filter);
 }

@@ -22,7 +22,7 @@ internal class FooterView : IComponent<EvmState>, IDisposable
     public void Dispose()
     {
         _logsOpener?.Dispose();
-        _frameView?.Dispose();  
+        _frameView?.Dispose();
     }
 
     public (View, Rectangle?) View(EvmState state, Rectangle? rect = null)
@@ -52,7 +52,8 @@ internal class FooterView : IComponent<EvmState>, IDisposable
 
         if (!isCached)
         {
-            _logsOpener.Clicked += () => {
+            _logsOpener.Clicked += () =>
+            {
                 var cancel = new Button("Cancel");
                 cancel.Clicked += () =>
                 {

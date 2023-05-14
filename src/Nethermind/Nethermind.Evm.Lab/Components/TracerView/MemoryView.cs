@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Microsoft.IdentityModel.Tokens;
 using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
@@ -21,6 +22,7 @@ internal class MemoryView : IComponent<IEnumerable<byte>>
 
     public (View, Rectangle?) View(IEnumerable<byte> ram, Rectangle? rect = null)
     {
+        bool isEmpty = ram.IsNullOrEmpty();
         var streamFromBuffer = new MemoryStream(ram.ToArray());
 
         var frameBoundaries = new Rectangle(
@@ -37,20 +39,21 @@ internal class MemoryView : IComponent<IEnumerable<byte>>
             Height = frameBoundaries.Height,
         };
 
-        memoryView ??= new HexView()
+        memoryView = isEmpty ? new HexView()
         {
             Width = Dim.Fill(2),
             Height = Dim.Fill(2),
-        };
+        } : memoryView;
+        memoryView.Clear();
         memoryView.Source = streamFromBuffer;
 
-        memoryView.Edited += (e) =>
-        {
-            ByteEdited?.Invoke(e.Key, e.Value);
-        };
 
-        if (!isCached)
+        if (!isCached || isEmpty)
         {
+            memoryView.Edited += (e) =>
+            {
+                ByteEdited?.Invoke(e.Key, e.Value);
+            };
             container.Add(memoryView);
         }
         isCached = true;

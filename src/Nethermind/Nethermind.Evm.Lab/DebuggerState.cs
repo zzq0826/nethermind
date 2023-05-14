@@ -59,14 +59,17 @@ namespace Nethermind.Evm.Lab
 
         public DebuggerState Setup()
         {
-            WorkThread = new Thread(() => {
+            WorkThread = new Thread(() =>
+            {
                 try
                 {
                     context.Execute(Tracer, AvailableGas, RuntimeContext.MachineCode);
-                } catch
+                }
+                catch
                 {
                     Console.WriteLine("Thread Stopped");
-                } finally
+                }
+                finally
                 {
                     EventsSink.EnqueueEvent(new Update());
                 }
@@ -99,7 +102,7 @@ namespace Nethermind.Evm.Lab
         public DebuggerState SetGas(long gas)
         {
             AvailableGas = gas;
-            if(Tracer.CanReadState)
+            if (Tracer.CanReadState)
             {
                 Tracer.CurrentState.GasAvailable = AvailableGas;
             }
@@ -198,7 +201,7 @@ namespace Nethermind.Evm.Lab
                 case DebuggerStateEvents.SetBreakpoint brkMsg:
                     {
                         var breakpoint = (brkMsg.depth, brkMsg.pc);
-                        if(brkMsg.unsetBreakpoint)
+                        if (brkMsg.unsetBreakpoint)
                         {
                             state.Tracer.UnsetBreakPoint(breakpoint.depth, breakpoint.pc);
                         }
@@ -247,7 +250,8 @@ namespace Nethermind.Evm.Lab
                             byte[] afterBytes = memory.Slice(32 * (stkMsg.stackIndex + 1));
                             Array.Copy(afterBytes, 0, memory, 32 * stkMsg.stackIndex, afterBytes.Length);
                             dataStackHead--;
-                        } else
+                        }
+                        else
                         {
                             Array.Copy(stkMsg.newBytes, 0, memory, 32 * stkMsg.stackIndex, stkMsg.newBytes.Length);
                         }

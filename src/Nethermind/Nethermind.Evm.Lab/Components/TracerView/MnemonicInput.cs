@@ -26,8 +26,8 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
     // keep view static and swap state instead 
     private bool isCached = false;
     private Dialog? container = null;
-    private CheckBox? eofModeSelection= null;
-    private List<CodeSection>? sectionsField= null;
+    private CheckBox? eofModeSelection = null;
+    private List<CodeSection>? sectionsField = null;
     private TabView? tabView = null;
     private (Button submit, Button cancel) buttons;
     private (Button add, Button remove) actions;
@@ -79,9 +79,11 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
         inputCountField.AddFilter((_) => !isEofMode);
         inputCountField.TextChanged += (e) =>
         {
-            if (Int32.TryParse((string)inputCountField.Text, out int value)) {
+            if (Int32.TryParse((string)inputCountField.Text, out int value))
+            {
                 newCodeSection.inCount = value;
-            } else newCodeSection.inCount = 0;
+            }
+            else newCodeSection.inCount = 0;
         };
 
         var outLabel = new Terminal.Gui.Label("Outputs Count")
@@ -102,9 +104,11 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
         outputCountField.TextChanged += (e) =>
         {
             if (!isEofMode) return;
-            if (Int32.TryParse((string)outputCountField.Text, out int value)) {
+            if (Int32.TryParse((string)outputCountField.Text, out int value))
+            {
                 newCodeSection.outCount = value;
-            } else newCodeSection.outCount = 0;
+            }
+            else newCodeSection.outCount = 0;
         };
 
         var maxLabel = new Terminal.Gui.Label("Max Stack Height")
@@ -122,11 +126,14 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
             ColorScheme = Colors.TopLevel
         };
         stackHeightField.AddFilter((_) => !isEofMode);
-        stackHeightField.TextChanged += (e) => {
+        stackHeightField.TextChanged += (e) =>
+        {
             if (!isEofMode) return;
-            if(Int32.TryParse((string)stackHeightField.Text, out int value)) {
+            if (Int32.TryParse((string)stackHeightField.Text, out int value))
+            {
                 newCodeSection.stackMax = value;
-            } else newCodeSection.stackMax = 0;
+            }
+            else newCodeSection.stackMax = 0;
         };
 
         var inputBodyField = new Terminal.Gui.TextView
@@ -180,10 +187,11 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
     private void SubmitBytecodeChanges(bool isEofContext, IEnumerable<CodeSection> functionsBytecodes)
     {
         byte[] bytecode = Array.Empty<byte>();
-        if(!isEofContext)
+        if (!isEofContext)
         {
             bytecode = BytecodeParser.Parse(sectionsField[0].Body.Trim()).ToByteArray();
-        } else
+        }
+        else
         {
             var scenario = new ScenarioCase(sectionsField.Select(field => new FunctionCase(field.inCount, field.outCount, field.stackMax, BytecodeParser.Parse(field.Body.Trim()).ToByteArray())).ToArray(), Array.Empty<byte>());
             bytecode = scenario.Bytecode;
@@ -221,7 +229,7 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
         {
             var eofCodeInfo = (EofCodeInfo)state.Bytecode;
             sectionsField = new List<CodeSection>(eofCodeInfo._header.CodeSections.Length);
-            for(int i = 0; i <  eofCodeInfo._header.CodeSections.Length; i++)
+            for (int i = 0; i < eofCodeInfo._header.CodeSections.Length; i++)
             {
                 CreateNewFunctionPage(false, out var bodyInputFieldRef, i == 0);
                 var codeSectionOffsets = eofCodeInfo._header.CodeSections[i];
@@ -229,7 +237,8 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
                     .ToMultiLineString(state.Spec);
                 bodyInputFieldRef.Text = bytecodeMnemonics;
             }
-        } else
+        }
+        else
         {
             sectionsField = new List<CodeSection>();
             CreateNewFunctionPage(isFirstRender: true, out var bodyInputFieldRef);
@@ -253,7 +262,7 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
 
         if (!isCached)
         {
-            container.Add(eofModeSelection, tabView); 
+            container.Add(eofModeSelection, tabView);
             buttons.submit.Clicked += () =>
             {
                 try
@@ -263,7 +272,8 @@ internal class MnemonicInput : IComponent<(ICodeInfo Bytecode, IReleaseSpec Spec
 
                     SubmitBytecodeChanges(isEofMode, sectionsField);
                     Application.RequestStop();
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     MainView.ShowError(ex.Message);
                 }

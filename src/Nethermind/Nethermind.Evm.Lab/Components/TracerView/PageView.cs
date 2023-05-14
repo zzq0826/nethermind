@@ -58,7 +58,7 @@ internal class MachineView : IComponent<MachineState>
     }
 
 
-    
+
     public (View, Rectangle?) View(MachineState state, Rectangle? rect = null)
     {
         var _component_cpu = _components.MachineOverview;

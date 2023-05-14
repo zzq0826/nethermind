@@ -42,7 +42,8 @@ internal class StacktraceView : IComponent<DebugTracer>
         public Address Address { get; set; }
         public List<SingleTrace> Callstack { get; set; }
         public override IList<ITreeNode> Children => Callstack.Cast<ITreeNode>().ToList();
-        public override string Text {
+        public override string Text
+        {
             get => $"{Depth}: {Address}";
             set => throw new System.Diagnostics.UnreachableException();
         }
@@ -51,7 +52,7 @@ internal class StacktraceView : IComponent<DebugTracer>
 
     private bool isCached = false;
     private FrameView? container = null;
-    private TreeView? stackview= null;
+    private TreeView? stackview = null;
     private CallTrace? _callTrace = new()
     {
         Text = "Current Call Stack"
@@ -65,7 +66,7 @@ internal class StacktraceView : IComponent<DebugTracer>
 
     public (View, Rectangle?) View(DebugTracer tracer, Rectangle? rect = null)
     {
-        if(tracer.CurrentState is null)
+        if (tracer.CurrentState is null)
         {
             _callTrace.Children.Clear();
         }
@@ -93,7 +94,7 @@ internal class StacktraceView : IComponent<DebugTracer>
 
 
 
-        int? depth = tracer?.CurrentState?.Env.CallDepth ;
+        int? depth = tracer?.CurrentState?.Env.CallDepth;
         Address? codeinfoSrc = tracer?.CurrentState?.Env.CodeSource ?? tracer?.CurrentState?.Env.ExecutingAccount;
         var stacktrace = tracer?.CurrentState?.ReturnStack?[..(tracer?.CurrentState?.ReturnStackHead ?? 0)].ToList() ?? new List<EvmState.ReturnState>();
         stacktrace.Add(new EvmState.ReturnState
@@ -104,7 +105,7 @@ internal class StacktraceView : IComponent<DebugTracer>
         });
 
 
-        if(tracer?.CurrentState is not null)
+        if (tracer?.CurrentState is not null)
         {
 
             _callTrace.Calltrace = _callTrace.Calltrace.Take(tracer.CurrentState?.Env.CallDepth ?? 0).ToList();
@@ -112,7 +113,7 @@ internal class StacktraceView : IComponent<DebugTracer>
             bool found = false;
             foreach (var item in _callTrace.Calltrace)
             {
-                if(item.Depth == depth && item.Address == codeinfoSrc)
+                if (item.Depth == depth && item.Address == codeinfoSrc)
                 {
                     item.Callstack = stacktrace.Select(traceEntry => new SingleTrace
                     {
@@ -122,7 +123,7 @@ internal class StacktraceView : IComponent<DebugTracer>
                 }
             }
 
-            if(!found)
+            if (!found)
             {
                 _callTrace.Calltrace.Add(
                     new StackTrace
@@ -141,7 +142,7 @@ internal class StacktraceView : IComponent<DebugTracer>
         stackview.RebuildTree();
         stackview.ExpandAll();
 
-        if(!isCached)
+        if (!isCached)
         {
             stackview.AddObject(_callTrace);
             container.Add(stackview);
