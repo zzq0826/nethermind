@@ -54,7 +54,7 @@ internal class StacktraceView : IComponent<DebugTracer>
     private TreeView? stackview= null;
     private CallTrace? _callTrace = new()
     {
-        Text = "Current Stack Trace"
+        Text = "Current Call Stack"
     };
 
     public void Dispose()
@@ -77,7 +77,7 @@ internal class StacktraceView : IComponent<DebugTracer>
                 Height: rect?.Height ?? 10
             );
 
-        container ??= new FrameView("StackTrace")
+        container ??= new FrameView("CallStackTrace")
         {
             X = frameBoundaries.X,
             Y = frameBoundaries.Y,
@@ -94,7 +94,7 @@ internal class StacktraceView : IComponent<DebugTracer>
 
 
         int? depth = tracer?.CurrentState?.Env.CallDepth ;
-        Address? codeinfoSrc = tracer?.CurrentState?.Env.CodeSource;
+        Address? codeinfoSrc = tracer?.CurrentState?.Env.CodeSource ?? tracer?.CurrentState?.Env.ExecutingAccount;
         var stacktrace = tracer?.CurrentState?.ReturnStack?[..(tracer?.CurrentState?.ReturnStackHead ?? 0)].ToList() ?? new List<EvmState.ReturnState>();
         stacktrace.Add(new EvmState.ReturnState
         {

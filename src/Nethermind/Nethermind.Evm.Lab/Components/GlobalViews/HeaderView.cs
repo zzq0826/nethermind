@@ -69,8 +69,14 @@ error_section:              MainView.ShowError("Failed to deserialize Traces Pro
                         Application.Run(saveOpenDialogue);
                         if(saveOpenDialogue.Canceled) return;
                         var filePath = (string)saveOpenDialogue.FilePath;
-                        var serializedData = JsonConvert.SerializeObject(state.MachineStates[state.SelectedState] as GethLikeTxTrace);
-                        File.WriteAllText($"{filePath}.json", serializedData);
+                        if(state.MachineStates[state.SelectedState] is MachineState substate)
+                        {
+                            var serializedData = JsonConvert.SerializeObject(substate as GethLikeTxTrace);
+                            File.WriteAllText($"{filePath}.json", serializedData);
+                        } else
+                        {
+                            MainView.ShowError("Selected View Must be a MachineView");
+                        }
                     }),
                     new MenuItem ("_Quit", "", () => {
                         Application.RequestStop ();
