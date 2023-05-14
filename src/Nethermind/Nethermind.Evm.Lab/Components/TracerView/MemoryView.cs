@@ -6,7 +6,7 @@ using Nethermind.Evm.Lab.Interfaces;
 using Terminal.Gui;
 
 namespace Nethermind.Evm.Lab.Components.TracerView;
-internal class MemoryView : IComponent<IEnumerable<byte>>
+internal class MemoryView : IComponent<(IEnumerable<byte> ram, bool isDebugger)>
 {
     bool isCached = false;
     private FrameView? container = null;
@@ -20,10 +20,10 @@ internal class MemoryView : IComponent<IEnumerable<byte>>
 
     public event Action<long, byte> ByteEdited;
 
-    public (View, Rectangle?) View(IEnumerable<byte> ram, Rectangle? rect = null)
+    public (View, Rectangle?) View((IEnumerable<byte> ram, bool isDebugger) state, Rectangle? rect = null)
     {
-        bool isEmpty = ram.IsNullOrEmpty();
-        var streamFromBuffer = new MemoryStream(ram.ToArray());
+        bool isEmpty = state.ram.IsNullOrEmpty();
+        var streamFromBuffer = new MemoryStream(state.ram.ToArray());
 
         var frameBoundaries = new Rectangle(
                 X: rect?.X ?? 0,
@@ -39,11 +39,14 @@ internal class MemoryView : IComponent<IEnumerable<byte>>
             Height = frameBoundaries.Height,
         };
 
+
         memoryView = isEmpty ? new HexView()
         {
             Width = Dim.Fill(2),
             Height = Dim.Fill(2),
         } : memoryView;
+
+        memoryView.Enabled = state.isDebugger;
         memoryView.Clear();
         memoryView.Source = streamFromBuffer;
 

@@ -101,7 +101,8 @@ internal class DebuggerView : IComponent<DebuggerState>
             Height = Dim.Percent(30)
         });
 
-        var (ram_view, ram_rect) = _component_ram.View(state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>(), stack_rect.Value with // h: 100, w:100
+        var memoryState = state.Tracer?.CurrentState?.Memory?.Load(0, (UInt256)(state.Tracer?.CurrentState?.Memory?.Size ?? 0)).ToArray() ?? Array.Empty<byte>();
+        var (ram_view, ram_rect) = _component_ram.View((memoryState, true), stack_rect.Value with // h: 100, w:100
         {
             X = Pos.Right(stacktrace_view),
             Y = Pos.Bottom(stack_view),

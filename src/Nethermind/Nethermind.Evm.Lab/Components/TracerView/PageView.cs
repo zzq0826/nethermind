@@ -83,7 +83,9 @@ internal class MachineView : IComponent<MachineState>
             Y = Pos.Bottom(cpu_view),
             Height = Dim.Percent(40)
         });
-        var (ram_view, ram_rect) = _component_ram.View(Core.Extensions.Bytes.FromHexString(String.Join(string.Empty, state.Current.Memory.Select(row => row.Replace("0x", String.Empty)))), stack_rect.Value with // h: 100, w:100
+
+        var memoryState = Core.Extensions.Bytes.FromHexString(String.Join(string.Empty, state.Current.Memory.Select(row => row.Replace("0x", String.Empty))));
+        var (ram_view, ram_rect) = _component_ram.View((memoryState, false), stack_rect.Value with // h: 100, w:100
         {
             Y = Pos.Bottom(stack_view),
             Width = Dim.Fill(),

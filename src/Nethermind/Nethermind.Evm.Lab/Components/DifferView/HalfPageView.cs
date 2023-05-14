@@ -80,7 +80,9 @@ internal class HalfPageView : IComponent<TraceState>
             Y = Pos.Bottom(entries_view),
             Height = Dim.Percent(25)
         });
-        var (memory_view, memory_rect) = memoView.View(Core.Extensions.Bytes.FromHexString(String.Join(string.Empty, innerState.Current.Memory.Select(row => row.Replace("0x", String.Empty)))), stack_rect.Value with // h:50 w:30
+
+        var memoryState = Core.Extensions.Bytes.FromHexString(String.Join(string.Empty, innerState.Current.Memory.Select(row => row.Replace("0x", String.Empty))));
+        var (memory_view, memory_rect) = memoView.View((memoryState, false), stack_rect.Value with // h:50 w:30
         {
             Y = Pos.Bottom(stack_view),
             Height = Dim.Percent(25)
