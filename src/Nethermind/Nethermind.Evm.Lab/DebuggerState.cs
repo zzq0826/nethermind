@@ -63,7 +63,7 @@ namespace Nethermind.Evm.Lab
             {
                 try
                 {
-                    context.Execute(Tracer, AvailableGas, RuntimeContext.MachineCode);
+                    context.ExecuteBytecode(Tracer, AvailableGas, RuntimeContext.MachineCode);
                 }
                 catch
                 {

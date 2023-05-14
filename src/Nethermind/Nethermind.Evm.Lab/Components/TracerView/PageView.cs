@@ -99,12 +99,12 @@ internal class MachineView : IComponent<MachineState>
         var (storage_view, storage_rect) = _component_strg.View(state.Current.Storage, input_rect.Value with // h: 40, w: 80
         {
             Y = Pos.Bottom(input_view),
-            Height = Dim.Percent(25),
+            Height = Dim.Percent(30),
         });
         var (return_view, return_rect) = _component_rtrn.View(state.ReturnValue, storage_rect.Value with
         {
             Y = Pos.Bottom(storage_view),
-            Height = Dim.Percent(15),
+            Height = Dim.Percent(10),
         });
         var (config_view, config_rect) = _component_cnfg.View((state.SelectedFork, state.AvailableGas), input_rect.Value with
         {

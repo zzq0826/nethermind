@@ -38,8 +38,8 @@ internal class ReturnView : IComponent<byte[]>
 
         memoryView ??= new HexView()
         {
-            Width = Dim.Fill(2),
-            Height = Dim.Fill(2),
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
         };
         memoryView.Source = streamFromBuffer;
 

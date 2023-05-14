@@ -47,7 +47,7 @@ namespace Nethermind.Evm.Lab
 
             RuntimeContext = CodeInfoFactory.CreateCodeInfo(bytecode, this.SelectedFork ?? Cancun.Instance);
             CallData = Array.Empty<byte>();
-            var resultTraces = context.Execute(Tracer, long.MaxValue, bytecode).BuildResult();
+            var resultTraces = context.ExecuteBytecode(Tracer, long.MaxValue, bytecode).BuildResult();
             if (!swapStateInPlace)
                 EventsSink.EnqueueEvent(new UpdateState(resultTraces), true);
             else SetState(resultTraces);
@@ -217,7 +217,7 @@ namespace Nethermind.Evm.Lab
                 case RunBytecode _:
                     {
                         var localTracer = state.GetState().Tracer;
-                        state.GetState().context.Execute(localTracer, state.GetState().AvailableGas, state.GetState().RuntimeContext.MachineCode);
+                        state.GetState().context.ExecuteBytecode(localTracer, state.GetState().AvailableGas, state.GetState().RuntimeContext.MachineCode);
                         state.EventsSink.EnqueueEvent(new UpdateState(localTracer.BuildResult()), true);
                         break;
                     }
