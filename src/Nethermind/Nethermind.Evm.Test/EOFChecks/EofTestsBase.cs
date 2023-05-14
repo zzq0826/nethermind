@@ -110,7 +110,7 @@ namespace Nethermind.Evm.Test
                 testcase.Bytecode, out EofHeader? header
             );
 
-            Assert.That(testcase.Result.Status == StatusCode.Success, Is.EqualTo(result), $"Scenario : {testcase.Result.Msg}");
+            Assert.That(result, Is.EqualTo(testcase.Result.Status == StatusCode.Success), $"Scenario : {testcase.Result.Msg}");
             if (result == false)
             {
                 Assert.IsNull(header);
@@ -136,7 +136,7 @@ namespace Nethermind.Evm.Test
 
             var txTracer = new TestAllTracerWithOutput();
             _processor.Execute(transaction, block.Header, txTracer);
-            Assert.That(testcase.Result.Status, Is.EqualTo(txTracer.ReportedActionErrors.Any(x => x is EvmExceptionType.InvalidCode or EvmExceptionType.BadInstruction or EvmExceptionType.InvalidEofCode) ? StatusCode.Failure : StatusCode.Success), testcase.Result.Msg);
+            Assert.That(txTracer.ReportedActionErrors.Any(x => x is EvmExceptionType.InvalidCode or EvmExceptionType.BadInstruction or EvmExceptionType.InvalidEofCode) ? StatusCode.Failure : StatusCode.Success, Is.EqualTo(testcase.Result.Status), testcase.Result.Msg);
 
         }
 

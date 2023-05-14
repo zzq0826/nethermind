@@ -381,7 +381,7 @@ public class VirtualMachine : IVirtualMachine
         }
     }
 
-    public ICodeInfo GetCachedCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec vmSpec)
+    public ICodeInfo GetCachedCodeInfo(IWorldState state, Address codeSource, IReleaseSpec vmSpec)
     {
         if (codeSource.IsPrecompile(vmSpec))
         {
@@ -393,11 +393,11 @@ public class VirtualMachine : IVirtualMachine
             return _precompiles[codeSource];
         }
 
-        Keccak codeHash = worldState.GetCodeHash(codeSource);
+        Keccak codeHash = state.GetCodeHash(codeSource);
         ICodeInfo cachedCodeInfo = _codeCache.Get(codeHash);
         if (cachedCodeInfo is null)
         {
-            byte[] code = worldState.GetCode(codeHash);
+            byte[] code = state.GetCode(codeHash);
 
             if (code is null)
             {
@@ -410,7 +410,7 @@ public class VirtualMachine : IVirtualMachine
         else
         {
             // need to touch code so that any collectors that track database access are informed
-            worldState.TouchCode(codeHash);
+            state.TouchCode(codeHash);
         }
 
         return cachedCodeInfo;
@@ -632,10 +632,10 @@ public class VirtualMachine : IVirtualMachine
             goto Empty;
         }
 
-        if (vmState.Env.CodeInfo.MachineCode.AsSpan().StartsWith(EvmObjectFormat.MAGIC) && vmState.Env.CodeInfo is CodeInfo)
-        {
-            return CallResult.InvalidEofCodeException;
-        }
+        // if (vmState.Env.CodeInfo.MachineCode.AsSpan().StartsWith(EvmObjectFormat.MAGIC) && vmState.Env.CodeInfo is CodeInfo)
+        // {
+        //     return CallResult.InvalidEofCodeException;
+        // }
 
         vmState.InitStacks();
         EvmStack stack = new(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
@@ -2499,8 +2499,14 @@ public class VirtualMachine : IVirtualMachine
                         if (!UpdateGas(GasCostOf.Callf, ref gasAvailable)) goto OutOfGas;
                         var index = (int)codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthUInt16();
                         var inputCount = typeSection[index * EvmObjectFormat.Eof1.MINIMUM_TYPESECTION_SIZE];
+                        var maxHeighCount = (int)typeSection.Slice(index * EvmObjectFormat.Eof1.MINIMUM_TYPESECTION_SIZE + EvmObjectFormat.Eof1.MAX_STACK_HEIGHT_OFFSET, EvmObjectFormat.Eof1.MAX_STACK_HEIGHT_LENGTH).ReadEthUInt16();
 
-                        if (vmState.ReturnStackHead > EvmObjectFormat.Eof1.RETURN_STACK_MAX_HEIGHT) goto InvalidSubroutineEntry;
+                        if (stack.Head > EvmObjectFormat.Eof1.MAX_STACK_HEIGHT - maxHeighCount)
+                        {
+                            goto StackOverflow;
+                        }
+
+                        if (vmState.ReturnStackHead == EvmObjectFormat.Eof1.RETURN_STACK_MAX_HEIGHT) goto InvalidSubroutineEntry;
 
                         stack.EnsureDepth(inputCount);
                         vmState.ReturnStack[vmState.ReturnStackHead++] = new EvmState.ReturnState
@@ -2511,7 +2517,7 @@ public class VirtualMachine : IVirtualMachine
                         };
 
                         sectionIndex = index;
-                        programCounter = env.CodeInfo.SectionOffset(index).Offset;
+                        (programCounter, _) = env.CodeInfo.SectionOffset(index);
                         break;
                     }
                 case Instruction.RETF:
@@ -2524,12 +2530,13 @@ public class VirtualMachine : IVirtualMachine
                         if (!UpdateGas(GasCostOf.Retf, ref gasAvailable)) goto OutOfGas;
                         var index = sectionIndex;
                         var outputCount = typeSection[index * EvmObjectFormat.Eof1.MINIMUM_TYPESECTION_SIZE + 1];
-                        if (vmState.ReturnStackHead-- == 0)
+                        if (vmState.ReturnStackHead == 0)
                         {
-                            break;
+                            UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
+                            goto EmptyTrace;
                         }
 
-                        var stackFrame = vmState.ReturnStack[vmState.ReturnStackHead];
+                        var stackFrame = vmState.ReturnStack[--vmState.ReturnStackHead];
                         sectionIndex = stackFrame.Index;
                         programCounter = stackFrame.Offset;
                         break;
@@ -2538,12 +2545,6 @@ public class VirtualMachine : IVirtualMachine
                     {
                         goto InvalidInstruction;
                     }
-            }
-
-
-            if (traceOpcodes)
-            {
-                EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
             }
 #if DEBUG
             UpdateCurrentState(vmState, programCounter, gasAvailable, stack.Head, sectionIndex);
@@ -2580,6 +2581,9 @@ InvalidSubroutineEntry:
 InvalidSubroutineReturn:
         if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.InvalidSubroutineReturn);
         return CallResult.InvalidSubroutineReturn;
+StackOverflow:
+        if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.StackOverflow);
+        return CallResult.StackOverflowException;
 InvalidJumpDestination:
         if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.InvalidJumpDestination);
         return CallResult.InvalidJumpDestination;
