@@ -35,7 +35,7 @@ namespace Nethermind.Evm.Lab
                 DifferenceStartIndex < Math.Min(targetEntries.Count, subjectEntries.Count)
                 && JsonSerializer.Serialize<GethTxTraceEntry>(targetEntries[DifferenceStartIndex]) == JsonSerializer.Serialize<GethTxTraceEntry>(subjectEntries[DifferenceStartIndex]); // Work arround TODO : compare fields 1 by 1
                 DifferenceStartIndex++
-            );
+            ) ;
         }
         IState<TraceState> IState<TraceState>.Initialize(TraceState seed) => seed;
         public (TraceStateEntry target, TraceStateEntry subject) Traces;
@@ -49,11 +49,12 @@ namespace Nethermind.Evm.Lab
         }
         public TraceState Previous()
         {
-            if(Traces.subject?.State?.Index != Traces.target?.State?.Index)
+            if (Traces.subject?.State?.Index != Traces.target?.State?.Index)
             {
                 var biggerTrace = Traces.subject?.State?.Index > Traces.target?.State?.Index ? Traces.subject?.State : Traces.target?.State;
                 biggerTrace?.Previous();
-            } else
+            }
+            else
             {
                 Traces.subject?.State?.Previous();
                 Traces.target?.State?.Previous();

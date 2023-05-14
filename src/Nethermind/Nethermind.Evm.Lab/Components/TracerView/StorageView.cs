@@ -37,7 +37,7 @@ internal class StorageView : IComponent<Dictionary<string, string>>
         var dataTable = new DataTable();
         dataTable.Columns.Add("Address");
         dataTable.Columns.Add("Value");
-        if(state is not null)
+        if (state is not null)
         {
             foreach (var (k, v) in state)
             {

@@ -54,10 +54,11 @@ internal class StackView : IComponent<IEnumerable<byte[]>>
         {
 
             string entryStr = entry.ToHexString(false);
-            if(entryStr.Length < stringLen)
+            if (entryStr.Length < stringLen)
             {
                 entryStr = entryStr.PadLeft(stringLen - entryStr.Length, '0');
-            } else
+            }
+            else
             {
                 entryStr = entryStr.Substring(entryStr.Length - stringLen);
             }

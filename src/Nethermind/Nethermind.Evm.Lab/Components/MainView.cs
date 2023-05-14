@@ -67,7 +67,7 @@ internal class MainView : IComponent<GlobalState>
     private void RemoveMachinePage(int idx)
     {
         int index = 0;
-        if(State.MachineStates.Count > 1)
+        if (State.MachineStates.Count > 1)
         {
             TabView.Tab targetTab = null;
             foreach (var tab in table.Tabs)
@@ -92,7 +92,7 @@ internal class MainView : IComponent<GlobalState>
         int index = 0;
         foreach (var tab in table.Tabs)
         {
-            if(tab == page)
+            if (tab == page)
             {
                 return index;
             }
@@ -104,9 +104,9 @@ internal class MainView : IComponent<GlobalState>
     private void UpdateTabPage(View page, int idx)
     {
         int index = 0;
-        foreach(var tab in table.Tabs)
+        foreach (var tab in table.Tabs)
         {
-            if(idx == index)
+            if (idx == index)
             {
                 tab.View = page;
                 break;
@@ -123,7 +123,7 @@ internal class MainView : IComponent<GlobalState>
             Y = Pos.AnchorEnd(5)
         };
 
-        if(cancelHandler is not null)
+        if (cancelHandler is not null)
             cancel.Clicked += cancelHandler;
 
         var dialog = new Dialog("Error", 60, 7, cancel)
@@ -183,20 +183,21 @@ internal class MainView : IComponent<GlobalState>
         Application.MainLoop.Invoke(
             async () =>
             {
-                if(firstRender)
+                if (firstRender)
                 {
                     firstRender = false;
                     Application.Top.Add(header.View(state).Item1, View(state).Item1);
                 }
 
-                do {
+                do
+                {
 
                     await MoveNext(state);
                     for (int i = 0; i < pages.Count; i++)
                     {
-                        if(await State.MachineStates[i].MoveNext() && i == state.SelectedState)
+                        if (await State.MachineStates[i].MoveNext() && i == state.SelectedState)
                         {
-                            switch(pages[i])
+                            switch (pages[i])
                             {
                                 case MachineView machineView:
                                     UpdateTabPage(machineView.View(State.MachineStates[i] as MachineState).Item1, i);
@@ -211,7 +212,7 @@ internal class MainView : IComponent<GlobalState>
                         }
                     }
                 }
-                while (firstRender || await timer.WaitForNextTickAsync()) ;
+                while (firstRender || await timer.WaitForNextTickAsync());
             });
         Application.Run();
         Application.Shutdown();
@@ -238,7 +239,7 @@ internal class MainView : IComponent<GlobalState>
             Height = Dim.Fill(),
         };
 
-        if(!isCached)
+        if (!isCached)
         {
             table.SelectedTabChanged += (s, e) => innerState.SelectedState = GetTabIndex(e.NewTab);
             AddMachinePage();

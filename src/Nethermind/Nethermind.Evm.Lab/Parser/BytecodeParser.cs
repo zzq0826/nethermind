@@ -29,16 +29,17 @@ internal class BytecodeParser
         var parsed = new List<Instruction>();
 
         int i = 0; int idx = 0;
-        while(i < tokens.Length)
+        while (i < tokens.Length)
         {
             if (Enum.TryParse<Evm.Instruction>(tokens[i++], out Evm.Instruction opcode))
             {
                 idx++;
-                int immCount  = 0;
+                int immCount = 0;
                 try
                 {
                     immCount = opcode.StackRequirements().immediates;
-                } catch
+                }
+                catch
                 {
                     immCount = opcode.GetImmediateCount(false);
                 }
@@ -71,14 +72,14 @@ internal class BytecodeParser
                 opcodes.Add(new Instruction(i, Evm.Instruction.INVALID));
                 continue;
             }
-            int immediatesCount = instruction.GetImmediateCount(isEof, instruction is Evm.Instruction.RJUMPV ? bytecode[i+1] : (byte)0);
+            int immediatesCount = instruction.GetImmediateCount(isEof, instruction is Evm.Instruction.RJUMPV ? bytecode[i + 1] : (byte)0);
             ReadOnlySpan<byte> immediates = bytecode.Slice(i + 1, immediatesCount);
             opcodes.Add(new Instruction(offsetInstructionIndexesBy + (isTraceSourced ? j : i), instruction, new Immediate(immediatesCount, immediatesCount == 0 ? null : immediates.ToArray())));
             i += immediatesCount;
         }
         return opcodes;
     }
-    public static  byte[] ExtractBytecodeFromTrace(GethLikeTxTrace trace)
+    public static byte[] ExtractBytecodeFromTrace(GethLikeTxTrace trace)
     {
         //only works for non-eof code (immediate arguments are non-deducable
         (bool isPreviousOpcodePush, int byteCount) = (false, 0);

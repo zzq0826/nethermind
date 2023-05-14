@@ -110,7 +110,8 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
             rawStackView.DiscardEdits();
         }
 
-        if(!isCached) {
+        if (!isCached)
+        {
             rawStackView.Edited += (e) =>
             {
                 ByteEdited?.Invoke(e.Key, e.Value);
@@ -153,7 +154,8 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
             return entryStr;
         }).ToList();
 
-        stackView.MouseClick += (e) => {
+        stackView.MouseClick += (e) =>
+        {
             var cell = stackView.ScreenToCell(e.MouseEvent.X, e.MouseEvent.Y);
 
             if (cell is not null && cell.Value.X == 1)
@@ -203,10 +205,12 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
                 {
                     byte[] bytes = Bytes.FromHexString(((string)itemView.Text));
                     EventRequested?.Invoke(new UpdateStack(pc, bytes, false));
-                } catch(Exception ex) 
+                }
+                catch (Exception ex)
                 {
                     MainView.ShowError(ex.Message);
-                } finally
+                }
+                finally
                 {
                     Application.RequestStop();
                 }
@@ -227,7 +231,8 @@ internal class StackView : IComponent<(byte[] memory, int height, bool isNewStat
                 new MenuItem ("_Pop", string.Empty, () => EventRequested?.Invoke(new UpdateStack(pc, null, true))),
                 new MenuItem ("_Edit", string.Empty, () =>  Application.Run(CreateConditionView()))
             })
-        ) { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true };
+        )
+        { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true };
 
 
         contextMenu.Show();

@@ -13,7 +13,8 @@ class TableViewColored : TableView
     public int DiffIndexStart = 2;
     public int RenderCellIndex = 0;
     public int RenderLineIndex = 0;
-    public bool RenderPastDiffLine(int line) {
+    public bool RenderPastDiffLine(int line)
+    {
         return ColoredRanges.Any(range => line < range.End.Value && line >= range.Start.Value);
     }
 
@@ -41,14 +42,16 @@ class TableViewColored : TableView
             {
                 if (RenderCellIndex % 8 == 0)
                 {
-                    Driver.SetAttribute(Driver.MakeAttribute(RenderLineIndex == SelectedRow ? Color.Brown: Color.Magenta, cellColor.Background));
+                    Driver.SetAttribute(Driver.MakeAttribute(RenderLineIndex == SelectedRow ? Color.Brown : Color.Magenta, cellColor.Background));
                 }
                 else
                 {
                     Driver.SetAttribute(Driver.MakeAttribute(Color.Red, cellColor.Background));
                 }
-            } else {
-                if(RenderLineIndex == HighlightedRow)
+            }
+            else
+            {
+                if (RenderLineIndex == HighlightedRow)
                 {
                     if (RenderCellIndex % 8 == 0)
                     {
@@ -58,7 +61,8 @@ class TableViewColored : TableView
                     {
                         Driver.SetAttribute(Driver.MakeAttribute(Color.BrightMagenta, cellColor.Background));
                     }
-                } else
+                }
+                else
                 {
                     Driver.SetAttribute(cellColor);
                 }

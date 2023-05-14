@@ -2397,49 +2397,49 @@ public class VirtualMachine : IVirtualMachine
                             stack.PushBytes(_state.GetCodeHash(address).Bytes);
                         }
 
+                        break;
+                    }
+                case Instruction.RJUMP | Instruction.BEGINSUB:
+                    {
+                        if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
+                        {
+                            if (!UpdateGas(GasCostOf.RJump, ref gasAvailable)) goto OutOfGas;
+                            short offset = codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
+                            programCounter += EvmObjectFormat.Eof1.TWO_BYTE_LENGTH + offset;
                             break;
                         }
-                    case Instruction.RJUMP | Instruction.BEGINSUB:
+                        else
                         {
-                            if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
+                            if (!spec.SubroutinesEnabled)
                             {
-                                if (!UpdateGas(GasCostOf.RJump, ref gasAvailable)) goto OutOfGas;
-                                short offset = codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
-                                programCounter += EvmObjectFormat.Eof1.TWO_BYTE_LENGTH + offset;
-                                break;
+                                goto InvalidInstruction;
                             }
-                            else
-                            {
-                                if (!spec.SubroutinesEnabled)
-                                {
-                                    goto InvalidInstruction;
-                                }
 
-                                // why do we even need the cost of it?
-                                if (!UpdateGas(GasCostOf.Base, ref gasAvailable)) goto OutOfGas;
-                                EndInstructionTraceError(gasAvailable, EvmExceptionType.InvalidSubroutineEntry);
-                                return CallResult.InvalidSubroutineEntry;
-                            }
+                            // why do we even need the cost of it?
+                            if (!UpdateGas(GasCostOf.Base, ref gasAvailable)) goto OutOfGas;
+                            EndInstructionTraceError(gasAvailable, EvmExceptionType.InvalidSubroutineEntry);
+                            return CallResult.InvalidSubroutineEntry;
                         }
-                    case Instruction.RJUMPI | Instruction.RETURNSUB:
+                    }
+                case Instruction.RJUMPI | Instruction.RETURNSUB:
+                    {
+                        if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
                         {
-                            if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
+                            if (!UpdateGas(GasCostOf.RJumpi, ref gasAvailable)) goto OutOfGas;
+                            Span<byte> condition = stack.PopBytes();
+                            short offset = codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
+                            if (!condition.SequenceEqual(BytesZero32))
                             {
-                                if (!UpdateGas(GasCostOf.RJumpi, ref gasAvailable)) goto OutOfGas;
-                                Span<byte> condition = stack.PopBytes();
-                                short offset = codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
-                                if (!condition.SequenceEqual(BytesZero32))
-                                {
-                                    programCounter += offset;
-                                }
-                                programCounter += EvmObjectFormat.Eof1.TWO_BYTE_LENGTH;
+                                programCounter += offset;
                             }
-                            else
+                            programCounter += EvmObjectFormat.Eof1.TWO_BYTE_LENGTH;
+                        }
+                        else
+                        {
+                            if (!spec.SubroutinesEnabled)
                             {
-                                if (!spec.SubroutinesEnabled)
-                                {
-                                    goto InvalidInstruction;
-                                }
+                                goto InvalidInstruction;
+                            }
 
                             if (!UpdateGas(GasCostOf.Low, ref gasAvailable)) goto OutOfGas;
                             if (vmState.ReturnStackHead == 0)
@@ -2447,33 +2447,33 @@ public class VirtualMachine : IVirtualMachine
                                 goto InvalidSubroutineReturn;
                             }
 
-                                programCounter = vmState.ReturnStack[--vmState.ReturnStackHead].Offset;
-                            }
-                            break;
+                            programCounter = vmState.ReturnStack[--vmState.ReturnStackHead].Offset;
                         }
-                    case Instruction.RJUMPV | Instruction.JUMPSUB:
+                        break;
+                    }
+                case Instruction.RJUMPV | Instruction.JUMPSUB:
+                    {
+                        if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
                         {
-                            if (spec.IsEofEvmModeOn && spec.StaticRelativeJumpsEnabled && env.CodeInfo.IsEof())
+                            if (!UpdateGas(GasCostOf.RJumpv, ref gasAvailable)) goto OutOfGas;
+                            var case_v = stack.PopByte();
+                            var count = codeSection[programCounter];
+                            var immediateValueSize = EvmObjectFormat.Eof1.ONE_BYTE_LENGTH + count * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH;
+                            if (case_v < count)
                             {
-                                if (!UpdateGas(GasCostOf.RJumpv, ref gasAvailable)) goto OutOfGas;
-                                var case_v = stack.PopByte();
-                                var count = codeSection[programCounter];
-                                var immediateValueSize = EvmObjectFormat.Eof1.ONE_BYTE_LENGTH + count * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH;
-                                if (case_v < count)
-                                {
-                                    int caseOffset = codeSection.Slice(
-                                        programCounter + EvmObjectFormat.Eof1.ONE_BYTE_LENGTH + case_v * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH,
-                                        EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
-                                    programCounter += caseOffset;
-                                }
-                                programCounter += immediateValueSize;
+                                int caseOffset = codeSection.Slice(
+                                    programCounter + EvmObjectFormat.Eof1.ONE_BYTE_LENGTH + case_v * EvmObjectFormat.Eof1.TWO_BYTE_LENGTH,
+                                    EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthInt16();
+                                programCounter += caseOffset;
                             }
-                            else
+                            programCounter += immediateValueSize;
+                        }
+                        else
+                        {
+                            if (!spec.SubroutinesEnabled)
                             {
-                                if (!spec.SubroutinesEnabled)
-                                {
-                                    goto InvalidInstruction;
-                                }
+                                goto InvalidInstruction;
+                            }
 
                             if (!UpdateGas(GasCostOf.High, ref gasAvailable)) goto OutOfGas;
                             if (vmState.ReturnStackHead == EvmStack.ReturnStackSize) goto InvalidSubroutineEntry;
@@ -2483,18 +2483,18 @@ public class VirtualMachine : IVirtualMachine
                                 Offset = programCounter
                             };
 
-                                stack.PopUInt256(out UInt256 jumpDest);
-                                Jump(jumpDest, ref programCounter, env, true);
-                                programCounter++;
-                            }
-                            break;
+                            stack.PopUInt256(out UInt256 jumpDest);
+                            Jump(jumpDest, ref programCounter, env, true);
+                            programCounter++;
                         }
-                    case Instruction.CALLF:
+                        break;
+                    }
+                case Instruction.CALLF:
+                    {
+                        if (!spec.IsEofEvmModeOn || !spec.FunctionSections || !env.CodeInfo.IsEof())
                         {
-                            if (!spec.IsEofEvmModeOn || !spec.FunctionSections || !env.CodeInfo.IsEof())
-                            {
-                                goto InvalidInstruction;
-                            }
+                            goto InvalidInstruction;
+                        }
 
                         if (!UpdateGas(GasCostOf.Callf, ref gasAvailable)) goto OutOfGas;
                         var index = (int)codeSection.Slice(programCounter, EvmObjectFormat.Eof1.TWO_BYTE_LENGTH).ReadEthUInt16();
@@ -2510,16 +2510,16 @@ public class VirtualMachine : IVirtualMachine
                             Offset = programCounter + EvmObjectFormat.Eof1.TWO_BYTE_LENGTH
                         };
 
-                            sectionIndex = index;
-                            programCounter = env.CodeInfo.SectionOffset(index).Offset;
-                            break;
-                        }
-                    case Instruction.RETF:
+                        sectionIndex = index;
+                        programCounter = env.CodeInfo.SectionOffset(index).Offset;
+                        break;
+                    }
+                case Instruction.RETF:
+                    {
+                        if (!spec.IsEofEvmModeOn && !spec.FunctionSections || !env.CodeInfo.IsEof())
                         {
-                            if (!spec.IsEofEvmModeOn && !spec.FunctionSections || !env.CodeInfo.IsEof())
-                            {
-                                goto InvalidInstruction;
-                            }
+                            goto InvalidInstruction;
+                        }
 
                         if (!UpdateGas(GasCostOf.Retf, ref gasAvailable)) goto OutOfGas;
                         var index = sectionIndex;

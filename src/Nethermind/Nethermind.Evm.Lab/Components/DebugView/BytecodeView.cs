@@ -52,7 +52,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             Height = frameBoundaries.Height,
         };
 
-        if(!isCached )
+        if (!isCached)
         {
             Application.RootMouseEvent += Application_RootMouseEvent;
         }
@@ -74,7 +74,8 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
                 (_, TableView programView) = AddCodeSectionTab(state, (false, 0, codeInfo.MachineCode, 0));
                 container.AddTab(new TabView.Tab("Section 0", programView), true);
             }
-        } else
+        }
+        else
         {
             foreach (var tab in container.Tabs)
             {
@@ -87,7 +88,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
 
     private void ClearExistingTabs(TabView view)
     {
-        foreach(TabView.Tab tabView in view.Tabs.ToArray())
+        foreach (TabView.Tab tabView in view.Tabs.ToArray())
         {
             view.RemoveTab(tabView);
         }
@@ -138,7 +139,7 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             string opcode = instr.ToString(state.Spec);
             var breakpoint = (state.txTracer.CurrentState?.Env.CallDepth ?? 0, instr.idx);
             dataTable.Rows.Add(line, state.txTracer._breakPoints.ContainsKey(breakpoint) ? "[x]" : "[ ]", instr.idx, $"{(opcode.Length > 13 ? $"{opcode.Substring(0, 13)}..." : opcode)}");
-            if(instr.idx == (state.txTracer?.CurrentState?.ProgramCounter ?? 0))
+            if (instr.idx == (state.txTracer?.CurrentState?.ProgramCounter ?? 0))
             {
                 selectedRow = line;
             }
@@ -170,15 +171,16 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
             int pc = dissassembledBytecode[e.NewRow].idx;
             BreakPointRequested?.Invoke(new SetBreakpoint(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc, unsetBreakpoint: state.txTracer.IsBreakpoitnSet(state.txTracer.CurrentState?.Env.CallDepth ?? 0, pc)));
         };
-        if(selectedRow is not null)
+        if (selectedRow is not null)
         {
             programView.SelectedRow = selectedRow.Value;
         }
 
-        programView.MouseClick += (e) => {
+        programView.MouseClick += (e) =>
+        {
             var cell = programView.ScreenToCell(e.MouseEvent.X, e.MouseEvent.Y);
 
-            if(cell is not null && cell.Value.X == 1)
+            if (cell is not null && cell.Value.X == 1)
             {
                 int pc = Int32.Parse((string)programView.Table.Rows[cell.Value.Y]["Position"]);
                 if (e.MouseEvent.Flags == contextMenu.MouseFlags)
@@ -223,7 +225,8 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
 
             container.Add(conditionView.View(new Rectangle
             {
-                Height = 3, Width = 33
+                Height = 3,
+                Width = 33
             }).Item1);
             return container;
         }
@@ -242,14 +245,14 @@ internal class BytecodeView : IComponent<(DebugTracer txTracer, ICodeInfo Runtim
                         : null,
             })
         )
-        { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true};
+        { ForceMinimumPosToZero = true, UseSubMenusSingleFrame = true };
 
 
         contextMenu.Show();
     }
 
 
-	void Application_RootMouseEvent(MouseEvent me)
+    void Application_RootMouseEvent(MouseEvent me)
     {
         mousePosition = new Point(me.X, me.Y);
     }

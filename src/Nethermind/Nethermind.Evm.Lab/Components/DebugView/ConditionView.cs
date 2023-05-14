@@ -58,12 +58,14 @@ internal class ConditionView : IComponent
                 if (e.KeyEvent.Key == Key.Enter && conditionBox.HasFocus)
                 {
                     SubmitCondition();
-                } else if(AutocompleteOn && e.KeyEvent.KeyValue == '.')
+                }
+                else if (AutocompleteOn && e.KeyEvent.KeyValue == '.')
                 {
                     string getToken(string text)
                     {
                         int currentIndex = text.Length - 1;
-                        while (currentIndex >= 0 && (Char.IsLetter(text[currentIndex]) || text[currentIndex] == '_')) {
+                        while (currentIndex >= 0 && (Char.IsLetter(text[currentIndex]) || text[currentIndex] == '_'))
+                        {
                             currentIndex--;
                         }
 
@@ -92,13 +94,13 @@ internal class ConditionView : IComponent
     private void ShowContextMenu(string expandedToken, int x, int y)
     {
         int indexOfArrow = conditionBox.Text.IndexOf("=>");
-        if(indexOfArrow == -1)
+        if (indexOfArrow == -1)
         {
             return;
         }
 
         var namedState = (string)conditionBox.Text.Substring(0, indexOfArrow).TrimSpace();
-        if(expandedToken == namedState)
+        if (expandedToken == namedState)
         {
             conditionBox.Text += ".";
             Type evmstateType = typeof(EvmState);
@@ -113,7 +115,7 @@ internal class ConditionView : IComponent
                         conditionBox.CursorPosition += prop.Item1.Length + 1;
                     })).ToArray()
             ))
-            { ForceMinimumPosToZero = false, UseSubMenusSingleFrame = false};
+            { ForceMinimumPosToZero = false, UseSubMenusSingleFrame = false };
 
             contextMenu.Show();
         }

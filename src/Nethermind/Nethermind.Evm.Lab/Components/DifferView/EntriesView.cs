@@ -36,7 +36,7 @@ internal class EntriesView : IComponent<MachineState>
                 Height: rect?.Height ?? 10
             );
 
-        if(!isCached)
+        if (!isCached)
         {
 
             var dataTable = new DataTable();
