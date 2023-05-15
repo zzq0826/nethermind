@@ -103,5 +103,8 @@ namespace Nethermind.Blockchain.Synchronization
 
         [ConfigItem(Description = "[EXPERIMENTAL] Optimize db for write during sync. Significantly reduce total writes written and some sync time if you are not network limited.", DefaultValue = "Default")]
         public ITunableDb.TuneType TuneDbMode { get; set; }
+
+        [ConfigItem(Description = "[EXPERIMENTAL] Enables Verkle Sync protocol.", DefaultValue = "false")]
+        public bool VerkleSync { get; set; }
     }
 }

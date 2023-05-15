@@ -61,6 +61,8 @@ namespace Nethermind.Blockchain.Synchronization
         public bool NonValidatorNode { get; set; } = false;
         public ITunableDb.TuneType TuneDbMode { get; set; } = ITunableDb.TuneType.Default;
 
+        public bool VerkleSync { get; set; } = false;
+
         public override string ToString()
         {
             return
