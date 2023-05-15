@@ -37,7 +37,7 @@ namespace Nethermind.Facade.Eth
         {
             long bestSuggestedNumber = _blockTree.FindBestSuggestedHeader().Number;
             long headNumberOrZero = _blockTree.Head?.Number ?? 0;
-            bool isSyncing = bestSuggestedNumber > headNumberOrZero + 8;
+            bool isSyncing = bestSuggestedNumber > headNumberOrZero + 8 || (bestSuggestedNumber == 0 && headNumberOrZero == 0);
             SyncMode syncMode = _syncModeSelector.Current;
 
             if (_logger.IsTrace) _logger.Trace($"Start - EthSyncingInfo - BestSuggestedNumber: {bestSuggestedNumber}, HeadNumberOrZero: {headNumberOrZero}, IsSyncing: {isSyncing} {_syncConfig}. LowestInsertedBodyNumber: {_blockTree.LowestInsertedBodyNumber} LowestInsertedReceiptBlockNumber: {_receiptStorage.LowestInsertedReceiptBlockNumber}");
