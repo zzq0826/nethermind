@@ -82,7 +82,7 @@ namespace Nethermind.Runner.Test
             if (memoryHint == 256.MB())
             {
                 _txPoolConfig.Size = 128;
-                _syncConfig.FastBlocks = false;
+                _syncConfig.FastSync = false;
                 _initConfig.DiagnosticMode = DiagnosticMode.MemDb;
             }
 
@@ -91,7 +91,6 @@ namespace Nethermind.Runner.Test
 
             SyncConfig syncConfig = new SyncConfig();
             syncConfig.FastSync = fastSync;
-            syncConfig.FastBlocks = fastBlocks;
 
             IDbConfig dbConfig = _dbConfig;
 

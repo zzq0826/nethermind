@@ -40,7 +40,6 @@ namespace Nethermind.Synchronization.Test
             _syncModes.Enqueue(SyncMode.Disconnected);
 
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = fastBlocks;
             syncConfig.FastSync = fastSync;
 
             SyncReport syncReport = new(pool, Substitute.For<INodeStatsManager>(), selector, syncConfig, Substitute.For<IPivot>(), LimboLogs.Instance, timerFactory);
@@ -73,7 +72,6 @@ namespace Nethermind.Synchronization.Test
             _syncModes.Enqueue(SyncMode.FastReceipts);
 
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.FastSync = true;
             syncConfig.PivotNumber = "100";
             if (setBarriers)

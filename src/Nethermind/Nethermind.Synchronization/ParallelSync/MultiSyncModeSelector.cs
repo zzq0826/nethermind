@@ -57,10 +57,9 @@ namespace Nethermind.Synchronization.ParallelSync
         private long _pivotNumber;
         private bool FastSyncEnabled => _syncConfig.FastSync;
         private bool SnapSyncEnabled => _syncConfig.SnapSync && !_isSnapSyncDisabledAfterAnyStateSync;
-        private bool FastBlocksEnabled => _syncConfig.FastSync && _syncConfig.FastBlocks;
-        private bool FastBodiesEnabled => FastBlocksEnabled && _syncConfig.DownloadBodiesInFastSync;
-        private bool FastReceiptsEnabled => FastBlocksEnabled && _syncConfig.DownloadReceiptsInFastSync;
-        private bool FastBlocksHeadersFinished => !FastBlocksEnabled || _syncProgressResolver.IsFastBlocksHeadersFinished();
+        private bool FastBodiesEnabled => FastSyncEnabled && _syncConfig.DownloadBodiesInFastSync;
+        private bool FastReceiptsEnabled => FastSyncEnabled && _syncConfig.DownloadReceiptsInFastSync;
+        private bool FastBlocksHeadersFinished => !FastSyncEnabled || _syncProgressResolver.IsFastBlocksHeadersFinished();
         private bool FastBlocksBodiesFinished => !FastBodiesEnabled || _syncProgressResolver.IsFastBlocksBodiesFinished();
         private bool FastBlocksReceiptsFinished => !FastReceiptsEnabled || _syncProgressResolver.IsFastBlocksReceiptsFinished();
         private long FastSyncCatchUpHeightDelta => _syncConfig.FastSyncCatchUpHeightDelta ?? FastSyncLag;
@@ -383,7 +382,7 @@ namespace Nethermind.Synchronization.ParallelSync
                 return false;
             }
 
-            if (_syncConfig.FastBlocks && _pivotNumber != 0 && best.Header == 0)
+            if (_syncConfig.FastSync && _pivotNumber != 0 && best.Header == 0)
             {
                 // do not start fast sync until at least one header is downloaded or we would start from zero
                 // we are fine to start from zero if we do not use fast blocks

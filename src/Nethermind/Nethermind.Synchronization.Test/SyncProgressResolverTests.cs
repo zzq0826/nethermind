@@ -119,7 +119,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = false;
             syncConfig.PivotNumber = "1";
             ProgressTracker progressTracker = new(blockTree, stateDb, LimboLogs.Instance);
 
@@ -136,7 +135,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.FastSync = true;
             syncConfig.DownloadBodiesInFastSync = true;
             syncConfig.DownloadReceiptsInFastSync = true;
@@ -156,7 +154,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.FastSync = true;
             syncConfig.DownloadBodiesInFastSync = true;
             syncConfig.DownloadReceiptsInFastSync = true;
@@ -177,7 +174,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.FastSync = true;
             syncConfig.DownloadBodiesInFastSync = true;
             syncConfig.DownloadReceiptsInFastSync = true;
@@ -200,7 +196,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.DownloadBodiesInFastSync = false;
             syncConfig.DownloadReceiptsInFastSync = true;
             syncConfig.PivotNumber = "1";
@@ -221,7 +216,6 @@ namespace Nethermind.Synchronization.Test
             IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
             IDb stateDb = new MemDb();
             SyncConfig syncConfig = new();
-            syncConfig.FastBlocks = true;
             syncConfig.DownloadBodiesInFastSync = true;
             syncConfig.DownloadReceiptsInFastSync = false;
             syncConfig.PivotNumber = "1";

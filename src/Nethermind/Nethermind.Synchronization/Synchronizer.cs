@@ -100,10 +100,7 @@ namespace Nethermind.Synchronization
 
             if (_syncConfig.FastSync)
             {
-                if (_syncConfig.FastBlocks)
-                {
-                    StartFastBlocksComponents();
-                }
+                StartFastBlocksComponents();
 
                 StartFastSyncComponents();
 

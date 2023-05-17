@@ -176,7 +176,7 @@ namespace Nethermind.Synchronization.ParallelSync
 
         private bool IsFastBlocks()
         {
-            bool isFastBlocks = _syncConfig.FastBlocks;
+            bool isFastBlocks = _syncConfig.FastSync;
 
             // if pivot number is 0 then it is equivalent to fast blocks disabled
             if (!isFastBlocks || _syncConfig.PivotNumberParsed == 0L)

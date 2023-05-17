@@ -180,7 +180,7 @@ namespace Nethermind.Synchronization.FastBlocks
                 _headersRequestSize = NethermindSyncLimits.MaxHeaderFetch;
             }
 
-            if (!_syncConfig.FastBlocks && !alwaysStartHeaderSync)
+            if (!_syncConfig.FastSync && !alwaysStartHeaderSync)
             {
                 throw new InvalidOperationException("Entered fast blocks mode without fast blocks enabled in configuration.");
             }

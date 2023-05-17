@@ -120,7 +120,7 @@ namespace Nethermind.Init
 
         private void AssignFastBlocksMemory(ISyncConfig syncConfig)
         {
-            if (syncConfig.FastBlocks)
+            if (syncConfig.FastSync)
             {
                 if (!syncConfig.DownloadBodiesInFastSync && !syncConfig.DownloadReceiptsInFastSync)
                 {
@@ -284,7 +284,7 @@ namespace Nethermind.Init
 
         private DbNeeds GetBlockInfosNeeds(uint cpuCount, ISyncConfig syncConfig)
         {
-            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
+            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
             // remove optimize for point lookup here?
             return new DbNeeds(
                 preferredBuffers,
@@ -297,7 +297,7 @@ namespace Nethermind.Init
 
         private DbNeeds GetHeaderNeeds(uint cpuCount, ISyncConfig syncConfig)
         {
-            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
+            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
                 1.MB(), // min buffer size
@@ -309,7 +309,7 @@ namespace Nethermind.Init
 
         private DbNeeds GetBlocksNeeds(uint cpuCount, ISyncConfig syncConfig)
         {
-            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
+            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
                 4.MB(), // min buffer size
@@ -321,7 +321,7 @@ namespace Nethermind.Init
 
         private DbNeeds GetReceiptsNeeds(uint cpuCount, ISyncConfig syncConfig)
         {
-            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastBlocks ? 4u : 2u);
+            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
             return new DbNeeds(
                 preferredBuffers,
                 2.MB(), // min buffer size

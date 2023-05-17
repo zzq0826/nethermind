@@ -53,7 +53,6 @@ namespace Nethermind.Runner.Test
         public void Sync_defaults_are_correct(string configWildcard, bool fastSyncEnabled, bool fastBlocksEnabled)
         {
             Test<ISyncConfig, bool>(configWildcard, c => c.FastSync, fastSyncEnabled);
-            Test<ISyncConfig, bool>(configWildcard, c => c.FastBlocks, fastBlocksEnabled);
         }
 
         [TestCase("archive")]
