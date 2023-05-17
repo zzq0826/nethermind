@@ -100,7 +100,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             _receiptStorage = Substitute.For<IReceiptStorage>();
             _blockTree = Substitute.For<IBlockTree>();
 
-            _syncConfig = new SyncConfig { FastBlocks = true, FastSync = true };
+            _syncConfig = new SyncConfig { FastSync = true };
             _syncConfig.PivotNumber = _pivotNumber.ToString();
             _syncConfig.PivotHash = Keccak.Zero.ToString();
 
@@ -128,7 +128,7 @@ namespace Nethermind.Synchronization.Test.FastSync
         [Test]
         public void Should_throw_when_fast_blocks_not_enabled()
         {
-            _syncConfig = new SyncConfig { FastBlocks = false };
+            _syncConfig = new SyncConfig { FastSync = false };
             Assert.Throws<InvalidOperationException>(
                 () => _feed = new ReceiptsSyncFeed(
                     _selector,
