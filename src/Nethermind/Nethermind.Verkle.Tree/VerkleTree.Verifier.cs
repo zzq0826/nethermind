@@ -26,13 +26,13 @@ public partial class VerkleTree
         int stemIndex = 1;
         for (int i = 1; i < proof.VerifyHint.Depths.Length; i++)
         {
-            byte[] currentKey = keys[i][..31];
-            if(comparer.Equals(stems[stemIndex-1], currentKey)) continue;
-            stems[stemIndex++] = currentKey;
+            byte[] currentStem = keys[i][..31];
+            if(comparer.Equals(stems[stemIndex-1], currentStem)) continue;
+            stems[stemIndex++] = currentStem;
         }
 
         Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
-        SortedSet<byte[]> stemsWithExtension = new(Bytes.Comparer);
+        HashSet<byte[]> stemsWithExtension = new(Bytes.EqualityComparer);
         SortedSet<byte[]> otherStemsUsed = new(Bytes.Comparer);
         SortedSet<List<byte>> allPaths = new(new ListComparer());
         SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
@@ -107,8 +107,6 @@ public partial class VerkleTree
                     allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
                     allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
 
-                    leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
-
                     // since the stem was different - value should not have been set
                     if (value != null) return (false, null);
 
@@ -119,26 +117,25 @@ public partial class VerkleTree
                     // find the stems that are equal to the stem we are assuming to be without extension
                     // this happens when we initially added this stem when we were searching for another one
                     // but then in a future key, we found that we needed this stem too.
-                    // TODO: this can be done without using the depth
                     byte[][] found = stemsWithExtension.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
 
                     switch (found.Length)
                     {
                         case 0:
-                            // TODO: this can be done without using the depth
                             found = proof.VerifyHint.DifferentStemNoProof.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
                             byte[] encounteredStem = found[^1];
                             otherStem = encounteredStem;
                             otherStemsUsed.Add(encounteredStem);
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
+                            leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
                             leafValuesByPathAndZ.Add((new List<byte>(stem[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Reverse().ToArray()));
                             break;
                         case 1:
                             otherStem = found[0];
                             break;
                         default:
-                            throw new NotSupportedException($"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
+                            throw new InvalidDataException($"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
                     }
 
                     otherStemsByPrefix.Add(stem[..depth].ToList(), otherStem);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Threading;
 using Microsoft.Extensions.ObjectPool;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -38,12 +39,47 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public AddRangeResult AddSubTreeRange(SubTreeRange request, SubTreesAndProofs response)
     {
-        throw new NotImplementedException();
+        AddRangeResult result;
+
+        if (response.SubTrees.Length == 0 && response.Proofs.Length == 0)
+        {
+            _logger.Trace($"VERKLE SYNC - GetSubTreeRange - requested expired RootHash:{request.RootHash}");
+
+            result = AddRangeResult.ExpiredRootHash;
+        }
+        else
+        {
+            result = AddSubTreeRange(request.BlockNumber.Value, request.RootHash, request.StartingStem, response.SubTrees, response.Proofs, limitStem: request.LimitStem);
+
+            if (result == AddRangeResult.OK)
+            {
+                Interlocked.Add(ref Metrics.SnapSyncedAccounts, response.SubTrees.Length);
+            }
+        }
+
+        _progressTracker.ReportSubTreeRangePartitionFinished(request.LimitStem);
+
+        return result;
     }
 
     public AddRangeResult AddSubTreeRange(long blockNumber, byte[] expectedRootHash, byte[] startingStem,
-        PathWithSubTree[] subTrees, byte[][] proofs = null, byte[] limitStem = null)
+        PathWithSubTree[] subTrees, byte[][]? proofs = null, byte[]? limitStem = null)
     {
+        IVerkleStore store = _trieStorePool.Get();
+        try
+        {
+            VerkleStateTree tree = new(store);
+            limitStem ??= Keccak.MaxValue.Bytes[..31];
+
+            // fill the stateless tree and check stateless root
+
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
         throw new NotImplementedException();
     }
 

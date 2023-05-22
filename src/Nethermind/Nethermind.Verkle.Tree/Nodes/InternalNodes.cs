@@ -15,6 +15,8 @@ public class InternalNode
     public VerkleNodeType NodeType { get; }
     public Commitment InternalCommitment { get; }
 
+    public bool IsStateless { get; set; } = false;
+
 
     /// <summary>
     ///  C1, C2, InitCommitmentHash - only relevant for stem nodes
@@ -32,7 +34,7 @@ public class InternalNode
         return NodeType switch
         {
             VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
-            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup(), InitCommitmentHash!.Value),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup()),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -61,14 +63,13 @@ public class InternalNode
         InitCommitmentHash = InternalCommitment.PointAsField;
     }
 
-    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment c1, Commitment c2, Commitment internalCommitment, FrE initCommitment)
+    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment? c1, Commitment? c2, Commitment internalCommitment, bool isStateless = false)
     {
         NodeType = nodeType;
         Stem = stem;
         C1 = c1;
         C2 = c2;
         InternalCommitment = internalCommitment;
-        InitCommitmentHash = initCommitment;
     }
 
     internal InternalNode(VerkleNodeType nodeType, byte[] stem, byte[] c1, byte[] c2, byte[] extCommit)
@@ -78,8 +79,6 @@ public class InternalNode
         C1 = new Commitment(Banderwagon.FromBytes(c1, subgroupCheck: false)!.Value);
         C2 = new Commitment(Banderwagon.FromBytes(c2, subgroupCheck: false)!.Value);
         InternalCommitment = new Commitment(Banderwagon.FromBytes(extCommit, subgroupCheck: false)!.Value);
-        InitCommitmentHash = FrE.Zero;
-
     }
 
     private Banderwagon GetInitialCommitment()

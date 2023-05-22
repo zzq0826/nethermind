@@ -4,52 +4,89 @@
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    public void AddStatelessNode(byte[] pathNode, InternalNode node)
+
+    public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
     {
-        _verkleStateStore.SetInternalNode(pathNode, node);
+        (bool, UpdateHint?) verification = Verify(proof, keys, values, root);
+        if (!verification.Item1) return false;
+
+        InsertAfterVerification(verification.Item2!.Value, keys, values, root, false);
+        return true;
     }
 
-    public void AddStatelessLeafNode(byte[] leafPath, byte[] leaf)
-    {
-        _verkleStateStore.SetLeaf(leafPath, leaf);
-    }
 
-    public void TreeFromProofs(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
+    private void InsertAfterVerification(UpdateHint hint, List<byte[]> keys, List<byte[]?> values, Banderwagon root, bool skipRoot = true)
     {
-        HashSet<byte[]> stem = new HashSet<byte[]>();
-
-        foreach (byte[] key in keys)
+        if (!skipRoot)
         {
-            stem.Add(key[..31]);
+            InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
+            _verkleStateStore.SetInternalNode(Array.Empty<byte>(), rootNode);
         }
 
-        int stemIndex;
-        var info = new Dictionary<byte[], StemInfo>();
+        AddStatelessInternalNodes(hint);
 
-        // for (int i = 0; i < proof; i++)
-        // {
-        //
-        // }
-
-
-
-
+        for (int i = 0; i < keys.Count; i++)
+        {
+            byte[]? value = values[i];
+            if(value is null) continue;
+            _verkleStateStore.SetLeaf(keys[i], value);
+        }
     }
 
-    private readonly struct StemInfo
+    private void AddStatelessInternalNodes(UpdateHint hint)
     {
-        public readonly byte Depth;
-        public readonly byte StemType;
-        public readonly bool HasC1;
-        public readonly bool HasC2;
-        public readonly Dictionary<byte, byte[]> Values;
-        public readonly byte[] Stem;
+        List<byte> pathList = new();
+        foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
+        {
+            pathList.Clear();
+            for (int i = 0; i < depth - 1; i++)
+            {
+                pathList.Add(stem[i]);
+                InternalNode node = new(VerkleNodeType.BranchNode, new Commitment(hint.CommByPath[pathList]));
+                node.IsStateless = true;
+                _verkleStateStore.SetInternalNode(pathList.ToArray(), node);
+            }
+
+            pathList.Add(stem[depth-1]);
+
+            InternalNode stemNode;
+            byte[] pathOfStem;
+            switch (extStatus)
+            {
+                case ExtPresent.None:
+                    stemNode =  new(VerkleNodeType.StemNode, stem, null, null, new Commitment());
+                    pathOfStem = pathList.ToArray();
+                    break;
+                case ExtPresent.DifferentStem:
+                    byte[] otherStem = hint.DifferentStemNoProof[pathList];
+                    Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
+                    stemNode = new(VerkleNodeType.StemNode, otherStem, null, null, otherInternalCommitment);
+                    pathOfStem = pathList.ToArray();
+                    break;
+                case ExtPresent.Present:
+                    Commitment internalCommitment = new(hint.CommByPath[pathList]);
+                    Commitment? c1 = null;
+                    Commitment? c2 = null;
+
+                    pathList.Add(2);
+                    if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c1B)) c1 = new Commitment(c1B);
+                    pathList[^1] = 3;
+                    if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c2B)) c2 = new Commitment(c2B);
+
+                    stemNode = new(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment);
+                    pathOfStem = new byte[pathList.Count - 1];
+                    pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+        }
     }
-
-
 }
