@@ -15,7 +15,7 @@ jobs:
         id: runcmd
         with:
           arch: aarch64
-          distro: ubuntu18.04
+          distro: ubuntu22.04
 
           run: |
             apt-get update && apt-get install -y curl unzip libsnappy-dev dotnet-sdk-7.0 git
