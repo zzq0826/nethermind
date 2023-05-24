@@ -26,8 +26,8 @@ jobs:
             #ldd neth/runtimes/linux-arm64/native/libsecp256k1.so
             git clone --single-branch --branch test/linux-arm64 https://github.com/nethermindeth/nethermind
             cd nethermind/src/Nethermind/Nethermind.Runner
-            dotnet run -c release -- -c sepolia &
+            dotnet run -c release -- -c sepolia
             #./Nethermind.Runner -c sepolia &
-            sleep 10m
+            #sleep 10m
 
       
