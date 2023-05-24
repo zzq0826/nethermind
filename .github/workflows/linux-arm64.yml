@@ -15,7 +15,7 @@ jobs:
           distro: ubuntu_latest
 
           run: |
-            apt-get update && apt-get install -y curl unzip libsnappy-dev libgflags-dev -y --no-install-recommends
+            apt-get update && apt-get install -y curl unzip libsnappy-dev libgflags-dev -y 
             curl -sL https://github.com/NethermindEth/nethermind/releases/download/1.19.0-rc/nethermind-1.19.0-rc-d8765075-linux-arm64.zip -o neth.zip
             mkdir neth
             unzip neth.zip -d neth
