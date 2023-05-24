@@ -29,7 +29,8 @@ jobs:
             #cd nethermind/src/Nethermind/Nethermind.Runner
             #dotnet build -c release
             #dotnet run -c release -- -c sepolia
+            cd neth
             ./Nethermind.Runner -c sepolia &
-            #sleep 10m
+            sleep 10m
 
       
