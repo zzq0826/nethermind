@@ -23,7 +23,7 @@ jobs:
             #curl -sL https://github.com/NethermindEth/nethermind/releases/download/1.19.0-rc/nethermind-1.19.0-rc-d8765075-linux-arm64.zip -o neth.zip
             mkdir neth
             unzip neth.zip -d neth
-            ldd neth/runtimes/linux-arm64/native/libsecp256k1.so
+            ldd neth/runtimes/linux-x64/native/libsecp256k1.so
             #./Nethermind.Runner -c sepolia &
             sleep 40s
 
