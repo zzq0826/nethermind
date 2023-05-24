@@ -3,7 +3,10 @@ name: Linux arm64
 on:
   push:
     branches: [test/linux-arm64]
-  
+
+env:
+  LD_DEBUG: symbols    
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -16,7 +19,6 @@ jobs:
 
           run: |
             apt-get update && apt-get install -y curl unzip libsnappy-dev libgflags-dev -y
-            LD_DEBUG=symbols
             curl -sL https://github.com/NethermindEth/nethermind/releases/download/1.19.0-rc/nethermind-1.19.0-rc-d8765075-linux-arm64.zip -o neth.zip
             mkdir neth
             unzip neth.zip -d neth
