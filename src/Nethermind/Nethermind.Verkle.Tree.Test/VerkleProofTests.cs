@@ -10,6 +10,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -155,7 +156,7 @@ public class VerkleProofTest
         Assert.That(verified.Item1, Is.True);
     }
 
-    [TestCase(1, 1)]
+    [TestCase(5, 3)]
     public void BenchmarkProofCalculation(int iteration, int warmup)
     {
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);

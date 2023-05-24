@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Diagnostics;
+using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Proofs;
@@ -10,38 +12,37 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
+    // public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
+    // {
+    //     (bool, UpdateHint?) verification = Verify(proof, keys, values, root);
+    //     if (!verification.Item1) return false;
+    //
+    //     InsertAfterVerification(verification.Item2!.Value, keys, values, root, false);
+    //     return true;
+    // }
 
-    public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
-    {
-        (bool, UpdateHint?) verification = Verify(proof, keys, values, root);
-        if (!verification.Item1) return false;
+    // public void InsertAfterVerification(UpdateHint hint, List<byte[]> keys, List<byte[]?> values, Banderwagon root, bool skipRoot = true)
+    // {
+    //     if (!skipRoot)
+    //     {
+    //         InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
+    //         _verkleStateStore.SetInternalNode(Array.Empty<byte>(), rootNode);
+    //     }
+    //
+    //     AddStatelessInternalNodes(hint);
+    //
+    //     for (int i = 0; i < keys.Count; i++)
+    //     {
+    //         byte[]? value = values[i];
+    //         if(value is null) continue;
+    //         _verkleStateStore.SetLeaf(keys[i], value);
+    //     }
+    // }
 
-        InsertAfterVerification(verification.Item2!.Value, keys, values, root, false);
-        return true;
-    }
-
-
-    private void InsertAfterVerification(UpdateHint hint, List<byte[]> keys, List<byte[]?> values, Banderwagon root, bool skipRoot = true)
-    {
-        if (!skipRoot)
-        {
-            InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
-            _verkleStateStore.SetInternalNode(Array.Empty<byte>(), rootNode);
-        }
-
-        AddStatelessInternalNodes(hint);
-
-        for (int i = 0; i < keys.Count; i++)
-        {
-            byte[]? value = values[i];
-            if(value is null) continue;
-            _verkleStateStore.SetLeaf(keys[i], value);
-        }
-    }
-
-    private void AddStatelessInternalNodes(UpdateHint hint)
+    public void AddStatelessInternalNodes(UpdateHint hint, Dictionary<byte[], LeafUpdateDelta> subTrees)
     {
         List<byte> pathList = new();
+        int stemIndex = 0;
         foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
         {
             pathList.Clear();

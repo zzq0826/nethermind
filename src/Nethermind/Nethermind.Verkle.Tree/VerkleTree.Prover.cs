@@ -23,7 +23,6 @@ public partial class VerkleTree
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
 
-        HashSet<Banderwagon> sortedCommitments = new();
         Dictionary<byte[], byte> depthsByStem = new(Bytes.EqualityComparer);
         ExtPresent[] extStatus = new ExtPresent[keys.Count];
 
@@ -78,14 +77,25 @@ public partial class VerkleTree
             }
         }
 
+        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, addLeafOpenings: true, out rootPoint);
+        finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
+        finalProof.VerifyHint.ExtensionPresent = extStatus;
+
+        return finalProof;
+    }
+
+
+    public VerkleProof CreateProofStruct(HashSet<byte[]> stemList, Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint)
+    {
         List<VerkleProverQuery> queries = new();
-        SortedSet<byte[]> stemWithNoProofSet = new();
+        HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
+        HashSet<Banderwagon> sortedCommitments = new();
 
         foreach (KeyValuePair<byte[], HashSet<byte>> elem in neededOpenings)
         {
             if (stemList.Contains(elem.Key))
             {
-                AddStemCommitmentsOpenings(elem.Key, elem.Value, queries, out bool stemWithNoProof);
+                bool stemWithNoProof = AddStemCommitmentsOpenings(elem.Key, elem.Value, queries, addLeafOpenings);
                 if (stemWithNoProof) stemWithNoProofSet.Add(elem.Key);
                 continue;
             }
@@ -113,9 +123,7 @@ public partial class VerkleTree
             Proof = proof,
             VerifyHint = new VerificationHint
             {
-                Depths = depthsByStem.Values.ToArray(),
                 DifferentStemNoProof = stemWithNoProofSet.ToArray(),
-                ExtensionPresent = extStatus
             }
         };
     }
@@ -127,18 +135,19 @@ public partial class VerkleTree
         queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!.InternalCommitment.Point, childIndex, poly[childIndex])));
     }
 
-    private void AddStemCommitmentsOpenings(byte[] stemPath, HashSet<byte> stemChild, List<VerkleProverQuery> queries, out bool stemWithNoProof)
+    private bool AddStemCommitmentsOpenings(byte[] stemPath, HashSet<byte> stemChild, List<VerkleProverQuery> queries, bool addLeafOpenings = true)
     {
-        stemWithNoProof = false;
         InternalNode? suffix = _verkleStateStore.GetInternalNode(stemPath);
         stemPath = suffix.Stem;
-        AddExtensionCommitmentOpenings(stemPath, stemChild, suffix, queries);
+        AddExtensionCommitmentOpenings(stemPath, addLeafOpenings? stemChild: new byte[]{}, suffix, queries);
         if (stemChild.Count == 0)
         {
-            stemWithNoProof = true;
-            return;
+            return true;
         }
 
+        // this is used for sync proofs - we dont need to include proofs for leaf openings as we send all the leafs
+        // the client can generate the leaf and verify the commitments
+        if (!addLeafOpenings) return false;
 
         ProofStemPolynomialCache.TryGetValue(stemPath, out SuffixPoly hashStruct);
 
@@ -176,6 +185,8 @@ public partial class VerkleTree
             queries.Add(openAtValLow);
             queries.Add(openAtValUpper);
         }
+
+        return false;
     }
 
     private static void AddExtensionCommitmentOpenings(byte[] stem, IEnumerable<byte> value, InternalNode suffix, List<VerkleProverQuery> queries)

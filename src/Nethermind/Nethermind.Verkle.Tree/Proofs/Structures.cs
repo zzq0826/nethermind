@@ -12,9 +12,9 @@ namespace Nethermind.Verkle.Tree.Proofs;
 
 public struct VerkleProof
 {
-    public VerificationHint VerifyHint { get; set; }
-    public Banderwagon[] CommsSorted { get; set; }
-    public VerkleProofStruct Proof { get; set; }
+    public VerificationHint VerifyHint;
+    public Banderwagon[] CommsSorted;
+    public VerkleProofStruct Proof;
 
     public override string ToString()
     {
@@ -52,9 +52,9 @@ public struct VerkleProof
 
 public struct VerificationHint
 {
-    public byte[] Depths { get; set; }
-    public ExtPresent[] ExtensionPresent { get; set; }
-    public byte[][] DifferentStemNoProof { get; set; }
+    public byte[] Depths;
+    public ExtPresent[] ExtensionPresent;
+    public byte[][] DifferentStemNoProof;
 
     public override string ToString()
     {

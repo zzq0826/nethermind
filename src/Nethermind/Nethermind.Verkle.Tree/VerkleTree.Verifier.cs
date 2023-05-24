@@ -185,6 +185,19 @@ public partial class VerkleTree
         Debug.Assert(proof.VerifyHint.DifferentStemNoProof.SequenceEqual(otherStemsUsed));
         Debug.Assert(commSortedByPath.Count == allPaths.Count);
 
+        (bool isTrue, Dictionary<List<byte>, Banderwagon> commByPath) = VerifyVerkleProofStruct(proof.Proof, commSortedByPath, allPaths, allPathsAndZs, leafValuesByPathAndZ);
+        UpdateHint updateHint = new()
+        {
+            DepthAndExtByStem = depthsAndExtByStem,
+            CommByPath = commByPath,
+            DifferentStemNoProof = otherStemsByPrefix
+        };
+
+        return (isTrue, updateHint);
+    }
+
+    private static (bool, Dictionary<List<byte>,Banderwagon>) VerifyVerkleProofStruct(VerkleProofStruct proof, List<Banderwagon> commSortedByPath, SortedSet<List<byte>> allPaths, SortedSet<(List<byte>, byte)> allPathsAndZs, Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ )
+    {
         Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
         foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath))
         {
@@ -221,16 +234,9 @@ public partial class VerkleTree
             queries.Add(query);
         }
 
-        UpdateHint updateHint = new()
-        {
-            DepthAndExtByStem = depthsAndExtByStem,
-            CommByPath = commByPath,
-            DifferentStemNoProof = otherStemsByPrefix
-        };
-
         Transcript proverTranscript = new("vt");
         MultiProof proofVerifier = new(CRS.Instance, PreComputedWeights.Instance);
 
-        return (proofVerifier.CheckMultiProof(proverTranscript, queries.ToArray(), proof.Proof), updateHint);
+        return (proofVerifier.CheckMultiProof(proverTranscript, queries.ToArray(), proof), commByPath);
     }
 }

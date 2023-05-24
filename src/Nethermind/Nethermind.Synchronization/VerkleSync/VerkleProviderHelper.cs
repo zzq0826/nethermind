@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Core.Crypto;
 using Nethermind.State;
 using Nethermind.State.Snap;
@@ -25,12 +26,12 @@ public class VerkleProviderHelper
 
         foreach (PathWithSubTree? subTree in subTrees)
         {
-            Dictionary<byte, byte[]> batch = new();
-            for (int i = 0; i < subTree.SubTree.Length; i++)
+            List<(byte, byte[])> batch = new();
+            for (byte i = 0; i < subTree.SubTree.Length; i++)
             {
-                batch[(byte)i] = subTree.SubTree[i];
+                batch.Add((i, subTree.SubTree[i]));
             }
-            tree.InsertStemBatch(subTree.Path, batch);
+            tree.InsertStemBatch(subTree.Path, batch.AsEnumerable());
             tree.Commit();
         }
 

@@ -92,7 +92,7 @@ public partial class VerkleTree: IVerkleTree
         _leafUpdateCache[stem] = leafUpdateDelta;
     }
 
-    public void InsertStemBatch(Span<byte> stem, Dictionary<byte, byte[]> leafIndexValueMap)
+    public void InsertStemBatch(Span<byte> stem, IEnumerable<(byte, byte[])> leafIndexValueMap)
     {
         _isDirty = true;
 #if DEBUG
@@ -120,8 +120,6 @@ public partial class VerkleTree: IVerkleTree
         _leafUpdateCache[stem.ToArray()] = leafUpdateDelta;
     }
 
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Banderwagon UpdateLeafAndGetDelta(byte[] key, byte[] value)
     {
         byte[]? oldValue = _verkleStateStore.GetLeaf(key);
@@ -147,6 +145,25 @@ public partial class VerkleTree: IVerkleTree
 
         Banderwagon deltaLow = Committer.ScalarMul(newValLow - oldValLow, lowIndex);
         Banderwagon deltaHigh = Committer.ScalarMul(newValHigh - oldValHigh, highIndex);
+        return deltaLow + deltaHigh;
+    }
+
+    public static Banderwagon GetLeafDelta(byte[] newValue, byte index)
+    {
+
+#if DEBUG
+        if (oldValue is not null && oldValue.Length != 32) throw new ArgumentException("oldValue must be null or 32 bytes", nameof(oldValue));
+        if (newValue.Length != 32) throw new ArgumentException("newValue must be 32 bytes", nameof(newValue));
+#endif
+
+        (FrE newValLow, FrE newValHigh) = VerkleUtils.BreakValueInLowHigh(newValue);
+
+        int posMod128 = index % 128;
+        int lowIndex = 2 * posMod128;
+        int highIndex = lowIndex + 1;
+
+        Banderwagon deltaLow = Committer.ScalarMul(newValLow, lowIndex);
+        Banderwagon deltaHigh = Committer.ScalarMul(newValHigh, highIndex);
         return deltaLow + deltaHigh;
     }
 
