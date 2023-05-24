@@ -18,13 +18,16 @@ jobs:
           distro: ubuntu18.04
 
           run: |
-            apt-get update && apt-get install -y curl unzip libsnappy-dev libgflags-dev -y
-            curl -sL https://globalcdn.int.nugettest.org/packages/nethermind.crypto.secp256k1.1.0.0-preview.8.nupkg -o neth.zip
+            apt-get update && apt-get install -y curl unzip libsnappy-dev dotnet-sdk-7.0 git
+            #curl -sL https://globalcdn.int.nugettest.org/packages/nethermind.crypto.secp256k1.1.0.0-preview.8.nupkg -o neth.zip
             #curl -sL https://github.com/NethermindEth/nethermind/releases/download/1.19.0-rc/nethermind-1.19.0-rc-d8765075-linux-arm64.zip -o neth.zip
-            mkdir neth
-            unzip neth.zip -d neth
-            ldd neth/runtimes/linux-arm64/native/libsecp256k1.so
+            #mkdir neth
+            #unzip neth.zip -d neth
+            #ldd neth/runtimes/linux-arm64/native/libsecp256k1.so
+            git clone --single-branch --branch test/linux-arm64 https://github.com/nethermindeth/nethermind
+            cd nethermind/src/Nethermind/Nethermind.Runner
+            dotnet run -c release -- -c sepolia &
             #./Nethermind.Runner -c sepolia &
-            sleep 40s
+            sleep 10m
 
       
