@@ -84,9 +84,110 @@ public partial class VerkleTree
         return finalProof;
     }
 
-
-    public VerkleProof CreateProofStruct(HashSet<byte[]> stemList, Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint)
+    public VerkleProof CreateVerkleRangeProof(byte[] startStem, byte[] endStem, out Banderwagon rootPoint)
     {
+        ProofBranchPolynomialCache.Clear();
+        ProofStemPolynomialCache.Clear();
+
+        Dictionary<byte[], byte> depthsByStem = new(Bytes.EqualityComparer);
+        ExtPresent[] extStatus = new ExtPresent[2];
+
+        // generate prover path for keys
+        Dictionary<byte[], HashSet<byte>> neededOpenings = new(Bytes.EqualityComparer);
+        HashSet<byte[]> stemList = new(Bytes.EqualityComparer);
+
+        int prefixLength = 0;
+        while (prefixLength<startStem.Length)
+        {
+            if (startStem[prefixLength] != endStem[prefixLength]) break;
+            prefixLength++;
+        }
+
+        int keyIndex = 0;
+        foreach (byte[] stem in new[] { startStem, endStem})
+        {
+            for (int i = 0; i < 31; i++)
+            {
+                if(keyIndex == 1 && i <= prefixLength) continue;
+                byte[] parentPath = stem[..i];
+                InternalNode? node = _verkleStateStore.GetInternalNode(parentPath);
+                if (node != null)
+                {
+                    switch (node.NodeType)
+                    {
+                        case VerkleNodeType.BranchNode:
+                            CreateBranchProofPolynomialIfNotExist(parentPath);
+                            neededOpenings.TryAdd(parentPath, new HashSet<byte>());
+                            if (i < prefixLength)
+                            {
+                                neededOpenings[parentPath].Add(startStem[i]);
+                                continue;
+                            }
+
+                            int startIndex = startStem[i];
+                            int endIndex = endStem[i];
+                            if (i > prefixLength)
+                            {
+                                if (keyIndex == 0) endIndex = 255;
+                                else startIndex = 0;
+                            }
+
+                            for (int j = startIndex; j <= endIndex; j++)
+                            {
+                                neededOpenings[parentPath].Add((byte)j);
+                            }
+                            continue;
+                        case VerkleNodeType.StemNode:
+                            byte[] keyStem = stem[..31];
+                            depthsByStem.TryAdd(keyStem, (byte)i);
+                            CreateStemProofPolynomialIfNotExist(keyStem);
+                            neededOpenings.TryAdd(parentPath, new HashSet<byte>());
+                            stemList.Add(parentPath);
+                            if (keyStem.SequenceEqual(node.Stem))
+                            {
+                                neededOpenings[parentPath].Add(0);
+                                extStatus[keyIndex++] = ExtPresent.Present;
+                            }
+                            else
+                            {
+                                extStatus[keyIndex++] = ExtPresent.DifferentStem;
+                            }
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+                else
+                {
+                    byte[] keyStem = stem[..31];
+                    extStatus[keyIndex++] = ExtPresent.None;
+                    depthsByStem.TryAdd(keyStem, (byte)(i));
+                }
+                // reaching here means end of the path for the leaf
+                break;
+            }
+        }
+
+        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, addLeafOpenings: false, out rootPoint);
+        finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
+        finalProof.VerifyHint.ExtensionPresent = extStatus;
+
+        return finalProof;
+    }
+
+
+    private VerkleProof CreateProofStruct(IReadOnlySet<byte[]> stemList, Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint)
+    {
+
+        Console.WriteLine("Proof Openings");
+        foreach (KeyValuePair<byte[], HashSet<byte>> open in neededOpenings)
+        {
+            foreach (byte child in open.Value)
+            {
+                Console.WriteLine($"{open.Key.ToHexString()} - {child}");
+            }
+        }
+
         List<VerkleProverQuery> queries = new();
         HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
         HashSet<Banderwagon> sortedCommitments = new();
