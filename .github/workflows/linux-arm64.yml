@@ -25,9 +25,9 @@ jobs:
             mkdir neth
             unzip neth.zip -d neth
             #ldd neth/runtimes/linux-arm64/native/libsecp256k1.so
-            git clone --single-branch --branch test/linux-arm64 https://github.com/nethermindeth/nethermind
-            cd nethermind/src/Nethermind/Nethermind.Runner
-            dotnet build -c release
+            #git clone --single-branch --branch test/linux-arm64 https://github.com/nethermindeth/nethermind
+            #cd nethermind/src/Nethermind/Nethermind.Runner
+            #dotnet build -c release
             #dotnet run -c release -- -c sepolia
             ./Nethermind.Runner -c sepolia &
             #sleep 10m
