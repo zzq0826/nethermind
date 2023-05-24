@@ -4,8 +4,9 @@ on:
   push:
     branches: [test/linux-arm64]
 
-#env:
-#  LD_DEBUG: symbols    
+env:
+  #LD_DEBUG: symbols
+  DOTNET_EnableWriteXorExecute: 0
 
 jobs:
   run:
