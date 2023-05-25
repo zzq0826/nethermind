@@ -83,6 +83,12 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         return History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
     }
+
+    public void Reset()
+    {
+        throw new NotImplementedException();
+    }
+
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
     private void InitRootHash()

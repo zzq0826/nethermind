@@ -29,6 +29,8 @@ public interface IVerkleStore: IStoreWithReorgBoundary
 
     public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock);
 
+    public void Reset();
+
 }
 
 public interface IVerkleTree

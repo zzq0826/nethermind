@@ -314,6 +314,14 @@ public partial class VerkleTree: IVerkleTree
         return deltaPoint;
     }
 
+    public void Reset()
+    {
+        _leafUpdateCache.Clear();
+        ProofBranchPolynomialCache.Clear();
+        ProofStemPolynomialCache.Clear();
+        _verkleStateStore.Reset();
+    }
+
     public ref struct TraverseContext
     {
         public LeafUpdateDelta LeafUpdateDelta { get; }

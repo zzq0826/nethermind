@@ -89,4 +89,10 @@ public class VerkleTrieStore : IVerkleStore
         _treeCache = new VerkleMemoryDb();
         return _persistentStore.GetReverseMergedDiff(fromBlock, toBlock);
     }
+
+    public void Reset()
+    {
+        _treeCache.InternalTable.Clear();
+        _treeCache.LeafTable.Clear();
+    }
 }

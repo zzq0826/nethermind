@@ -21,14 +21,17 @@ public partial class VerkleTree
 
     private void InsertSubTreesForSync(Dictionary<byte[], (byte, byte[])[]> subTrees)
     {
+        Span<byte> key = new byte[32];
         foreach (KeyValuePair<byte[], (byte, byte[])[]> subTree in subTrees)
         {
+            subTree.Key.CopyTo(key);
             LeafUpdateDelta leafUpdateDelta = new();
             foreach ((byte, byte[]) leafs in subTree.Value)
             {
+                key[31] = leafs.Item1;
                 leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Item2, leafs.Item1), leafs.Item1);
+                _verkleStateStore.SetLeaf(key.ToArray(), leafs.Item2);
             }
-
             _leafUpdateCache[subTree.Key] = leafUpdateDelta;
         }
     }
@@ -319,7 +322,11 @@ public partial class VerkleTree
         }
 
         tree.InsertStemBatchForSync(stemBatch, commByPath);
-        return VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        bool verification = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        if (!verification) tree.Reset();
+        else tree.CommitTree(0);
+
+        return verification;
     }
 
     private static List<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,

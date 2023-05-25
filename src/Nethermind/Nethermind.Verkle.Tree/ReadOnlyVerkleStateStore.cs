@@ -66,6 +66,9 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         throw new NotImplementedException();
     }
+
+    public void Reset() => _verkleStateStore.Reset();
+
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
     public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
