@@ -75,8 +75,8 @@ public class VerkleProofTest
                                      "8d93add3abe7a012";
 
         Assert.That(proof.Encode().ToHexString().SequenceEqual(expectedProof), Is.True);
-        (bool, UpdateHint?) verified = VerkleTree.Verify(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root);
-        Assert.That(verified.Item1, Is.True);
+        bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root, out _);
+        Assert.That(verified, Is.True);
     }
 
     [Test]
@@ -117,8 +117,8 @@ public class VerkleProofTest
                                      "6390d9a41302df30ffaf57e40296c75052bb028fe2b09";
 
         Assert.That(proof.Encode().ToHexString().SequenceEqual(expectedProof), Is.True);
-        (bool, UpdateHint?) verified = VerkleTree.Verify(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root);
-        Assert.That(verified.Item1, Is.True);
+        bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root, out _);
+        Assert.That(verified, Is.True);
     }
 
     [Test]
@@ -152,8 +152,8 @@ public class VerkleProofTest
         proof.Encode().ToHexString().Should().BeEquivalentTo(expectedProof);
         List<byte[]?> values = new List<byte[]?>();
         values.Add(null);
-        (bool, UpdateHint?) verified = VerkleTree.Verify(proof, new List<byte[]>(keys), values, root);
-        Assert.That(verified.Item1, Is.True);
+        bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), values, root, out _);
+        Assert.That(verified, Is.True);
     }
 
     [TestCase(5, 3)]
@@ -188,5 +188,56 @@ public class VerkleProofTest
         sw.Stop();
 
         Console.WriteLine("Elapsed={0}",sw.Elapsed/iteration);
+    }
+
+    [Test]
+    public void TestSyncProofCreationAndVerification()
+    {
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+
+        byte[][] stems =
+        {
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
+        };
+
+        byte[][] values =
+        {
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
+        };
+
+        foreach (byte[] stem in stems)
+        {
+            List<(byte, byte[])> batch = new();
+            for (byte i = 0; i < 5; i++) batch.Add((i, values[0]));
+            tree.InsertStemBatch(stem, batch);
+        }
+        tree.Commit();
+        tree.CommitTree(0);
+
+        VerkleProof proof = tree.CreateVerkleRangeProof(stems[0], stems[^1], out Banderwagon root);
+
+        // bool verified = VerkleTree.VerifyVerkleRangeProof(proof, stems[0], stems[^1], stems, root, out _);
+        // Assert.That(verified, Is.True);
+
+        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+
+        Dictionary<byte[], (byte, byte[])[]> subTrees = new();
+        List<(byte, byte[])> subTree = new();
+        for (byte i = 0; i < 5; i++) subTree.Add((i, values[0]));
+        subTrees[stems[0]] = subTree.ToArray();
+        subTrees[stems[1]] = subTree.ToArray();
+        subTrees[stems[2]] = subTree.ToArray();
+        subTrees[stems[3]] = subTree.ToArray();
+
+        bool isTrue =
+            VerkleTree.CreateStatelessTree(newTree._verkleStateStore, proof, root, stems[0], stems[^1], subTrees);
+        Assert.That(isTrue, Is.True);
     }
 }
