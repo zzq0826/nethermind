@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace Nethermind.Verkle.Tree.Test;
 
-public class VerkleTestUtils
+public static class VerkleTestUtils
 {
     public static readonly byte[] _array1To32 =
     {
@@ -26,6 +26,28 @@ public class VerkleTestUtils
     public static readonly byte[] _arrayAll1 =
     {
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    };
+    public static readonly byte[] _arrayAll3 =
+    {
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+    };
+
+    public static readonly byte[] _splitKeyTest =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    public static readonly byte[] _start40Key =
+    {
+        40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    public static readonly byte[] _maxValue =
+        Convert.FromHexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+    public static readonly byte[] _arrayAll0Last1 =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
     };
 
     public static readonly byte[] _arrayAll0Last2 =
@@ -66,6 +88,21 @@ public class VerkleTestUtils
     public static readonly byte[] _valueEmptyCodeHashValue =
     {
         197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+    };
+
+    public static readonly byte[] _startWith1 = new byte[]
+    {
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    public static readonly byte[] _startWith2 = new byte[]
+    {
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    public static readonly byte[] _startWith3 = new byte[]
+    {
+        3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
 
     public static string GetDbPathForTest()
@@ -152,6 +189,18 @@ public class VerkleTestUtils
         tree.Get(_keyCodeCommitment).Should().BeEquivalentTo(_valueEmptyCodeHashValue);
         tree.Get(_keyCodeSize).Should().BeEquivalentTo(_arrayAll0Last4);
 
+        return tree;
+    }
+
+    public static VerkleTree CreateVerkleTreeWithKeysAndValues(byte[][] keys, byte[][] values)
+    {
+        VerkleTree tree = GetVerkleTreeForTest(DbMode.MemDb);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            tree.Insert(keys[i], values[i]);
+        }
+        tree.Commit();
+        tree.CommitTree(0);
         return tree;
     }
 }

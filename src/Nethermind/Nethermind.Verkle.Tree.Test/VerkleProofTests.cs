@@ -10,28 +10,52 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Proofs;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
 
 public class VerkleProofTest
 {
     [Test]
+    public void TestProofVerifyTwoLeaves()
+    {
+        byte[][] keys =
+        {
+            VerkleTestUtils._emptyArray,
+            VerkleTestUtils._arrayAll0Last1,
+            VerkleTestUtils._maxValue,
+        };
+        VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys, keys);
+        VerkleProof proof = tree.CreateVerkleProof(new List<byte[]>(keys), out Banderwagon root);
+
+        bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root, out _);
+        Assert.That(verified, Is.True);
+    }
+
+    [Test]
     public void TestVerkleProof()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        List<byte[]> keys = new()
+        {
+            VerkleTestUtils._keyVersion,
+            VerkleTestUtils._keyBalance,
+            VerkleTestUtils._keyNonce,
+            VerkleTestUtils._keyCodeCommitment,
+            VerkleTestUtils._keyCodeSize
+        };
 
-        tree.Insert(VerkleTestUtils._keyVersion, VerkleTestUtils._emptyArray);
-        tree.Insert(VerkleTestUtils._keyBalance, VerkleTestUtils._emptyArray);
-        tree.Insert(VerkleTestUtils._keyNonce, VerkleTestUtils._emptyArray);
-        tree.Insert(VerkleTestUtils._keyCodeCommitment, VerkleTestUtils._valueEmptyCodeHashValue);
-        tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
-        tree.Commit();
-        tree.CommitTree(0);
+        List<byte[]> values = new()
+        {
+            VerkleTestUtils._emptyArray,
+            VerkleTestUtils._emptyArray,
+            VerkleTestUtils._emptyArray,
+            VerkleTestUtils._valueEmptyCodeHashValue,
+            VerkleTestUtils._emptyArray
+        };
+        VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys.ToArray(), values.ToArray());
 
-        tree.CreateVerkleProof(new List<byte[]>(new[]
-            {VerkleTestUtils._keyVersion, VerkleTestUtils._keyNonce, VerkleTestUtils._keyBalance, VerkleTestUtils._keyCodeCommitment}), out Banderwagon _);
-
+        VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
+        bool verified = VerkleTree.VerifyVerkleProof(proof, keys, values, root, out _);
+        Assert.That(verified, Is.True);
     }
 
     [Test]
@@ -150,13 +174,12 @@ public class VerkleProofTest
                                      "00000000000000000000000000000000000000000000000000000000";
 
         proof.Encode().ToHexString().Should().BeEquivalentTo(expectedProof);
-        List<byte[]?> values = new List<byte[]?>();
-        values.Add(null);
+        List<byte[]?> values = new() { null };
         bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), values, root, out _);
         Assert.That(verified, Is.True);
     }
 
-    [TestCase(5, 3)]
+    [TestCase(1, 1)]
     public void BenchmarkProofCalculation(int iteration, int warmup)
     {
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
@@ -191,6 +214,36 @@ public class VerkleProofTest
     }
 
     [Test]
+    public void RandomProofCalculationAndVerification()
+    {
+        Random rand = new(0);
+        IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
+        VerkleTree tree = new(db);
+        byte[][] values = new byte[1000][];
+        for (int i = 0; i < 1000; i++) values[i] = Keccak.EmptyTreeHash.Bytes;
+
+        SortedSet<byte[]> keysSet = new(Bytes.Comparer);
+        while (keysSet.Count != 1000)
+        {
+            keysSet.Add(TestItem.GetRandomKeccak(rand).Bytes);
+        }
+
+        byte[][] keys = keysSet.ToArray();
+
+        for (int i = 0; i < 1000; i++)
+        {
+            tree.Insert(keys[i],  values[i]);
+            tree.Commit();
+        }
+        tree.CommitTree(0);
+
+        VerkleProof proof = tree.CreateVerkleProof(new(keys[..500]), out Banderwagon root);
+        bool verified = VerkleTree.VerifyVerkleProof(proof, new(keys[..500]),
+            new(values[..500]), root, out _);
+        Assert.That(verified, Is.True);
+    }
+
+    [Test]
     public void TestSyncProofCreationAndVerification()
     {
         VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
@@ -205,11 +258,8 @@ public class VerkleProofTest
 
         byte[][] values =
         {
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
+            VerkleTestUtils._keyVersion, VerkleTestUtils._keyBalance, VerkleTestUtils._keyNonce,
+            VerkleTestUtils._keyCodeCommitment, VerkleTestUtils._keyCodeSize,
         };
 
         foreach (byte[] stem in stems)

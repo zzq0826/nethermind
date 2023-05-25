@@ -21,7 +21,7 @@ public partial class VerkleTree
         int stemIndex = 1;
         stems[0] = keys[0][..31];
         IEqualityComparer<byte[]> comparer = Bytes.EqualityComparer;
-        for (int i = 1; i < numberOfStems; i++)
+        for (int i = 1; i < keys.Length; i++)
         {
             byte[] currentStem = keys[i][..31];
             if(comparer.Equals(stems[stemIndex-1], currentStem)) continue;

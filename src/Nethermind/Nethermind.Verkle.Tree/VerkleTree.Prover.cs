@@ -181,7 +181,7 @@ public partial class VerkleTree
 
         List<VerkleProverQuery> queries = new();
         HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
-        HashSet<Banderwagon> sortedCommitments = new();
+        List<Banderwagon> sortedCommitments = new();
 
         foreach (KeyValuePair<byte[], HashSet<byte>> elem in neededOpenings)
         {
@@ -200,7 +200,8 @@ public partial class VerkleTree
         rootPoint = root.NodeCommitPoint;
         foreach (VerkleProverQuery query in queries.Where(query => root.NodeCommitPoint != query.NodeCommitPoint))
         {
-            sortedCommitments.Add(query.NodeCommitPoint);
+            if(sortedCommitments.Count == 0 || sortedCommitments[^1] != query.NodeCommitPoint)
+                sortedCommitments.Add(query.NodeCommitPoint);
         }
 
         MultiProof proofConstructor = new(CRS.Instance, PreComputedWeights.Instance);
