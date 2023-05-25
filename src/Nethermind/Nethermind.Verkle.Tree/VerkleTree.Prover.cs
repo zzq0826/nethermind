@@ -180,13 +180,13 @@ public partial class VerkleTree
     {
 
         Console.WriteLine("Proof Openings");
-        foreach (KeyValuePair<byte[], HashSet<byte>> open in neededOpenings)
-        {
-            foreach (byte child in open.Value)
-            {
-                Console.WriteLine($"{open.Key.ToHexString()} - {child}");
-            }
-        }
+        // foreach (KeyValuePair<byte[], HashSet<byte>> open in neededOpenings)
+        // {
+        //     foreach (byte child in open.Value)
+        //     {
+        //         Console.WriteLine($"{open.Key.ToHexString()} - {child}");
+        //     }
+        // }
 
         List<VerkleProverQuery> queries = new();
         HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
@@ -233,6 +233,10 @@ public partial class VerkleTree
     {
         if (!ProofBranchPolynomialCache.TryGetValue(branchPath, out FrE[] poly)) throw new EvaluateException();
         InternalNode? node = _verkleStateStore.GetInternalNode(branchPath);
+        foreach (var index in branchChild)
+        {
+            Console.WriteLine($"{branchPath.ToHexString()} {index} {poly[index].ToBytes().ToHexString()}");
+        }
         queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!.InternalCommitment.Point, childIndex, poly[childIndex])));
     }
 

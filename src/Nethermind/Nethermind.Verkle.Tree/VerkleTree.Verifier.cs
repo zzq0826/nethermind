@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -13,81 +15,48 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    public static (bool, UpdateHint?) Verify(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
+    private static byte[][] GetStemsFromKeys(Span<byte[]> keys, int numberOfStems)
     {
-        List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { root };
-        commSortedByPath.AddRange(proof.CommsSorted);
-
-        IEqualityComparer<byte[]> comparer = Bytes.EqualityComparer;
-        byte[][] stems = new byte[proof.VerifyHint.Depths.Length][];
-
-        stems[0] = keys[0][..31];
-        // HashSet<(byte, byte[]?)> suffixAndValues = new() { (keys[0][31], values[0]) };
+        byte[][] stems = new byte[numberOfStems][];
         int stemIndex = 1;
-        for (int i = 1; i < proof.VerifyHint.Depths.Length; i++)
+        stems[0] = keys[0][..31];
+        IEqualityComparer<byte[]> comparer = Bytes.EqualityComparer;
+        for (int i = 1; i < numberOfStems; i++)
         {
             byte[] currentStem = keys[i][..31];
             if(comparer.Equals(stems[stemIndex-1], currentStem)) continue;
             stems[stemIndex++] = currentStem;
         }
+        return stems;
+    }
 
+    public static bool VerifyVerkleProof(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
+    {
+        updateHint = null;
+
+        int numberOfStems = proof.VerifyHint.Depths.Length;
+
+        // sorted commitments including root
+        List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { root };
+        commSortedByPath.AddRange(proof.CommsSorted);
+
+        byte[][] stems = GetStemsFromKeys(CollectionsMarshal.AsSpan(keys), numberOfStems);
+
+        // map stems to depth and extension status and create a list of stem with extension present
         Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
         HashSet<byte[]> stemsWithExtension = new(Bytes.EqualityComparer);
+        for (int i = 0; i < numberOfStems; i++)
+        {
+            ExtPresent extPresent = proof.VerifyHint.ExtensionPresent[i];
+            depthsAndExtByStem.Add(stems[i], (extPresent, proof.VerifyHint.Depths[i]));
+            if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
+        }
+
         SortedSet<byte[]> otherStemsUsed = new(Bytes.Comparer);
         SortedSet<List<byte>> allPaths = new(new ListComparer());
         SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
         Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
         SortedDictionary<List<byte>, byte[]> otherStemsByPrefix = new(new ListComparer());
-
-
-        foreach (((byte[] stem, byte depth), ExtPresent extPresent) in stems.Zip(proof.VerifyHint.Depths).Zip(proof.VerifyHint.ExtensionPresent))
-        {
-            depthsAndExtByStem.Add(stem, (extPresent, depth));
-            switch (extPresent)
-            {
-                case ExtPresent.Present:
-                    stemsWithExtension.Add(stem);
-                    break;
-                case ExtPresent.None:
-                case ExtPresent.DifferentStem:
-                    break;
-                default:
-                    throw new ArgumentException($"impossible value for the enum ExtPresent {extPresent}");
-            }
-        }
-
-        // for (int i = 0; i < stems.Length; i++)
-        // {
-        //     byte[] stem = stems[i];
-        //     byte depth = proof.VerifyHint.Depths[i];
-        //     ExtPresent extPres = proof.VerifyHint.ExtensionPresent[i];
-        //
-        //     for (int j = 0; j < depth; j++)
-        //     {
-        //         allPaths.Add(new List<byte>(stem[..i]));
-        //         allPathsAndZs.Add((new List<byte>(stem[..i]), stem[i]));
-        //     }
-        //
-        //     switch (extPres)
-        //     {
-        //         case ExtPresent.None:
-        //             break;
-        //         case ExtPresent.DifferentStem:
-        //             allPaths.Add(new List<byte>(stem[..depth]));
-        //             allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
-        //             allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
-        //             break;
-        //         case ExtPresent.Present:
-        //             allPaths.Add(new List<byte>(stem[..depth]));
-        //             allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
-        //             allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
-        //             break;
-        //         default:
-        //             throw new ArgumentOutOfRangeException();
-        //     }
-        //
-        // }
-
         foreach ((byte[] key, byte[]? value) in keys.Zip(values))
         {
             byte[] stem = key[..31];
@@ -108,7 +77,7 @@ public partial class VerkleTree
                     allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
 
                     // since the stem was different - value should not have been set
-                    if (value != null) return (false, null);
+                    if (value != null) return false;
 
                     Debug.Assert(depth != stem.Length);
 
@@ -173,7 +142,7 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.None:
                     // If the extension was not present, then the value should be None
-                    if (value != null) return (false, null);
+                    if (value != null) return false;
 
                     leafValuesByPathAndZ[depth == 1 ? (new List<byte>(), stem[depth - 1]) : (stem[..depth].ToList(), stem[depth - 1])] = FrE.Zero;
                     break;
@@ -185,25 +154,165 @@ public partial class VerkleTree
         Debug.Assert(proof.VerifyHint.DifferentStemNoProof.SequenceEqual(otherStemsUsed));
         Debug.Assert(commSortedByPath.Count == allPaths.Count);
 
-        (bool isTrue, Dictionary<List<byte>, Banderwagon> commByPath) = VerifyVerkleProofStruct(proof.Proof, commSortedByPath, allPaths, allPathsAndZs, leafValuesByPathAndZ);
-        UpdateHint updateHint = new()
-        {
-            DepthAndExtByStem = depthsAndExtByStem,
-            CommByPath = commByPath,
-            DifferentStemNoProof = otherStemsByPrefix
-        };
-
-        return (isTrue, updateHint);
-    }
-
-    private static (bool, Dictionary<List<byte>,Banderwagon>) VerifyVerkleProofStruct(VerkleProofStruct proof, List<Banderwagon> commSortedByPath, SortedSet<List<byte>> allPaths, SortedSet<(List<byte>, byte)> allPathsAndZs, Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ )
-    {
         Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
         foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath))
         {
             commByPath[path] = comm;
         }
 
+        bool isTrue = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        updateHint = new UpdateHint
+        {
+            DepthAndExtByStem = depthsAndExtByStem,
+            CommByPath = commByPath,
+            DifferentStemNoProof = otherStemsByPrefix
+        };
+
+        return isTrue;
+    }
+
+    public static bool VerifyVerkleRangeProof(VerkleProof proof, byte[] startStem, byte[] endStem, byte[][] stemsPresentInRange, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
+    {
+        updateHint = null;
+        const int numberOfStems = 2;
+        List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { root };
+        commSortedByPath.AddRange(proof.CommsSorted);
+
+        byte[][] stems = { startStem, endStem };
+
+        SortedSet<byte[]> otherStemsUsed = new(Bytes.Comparer);
+        SortedSet<List<byte>> allPaths = new(new ListComparer());
+        SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
+        Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
+        SortedDictionary<List<byte>, byte[]> otherStemsByPrefix = new(new ListComparer());
+
+        // map stems to depth and extension status and create a list of stem with extension present
+        Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
+        HashSet<byte[]> stemsWithExtension = new(Bytes.EqualityComparer);
+        for (int i = 0; i < numberOfStems; i++)
+        {
+            ExtPresent extPresent = proof.VerifyHint.ExtensionPresent[i];
+            depthsAndExtByStem.Add(stems[i], (extPresent, proof.VerifyHint.Depths[i]));
+            if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
+        }
+
+        int prefixLength = 0;
+        while (prefixLength<startStem.Length)
+        {
+            if (startStem[prefixLength] != endStem[prefixLength]) break;
+            prefixLength++;
+        }
+
+        int keyIndex = 0;
+        foreach (byte[] stem in stems)
+        {
+            (ExtPresent extPres, byte depth) = depthsAndExtByStem[stem];
+
+            for (int i = 0; i < depth; i++)
+            {
+                allPaths.Add(new List<byte>(stem[..i]));
+                if (i < prefixLength)
+                {
+                    allPathsAndZs.Add((new List<byte>(stem[..i]), stem[i]));
+                    continue;
+                }
+                int startIndex = startStem[i];
+                int endIndex = endStem[i];
+                if (i > prefixLength)
+                {
+                    if (keyIndex == 0) endIndex = 255;
+                    else startIndex = 0;
+                }
+
+                for (int j = startIndex; j <= endIndex; j++)
+                {
+                    allPathsAndZs.Add((new List<byte>(stem[..i]), (byte)j));
+                }
+            }
+
+            switch (extPres)
+            {
+                case ExtPresent.DifferentStem:
+
+                    allPaths.Add(new List<byte>(stem[..depth]));
+                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
+                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
+
+                    byte[] otherStem;
+
+                    // find the stems that are equal to the stem we are assuming to be without extension
+                    // this happens when we initially added this stem when we were searching for another one
+                    // but then in a future key, we found that we needed this stem too.
+                    byte[][] found = stemsWithExtension.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
+
+                    switch (found.Length)
+                    {
+                        case 0:
+                            found = proof.VerifyHint.DifferentStemNoProof.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
+                            byte[] encounteredStem = found[^1];
+                            otherStem = encounteredStem;
+                            otherStemsUsed.Add(encounteredStem);
+
+                            // Add extension node to proof in particular, we only want to open at (1, stem)
+                            leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
+                            leafValuesByPathAndZ.Add((new List<byte>(stem[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Reverse().ToArray()));
+                            break;
+                        case 1:
+                            otherStem = found[0];
+                            break;
+                        default:
+                            throw new InvalidDataException($"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
+                    }
+
+                    otherStemsByPrefix.Add(stem[..depth].ToList(), otherStem);
+                    break;
+                case ExtPresent.Present:
+                    allPaths.Add(new List<byte>(stem[..depth]));
+                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
+                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
+
+                    leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
+                    leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 1)] = FrE.FromBytesReduced(stem.Reverse().ToArray());
+                    break;
+                case ExtPresent.None:
+                    leafValuesByPathAndZ[depth == 1 ? (new List<byte>(), stem[depth - 1]) : (stem[..depth].ToList(), stem[depth - 1])] = FrE.Zero;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            keyIndex++;
+        }
+
+        foreach (byte[] stem in stemsPresentInRange)
+        {
+            for (int i = 0; i < 31; i++)
+            {
+                List<byte> prefix = new(stem[..i]);
+                if (allPaths.Contains(prefix)) allPathsAndZs.Add((prefix, stem[i]));
+                else break;
+            }
+        }
+
+        Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
+        foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath))
+        {
+            commByPath[path] = comm;
+        }
+
+        bool isTrue = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        updateHint = new UpdateHint
+        {
+            DepthAndExtByStem = depthsAndExtByStem,
+            CommByPath = commByPath,
+            DifferentStemNoProof = otherStemsByPrefix
+        };
+
+        return isTrue;
+    }
+
+    private static bool VerifyVerkleProofStruct(VerkleProofStruct proof, SortedSet<(List<byte>, byte)> allPathsAndZs, Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ,  Dictionary<List<byte>, Banderwagon> commByPath)
+    {
         Banderwagon[] comms = new Banderwagon[allPathsAndZs.Count];
         int index = 0;
         foreach ((List<byte> path, byte z) in allPathsAndZs)
@@ -211,6 +320,7 @@ public partial class VerkleTree
             comms[index++] = commByPath[path];
         }
 
+        Console.WriteLine("ysByPathAndZ");
         SortedDictionary<(List<byte>, byte), FrE> ysByPathAndZ = new(new ListWithByteComparer());
         foreach ((List<byte> path, byte z) in allPathsAndZs)
         {
@@ -218,8 +328,9 @@ public partial class VerkleTree
 
             if (!leafValuesByPathAndZ.TryGetValue((path, z), out FrE y))
             {
-                y = commByPath[childPath].MapToScalarField();
+                y = !commByPath.TryGetValue(childPath, out Banderwagon yPoint) ? FrE.Zero : yPoint.MapToScalarField();
             }
+            Console.WriteLine($"{path.ToArray().ToHexString()} {z} {y.ToBytes().ToHexString()}");
             ysByPathAndZ.Add((new List<byte>(path.ToArray()), z), y);
         }
 
@@ -237,6 +348,6 @@ public partial class VerkleTree
         Transcript proverTranscript = new("vt");
         MultiProof proofVerifier = new(CRS.Instance, PreComputedWeights.Instance);
 
-        return (proofVerifier.CheckMultiProof(proverTranscript, queries.ToArray(), proof), commByPath);
+        return proofVerifier.CheckMultiProof(proverTranscript, queries.ToArray(), proof);
     }
 }

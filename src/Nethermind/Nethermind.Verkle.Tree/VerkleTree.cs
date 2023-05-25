@@ -16,7 +16,7 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree: IVerkleTree
 {
-    private readonly IVerkleStore _verkleStateStore;
+    public readonly IVerkleStore _verkleStateStore;
 
     private byte[] _stateRoot;
 
@@ -199,7 +199,7 @@ public partial class VerkleTree: IVerkleTree
         _verkleStateStore.SetInternalNode(Array.Empty<byte>(), newRoot);
     }
 
-    private Banderwagon TraverseBranch(TraverseContext traverseContext)
+    public Banderwagon TraverseBranch(TraverseContext traverseContext)
     {
         byte childIndex = traverseContext.Stem[traverseContext.CurrentIndex];
         byte[] absolutePath = traverseContext.Stem[..(traverseContext.CurrentIndex + 1)].ToArray();
@@ -315,7 +315,7 @@ public partial class VerkleTree: IVerkleTree
         return deltaPoint;
     }
 
-    private ref struct TraverseContext
+    public ref struct TraverseContext
     {
         public LeafUpdateDelta LeafUpdateDelta { get; }
         public Span<byte> Stem { get; }
