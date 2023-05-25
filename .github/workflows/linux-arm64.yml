@@ -30,6 +30,7 @@ jobs:
             #dotnet build -c release
             #dotnet run -c release -- -c sepolia
             cd neth
+            chmod +x ./Nethermind.Runner
             ./Nethermind.Runner -c sepolia &
             sleep 10m
 
