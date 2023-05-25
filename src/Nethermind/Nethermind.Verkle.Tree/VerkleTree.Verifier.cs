@@ -175,7 +175,6 @@ public partial class VerkleTree
             comms[index++] = commByPath[path];
         }
 
-        Console.WriteLine("ysByPathAndZ");
         SortedDictionary<(List<byte>, byte), FrE> ysByPathAndZ = new(new ListWithByteComparer());
         foreach ((List<byte> path, byte z) in allPathsAndZs)
         {
@@ -185,7 +184,6 @@ public partial class VerkleTree
             {
                 y = !commByPath.TryGetValue(childPath, out Banderwagon yPoint) ? FrE.Zero : yPoint.MapToScalarField();
             }
-            Console.WriteLine($"{path.ToArray().ToHexString()} {z} {y.ToBytes().ToHexString()}");
             ysByPathAndZ.Add((new List<byte>(path.ToArray()), z), y);
         }
 

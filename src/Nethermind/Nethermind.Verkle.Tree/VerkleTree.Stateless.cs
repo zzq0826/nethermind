@@ -13,8 +13,13 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
+    private void InsertBranchNodeForSync(byte[] path, Commitment commitment)
+    {
+        InternalNode node = new(VerkleNodeType.BranchNode, commitment) { IsStateless = true };
+        _verkleStateStore.SetInternalNode(path, node);
+    }
 
-    public void InsertSubTreesForSync(Dictionary<byte[], (byte, byte[])[]> subTrees)
+    private void InsertSubTreesForSync(Dictionary<byte[], (byte, byte[])[]> subTrees)
     {
         foreach (KeyValuePair<byte[], (byte, byte[])[]> subTree in subTrees)
         {
@@ -28,24 +33,24 @@ public partial class VerkleTree
         }
     }
 
-    public bool CreateAndInsertStemIfMatchesCommitment(Span<byte> stem, Commitment internalCommitment, byte[] pathOfStem)
+    private bool CreateAndInsertStemIfMatchesCommitment(byte[] stem, Commitment internalCommitment, byte[] pathOfStem)
     {
-        InternalNode stemNode = new(VerkleNodeType.StemNode, stem.ToArray()) { IsStateless = true };
-        stemNode.UpdateCommitment(_leafUpdateCache[stem.ToArray()]);
+        InternalNode stemNode = new(VerkleNodeType.StemNode, stem) { IsStateless = true };
+        stemNode.UpdateCommitment(_leafUpdateCache[stem]);
         if (stemNode.InternalCommitment.Point != internalCommitment.Point) return false;
         _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
         return true;
     }
 
-    public void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
+    private void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
     {
         InternalNode stemNode =
             new(VerkleNodeType.StemNode, stem.ToArray(), null, null, stemCommitment) { IsStateless = true };
         _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
     }
 
-    public void InsertStemBatchForSync(Dictionary<byte[], List<byte[]>> stemBatch,
-        Dictionary<List<byte>, Banderwagon> commByPath)
+    private void InsertStemBatchForSync(Dictionary<byte[], List<byte[]>> stemBatch,
+        IDictionary<List<byte>, Banderwagon> commByPath)
     {
         foreach (KeyValuePair<byte[], List<byte[]>> prefixWithStem in stemBatch)
         {
@@ -56,7 +61,7 @@ public partial class VerkleTree
                 TraverseBranch(context);
             }
 
-            commByPath[new List<byte>(prefixWithStem.Key)] = _verkleStateStore.GetInternalNode(prefixWithStem.Key)
+            commByPath[new List<byte>(prefixWithStem.Key)] = _verkleStateStore.GetInternalNode(prefixWithStem.Key)!
                 .InternalCommitment.Point;
         }
     }
@@ -254,12 +259,11 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        var stemsOfSubTree = subTrees.Keys.ToArray();
+        byte[][] stemsOfSubTree = subTrees.Keys.ToArray();
+        VerkleTree tree = new(store);
 
         List<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, stemsOfSubTree[1..^1]);
-        Dictionary<byte[], LeafUpdateDelta> subTreeUpdates = GetSubTreeUpdates(subTrees);
-
-        VerkleTree tree = new(store);
+        tree.InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
         foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in depthsAndExtByStem)
@@ -268,78 +272,53 @@ public partial class VerkleTree
             for (int i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem[i]);
-                InternalNode node = new(VerkleNodeType.BranchNode, new Commitment(commByPath[pathList]));
-                node.IsStateless = true;
-                tree._verkleStateStore.SetInternalNode(pathList.ToArray(), node);
+                tree.InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
             }
 
             pathList.Add(stem[depth-1]);
 
-            InternalNode stemNode;
-            byte[] pathOfStem;
             switch (extStatus)
             {
                 case ExtPresent.None:
-                    stemNode =  new(VerkleNodeType.StemNode, stem, null, null, new Commitment());
-                    stemNode.IsStateless = true;
-                    pathOfStem = pathList.ToArray();
+                    tree.InsertPlaceholderForNotPresentStem(stem, pathList.ToArray(), new Commitment());
                     break;
                 case ExtPresent.DifferentStem:
                     byte[] otherStem = otherStemsByPrefix[pathList];
-                    Commitment otherInternalCommitment = new(commByPath[pathList]);
-                    stemNode = new(VerkleNodeType.StemNode, otherStem, null, null, otherInternalCommitment);
-                    stemNode.IsStateless = true;
-                    pathOfStem = pathList.ToArray();
+                    tree.InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(), new(commByPath[pathList]));
                     break;
                 case ExtPresent.Present:
-                    Commitment internalCommitment = new(commByPath[pathList]);
-                    stemNode = new(VerkleNodeType.StemNode, stem);
-                    stemNode.IsStateless = true;
-                    stemNode.UpdateCommitment(subTreeUpdates[stem]);
-                    if (stemNode.InternalCommitment.Point != internalCommitment.Point) throw new ArgumentException();
-                    pathOfStem = new byte[pathList.Count - 1];
+                    byte[] pathOfStem = new byte[pathList.Count - 1];
                     pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
+                    Commitment internalCommitment = new(commByPath[pathList]);
+                    if (!tree.CreateAndInsertStemIfMatchesCommitment(stem, internalCommitment, pathOfStem))
+                        throw new ArgumentException();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            tree._verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+
         }
 
-        byte[][] allStems = subTrees.Keys.ToArray()[1..^1];
-        int stemIndex = 0;
+        byte[][] allStemsWithoutStartAndEndStems =
+            subTrees.Keys.Where(x => !x.SequenceEqual(startStem) && !x.SequenceEqual(endStem)).ToArray();
 
+        int stemIndex = 0;
         Dictionary<byte[], List<byte[]>> stemBatch = new(Bytes.EqualityComparer);
         foreach (byte[] stemPrefix in subTreesToCreate)
         {
             stemBatch.Add(stemPrefix, new List<byte[]>());
-            while (stemIndex < allStems.Length)
+            while (stemIndex < allStemsWithoutStartAndEndStems.Length)
             {
-                if (Bytes.EqualityComparer.Equals(stemPrefix, allStems[stemIndex][..stemPrefix.Length]))
+                if (Bytes.EqualityComparer.Equals(stemPrefix, allStemsWithoutStartAndEndStems[stemIndex][..stemPrefix.Length]))
                 {
-                    stemBatch[stemPrefix].Add(allStems[stemIndex]);
+                    stemBatch[stemPrefix].Add(allStemsWithoutStartAndEndStems[stemIndex]);
                     stemIndex++;
                 }
-                else
-                {
-                    break;
-                }
+                else break;
             }
         }
 
-        foreach (KeyValuePair<byte[], List<byte[]>> prefixWithStem in stemBatch)
-        {
-            foreach (byte[] stem in prefixWithStem.Value)
-            {
-                TraverseContext context = new(stem, subTreeUpdates[stem])
-                    { CurrentIndex = prefixWithStem.Key.Length - 1 };
-                tree.TraverseBranch(context);
-            }
-
-            commByPath[new List<byte>(prefixWithStem.Key)] = tree._verkleStateStore.GetInternalNode(prefixWithStem.Key)
-                .InternalCommitment.Point;
-        }
-
+        tree.InsertStemBatchForSync(stemBatch, commByPath);
         return VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
     }
 
@@ -365,22 +344,5 @@ public partial class VerkleTree
         }
 
         return subTreesToCreate;
-    }
-
-    private static Dictionary<byte[], LeafUpdateDelta> GetSubTreeUpdates(Dictionary<byte[], (byte, byte[])[]> subTrees)
-    {
-        Dictionary<byte[], LeafUpdateDelta> subTreeUpdates = new(Bytes.EqualityComparer);
-        foreach (KeyValuePair<byte[], (byte, byte[])[]> subTree in subTrees)
-        {
-            LeafUpdateDelta leafUpdateDelta = new();
-            foreach ((byte, byte[]) leafs in subTree.Value)
-            {
-                leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Item2, leafs.Item1), leafs.Item1);
-            }
-
-            subTreeUpdates[subTree.Key] = leafUpdateDelta;
-        }
-
-        return subTreeUpdates;
     }
 }
