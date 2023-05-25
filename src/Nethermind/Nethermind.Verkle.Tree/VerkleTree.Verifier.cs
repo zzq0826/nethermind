@@ -149,8 +149,6 @@ public partial class VerkleTree
             }
         }
 
-        Debug.Assert(commSortedByPath.Count == allPaths.Count);
-
         Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
         foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath))
         {

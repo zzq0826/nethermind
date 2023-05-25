@@ -13,6 +13,53 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
+
+    public void InsertSubTreesForSync(Dictionary<byte[], (byte, byte[])[]> subTrees)
+    {
+        foreach (KeyValuePair<byte[], (byte, byte[])[]> subTree in subTrees)
+        {
+            LeafUpdateDelta leafUpdateDelta = new();
+            foreach ((byte, byte[]) leafs in subTree.Value)
+            {
+                leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Item2, leafs.Item1), leafs.Item1);
+            }
+
+            _leafUpdateCache[subTree.Key] = leafUpdateDelta;
+        }
+    }
+
+    public bool CreateAndInsertStemIfMatchesCommitment(Span<byte> stem, Commitment internalCommitment, byte[] pathOfStem)
+    {
+        InternalNode stemNode = new(VerkleNodeType.StemNode, stem.ToArray()) { IsStateless = true };
+        stemNode.UpdateCommitment(_leafUpdateCache[stem.ToArray()]);
+        if (stemNode.InternalCommitment.Point != internalCommitment.Point) return false;
+        _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+        return true;
+    }
+
+    public void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
+    {
+        InternalNode stemNode =
+            new(VerkleNodeType.StemNode, stem.ToArray(), null, null, stemCommitment) { IsStateless = true };
+        _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+    }
+
+    public void InsertStemBatchForSync(Dictionary<byte[], List<byte[]>> stemBatch,
+        Dictionary<List<byte>, Banderwagon> commByPath)
+    {
+        foreach (KeyValuePair<byte[], List<byte[]>> prefixWithStem in stemBatch)
+        {
+            foreach (byte[] stem in prefixWithStem.Value)
+            {
+                TraverseContext context = new(stem, _leafUpdateCache[stem])
+                    { CurrentIndex = prefixWithStem.Key.Length - 1 };
+                TraverseBranch(context);
+            }
+
+            commByPath[new List<byte>(prefixWithStem.Key)] = _verkleStateStore.GetInternalNode(prefixWithStem.Key)
+                .InternalCommitment.Point;
+        }
+    }
     // public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
     // {
     //     (bool, UpdateHint?) verification = Verify(proof, keys, values, root);
@@ -246,14 +293,6 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.Present:
                     Commitment internalCommitment = new(commByPath[pathList]);
-                    // Commitment? c1 = null;
-                    // Commitment? c2 = null;
-                    //
-                    // pathList.Add(2);
-                    // if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c1B)) c1 = new Commitment(c1B);
-                    // pathList[^1] = 3;
-                    // if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c2B)) c2 = new Commitment(c2B);
-
                     stemNode = new(VerkleNodeType.StemNode, stem);
                     stemNode.IsStateless = true;
                     stemNode.UpdateCommitment(subTreeUpdates[stem]);
@@ -288,7 +327,6 @@ public partial class VerkleTree
             }
         }
 
-        Console.WriteLine("Queries");
         foreach (KeyValuePair<byte[], List<byte[]>> prefixWithStem in stemBatch)
         {
             foreach (byte[] stem in prefixWithStem.Value)
@@ -301,11 +339,6 @@ public partial class VerkleTree
             commByPath[new List<byte>(prefixWithStem.Key)] = tree._verkleStateStore.GetInternalNode(prefixWithStem.Key)
                 .InternalCommitment.Point;
         }
-
-        // foreach (var xx in commByPath)
-        // {
-        //     Console.WriteLine($"{xx.Key.ToArray().ToHexString()} = {xx.Value.MapToScalarField().ToBytes().ToHexString()}");
-        // }
 
         return VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
     }

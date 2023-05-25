@@ -27,7 +27,7 @@ public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
     public bool GetInternalNode(byte[] key, out InternalNode? value) => InternalTable.TryGetValue(key, out value);
 
     public void SetLeaf(byte[] leafKey, byte[] leafValue) => LeafTable[leafKey] = leafValue;
-    public void SetInternalNode(byte[] InternalNodeKey, InternalNode internalNodeValue) => InternalTable[InternalNodeKey] = internalNodeValue;
+    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue) => InternalTable[internalNodeKey] = internalNodeValue;
 
     public void RemoveLeaf(byte[] leafKey) => LeafTable.Remove(leafKey, out _);
     public void RemoveInternalNode(byte[] internalNodeKey) => InternalTable.Remove(internalNodeKey, out _);

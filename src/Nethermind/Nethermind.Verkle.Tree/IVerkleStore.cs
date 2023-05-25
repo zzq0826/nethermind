@@ -15,7 +15,7 @@ public interface IVerkleStore: IStoreWithReorgBoundary
     byte[]? GetLeaf(byte[] key);
     InternalNode? GetInternalNode(byte[] key);
     void SetLeaf(byte[] leafKey, byte[] leafValue);
-    void SetInternalNode(byte[] InternalNodeKey, InternalNode internalNodeValue);
+    void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue);
     void Flush(long blockNumber);
     void ReverseState();
     void ApplyDiffLayer(BatchChangeSet changeSet);
@@ -53,7 +53,7 @@ public interface IVerkleStateStore: IVerkleState
 public interface IVerkleState: IReadOnlyVerkleState
 {
     void SetLeaf(byte[] leafKey, byte[] leafValue);
-    void SetInternalNode(byte[] InternalNodeKey, InternalNode internalNodeValue);
+    void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue);
 }
 
 public interface IReadOnlyVerkleState
