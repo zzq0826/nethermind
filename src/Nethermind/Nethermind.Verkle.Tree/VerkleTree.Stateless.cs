@@ -110,7 +110,6 @@ public partial class VerkleTree
             if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
         }
 
-        SortedSet<byte[]> otherStemsUsed = new(Bytes.Comparer);
         SortedSet<List<byte>> allPaths = new(new ListComparer());
         SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
         Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
@@ -171,7 +170,6 @@ public partial class VerkleTree
                             found = proof.VerifyHint.DifferentStemNoProof.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
                             byte[] encounteredStem = found[^1];
                             otherStem = encounteredStem;
-                            otherStemsUsed.Add(encounteredStem);
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
                             leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
