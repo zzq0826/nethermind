@@ -2615,9 +2615,6 @@ public class VirtualMachine : IVirtualMachine
 
 // Common exit errors, goto labels to reduce in loop code duplication and to keep loop body smaller
 Empty:
-#if DEBUG
-        debugger?.TryWait(vmState);
-#endif
         return CallResult.Empty(0);
 OutOfGas:
         if (traceOpcodes) EndInstructionTraceError(gasAvailable, EvmExceptionType.OutOfGas);
