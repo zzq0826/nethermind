@@ -258,10 +258,12 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        byte[][] stemsOfSubTree = subTrees.Keys.ToArray();
         VerkleTree tree = new(store);
 
-        List<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, stemsOfSubTree[1..^1]);
+        byte[][] stemsWithoutStartAndEndStems =
+            subTrees.Keys.Where(x => !x.SequenceEqual(startStem) && !x.SequenceEqual(endStem)).ToArray();
+
+        HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, stemsWithoutStartAndEndStems);
         tree.InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
@@ -323,13 +325,13 @@ public partial class VerkleTree
         return verification;
     }
 
-    private static List<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,
+    private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,
         ISet<(List<byte>, byte)> allPathsAndZs, IEnumerable<byte[]> stems)
     {
-        List<byte[]> subTreesToCreate = new();
+        HashSet<byte[]> subTreesToCreate = new(Bytes.EqualityComparer);
         foreach (byte[] stem in stems)
         {
-            for (int i = 0; i < 31; i++)
+            for (int i = 0; i < 32; i++)
             {
                 List<byte> prefix = new(stem[..i]);
                 if (allPaths.Contains(prefix))

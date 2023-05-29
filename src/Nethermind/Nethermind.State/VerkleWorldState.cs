@@ -410,18 +410,7 @@ public class VerkleWorldState : IWorldState
         byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
         if (account != null) _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
         if (account!.Code is null) return;
-        UInt256 chunkId = 0;
-        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(account.Code);
-        while (codeEnumerator.TryGetNextChunk(out byte[] chunk))
-        {
-            byte[]? key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
-#if DEBUG
-            Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(chunk));
-#endif
-            _tree.Insert(key, chunk);
-            chunkId += 1;
-        }
+        _tree.SetCode(address, account.Code);
     }
 
     private readonly HashSet<Address> _readsForTracing = new HashSet<Address>();

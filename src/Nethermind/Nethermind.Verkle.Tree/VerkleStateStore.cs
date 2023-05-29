@@ -288,7 +288,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             if (noOfBlockToMove > BlockCache.Count)
             {
                 BlockCache.Clear();
-                fromBlock -= noOfBlockToMove;
+                fromBlock -= BlockCache.Count;
 
                 BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
                 ApplyDiffLayer(batchDiff);
@@ -315,7 +315,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
-        VerkleMemoryDb reverseDiff = new VerkleMemoryDb();
+        VerkleMemoryDb reverseDiff = new();
 
         foreach (KeyValuePair<byte[], byte[]?> entry in blockChanges.LeafTable)
         {
@@ -332,7 +332,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             if (storage.GetInternalNode(entry.Key, out InternalNode? node)) reverseDiff.InternalTable[entry.Key] = node;
             else reverseDiff.InternalTable[entry.Key] = null;
 
-            storage.SetInternalNode(entry.Key, entry.Value);
+            if(entry.Value.ShouldPersist) storage.SetInternalNode(entry.Key, entry.Value);
         }
 
         return reverseDiff;

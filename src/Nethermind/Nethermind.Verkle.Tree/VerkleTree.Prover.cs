@@ -104,9 +104,9 @@ public partial class VerkleTree
         }
 
         int keyIndex = 0;
-        foreach (byte[] stem in new[] { startStem, endStem})
+        foreach (byte[] stem in new[] { startStem, endStem })
         {
-            for (int i = 0; i < 31; i++)
+            for (int i = 0; i < 32; i++)
             {
                 if(keyIndex == 1 && i <= prefixLength) continue;
                 byte[] parentPath = stem[..i];

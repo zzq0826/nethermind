@@ -97,12 +97,12 @@ public partial class VerkleTree: IVerkleTree
 #if DEBUG
         if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
         Span<byte> keyD = new byte[32];
-        foreach (KeyValuePair<byte, byte[]> keyVal in leafIndexValueMap)
+        foreach ((byte, byte[]) keyVal in leafIndexValueMap)
         {
             stem.CopyTo(keyD);
-            keyD[31] = keyVal.Key;
+            keyD[31] = keyVal.Item1;
             Console.WriteLine("KA: " + EnumerableExtensions.ToString(keyD.ToArray()));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Value));
+            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Item2));
         }
 #endif
         bool present = _leafUpdateCache.TryGetValue(stem.ToArray(), out LeafUpdateDelta leafUpdateDelta);
@@ -151,7 +151,6 @@ public partial class VerkleTree: IVerkleTree
     {
 
 #if DEBUG
-        if (oldValue is not null && oldValue.Length != 32) throw new ArgumentException("oldValue must be null or 32 bytes", nameof(oldValue));
         if (newValue.Length != 32) throw new ArgumentException("newValue must be 32 bytes", nameof(newValue));
 #endif
 

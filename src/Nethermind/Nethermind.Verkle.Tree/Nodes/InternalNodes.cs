@@ -17,6 +17,15 @@ public class InternalNode
 
     public bool IsStateless { get; set; } = false;
 
+    public bool ShouldPersist
+    {
+        get
+        {
+            if (IsBranchNode) return true;
+            return C1 is not null && C2 is not null && Stem is not null;
+        }
+    }
+
 
     /// <summary>
     ///  C1, C2, InitCommitmentHash - only relevant for stem nodes

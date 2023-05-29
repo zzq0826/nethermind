@@ -63,4 +63,30 @@ public class VerkleStateTree : VerkleTree
         byte[] key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index).ToArray();
         Insert(key, value);
     }
+
+    public void SetCode(Address address, byte[] code)
+    {
+        UInt256 chunkId = 0;
+        CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
+        while (codeEnumerator.TryGetNextChunk(out byte[] chunk))
+        {
+            byte[]? key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
+#if DEBUG
+            Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
+            Console.WriteLine("V: " + EnumerableExtensions.ToString(chunk));
+#endif
+            Insert(key, chunk);
+            chunkId += 1;
+        }
+    }
+
+    public void SetStorage(StorageCell cell, byte[] value)
+    {
+        byte[]? key = AccountHeader.GetTreeKeyForStorageSlot(cell.Address.Bytes, cell.Index);
+#if DEBUG
+                    Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
+                    Console.WriteLine("V: " + EnumerableExtensions.ToString(value));
+#endif
+        Insert(key, value);
+    }
 }

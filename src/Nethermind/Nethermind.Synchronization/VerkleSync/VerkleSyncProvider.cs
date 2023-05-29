@@ -97,6 +97,18 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         return AddRangeResult.OK;
     }
 
+
+    public AddRangeResult AddSubTreeRange(long blockNumber, Banderwagon rootPoint, byte[] startingStem,
+        Dictionary<byte[], (byte, byte[])[]> subTreesDict, VerkleProof proof, byte[] limitStem)
+    {
+        IVerkleStore store = _trieStorePool.Get();
+        bool correct =
+            VerkleTree.CreateStatelessTreeFromRange(store, proof, rootPoint, startingStem, limitStem,
+                subTreesDict);
+        if (!correct) return AddRangeResult.DifferentRootHash;
+        return AddRangeResult.OK;
+    }
+
     public void RefreshLeafs(LeafToRefreshRequest request, byte[][] response)
     {
         throw new NotImplementedException();
