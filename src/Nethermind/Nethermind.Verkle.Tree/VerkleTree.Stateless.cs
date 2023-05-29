@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Diagnostics;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -290,10 +289,8 @@ public partial class VerkleTree
                     tree.InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(), new(commByPath[pathList]));
                     break;
                 case ExtPresent.Present:
-                    byte[] pathOfStem = new byte[pathList.Count - 1];
-                    pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
                     Commitment internalCommitment = new(commByPath[pathList]);
-                    if (!tree.CreateAndInsertStemIfMatchesCommitment(stem, internalCommitment, pathOfStem))
+                    if (!tree.CreateAndInsertStemIfMatchesCommitment(stem, internalCommitment, pathList.ToArray()))
                         throw new ArgumentException();
                     break;
                 default:
