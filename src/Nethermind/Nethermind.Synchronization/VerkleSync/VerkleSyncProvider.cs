@@ -2,15 +2,20 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.ObjectPool;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Synchronization.SnapSync;
+using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using ILogger = Nethermind.Logging.ILogger;
 
@@ -63,24 +68,33 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     }
 
     public AddRangeResult AddSubTreeRange(long blockNumber, byte[] expectedRootHash, byte[] startingStem,
-        PathWithSubTree[] subTrees, byte[][]? proofs = null, byte[]? limitStem = null)
+        PathWithSubTree[] subTrees, byte[]? proofs = null, byte[]? limitStem = null)
     {
+        limitStem ??= Keccak.MaxValue.Bytes[..31];
+        Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash) ?? throw new Exception("root point invalid");
         IVerkleStore store = _trieStorePool.Get();
         try
         {
-            VerkleStateTree tree = new(store);
-            limitStem ??= Keccak.MaxValue.Bytes[..31];
-
-            // fill the stateless tree and check stateless root
-
-
+            Dictionary<byte[], (byte, byte[])[]> subTreesDict = new(Bytes.EqualityComparer);
+            List<(byte, byte[])> tree = new List<(byte, byte[])>();
+            foreach (PathWithSubTree subTree in subTrees)
+            {
+                tree.AddRange(subTree.SubTree.Select((t, i) => ((byte)i, t)));
+                subTreesDict[subTree.Path] = tree.ToArray();
+                tree.Clear();
+            }
+            VerkleProof vProof = VerkleProof.Decode(proofs!);
+            bool correct =
+                VerkleTree.CreateStatelessTreeFromRange(store, vProof, rootPoint, startingStem, limitStem,
+                    subTreesDict);
+            if (!correct) return AddRangeResult.DifferentRootHash;
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             throw;
         }
-        throw new NotImplementedException();
+        return AddRangeResult.OK;
     }
 
     public void RefreshLeafs(LeafToRefreshRequest request, byte[][] response)

@@ -68,7 +68,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 
         message.RequestId = rlpStream.DecodeLong();
         message.PathsWithSubTrees = rlpStream.DecodeArray(DecodePathWithRlpData);
-        message.Proofs = rlpStream.DecodeArray(s => s.DecodeByteArray());
+        message.Proofs = rlpStream.DecodeByteArray();
 
         return message;
     }
@@ -106,18 +106,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 
         contentLength += Rlp.LengthOfSequence(pwasLength);
 
-        int proofsLength = 0;
-        if (message.Proofs is null || message.Proofs.Length == 0)
-        {
-            proofsLength = 1;
-        }
-        else
-        {
-            for (int i = 0; i < message.Proofs.Length; i++)
-            {
-                proofsLength += Rlp.LengthOf(message.Proofs[i]);
-            }
-        }
+        int proofsLength = (message.Proofs is null || message.Proofs.Length == 0) ? 1 : Rlp.LengthOf(message.Proofs);
 
         contentLength += Rlp.LengthOfSequence(proofsLength);
 

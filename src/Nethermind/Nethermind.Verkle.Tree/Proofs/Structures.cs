@@ -48,6 +48,11 @@ public struct VerkleProof
 
         return encoded.ToArray();
     }
+
+    public static VerkleProof Decode(byte[] proof)
+    {
+        return new VerkleProof();
+    }
 }
 
 public struct VerificationHint
