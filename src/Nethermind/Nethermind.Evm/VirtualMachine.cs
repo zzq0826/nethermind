@@ -584,12 +584,12 @@ namespace Nethermind.Evm
                 CallResult callResult = new(output.ToArray(), success, !success);
                 return callResult;
             }
+            catch (OverflowException)
+            {
+                _logger.Trace($"Precompile Exection failed : Address {precompile.Address} with arguments : {callData.ToArray().ToHexString()}");
+            }
             catch (Exception exception)
             {
-                if(exception is System.OverflowException)
-                {
-                    _logger.Trace($"Precompile Exection failed : Address {precompile.Address} with arguments : {callData.ToArray().ToHexString()}");
-                }
                 if (_logger.IsDebug) _logger.Error($"Precompiled contract ({precompile.GetType()}) execution exception", exception);
                 CallResult callResult = new(Array.Empty<byte>(), false, true);
                 return callResult;
