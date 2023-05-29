@@ -63,7 +63,7 @@ public class InternalNode
         InitCommitmentHash = InternalCommitment.PointAsField;
     }
 
-    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment? c1, Commitment? c2, Commitment internalCommitment, bool isStateless = false)
+    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
     {
         NodeType = nodeType;
         Stem = stem;

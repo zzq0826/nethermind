@@ -14,7 +14,7 @@ public partial class VerkleTree
 {
     private void InsertBranchNodeForSync(byte[] path, Commitment commitment)
     {
-        InternalNode node = new(VerkleNodeType.BranchNode, commitment) { IsStateless = true };
+        InternalNode node = VerkleNodes.CreateStatelessBranchNode(commitment);
         _verkleStateStore.SetInternalNode(path, node);
     }
 
@@ -35,19 +35,18 @@ public partial class VerkleTree
         }
     }
 
-    private bool CreateAndInsertStemIfMatchesCommitment(byte[] stem, Commitment internalCommitment, byte[] pathOfStem)
+    private bool VerifyCommitmentThenInsertStem(byte[] pathOfStem, byte[] stem, Commitment expectedCommitment)
     {
-        InternalNode stemNode = new(VerkleNodeType.StemNode, stem) { IsStateless = true };
+        InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem);
         stemNode.UpdateCommitment(_leafUpdateCache[stem]);
-        if (stemNode.InternalCommitment.Point != internalCommitment.Point) return false;
+        if (stemNode.InternalCommitment.Point != expectedCommitment.Point) return false;
         _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
         return true;
     }
 
     private void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
     {
-        InternalNode stemNode =
-            new(VerkleNodeType.StemNode, stem.ToArray(), null, null, stemCommitment) { IsStateless = true };
+        InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem.ToArray(), stemCommitment);
         _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
     }
 
@@ -97,15 +96,13 @@ public partial class VerkleTree
     public void AddStatelessInternalNodes(UpdateHint hint, Dictionary<byte[], LeafUpdateDelta> subTrees)
     {
         List<byte> pathList = new();
-        int stemIndex = 0;
         foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
         {
             pathList.Clear();
             for (int i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem[i]);
-                InternalNode node = new(VerkleNodeType.BranchNode, new Commitment(hint.CommByPath[pathList]));
-                node.IsStateless = true;
+                InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList]));
                 _verkleStateStore.SetInternalNode(pathList.ToArray(), node);
             }
 
@@ -116,13 +113,13 @@ public partial class VerkleTree
             switch (extStatus)
             {
                 case ExtPresent.None:
-                    stemNode =  new(VerkleNodeType.StemNode, stem, null, null, new Commitment());
+                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, new Commitment());
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.DifferentStem:
                     byte[] otherStem = hint.DifferentStemNoProof[pathList];
                     Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
-                    stemNode = new(VerkleNodeType.StemNode, otherStem, null, null, otherInternalCommitment);
+                    stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.Present:
@@ -135,7 +132,7 @@ public partial class VerkleTree
                     pathList[^1] = 3;
                     if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c2B)) c2 = new Commitment(c2B);
 
-                    stemNode = new(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment);
+                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, c1, c2, internalCommitment);
                     pathOfStem = new byte[pathList.Count - 1];
                     pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
                     break;
@@ -146,7 +143,7 @@ public partial class VerkleTree
         }
     }
 
-    public static bool CreateStatelessTree(IVerkleStore store, VerkleProof proof, Banderwagon rootPoint, byte[] startStem, byte[] endStem, Dictionary<byte[], (byte, byte[])[]> subTrees)
+    public static bool CreateStatelessTreeFromRange(IVerkleStore store, VerkleProof proof, Banderwagon rootPoint, byte[] startStem, byte[] endStem, Dictionary<byte[], (byte, byte[])[]> subTrees)
     {
         const int numberOfStems = 2;
         List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { rootPoint };
@@ -290,8 +287,8 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.Present:
                     Commitment internalCommitment = new(commByPath[pathList]);
-                    if (!tree.CreateAndInsertStemIfMatchesCommitment(stem, internalCommitment, pathList.ToArray()))
-                        throw new ArgumentException();
+                    if (!tree.VerifyCommitmentThenInsertStem(pathList.ToArray(), stem, internalCommitment))
+                        return false;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

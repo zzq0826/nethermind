@@ -54,11 +54,11 @@ public class VerkleRangeProofTests
         subTrees[stems[3]] = subTree.ToArray();
 
         bool isTrue =
-            VerkleTree.CreateStatelessTree(newTree._verkleStateStore, proof, root, stems[0], stems[^1], subTrees);
+            VerkleTree.CreateStatelessTreeFromRange(newTree._verkleStateStore, proof, root, stems[0], stems[^1], subTrees);
         Assert.That(isTrue, Is.True);
 
-        var oldTreeDumper = new VerkleTreeDumper();
-        var newTreeDumper = new VerkleTreeDumper();
+        VerkleTreeDumper oldTreeDumper = new();
+        VerkleTreeDumper newTreeDumper = new();
 
         tree.Accept(oldTreeDumper, new Keccak(root.ToBytes()));
         newTree.Accept(newTreeDumper, new Keccak(root.ToBytes()));
