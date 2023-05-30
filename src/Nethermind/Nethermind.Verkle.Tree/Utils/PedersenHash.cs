@@ -32,6 +32,14 @@ public static class PedersenHash
         return res.ToBytesLittleEndian();
     }
 
+    public static void ComputeHashBytesToSpan(ReadOnlySpan<byte> address20, UInt256 treeIndex, Span<byte> output)
+    {
+        Hash(address20, treeIndex).CopyTo(output);
+    }
+
+    public static byte[] ComputeHashBytes(ReadOnlySpan<byte> address20, UInt256 treeIndex) =>
+        Hash(address20, treeIndex);
+
     public static byte[] Hash(ReadOnlySpan<byte> address20, UInt256 treeIndex)
     {
         ulong u0, u1, u2, u3;

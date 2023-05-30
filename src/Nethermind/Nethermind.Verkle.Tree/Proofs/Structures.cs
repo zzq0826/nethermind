@@ -3,6 +3,7 @@
 
 using System.Text;
 using FastEnumUtility;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;

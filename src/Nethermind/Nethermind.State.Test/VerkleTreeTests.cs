@@ -70,7 +70,7 @@ public class VerkleTreeTests
         stateTree.Set(new Address("0x0000000000000000000000000000000000000000"), account);
         stateTree.Commit();
         stateTree.CommitTree(0);
-        Console.WriteLine(EnumerableExtensions.ToString(stateTree.StateRoot));
+        Console.WriteLine(EnumerableExtensions.ToString(stateTree.StateRoot.Bytes));
     }
 
     // [Test]

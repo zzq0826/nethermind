@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 using Committer = Nethermind.Verkle.Tree.Utils.Committer;
 using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 
@@ -15,11 +17,12 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree: IVerkleTree
 {
+    private static byte[] RootKey = Array.Empty<byte>();
     public readonly IVerkleStore _verkleStateStore;
 
-    private byte[] _stateRoot;
+    private Pedersen _stateRoot;
 
-    public byte[] StateRoot
+    public Pedersen StateRoot
     {
         get
         {
@@ -34,13 +37,13 @@ public partial class VerkleTree: IVerkleTree
 
     private bool _isDirty;
 
-    private readonly Dictionary<byte[], LeafUpdateDelta> _leafUpdateCache;
+    private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache;
 
     public VerkleTree(IDbProvider dbProvider)
     {
         VerkleStateStore verkleStateStore = new VerkleStateStore(dbProvider);
         _verkleStateStore = new VerkleTrieStore(verkleStateStore);
-        _leafUpdateCache = new Dictionary<byte[], LeafUpdateDelta>(Bytes.EqualityComparer);
+        _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
         ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
@@ -49,13 +52,13 @@ public partial class VerkleTree: IVerkleTree
     protected VerkleTree(IVerkleStore verkleStateStore)
     {
         _verkleStateStore = verkleStateStore;
-        _leafUpdateCache = new ();
+        _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
         ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
     }
 
-    public bool MoveToStateRoot(byte[] stateRoot)
+    public bool MoveToStateRoot(Pedersen stateRoot)
     {
         try
         {
@@ -66,38 +69,31 @@ public partial class VerkleTree: IVerkleTree
         {
             return false;
         }
-
     }
 
-    public byte[]? Get(byte[] key)
-    {
-#if DEBUG
-        if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
-#endif
-        return _verkleStateStore.GetLeaf(key);
-    }
+    public byte[]? Get(Pedersen key) => _verkleStateStore.GetLeaf(key.Bytes);
 
-    public void Insert(byte[]key, byte[] value)
+    public void Insert(Pedersen key, byte[] value)
     {
         _isDirty = true;
 #if DEBUG
-        if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
         if (value.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(value));
 #endif
-        byte[] stem = key[..31];
+        ReadOnlySpan<byte> stem = key.StemAsSpan;
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
-        leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key, value), key[31]);
+        leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key, value), key.SuffixByte);
         _leafUpdateCache[stem] = leafUpdateDelta;
     }
 
-    public void InsertStemBatch(Span<byte> stem, IEnumerable<(byte, byte[])> leafIndexValueMap)
+    public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<(byte, byte[])> leafIndexValueMap)
     {
         _isDirty = true;
 #if DEBUG
         if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
         Span<byte> keyD = new byte[32];
-        foreach ((byte, byte[]) keyVal in leafIndexValueMap)
+        IEnumerable<(byte, byte[])> indexValueMap = leafIndexValueMap as (byte, byte[])[] ?? leafIndexValueMap.ToArray();
+        foreach ((byte, byte[]) keyVal in indexValueMap)
         {
             stem.CopyTo(keyD);
             keyD[31] = keyVal.Item1;
@@ -105,7 +101,7 @@ public partial class VerkleTree: IVerkleTree
             Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Item2));
         }
 #endif
-        bool present = _leafUpdateCache.TryGetValue(stem.ToArray(), out LeafUpdateDelta leafUpdateDelta);
+        bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
 
         Span<byte> key = new byte[32];
@@ -113,17 +109,17 @@ public partial class VerkleTree: IVerkleTree
         foreach ((byte index, byte[] value) in leafIndexValueMap)
         {
             key[31] = index;
-            leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key.ToArray(), value), key[31]);
+            leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), value), key[31]);
         }
 
         _leafUpdateCache[stem.ToArray()] = leafUpdateDelta;
     }
 
-    private Banderwagon UpdateLeafAndGetDelta(byte[] key, byte[] value)
+    private Banderwagon UpdateLeafAndGetDelta(Pedersen key, byte[] value)
     {
-        byte[]? oldValue = _verkleStateStore.GetLeaf(key);
-        Banderwagon leafDeltaCommitment = GetLeafDelta(oldValue, value, key[31]);
-        _verkleStateStore.SetLeaf(key, value);
+        byte[]? oldValue = _verkleStateStore.GetLeaf(key.Bytes);
+        Banderwagon leafDeltaCommitment = GetLeafDelta(oldValue, value, key.SuffixByte);
+        _verkleStateStore.SetLeaf(key.Bytes, value);
         return leafDeltaCommitment;
     }
 
@@ -191,10 +187,10 @@ public partial class VerkleTree: IVerkleTree
 
     private void UpdateRootNode(Banderwagon rootDelta)
     {
-        InternalNode root = _verkleStateStore.GetInternalNode(Array.Empty<byte>()) ?? throw new InvalidOperationException("root should be present");
+        InternalNode root = _verkleStateStore.GetInternalNode(RootKey) ?? throw new InvalidOperationException("root should be present");
         InternalNode newRoot = root.Clone();
         newRoot.InternalCommitment.AddPoint(rootDelta);
-        _verkleStateStore.SetInternalNode(Array.Empty<byte>(), newRoot);
+        _verkleStateStore.SetInternalNode(RootKey, newRoot);
     }
 
     public Banderwagon TraverseBranch(TraverseContext traverseContext)
@@ -304,7 +300,7 @@ public partial class VerkleTree: IVerkleTree
     {
         for (int i = 0; i < length; i++)
         {
-            InternalNode newInternalNode = new InternalNode(VerkleNodeType.BranchNode);
+            InternalNode newInternalNode = new(VerkleNodeType.BranchNode);
             FrE upwardsDelta = newInternalNode.UpdateCommitment(deltaPoint);
             _verkleStateStore.SetInternalNode(path[..^i], newInternalNode);
             deltaPoint = Committer.ScalarMul(upwardsDelta, path[path.Length - i - 1]);

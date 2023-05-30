@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Verkle.Tree.Serializers;
@@ -8,7 +9,7 @@ namespace Nethermind.Verkle.Tree.Serializers;
 
 public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>
 {
-    public static LeafStoreSerializer Instance => new LeafStoreSerializer();
+    public static LeafStoreSerializer Instance => new();
     public int GetLength(LeafStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
@@ -22,7 +23,7 @@ public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>
 
     public LeafStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        LeafStore item = new LeafStore();
+        LeafStore item = new(Bytes.SpanEqualityComparer);
         int length = rlpStream.DecodeInt();
         for (int i = 0; i < length; i++)
         {

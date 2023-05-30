@@ -7,14 +7,14 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 
 public interface IVerkleDb
 {
-    bool GetLeaf(byte[] key, out byte[]? value);
-    bool GetInternalNode(byte[] key, out InternalNode? value);
+    bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value);
+    bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value);
 
-    void SetLeaf(byte[] leafKey, byte[] leafValue);
-    void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue);
+    void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue);
+    void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue);
 
-    void RemoveLeaf(byte[] leafKey);
-    void RemoveInternalNode(byte[] internalNodeKey);
+    void RemoveLeaf(ReadOnlySpan<byte> leafKey);
+    void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey);
 
     void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf);
     void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNodeLeaf);

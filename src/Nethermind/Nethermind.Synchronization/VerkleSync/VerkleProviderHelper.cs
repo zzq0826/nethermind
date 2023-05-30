@@ -35,7 +35,7 @@ public class VerkleProviderHelper
             tree.Commit();
         }
 
-        if (tree.StateRoot != expectedRootHash)
+        if (tree.StateRoot.Bytes != expectedRootHash)
         {
             return (AddRangeResult.DifferentRootHash, true);
         }

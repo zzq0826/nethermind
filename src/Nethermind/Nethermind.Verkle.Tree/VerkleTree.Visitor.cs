@@ -4,6 +4,7 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -27,7 +28,7 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
-            _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
+            _verkleStateStore.MoveToStateRoot(new Pedersen(rootHash.Bytes));
         }
         else
         {
@@ -36,7 +37,7 @@ public partial class VerkleTree
 
         if (visitor is RootCheckVisitor)
         {
-            if (!rootHash.Bytes.SequenceEqual(_verkleStateStore.GetStateRoot())) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
+            if (!rootHash.Bytes.SequenceEqual(_verkleStateStore.GetStateRoot().Bytes)) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
         }
         else
         {
@@ -45,7 +46,7 @@ public partial class VerkleTree
 
     }
 
-    public void Accept(IVerkleTreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null)
+    public void Accept(IVerkleTreeVisitor visitor, Pedersen rootHash, VisitingOptions? visitingOptions = null)
     {
         if (visitor is null) throw new ArgumentNullException(nameof(visitor));
         if (rootHash is null) throw new ArgumentNullException(nameof(rootHash));
@@ -61,16 +62,16 @@ public partial class VerkleTree
             KeepTrackOfAbsolutePath = true
         };
 
-        if (!rootHash.Equals(Keccak.EmptyTreeHash))
+        if (!rootHash.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes)))
         {
-            _verkleStateStore.MoveToStateRoot(rootHash.Bytes);
+            _verkleStateStore.MoveToStateRoot(rootHash);
         }
         else
         {
             return;
         }
 
-        visitor.VisitTree(rootHash.Bytes, trieVisitContext);
+        visitor.VisitTree(rootHash, trieVisitContext);
 
         RecurseNodes(visitor, _verkleStateStore.GetInternalNode(Array.Empty<byte>()), trieVisitContext);
 

@@ -7,6 +7,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -99,7 +100,7 @@ public class VerkleRangeProofCollector: IVerkleTreeVisitor
         return compResult != -1;
     }
 
-    public void VisitTree(byte[] rootHash, TrieVisitContext trieVisitContext) { }
+    public void VisitTree(Pedersen rootHash, TrieVisitContext trieVisitContext) { }
 
     public void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext) { }
 
@@ -149,7 +150,7 @@ public class VerkleRangeProofCollector: IVerkleTreeVisitor
         throw new NotImplementedException();
     }
 
-    public void VisitLeafNode(byte[] nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
+    public void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
     {
         throw new NotImplementedException();
     }

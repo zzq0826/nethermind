@@ -3,6 +3,7 @@
 
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -10,7 +11,7 @@ public interface IVerkleTreeVisitor
 {
     bool ShouldVisit(byte[] nextNode);
 
-    void VisitTree(byte[] rootHash, TrieVisitContext trieVisitContext);
+    void VisitTree(Pedersen rootHash, TrieVisitContext trieVisitContext);
 
     void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext);
 
@@ -18,6 +19,6 @@ public interface IVerkleTreeVisitor
 
     void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext);
 
-    void VisitLeafNode(byte[] nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue);
+    void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue);
 
 }

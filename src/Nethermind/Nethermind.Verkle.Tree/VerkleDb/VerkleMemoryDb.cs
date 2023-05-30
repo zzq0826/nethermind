@@ -13,8 +13,8 @@ public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
 
     public VerkleMemoryDb()
     {
-        LeafTable = new LeafStore(Bytes.EqualityComparer);
-        InternalTable = new InternalStore(Bytes.EqualityComparer);
+        LeafTable = new LeafStore(Bytes.SpanEqualityComparer);
+        InternalTable = new InternalStore(Bytes.SpanEqualityComparer);
     }
 
     public VerkleMemoryDb(LeafStore leafTable, InternalStore internalTable)
@@ -23,14 +23,14 @@ public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
         InternalTable = internalTable;
     }
 
-    public bool GetLeaf(byte[] key, out byte[]? value) => LeafTable.TryGetValue(key, out value);
-    public bool GetInternalNode(byte[] key, out InternalNode? value) => InternalTable.TryGetValue(key, out value);
+    public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value) => LeafTable.TryGetValue(key, out value);
+    public bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value) => InternalTable.TryGetValue(key, out value);
 
-    public void SetLeaf(byte[] leafKey, byte[] leafValue) => LeafTable[leafKey] = leafValue;
-    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue) => InternalTable[internalNodeKey] = internalNodeValue;
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue) => LeafTable[leafKey] = leafValue;
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue) => InternalTable[internalNodeKey] = internalNodeValue;
 
-    public void RemoveLeaf(byte[] leafKey) => LeafTable.Remove(leafKey, out _);
-    public void RemoveInternalNode(byte[] internalNodeKey) => InternalTable.Remove(internalNodeKey, out _);
+    public void RemoveLeaf(ReadOnlySpan<byte> leafKey) => LeafTable.Remove(leafKey.ToArray(), out _);
+    public void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey) => InternalTable.Remove(internalNodeKey.ToArray(), out _);
 
     public void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf)
     {

@@ -60,8 +60,8 @@ public class VerkleWorldState : IWorldState
 
     public Keccak StateRoot
     {
-        get => new Keccak(_tree.StateRoot);
-        set => _tree.StateRoot = value.Bytes;
+        get => new Keccak(_tree.StateRoot.Bytes);
+        set => _tree.StateRoot = new Pedersen(value.Bytes);
     }
 
 
@@ -386,19 +386,19 @@ public class VerkleWorldState : IWorldState
     private Account? GetState(Address address)
     {
         Db.Metrics.StateTreeReads++;
-        byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        headerTreeKey[31] = AccountHeader.Version;
+        Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
+        headerTreeKey.SuffixByte = AccountHeader.Version;
         IEnumerable<byte>? versionVal = _tree.Get(headerTreeKey);
         if (versionVal is null) return null;
-        UInt256 version = new UInt256((versionVal ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.Balance;
-        UInt256 balance = new UInt256((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.Nonce;
-        UInt256 nonce = new UInt256((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
-        headerTreeKey[31] = AccountHeader.CodeHash;
+        UInt256 version = new((versionVal ?? Array.Empty<byte>()).ToArray());
+        headerTreeKey.SuffixByte = AccountHeader.Balance;
+        UInt256 balance = new((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
+        headerTreeKey.SuffixByte = AccountHeader.Nonce;
+        UInt256 nonce = new ((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
+        headerTreeKey.SuffixByte = AccountHeader.CodeHash;
         byte[]? codeHash = (_tree.Get(headerTreeKey) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
-        headerTreeKey[31] = AccountHeader.CodeSize;
-        UInt256 codeSize = new UInt256((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
+        headerTreeKey.SuffixByte = AccountHeader.CodeSize;
+        UInt256 codeSize = new ((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
 
         return new Account(balance, nonce, new Keccak(codeHash), codeSize, version);
     }
@@ -407,8 +407,8 @@ public class VerkleWorldState : IWorldState
     {
         Db.Metrics.StateTreeWrites++;
 
-        byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
+        Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
+        if (account != null) _tree.InsertStemBatch(headerTreeKey.StemAsSpan, account.ToVerkleDict());
         if (account!.Code is null) return;
         _tree.SetCode(address, account.Code);
     }

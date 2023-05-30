@@ -20,35 +20,35 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
         _dbProvider = dbProvider;
     }
 
-    public byte[]? GetLeaf(byte[] key) => LeafDb.Get(key);
+    public byte[]? GetLeaf(ReadOnlySpan<byte> key) => LeafDb.Get(key);
 
-    public InternalNode? GetInternalNode(byte[] key)
+    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
         byte[]? value = InternalNodeDb[key];
         return value is null ? null : InternalNodeSerializer.Instance.Decode(value);
     }
 
-    public bool GetLeaf(byte[] key, out byte[]? value)
+    public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value)
     {
         value = GetLeaf(key);
         return value is not null;
     }
 
-    public bool GetInternalNode(byte[] key, out InternalNode? value)
+    public bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value)
     {
         value = GetInternalNode(key);
         return value is not null;
     }
 
-    public void SetLeaf(byte[] leafKey, byte[] leafValue) => _setLeaf(leafKey, leafValue, LeafDb);
-    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue) => _setInternalNode(internalNodeKey, internalNodeValue, InternalNodeDb);
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue) => LeafDb[leafKey] = leafValue;
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue) => SetInternalNode(internalNodeKey, internalNodeValue, InternalNodeDb);
 
-    public void RemoveLeaf(byte[] leafKey)
+    public void RemoveLeaf(ReadOnlySpan<byte> leafKey)
     {
         LeafDb.Remove(leafKey);
     }
 
-    public void RemoveInternalNode(byte[] internalNodeKey)
+    public void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey)
     {
         InternalNodeDb.Remove(internalNodeKey);
     }
@@ -59,7 +59,7 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
         using IBatch batch = LeafDb.StartBatch();
         foreach ((byte[] key, byte[]? value) in keyLeaf)
         {
-            _setLeaf(key, value, batch);
+            batch[key] = value;
         }
     }
 
@@ -68,36 +68,11 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
         using IBatch batch = InternalNodeDb.StartBatch();
         foreach ((byte[] key, InternalNode? value) in internalNode)
         {
-            _setInternalNode(key, value, batch);
+            SetInternalNode(key, value, batch);
         }
     }
 
-    public byte[]? this[byte[] key]
-    {
-        get
-        {
-            return key.Length switch
-            {
-                32 => LeafDb[key],
-                _ => InternalNodeDb[key]
-            };
-        }
-        set
-        {
-            switch (key.Length)
-            {
-                case 32:
-                    LeafDb[key] = value;
-                    break;
-                default:
-                    InternalNodeDb[key] = value;
-                    break;
-            }
-        }
-    }
-
-    private static void _setLeaf(byte[] leafKey, byte[]? leafValue, IKeyValueStore db) => db[leafKey] = leafValue;
-    private static void _setInternalNode(byte[] internalNodeKey, InternalNode? internalNodeValue, IKeyValueStore db)
+    private static void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode? internalNodeValue, IKeyValueStore db)
     {
         if (internalNodeValue != null) db[internalNodeKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
     }

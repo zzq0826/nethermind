@@ -8,7 +8,7 @@ namespace Nethermind.Verkle.Tree.Serializers;
 
 public class VerkleMemoryDbSerializer : IRlpStreamDecoder<VerkleMemoryDb>
 {
-    public static VerkleMemoryDbSerializer Instance => new VerkleMemoryDbSerializer();
+    public static VerkleMemoryDbSerializer Instance => new();
 
     public int GetLength(VerkleMemoryDb item, RlpBehaviors rlpBehaviors)
     {

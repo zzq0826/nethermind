@@ -6,6 +6,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -23,9 +24,9 @@ public class VerkleTreeDumper : IVerkleTreeVisitor
     {
         return true;
     }
-    public void VisitTree(byte[] rootHash, TrieVisitContext trieVisitContext)
+    public void VisitTree(Pedersen rootHash, TrieVisitContext trieVisitContext)
     {
-        if (rootHash.SequenceEqual(Keccak.Zero.Bytes))
+        if (rootHash.Equals(Pedersen.Zero))
         {
             _builder.AppendLine("EMPTY TREE");
         }
@@ -51,7 +52,7 @@ public class VerkleTreeDumper : IVerkleTreeVisitor
     {
         _builder.AppendLine($"{GetPrefix(trieVisitContext)}STEM | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
     }
-    public void VisitLeafNode(byte[] nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
+    public void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
     {
         _builder.AppendLine($"{GetPrefix(trieVisitContext)}LEAF | -> Key: {nodeKey.ToHexString()}  Value: {nodeValue.ToHexString()}");
     }

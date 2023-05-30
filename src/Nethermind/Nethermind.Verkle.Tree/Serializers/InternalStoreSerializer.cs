@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Nodes;
 
@@ -11,7 +12,7 @@ public class InternalStoreSerializer : IRlpStreamDecoder<InternalStore>
 {
     private static InternalNodeSerializer InternalNodeSerializer => InternalNodeSerializer.Instance;
 
-    public static InternalStoreSerializer Instance => new InternalStoreSerializer();
+    public static InternalStoreSerializer Instance => new();
     public int GetLength(InternalStore item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
@@ -25,7 +26,7 @@ public class InternalStoreSerializer : IRlpStreamDecoder<InternalStore>
 
     public InternalStore Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
-        InternalStore item = new InternalStore();
+        InternalStore item = new(Bytes.SpanEqualityComparer);
         int length = rlpStream.DecodeInt();
         for (int i = 0; i < length; i++)
         {

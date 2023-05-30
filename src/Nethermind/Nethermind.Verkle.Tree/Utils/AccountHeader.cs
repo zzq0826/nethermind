@@ -19,26 +19,26 @@ public readonly struct AccountHeader
 
     private static readonly UInt256 MainStorageOffset = (UInt256)MainStorageOffsetBase << MainStorageOffsetExponent;
 
-    private static readonly LruCache<(byte[], UInt256), byte[]> _keyCache = new(1000000, 10000, "Verkle Key Cache");
+    private static readonly LruCache<(byte[], UInt256), Pedersen> _keyCache = new(1000000, 10000, "Verkle Key Cache");
 
-    private static byte[] GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
+    private static Pedersen GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
     {
-        if (_keyCache.TryGet((address20.ToArray(), treeIndex), out byte[] value)) return value;
-        value = PedersenHash.Hash(address20, treeIndex);
+        if (_keyCache.TryGet((address20.ToArray(), treeIndex), out Pedersen value)) return value;
+        value = Pedersen.Compute(address20, treeIndex);
         _keyCache.Set((address20.ToArray(), treeIndex), value);
         return value;
     }
 
-    public static byte[] GetTreeKeyPrefixAccount(byte[] address) => GetTreeKeyPrefix(address, 0);
+    public static Pedersen GetTreeKeyPrefixAccount(byte[] address) => GetTreeKeyPrefix(address, 0);
 
-    public static byte[] GetTreeKey(byte[] address, UInt256 treeIndex, byte subIndexBytes)
+    public static Pedersen GetTreeKey(byte[] address, UInt256 treeIndex, byte subIndexBytes)
     {
-        byte[] treeKeyPrefix = GetTreeKeyPrefix(address, treeIndex);
-        treeKeyPrefix[31] = subIndexBytes;
+        Pedersen treeKeyPrefix = GetTreeKeyPrefix(address, treeIndex);
+        treeKeyPrefix.SuffixByte = subIndexBytes;
         return treeKeyPrefix;
     }
 
-    public static byte[] GetTreeKeyForCodeChunk(byte[] address, UInt256 chunk)
+    public static Pedersen GetTreeKeyForCodeChunk(byte[] address, UInt256 chunk)
     {
         UInt256 chunkOffset = CodeOffset + chunk;
         UInt256 treeIndex = chunkOffset / VerkleNodeWidth;
@@ -46,7 +46,7 @@ public readonly struct AccountHeader
         return GetTreeKey(address, treeIndex, subIndex.ToBigEndian()[31]);
     }
 
-    public static byte[] GetTreeKeyForStorageSlot(byte[] address, UInt256 storageKey)
+    public static Pedersen GetTreeKeyForStorageSlot(byte[] address, UInt256 storageKey)
     {
         UInt256 pos;
 

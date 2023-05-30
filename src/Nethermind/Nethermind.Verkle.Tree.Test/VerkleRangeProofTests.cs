@@ -5,6 +5,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -60,8 +61,8 @@ public class VerkleRangeProofTests
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
 
-        tree.Accept(oldTreeDumper, new Keccak(root.ToBytes()));
-        newTree.Accept(newTreeDumper, new Keccak(root.ToBytes()));
+        tree.Accept(oldTreeDumper, new Pedersen(root.ToBytes()));
+        newTree.Accept(newTreeDumper, new Pedersen(root.ToBytes()));
 
         Console.WriteLine("oldTreeDumper");
         Console.WriteLine(oldTreeDumper.ToString());

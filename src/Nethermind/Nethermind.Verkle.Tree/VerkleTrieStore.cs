@@ -3,6 +3,7 @@
 
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
@@ -20,24 +21,24 @@ public class VerkleTrieStore : IVerkleStore
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-    public byte[] RootHash
+    public Pedersen RootHash
     {
         get => GetStateRoot();
         set => MoveToStateRoot(value);
     }
-    public byte[]? GetLeaf(byte[] key)
+    public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
         return _treeCache.GetLeaf(key, out var value) ? value : _persistentStore.GetLeaf(key);
     }
-    public InternalNode? GetInternalNode(byte[] key)
+    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
         return _treeCache.GetInternalNode(key, out var value) ? value : _persistentStore.GetInternalNode(key);
     }
-    public void SetLeaf(byte[] leafKey, byte[] leafValue)
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
     {
         _treeCache.SetLeaf(leafKey, leafValue);
     }
-    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue)
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
     {
         _treeCache.SetInternalNode(internalNodeKey, internalNodeValue);
     }
@@ -65,11 +66,11 @@ public class VerkleTrieStore : IVerkleStore
         _treeCache = new VerkleMemoryDb();
         _persistentStore.ApplyDiffLayer(changeSet);
     }
-    public byte[] GetStateRoot()
+    public Pedersen GetStateRoot()
     {
-        return GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new InvalidOperationException();
+        return new Pedersen(GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new InvalidOperationException());
     }
-    public bool MoveToStateRoot(byte[] stateRoot)
+    public bool MoveToStateRoot(Pedersen stateRoot)
     {
         bool isMoved = _persistentStore.MoveToStateRoot(stateRoot);
         if (isMoved) _treeCache = new VerkleMemoryDb();

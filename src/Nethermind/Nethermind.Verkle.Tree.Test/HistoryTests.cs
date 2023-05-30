@@ -6,6 +6,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 using NUnit.Framework;
 
@@ -37,8 +38,8 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
         tree.Commit();
         tree.CommitTree(0);
-        byte[] stateRoot0 = tree.StateRoot;
-        Console.WriteLine(tree.StateRoot.ToHexString());
+        Pedersen stateRoot0 = tree.StateRoot;
+        Console.WriteLine(tree.StateRoot.ToString());
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
         tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
@@ -53,8 +54,8 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._arrayAll0Last2);
         tree.Commit();
         tree.CommitTree(1);
-        byte[] stateRoot1 = tree.StateRoot;
-        Console.WriteLine(tree.StateRoot.ToHexString());
+        Pedersen stateRoot1 = tree.StateRoot;
+        Console.WriteLine(tree.StateRoot.ToString());
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
         tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
@@ -69,7 +70,7 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._arrayAll0Last3);
         tree.Commit();
         tree.CommitTree(2);
-        Console.WriteLine(tree.StateRoot.ToHexString());
+        Console.WriteLine(tree.StateRoot.ToString());
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
         tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
@@ -107,7 +108,7 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
         tree.Commit();
         tree.CommitTree(0);
-        byte[] stateRoot0 = tree.StateRoot;
+        Pedersen stateRoot0 = tree.StateRoot;
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
         tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);

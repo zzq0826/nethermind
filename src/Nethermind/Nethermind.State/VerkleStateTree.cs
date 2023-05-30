@@ -30,37 +30,37 @@ public class VerkleStateTree : VerkleTree
     public Account? Get(Address address, Keccak? rootHash = null)
     {
         Span<byte> key = new byte[32];
-        byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        headerTreeKey.CopyTo(key);
+        Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
+        headerTreeKey.StemAsSpan.CopyTo(key);
         key[31] = AccountHeader.Version;
-        UInt256 version = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        UInt256 version = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Balance;
-        UInt256 balance = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        UInt256 balance = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Nonce;
-        UInt256 nonce = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        UInt256 nonce = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.CodeHash;
-        byte[]? codeHash = (Get(key.ToArray()) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
+        byte[]? codeHash = (Get(new Pedersen(key.ToArray())) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
         key[31] = AccountHeader.CodeSize;
-        UInt256 codeSize = new UInt256((Get(key.ToArray()) ?? Array.Empty<byte>()).ToArray());
+        UInt256 codeSize = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
 
         return new Account(balance, nonce, new Keccak(codeHash), codeSize, version);
     }
 
     public void Set(Address address, Account? account)
     {
-        byte[]? headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
-        if (account != null) InsertStemBatch(headerTreeKey[..31], account.ToVerkleDict());
+        Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
+        if (account != null) InsertStemBatch(headerTreeKey.StemAsSpan, account.ToVerkleDict());
     }
 
     public byte[] Get(Address address, in UInt256 index, Keccak? storageRoot = null)
     {
-        byte[]? key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index).ToArray();
+        Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index);
         return (Get(key) ?? Array.Empty<byte>()).ToArray();
     }
 
     public void Set(Address address, in UInt256 index, byte[] value)
     {
-        byte[] key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index).ToArray();
+        Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index);
         Insert(key, value);
     }
 
@@ -70,7 +70,7 @@ public class VerkleStateTree : VerkleTree
         CodeChunkEnumerator codeEnumerator = new CodeChunkEnumerator(code);
         while (codeEnumerator.TryGetNextChunk(out byte[] chunk))
         {
-            byte[]? key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
+            Pedersen key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
 #if DEBUG
             Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
             Console.WriteLine("V: " + EnumerableExtensions.ToString(chunk));
@@ -82,7 +82,7 @@ public class VerkleStateTree : VerkleTree
 
     public void SetStorage(StorageCell cell, byte[] value)
     {
-        byte[]? key = AccountHeader.GetTreeKeyForStorageSlot(cell.Address.Bytes, cell.Index);
+        Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(cell.Address.Bytes, cell.Index);
 #if DEBUG
                     Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
                     Console.WriteLine("V: " + EnumerableExtensions.ToString(value));

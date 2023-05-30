@@ -4,6 +4,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Tree.Test;
@@ -45,28 +46,40 @@ public class VerkleTreeTests
     };
 
 
-    private readonly byte[] _keyVersion =
+    private readonly Pedersen _keyVersion = new byte[]
     {
-        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224, 183, 72, 25, 6, 8, 210, 159, 31, 0,
+        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224,
+        183, 72, 25, 6, 8, 210, 159, 31, 0,
     };
-    private readonly byte[] _keyBalance =
+
+    private readonly Pedersen _keyBalance = new byte[]
     {
-        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224, 183, 72, 25, 6, 8, 210, 159, 31, 1,
+        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224,
+        183, 72, 25, 6, 8, 210, 159, 31, 1,
     };
-    private readonly byte[] _keyNonce =
+
+    private readonly Pedersen _keyNonce = new byte[]
     {
-        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224, 183, 72, 25, 6, 8, 210, 159, 31, 2,
+        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224,
+        183, 72, 25, 6, 8, 210, 159, 31, 2,
     };
-    private readonly byte[] _keyCodeCommitment = {
-        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224, 183, 72, 25, 6, 8, 210, 159, 31, 3,
-    };
-    private readonly byte[] _keyCodeSize =
+
+    private readonly Pedersen _keyCodeCommitment = new byte[]
     {
-        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224, 183, 72, 25, 6, 8, 210, 159, 31, 4,
+        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224,
+        183, 72, 25, 6, 8, 210, 159, 31, 3,
     };
+
+    private readonly Pedersen _keyCodeSize = new byte[]
+    {
+        121, 85, 7, 198, 131, 230, 143, 90, 165, 129, 173, 81, 186, 89, 19, 191, 13, 107, 197, 120, 243, 229, 224,
+        183, 72, 25, 6, 8, 210, 159, 31, 4,
+    };
+
     private readonly byte[] _valueEmptyCodeHashValue =
     {
-        197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+        197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59,
+        123, 250, 216, 4, 93, 133, 164, 112,
     };
 
     private static string GetDbPathForTest()
@@ -176,7 +189,7 @@ public class VerkleTreeTests
 
         tree.Insert(key, key);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6B630905CE275E39F223E175242DF2C1E8395E6F46EC71DCE5557012C1334A5C");
 
         tree.Get(key).Should().BeEquivalentTo(key);
@@ -191,7 +204,7 @@ public class VerkleTreeTests
 
         tree.Insert(key, key);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6F5E7CFC3A158A64E5718B0D2F18F564171342380F5808F3D2A82F7E7F3C2778");
 
         tree.Get(key).Should().BeEquivalentTo(key);
@@ -208,11 +221,11 @@ public class VerkleTreeTests
 
         tree.Insert(keyA, keyA);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6F5E7CFC3A158A64E5718B0D2F18F564171342380F5808F3D2A82F7E7F3C2778");
         tree.Insert(keyB, keyB);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "14EE5E5C5B698E363055B41DD3334F8168C7FCA4F85C5E30AB39CF9CC2FEEF70");
 
         tree.Get(keyA).Should().BeEquivalentTo(keyA);
@@ -229,11 +242,11 @@ public class VerkleTreeTests
 
         tree.Insert(keyA, keyA);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6B630905CE275E39F223E175242DF2C1E8395E6F46EC71DCE5557012C1334A5C");
         tree.Insert(keyB, keyB);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "5E208CDBA664A7B8FBDC26A1C1185F153A5F721CBA389625C18157CEF7D4931C");
 
         tree.Get(keyA).Should().BeEquivalentTo(keyA);
@@ -251,11 +264,11 @@ public class VerkleTreeTests
 
         tree.Insert(keyA, keyA);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6B630905CE275E39F223E175242DF2C1E8395E6F46EC71DCE5557012C1334A5C");
         tree.Insert(keyB, keyB);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "3258D722AEA34B5AE7CB24A9B0175EDF0533C651FA09592E823B5969C729FB88");
 
         tree.Get(keyA).Should().BeEquivalentTo(keyA);
@@ -270,21 +283,21 @@ public class VerkleTreeTests
         byte[] keyA = _emptyArray;
         tree.Insert(keyA, keyA);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6B630905CE275E39F223E175242DF2C1E8395E6F46EC71DCE5557012C1334A5C");
 
         byte[] keyB = (byte[])_emptyArray.Clone();
         keyB[30] = 1;
         tree.Insert(keyB, keyB);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "3258D722AEA34B5AE7CB24A9B0175EDF0533C651FA09592E823B5969C729FB88");
 
         byte[] keyC = (byte[])_emptyArray.Clone();
         keyC[29] = 1;
         tree.Insert(keyC, keyC);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "5B82B26A1A7E00A1E997ABD51FE3075D05F54AA4CB1B3A70607E62064FADAA82");
 
         tree.Get(keyA).Should().BeEquivalentTo(keyA);
@@ -298,7 +311,7 @@ public class VerkleTreeTests
     {
         VerkleTree tree = GetVerkleTreeForTest(dbMode);
         tree.Commit();
-        tree.StateRoot.Should().BeEquivalentTo(FrE.Zero.ToBytes().ToArray());
+        tree.StateRoot.Bytes.Should().BeEquivalentTo(FrE.Zero.ToBytes().ToArray());
     }
 
     [TestCase(DbMode.MemDb)]
@@ -310,13 +323,13 @@ public class VerkleTreeTests
         byte[] value = _emptyArray;
         tree.Insert(key, value);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "140A25B322EAA1ADACD0EE1BB135ECA7B78FCF02B4B19E4A55B26B7A434F42AC");
         tree.Get(key).Should().BeEquivalentTo(value);
 
         tree.Insert(key, key);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6F5E7CFC3A158A64E5718B0D2F18F564171342380F5808F3D2A82F7E7F3C2778");
         tree.Get(key).Should().BeEquivalentTo(key);
     }
@@ -329,27 +342,27 @@ public class VerkleTreeTests
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "476C50753A22B270DA9D409C0F9AB655AB2506CE4EF831481DD455F0EA730FEF");
 
         tree.Insert(_keyBalance, _arrayAll0Last2);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "6D9E4F2D418DE2822CE9C2F4193C0E155E4CAC6CF4170E44098DC49D4B571B7B");
 
         tree.Insert(_keyNonce, _emptyArray);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "5C7AE53FE2AAE9852127140C1E2F5122BB3759A7975C0E7A1AEC7CAF7C711FDE");
 
         tree.Insert(_keyCodeCommitment, _valueEmptyCodeHashValue);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "3FD5FA25042DB0304792BFC007514DA5B777516FFBDAA5658AF36D355ABD9BD8");
 
         tree.Insert(_keyCodeSize, _emptyArray);
         tree.Commit();
-        AssertRootHash(tree.StateRoot,
+        AssertRootHash(tree.StateRoot.Bytes,
             "006BD679A8204502DCBF9A002F0B828AECF5A29A3A5CE454E651E3A96CC02FE2");
 
         tree.Get(_keyVersion).Should().BeEquivalentTo(_emptyArray);
@@ -556,7 +569,7 @@ public class VerkleTreeTests
         {
             tree.Insert(keys[i], values[i]);
             tree.Commit();
-            AssertRootHash(tree.StateRoot, expectedRootHash[i]);
+            AssertRootHash(tree.StateRoot.Bytes, expectedRootHash[i]);
         }
     }
 

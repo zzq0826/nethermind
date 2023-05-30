@@ -183,7 +183,7 @@ internal class VerklePersistentStorageProvider : PartialStorageProviderBase
     private byte[] LoadFromTree(StorageCell storageCell)
     {
         Db.Metrics.StorageTreeReads++;
-        byte[]? key = AccountHeader.GetTreeKeyForStorageSlot(storageCell.Address.Bytes, storageCell.Index);
+        Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(storageCell.Address.Bytes, storageCell.Index);
         byte[] value = (_verkleTree.Get(key) ?? Array.Empty<byte>()).ToArray();
         PushToRegistryOnly(storageCell, value);
         return value;

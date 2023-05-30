@@ -25,9 +25,9 @@ public struct VerkleWitness : IVerkleWitness
     }
 
     private readonly JournalSet<byte[]> _accessedSubtrees;
-    private readonly JournalSet<byte[]> _accessedLeaves;
+    private readonly JournalSet<Pedersen> _accessedLeaves;
     private readonly JournalSet<byte[]> _modifiedSubtrees;
-    private readonly JournalSet<byte[]> _modifiedLeaves;
+    private readonly JournalSet<Pedersen> _modifiedLeaves;
 
     // TODO: add these in GasPrices List
     private const long WitnessChunkRead = 200; // verkle-trie
@@ -42,8 +42,8 @@ public struct VerkleWitness : IVerkleWitness
     public VerkleWitness()
     {
         _accessedSubtrees = new JournalSet<byte[]>(Bytes.EqualityComparer);
-        _accessedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);
-        _modifiedLeaves = new JournalSet<byte[]>(Bytes.EqualityComparer);
+        _accessedLeaves = new JournalSet<Pedersen>();
+        _modifiedLeaves = new JournalSet<Pedersen>();
         _modifiedSubtrees = new JournalSet<byte[]>(Bytes.EqualityComparer);
     }
     /// <summary>
@@ -239,9 +239,8 @@ public struct VerkleWitness : IVerkleWitness
         return gasUsed;
     }
 
-    private long AccessKey(byte[] key, bool isWrite = false, bool leafExist = false)
+    private long AccessKey(Pedersen key, bool isWrite = false, bool leafExist = false)
     {
-        Debug.Assert(key.Length == 32);
         bool newSubTreeAccess = false;
         bool newLeafAccess = false;
 
@@ -251,12 +250,12 @@ public struct VerkleWitness : IVerkleWitness
         bool newLeafFill = false;
 
 
-        if (_accessedLeaves.Add((key)))
+        if (_accessedLeaves.Add(key))
         {
             newLeafAccess = true;
         }
 
-        if (_accessedSubtrees.Add(key[..31]))
+        if (_accessedSubtrees.Add(key.StemAsSpan.ToArray()))
         {
             newSubTreeAccess = true;
         }
@@ -273,7 +272,7 @@ public struct VerkleWitness : IVerkleWitness
             newLeafUpdate = true;
         }
 
-        if (_modifiedSubtrees.Add(key[..31]))
+        if (_modifiedSubtrees.Add(key.StemAsSpan.ToArray()))
         {
             newSubTreeUpdate = true;
         }
@@ -287,7 +286,7 @@ public struct VerkleWitness : IVerkleWitness
 
     public byte[][] GetAccessedKeys()
     {
-        return _accessedLeaves.ToArray();
+        return _accessedLeaves.ToArray().Select(x => x.Bytes).ToArray();
     }
 
     public int TakeSnapshot()

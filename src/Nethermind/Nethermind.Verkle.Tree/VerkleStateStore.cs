@@ -1,10 +1,10 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
@@ -22,13 +22,13 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     private long FullStatePersistedBlock { get; set; }
     private long FullStateCacheBlock { get; set; }
 
-    private byte[]? PersistedStateRoot { get;  set; }
+    private Pedersen? PersistedStateRoot { get;  set; }
 
     private StackQueue<(long, VerkleMemoryDb)> BlockCache { get; set; }
 
-    public byte[] StateRoot { get; private set; }
+    public Pedersen StateRoot { get; private set; }
 
-    public byte[] RootHash
+    public Pedersen RootHash
     {
         get => GetStateRoot();
         set => MoveToStateRoot(value);
@@ -99,7 +99,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
     }
 
-    public byte[]? GetLeaf(byte[] key)
+    public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
 #if DEBUG
         if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
@@ -115,7 +115,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return Storage.GetLeaf(key, out value) ? value : null;
     }
 
-    public InternalNode? GetInternalNode(byte[] key)
+    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
         if (Batch.GetInternalNode(key, out InternalNode? value)) return value;
 
@@ -127,7 +127,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return Storage.GetInternalNode(key, out value) ? value : null;
     }
 
-    public void SetLeaf(byte[] leafKey, byte[] leafValue)
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
     {
 #if DEBUG
         if (leafKey.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(leafKey));
@@ -136,7 +136,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         Batch.SetLeaf(leafKey, leafValue);
     }
 
-    public void SetInternalNode(byte[] internalNodeKey, InternalNode internalNodeValue)
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
     {
         Batch.SetInternalNode(internalNodeKey, internalNodeValue);
     }
@@ -162,7 +162,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
         if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, Batch), out (long, VerkleMemoryDb) element))
         {
-            byte[] root = GetStateRoot(element.Item2) ?? (Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException());
+            Pedersen root = GetStateRoot(element.Item2) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
             PersistedStateRoot = root;
             VerkleMemoryDb reverseDiff = PersistBlockChanges(element.Item2, Storage);
 
@@ -258,24 +258,26 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return false;
     }
 
-    public byte[] GetStateRoot()
+    public Pedersen GetStateRoot()
     {
-        return GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new InvalidOperationException();
+        byte[] stateRoot = GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ??
+                           throw new InvalidOperationException();
+        return new Pedersen(stateRoot);
     }
 
-    private static byte[]? GetStateRoot(IVerkleDb db)
+    private static Pedersen? GetStateRoot(IVerkleDb db)
     {
-        return db.GetInternalNode(Array.Empty<byte>(), out InternalNode? node) ? node!.InternalCommitment.Point.ToBytes().ToArray() : null;
+        return db.GetInternalNode(Array.Empty<byte>(), out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
     }
 
-    public bool MoveToStateRoot(byte[] stateRoot)
+    public bool MoveToStateRoot(Pedersen stateRoot)
     {
-        byte[] currentRoot = GetStateRoot();
+        Pedersen currentRoot = GetStateRoot();
 
         // if the target root node is same as current - return true
-        if (currentRoot.SequenceEqual(stateRoot)) return true;
+        if (currentRoot.Equals(stateRoot)) return true;
         // TODO: this is actually not possible - not sure if return true is correct here
-        if (Keccak.EmptyTreeHash.Equals(stateRoot)) return true;
+        if (stateRoot.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes))) return true;
 
         long fromBlock = _stateRootToBlocks[currentRoot];
         if(fromBlock == -1) return false;
@@ -347,19 +349,19 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             _stateRootToBlock = stateRootToBlock;
         }
 
-        public long this[byte[] key]
+        public long this[Pedersen key]
         {
             get
             {
-                if (key.IsZero()) return -1;
-                byte[]? encodedBlock = _stateRootToBlock[key];
+                if (Pedersen.Zero.Equals(key)) return -1;
+                byte[]? encodedBlock = _stateRootToBlock[key.Bytes];
                 return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
             }
             set
             {
                 Span<byte> encodedBlock = stackalloc byte[8];
                 BinaryPrimitives.WriteInt64LittleEndian(encodedBlock, value);
-                _stateRootToBlock.Set(key, encodedBlock.ToArray());
+                _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
             }
         }
     }
