@@ -587,6 +587,7 @@ namespace Nethermind.Evm
             catch (OverflowException)
             {
                 _logger.Trace($"Precompile Exection failed : Address {precompile.Address} with arguments : {callData.ToArray().ToHexString()}");
+                throw;
             }
             catch (Exception exception)
             {
