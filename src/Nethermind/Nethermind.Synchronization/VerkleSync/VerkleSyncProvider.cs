@@ -17,6 +17,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.Utils;
 using ILogger = Nethermind.Logging.ILogger;
 
 namespace Nethermind.Synchronization.VerkleSync;
@@ -67,11 +68,11 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         return result;
     }
 
-    public AddRangeResult AddSubTreeRange(long blockNumber, byte[] expectedRootHash, byte[] startingStem,
+    public AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, byte[] startingStem,
         PathWithSubTree[] subTrees, byte[]? proofs = null, byte[]? limitStem = null)
     {
         limitStem ??= Keccak.MaxValue.Bytes[..31];
-        Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash) ?? throw new Exception("root point invalid");
+        Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes) ?? throw new Exception("root point invalid");
         IVerkleStore store = _trieStorePool.Get();
         try
         {

@@ -14,7 +14,7 @@ public class GetSubTreeRangeMessageSerializer: VerkleMessageSerializerBase<GetSu
         NettyRlpStream rlpStream = GetRlpStreamAndStartSequence(byteBuffer, message);
 
         rlpStream.Encode(message.RequestId);
-        rlpStream.Encode(message.SubTreeRange.RootHash);
+        rlpStream.Encode(message.SubTreeRange.RootHash.Bytes);
         rlpStream.Encode(message.SubTreeRange.StartingStem);
 
         rlpStream.Encode(message.SubTreeRange.LimitStem ?? Keccak.MaxValue.Bytes);
@@ -36,7 +36,7 @@ public class GetSubTreeRangeMessageSerializer: VerkleMessageSerializerBase<GetSu
     public override int GetLength(GetSubTreeRangeMessage message, out int contentLength)
     {
         contentLength = Rlp.LengthOf(message.RequestId);
-        contentLength += Rlp.LengthOf(message.SubTreeRange.RootHash);
+        contentLength += Rlp.LengthOf(message.SubTreeRange.RootHash.Bytes);
         contentLength += Rlp.LengthOf(message.SubTreeRange.StartingStem);
         contentLength += Rlp.LengthOf(message.SubTreeRange.LimitStem);
         contentLength += Rlp.LengthOf(message.ResponseBytes);

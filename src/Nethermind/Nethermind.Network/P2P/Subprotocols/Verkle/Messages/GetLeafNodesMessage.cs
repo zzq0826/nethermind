@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Verkle.Tree.Utils;
+
 namespace Nethermind.Network.P2P.Subprotocols.Verkle.Messages;
 
 public class GetLeafNodesMessage: VerkleMessageBase
@@ -10,7 +12,7 @@ public class GetLeafNodesMessage: VerkleMessageBase
     /// <summary>
     /// Root hash of the verkle trie to serve
     /// </summary>
-    public byte[] RootHash { get; set; }
+    public Pedersen RootHash { get; set; }
 
     /// <summary>
     /// Leaf node paths to retrieve, ordered sequentially

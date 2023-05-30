@@ -18,7 +18,7 @@ public class GetLeafNodesMessageSerializer: IZeroMessageSerializer<GetLeafNodesM
         stream.StartSequence(contentLength);
 
         stream.Encode(message.RequestId);
-        stream.Encode(message.RootHash);
+        stream.Encode(message.RootHash.Bytes);
 
         if (message.Paths is null || message.Paths.Length == 0)
         {
@@ -54,7 +54,7 @@ public class GetLeafNodesMessageSerializer: IZeroMessageSerializer<GetLeafNodesM
     private (int contentLength, int allPathsLength) CalculateLengths(GetLeafNodesMessage message)
     {
         int contentLength = Rlp.LengthOf(message.RequestId);
-        contentLength += Rlp.LengthOf(message.RootHash);
+        contentLength += Rlp.LengthOf(message.RootHash.Bytes);
 
         int allPathsLength = 0;
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
@@ -11,7 +12,7 @@ public interface IVerkleSyncProvider
     bool CanSync();
 
     AddRangeResult AddSubTreeRange(SubTreeRange request, SubTreesAndProofs response);
-    AddRangeResult AddSubTreeRange(long blockNumber, byte[] expectedRootHash, byte[] startingStem, PathWithSubTree[] subTrees, byte[] proofs = null, byte[] limitStem = null!);
+    AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, byte[] startingStem, PathWithSubTree[] subTrees, byte[] proofs = null, byte[] limitStem = null!);
 
     void RefreshLeafs(LeafToRefreshRequest request, byte[][] response);
 
