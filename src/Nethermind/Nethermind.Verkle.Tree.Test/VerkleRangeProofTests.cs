@@ -5,6 +5,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
@@ -46,16 +47,18 @@ public class VerkleRangeProofTests
 
         VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
 
-        Dictionary<byte[], (byte, byte[])[]> subTrees = new();
-        List<(byte, byte[])> subTree = new();
-        for (byte i = 0; i < 5; i++) subTree.Add((i, values[0]));
-        subTrees[stems[0]] = subTree.ToArray();
-        subTrees[stems[1]] = subTree.ToArray();
-        subTrees[stems[2]] = subTree.ToArray();
-        subTrees[stems[3]] = subTree.ToArray();
+        List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
+        List<LeafInSubTree> leafs = new List<LeafInSubTree>();
+
+        for (byte i = 0; i < 5; i++) leafs.Add((i, values[0]));
+        subTrees.Add(new PathWithSubTree(stems[0], leafs.ToArray()));
+        subTrees.Add(new PathWithSubTree(stems[1], leafs.ToArray()));
+        subTrees.Add(new PathWithSubTree(stems[2], leafs.ToArray()));
+        subTrees.Add(new PathWithSubTree(stems[3], leafs.ToArray()));
+
 
         bool isTrue =
-            VerkleTree.CreateStatelessTreeFromRange(newTree._verkleStateStore, proof, root, stems[0], stems[^1], subTrees);
+            VerkleTree.CreateStatelessTreeFromRange(newTree._verkleStateStore, proof, root, stems[0], stems[^1], subTrees.ToArray());
         Assert.That(isTrue, Is.True);
 
         VerkleTreeDumper oldTreeDumper = new();

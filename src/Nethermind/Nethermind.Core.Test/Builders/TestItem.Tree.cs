@@ -95,6 +95,16 @@ namespace Nethermind.Core.Test.Builders
             public static byte[] stem4 = new Keccak("0000000000000000000000000000000000000000000000000000000001123456").Bytes[1..];
             public static byte[] stem5 = new Keccak("0000000000000000000000000000000000000000000000000000000001123457").Bytes[1..];
 
+            public static PathWithSubTree[] SubTreesWithPaths = new PathWithSubTree[]
+            {
+                new PathWithSubTree(stem0, _account0.ToVerkleDict()),
+                new PathWithSubTree(stem1, _account1.ToVerkleDict()),
+                new PathWithSubTree(stem2, _account2.ToVerkleDict()),
+                new PathWithSubTree(stem3, _account3.ToVerkleDict()),
+                new PathWithSubTree(stem4, _account4.ToVerkleDict()),
+                new PathWithSubTree(stem5, _account5.ToVerkleDict()),
+            };
+
             public static void FillStateTreeWithTestAccounts(VerkleStateTree stateTree)
             {
                 stateTree.InsertStemBatch(stem0, _account0.ToVerkleDict());
@@ -105,44 +115,6 @@ namespace Nethermind.Core.Test.Builders
                 stateTree.InsertStemBatch(stem5, _account5.ToVerkleDict());
                 stateTree.Commit();
                 stateTree.CommitTree(0);
-            }
-
-            public static Dictionary<byte[], (byte, byte[])[]> GetSubTreeDict1()
-            {
-                Dictionary<byte[], (byte, byte[])[]> subTreesDict = new();
-                subTreesDict[stem0] = _account0.ToVerkleDict().ToArray();
-                subTreesDict[stem1] = _account1.ToVerkleDict().ToArray();
-                return subTreesDict;
-            }
-
-            public static Dictionary<byte[], (byte, byte[])[]> GetSubTreeDict2()
-            {
-                Dictionary<byte[], (byte, byte[])[]> subTreesDict = new();
-                subTreesDict[stem2] = _account2.ToVerkleDict().ToArray();
-                subTreesDict[stem3] = _account3.ToVerkleDict().ToArray();
-                return subTreesDict;
-            }
-
-            public static Dictionary<byte[], (byte, byte[])[]> GetSubTreeDict3()
-            {
-                Dictionary<byte[], (byte, byte[])[]> subTreesDict = new();
-                subTreesDict[stem4] = _account4.ToVerkleDict().ToArray();
-                subTreesDict[stem5] = _account5.ToVerkleDict().ToArray();
-                return subTreesDict;
-            }
-
-            public static Dictionary<byte[], (byte, byte[])[]> GetSubTreeDict()
-            {
-                Dictionary<byte[], (byte, byte[])[]> subTreesDict = new()
-                    {
-                        [stem0] = _account0.ToVerkleDict().ToArray(),
-                        [stem1] = _account1.ToVerkleDict().ToArray(),
-                        [stem2] = _account2.ToVerkleDict().ToArray(),
-                        [stem3] = _account3.ToVerkleDict().ToArray(),
-                        [stem4] = _account4.ToVerkleDict().ToArray(),
-                        [stem5] = _account5.ToVerkleDict().ToArray()
-                    };
-                return subTreesDict;
             }
 
             public static (StateTree stateTree, StorageTree storageTree) GetTrees(ITrieStore? store)

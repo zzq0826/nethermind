@@ -9,6 +9,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using Committer = Nethermind.Verkle.Tree.Utils.Committer;
 using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
@@ -110,6 +111,35 @@ public partial class VerkleTree: IVerkleTree
         {
             key[31] = index;
             leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), value), key[31]);
+        }
+
+        _leafUpdateCache[stem.ToArray()] = leafUpdateDelta;
+    }
+
+    public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        _isDirty = true;
+#if DEBUG
+        if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
+        Span<byte> keyD = new byte[32];
+        IEnumerable<(byte, byte[])> indexValueMap = leafIndexValueMap as (byte, byte[])[] ?? leafIndexValueMap.ToArray();
+        foreach ((byte, byte[]) keyVal in indexValueMap)
+        {
+            stem.CopyTo(keyD);
+            keyD[31] = keyVal.Item1;
+            Console.WriteLine("KA: " + EnumerableExtensions.ToString(keyD.ToArray()));
+            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Item2));
+        }
+#endif
+        bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
+        if(!present) leafUpdateDelta = new LeafUpdateDelta();
+
+        Span<byte> key = new byte[32];
+        stem.CopyTo(key);
+        foreach (LeafInSubTree leaf in leafIndexValueMap)
+        {
+            key[31] = leaf.SuffixByte;
+            leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), leaf.Leaf), key[31]);
         }
 
         _leafUpdateCache[stem.ToArray()] = leafUpdateDelta;

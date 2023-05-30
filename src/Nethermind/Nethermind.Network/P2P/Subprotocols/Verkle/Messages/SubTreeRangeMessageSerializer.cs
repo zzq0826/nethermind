@@ -32,15 +32,22 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
             {
                 PathWithSubTree pwa = message.PathsWithSubTrees[i];
 
-                int subTreeLength = pwa.SubTree.Sum(index => Rlp.LengthOf(index));
+                int subTreeLength = 0;
+                foreach (LeafInSubTree t in pwa.SubTree)
+                {
+                    subTreeLength += Rlp.LengthOf(t.SuffixByte);
+                    subTreeLength += Rlp.LengthOf(t.Leaf);
+                }
+
                 int pwaLength = Rlp.LengthOf(pwa.Path) + Rlp.LengthOfSequence(subTreeLength);
 
                 stream.StartSequence(pwaLength);
                 stream.Encode(pwa.Path);
                 stream.StartSequence(subTreeLength);
-                foreach (byte[]? index in pwa.SubTree)
+                foreach (LeafInSubTree leaf in pwa.SubTree)
                 {
-                    stream.Encode(index);
+                    stream.Encode(leaf.SuffixByte);
+                    stream.Encode(leaf.Leaf);
                 }
             }
         }
@@ -77,9 +84,16 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
     {
         stream.ReadSequenceLength();
         byte[] path = stream.DecodeByteArray();
-        byte[][] subTrees = stream.DecodeArray(s => s.DecodeByteArray());;
+        LeafInSubTree[]? subTrees = stream.DecodeArray(DecodeLeafSubTree);;
         PathWithSubTree data = new(path, subTrees);
         return data;
+    }
+
+    private LeafInSubTree DecodeLeafSubTree(RlpStream stream)
+    {
+        byte suffix = stream.ReadByte();
+        byte[]? leaf = stream.DecodeByteArray();
+        return new LeafInSubTree(suffix, leaf);
     }
 
     private (int contentLength, int pwasLength, int proofsLength) GetLength(SubTreeRangeMessage message)
@@ -97,7 +111,12 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
             {
                 PathWithSubTree pwa = message.PathsWithSubTrees[i];
                 int itemLength = Rlp.LengthOf(pwa.Path);
-                int subTreeLength = pwa.SubTree.Sum(index => Rlp.LengthOf(index));
+                int subTreeLength = 0;
+                for (int j = 0; j < pwa.SubTree.Length; j++)
+                {
+                    subTreeLength += Rlp.LengthOf(pwa.SubTree[i].SuffixByte);
+                    subTreeLength += Rlp.LengthOf(pwa.SubTree[i].Leaf);
+                }
                 itemLength += Rlp.LengthOfSequence(subTreeLength);
 
                 pwasLength += Rlp.LengthOfSequence(itemLength);

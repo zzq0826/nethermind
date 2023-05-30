@@ -8,6 +8,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
@@ -20,20 +21,20 @@ public partial class VerkleTree
         _verkleStateStore.SetInternalNode(path, node);
     }
 
-    private void InsertSubTreesForSync(Dictionary<byte[], (byte, byte[])[]> subTrees)
+    private void InsertSubTreesForSync(PathWithSubTree[] subTrees)
     {
         Span<byte> key = new byte[32];
-        foreach (KeyValuePair<byte[], (byte, byte[])[]> subTree in subTrees)
+        foreach (PathWithSubTree subTree in subTrees)
         {
-            subTree.Key.CopyTo(key);
+            subTree.Path.CopyTo(key);
             LeafUpdateDelta leafUpdateDelta = new();
-            foreach ((byte, byte[]) leafs in subTree.Value)
+            foreach (LeafInSubTree leafs in subTree.SubTree)
             {
-                key[31] = leafs.Item1;
-                leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Item2, leafs.Item1), leafs.Item1);
-                _verkleStateStore.SetLeaf(key.ToArray(), leafs.Item2);
+                key[31] = leafs.SuffixByte;
+                leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Leaf, leafs.SuffixByte), leafs.SuffixByte);
+                _verkleStateStore.SetLeaf(key.ToArray(), leafs.Leaf);
             }
-            _leafUpdateCache[subTree.Key] = leafUpdateDelta;
+            _leafUpdateCache[subTree.Path] = leafUpdateDelta;
         }
     }
 
@@ -145,7 +146,7 @@ public partial class VerkleTree
         }
     }
 
-    public static bool CreateStatelessTreeFromRange(IVerkleStore store, VerkleProof proof, Banderwagon rootPoint, byte[] startStem, byte[] endStem, Dictionary<byte[], (byte, byte[])[]> subTrees)
+    public static bool CreateStatelessTreeFromRange(IVerkleStore store, VerkleProof proof, Banderwagon rootPoint, byte[] startStem, byte[] endStem, PathWithSubTree[] subTrees)
     {
         const int numberOfStems = 2;
         List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { rootPoint };
@@ -262,10 +263,7 @@ public partial class VerkleTree
 
         VerkleTree tree = new(store);
 
-        byte[][] stemsWithoutStartAndEndStems =
-            subTrees.Keys.Where(x => !x.SequenceEqual(startStem) && !x.SequenceEqual(endStem)).ToArray();
-
-        HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, stemsWithoutStartAndEndStems);
+        HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees, startStem, endStem);
         tree.InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
@@ -301,7 +299,7 @@ public partial class VerkleTree
         }
 
         byte[][] allStemsWithoutStartAndEndStems =
-            subTrees.Keys.Where(x => !x.SequenceEqual(startStem) && !x.SequenceEqual(endStem)).ToArray();
+            subTrees.Where(x => !x.Path.SequenceEqual(startStem) && !x.Path.SequenceEqual(endStem)).Select(x => x.Path).ToArray();
 
         int stemIndex = 0;
         Dictionary<byte[], List<byte[]>> stemBatch = new(Bytes.EqualityComparer);
@@ -328,17 +326,20 @@ public partial class VerkleTree
     }
 
     private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,
-        ISet<(List<byte>, byte)> allPathsAndZs, IEnumerable<byte[]> stems)
+        ISet<(List<byte>, byte)> allPathsAndZs, PathWithSubTree[] stems, ReadOnlySpan<byte> startStem, ReadOnlySpan<byte> endStem)
     {
+        ISpanEqualityComparer<byte> comparer = Bytes.SpanEqualityComparer;
         HashSet<byte[]> subTreesToCreate = new(Bytes.EqualityComparer);
-        foreach (byte[] stem in stems)
+        foreach (PathWithSubTree subTree in stems)
         {
+            if(comparer.Equals(subTree.Path, startStem)) continue;
+            if(comparer.Equals(subTree.Path, endStem)) continue;
             for (int i = 0; i < 32; i++)
             {
-                List<byte> prefix = new(stem[..i]);
+                List<byte> prefix = new(subTree.Path[..i]);
                 if (allPaths.Contains(prefix))
                 {
-                    allPathsAndZs.Add((prefix, stem[i]));
+                    allPathsAndZs.Add((prefix, subTree.Path[i]));
                 }
                 else
                 {

@@ -137,20 +137,5 @@ namespace Nethermind.Core
                 CodeSize = new UInt256((ulong)(code?.Length ?? 0))
             };
         }
-
-        public IEnumerable<(byte, byte[])> ToVerkleDict()
-        {
-            List<(byte, byte[])> batch = new()
-                {
-                    (0, Version.ToLittleEndian()),
-                    (1, Balance.ToLittleEndian()),
-                    (2, Nonce.ToLittleEndian()),
-                    (3,  CodeHash.Bytes)
-                };
-
-            if (!CodeHash.Bytes.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
-                batch.Add((4, CodeSize.ToLittleEndian()));
-            return batch;
-        }
     }
 }

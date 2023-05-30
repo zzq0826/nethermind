@@ -76,18 +76,10 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         IVerkleStore store = _trieStorePool.Get();
         try
         {
-            Dictionary<byte[], (byte, byte[])[]> subTreesDict = new(Bytes.EqualityComparer);
-            List<(byte, byte[])> tree = new List<(byte, byte[])>();
-            foreach (PathWithSubTree subTree in subTrees)
-            {
-                tree.AddRange(subTree.SubTree.Select((t, i) => ((byte)i, t)));
-                subTreesDict[subTree.Path] = tree.ToArray();
-                tree.Clear();
-            }
             VerkleProof vProof = VerkleProof.Decode(proofs!);
             bool correct =
                 VerkleTree.CreateStatelessTreeFromRange(store, vProof, rootPoint, startingStem, limitStem,
-                    subTreesDict);
+                    subTrees);
             if (!correct) return AddRangeResult.DifferentRootHash;
         }
         catch (Exception e)
@@ -100,12 +92,12 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
 
     public AddRangeResult AddSubTreeRange(long blockNumber, Banderwagon rootPoint, byte[] startingStem,
-        Dictionary<byte[], (byte, byte[])[]> subTreesDict, VerkleProof proof, byte[] limitStem)
+        PathWithSubTree[] subTrees, VerkleProof proof, byte[] limitStem)
     {
         IVerkleStore store = _trieStorePool.Get();
         bool correct =
             VerkleTree.CreateStatelessTreeFromRange(store, proof, rootPoint, startingStem, limitStem,
-                subTreesDict);
+                subTrees);
         if (!correct) return AddRangeResult.DifferentRootHash;
         return AddRangeResult.OK;
     }

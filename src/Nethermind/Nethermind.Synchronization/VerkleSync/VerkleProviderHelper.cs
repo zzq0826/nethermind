@@ -26,12 +26,7 @@ public class VerkleProviderHelper
 
         foreach (PathWithSubTree? subTree in subTrees)
         {
-            List<(byte, byte[])> batch = new();
-            for (byte i = 0; i < subTree.SubTree.Length; i++)
-            {
-                batch.Add((i, subTree.SubTree[i]));
-            }
-            tree.InsertStemBatch(subTree.Path, batch.AsEnumerable());
+            tree.InsertStemBatch(subTree.Path, subTree.SubTree);
             tree.Commit();
         }
 
