@@ -39,11 +39,6 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     // We try to avoid fetching from this, and we only store at the end of a batch insert
     private VerkleKeyValueDb Storage { get; }
 
-    // This stores the key-value pairs that we need to insert into the storage. This is generally
-    // used to batch insert changes for each block. This is also used to generate the forwardDiff.
-    // This is flushed after every batch insert and cleared.
-    private VerkleMemoryDb Batch { get; set; } = new VerkleMemoryDb();
-
     private VerkleHistoryStore History { get; }
 
     private readonly StateRootToBlockMap _stateRootToBlocks;
@@ -86,7 +81,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public void Reset()
     {
-        throw new NotImplementedException();
+        BlockCache.Clear();
     }
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
@@ -95,7 +90,6 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         InternalNode? node = GetInternalNode(Array.Empty<byte>());
         if (node is not null) return;
-        Batch.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
         Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
     }
 
@@ -104,27 +98,23 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 #if DEBUG
         if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
 #endif
-        if (Batch.GetLeaf(key, out byte[]? value)) return value;
-
         using StackQueue<(long, VerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
         while (diffs.MoveNext())
         {
             if (diffs.Current.Item2.LeafTable.TryGetValue(key, out byte[]? node)) return node;
         }
 
-        return Storage.GetLeaf(key, out value) ? value : null;
+        return Storage.GetLeaf(key, out byte[]? value) ? value : null;
     }
 
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
-        if (Batch.GetInternalNode(key, out InternalNode? value)) return value;
-
         using StackQueue<(long, VerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
         while (diffs.MoveNext())
         {
             if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node;
         }
-        return Storage.GetInternalNode(key, out value) ? value : null;
+        return Storage.GetInternalNode(key, out InternalNode? value) ? value : null;
     }
 
     public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
@@ -133,26 +123,25 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         if (leafKey.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(leafKey));
         if (leafValue.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(leafValue));
 #endif
-        Batch.SetLeaf(leafKey, leafValue);
+        Storage.SetLeaf(leafKey, leafValue);
     }
 
     public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
     {
-        Batch.SetInternalNode(internalNodeKey, internalNodeValue);
+        Storage.SetInternalNode(internalNodeKey, internalNodeValue);
     }
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
     // if called multiple times, the full state would be fine - but it would corrupt the diffs and historical state will be lost
     // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber) is called multiple times for the same block number
-    public void Flush(long blockNumber)
+    public void Flush(long blockNumber, VerkleMemoryDb batch)
     {
         if (blockNumber == 0)
         {
             PersistedStateRoot = GetStateRoot();
             FullStateCacheBlock = FullStatePersistedBlock = 0;
-            PersistBlockChanges(Batch, Storage);
-            Batch = new VerkleMemoryDb();
+            PersistBlockChanges(batch, Storage);
             StateRoot = GetStateRoot();
             _stateRootToBlocks[StateRoot] = blockNumber;
             return;
@@ -160,7 +149,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         if (blockNumber <= FullStateCacheBlock)
             throw new InvalidOperationException("Cannot flush for same block number multiple times");
 
-        if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, Batch), out (long, VerkleMemoryDb) element))
+        if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, batch), out (long, VerkleMemoryDb) element))
         {
             Pedersen root = GetStateRoot(element.Item2) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
             PersistedStateRoot = root;
@@ -172,7 +161,6 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             Storage.InternalNodeDb.Flush();
         }
 
-        Batch = new VerkleMemoryDb();
         FullStateCacheBlock = blockNumber;
         StateRoot = GetStateRoot();
         _stateRootToBlocks[StateRoot] = blockNumber;

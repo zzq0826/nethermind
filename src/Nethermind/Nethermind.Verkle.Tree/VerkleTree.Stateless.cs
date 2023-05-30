@@ -18,7 +18,7 @@ public partial class VerkleTree
     private void InsertBranchNodeForSync(byte[] path, Commitment commitment)
     {
         InternalNode node = VerkleNodes.CreateStatelessBranchNode(commitment);
-        _verkleStateStore.SetInternalNode(path, node);
+        SetInternalNode(path, node);
     }
 
     private void InsertSubTreesForSync(PathWithSubTree[] subTrees)
@@ -32,7 +32,7 @@ public partial class VerkleTree
             {
                 key[31] = leafs.SuffixByte;
                 leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Leaf, leafs.SuffixByte), leafs.SuffixByte);
-                _verkleStateStore.SetLeaf(key.ToArray(), leafs.Leaf);
+                Set(key.ToArray(), leafs.Leaf);
             }
             _leafUpdateCache[subTree.Path] = leafUpdateDelta;
         }
@@ -43,14 +43,14 @@ public partial class VerkleTree
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem);
         stemNode.UpdateCommitment(_leafUpdateCache[stem]);
         if (stemNode.InternalCommitment.Point != expectedCommitment.Point) return false;
-        _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+        SetInternalNode(pathOfStem, stemNode);
         return true;
     }
 
     private void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
     {
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem.ToArray(), stemCommitment);
-        _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+        SetInternalNode(pathOfStem, stemNode);
     }
 
     private void InsertStemBatchForSync(Dictionary<byte[], List<byte[]>> stemBatch,
@@ -65,7 +65,7 @@ public partial class VerkleTree
                 TraverseBranch(context);
             }
 
-            commByPath[new List<byte>(prefixWithStem.Key)] = _verkleStateStore.GetInternalNode(prefixWithStem.Key)!
+            commByPath[new List<byte>(prefixWithStem.Key)] = GetInternalNode(prefixWithStem.Key)!
                 .InternalCommitment.Point;
         }
     }
@@ -83,7 +83,7 @@ public partial class VerkleTree
     //     if (!skipRoot)
     //     {
     //         InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
-    //         _verkleStateStore.SetInternalNode(Array.Empty<byte>(), rootNode);
+    //         SetInternalNode(Array.Empty<byte>(), rootNode);
     //     }
     //
     //     AddStatelessInternalNodes(hint);
@@ -92,7 +92,7 @@ public partial class VerkleTree
     //     {
     //         byte[]? value = values[i];
     //         if(value is null) continue;
-    //         _verkleStateStore.SetLeaf(keys[i], value);
+    //         Set(keys[i], value);
     //     }
     // }
 
@@ -106,7 +106,7 @@ public partial class VerkleTree
             {
                 pathList.Add(stem[i]);
                 InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList]));
-                _verkleStateStore.SetInternalNode(pathList.ToArray(), node);
+                SetInternalNode(pathList.ToArray(), node);
             }
 
             pathList.Add(stem[depth-1]);
@@ -142,7 +142,7 @@ public partial class VerkleTree
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            _verkleStateStore.SetInternalNode(pathOfStem, stemNode);
+            SetInternalNode(pathOfStem, stemNode);
         }
     }
 

@@ -17,7 +17,7 @@ public interface IVerkleStore: IStoreWithReorgBoundary
     InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
     void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue);
     void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue);
-    void Flush(long blockNumber);
+    void Flush(long blockNumber, VerkleMemoryDb memDb);
     void ReverseState();
     void ApplyDiffLayer(BatchChangeSet changeSet);
 

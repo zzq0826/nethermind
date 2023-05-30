@@ -36,7 +36,7 @@ public partial class VerkleTree
             for (int i = 0; i < 32; i++)
             {
                 byte[] parentPath = key[..i];
-                InternalNode? node = _verkleStateStore.GetInternalNode(parentPath);
+                InternalNode? node = GetInternalNode(parentPath);
                 if (node != null)
                 {
                     switch (node.NodeType)
@@ -110,7 +110,7 @@ public partial class VerkleTree
             {
                 if(keyIndex == 1 && i <= prefixLength) continue;
                 byte[] parentPath = stem[..i];
-                InternalNode? node = _verkleStateStore.GetInternalNode(parentPath);
+                InternalNode? node = GetInternalNode(parentPath);
                 if (node != null)
                 {
                     switch (node.NodeType)
@@ -224,13 +224,13 @@ public partial class VerkleTree
      private void AddBranchCommitmentsOpening(byte[] branchPath, IEnumerable<byte> branchChild, List<VerkleProverQuery> queries)
     {
         if (!ProofBranchPolynomialCache.TryGetValue(branchPath, out FrE[] poly)) throw new EvaluateException();
-        InternalNode? node = _verkleStateStore.GetInternalNode(branchPath);
+        InternalNode? node = GetInternalNode(branchPath);
         queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!.InternalCommitment.Point, childIndex, poly[childIndex])));
     }
 
     private bool AddStemCommitmentsOpenings(byte[] stemPath, HashSet<byte> stemChild, List<VerkleProverQuery> queries, bool addLeafOpenings = true)
     {
-        InternalNode? suffix = _verkleStateStore.GetInternalNode(stemPath);
+        InternalNode? suffix = GetInternalNode(stemPath);
         stemPath = suffix.Stem;
         AddExtensionCommitmentOpenings(stemPath, addLeafOpenings? stemChild: new byte[]{}, suffix, queries);
         if (stemChild.Count == 0)
@@ -252,7 +252,7 @@ public partial class VerkleTree
             int valueLowerIndex = 2 * (valueIndex % 128);
             int valueUpperIndex = valueLowerIndex + 1;
 
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(_verkleStateStore.GetLeaf(stemPath.Append(valueIndex).ToArray()));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stemPath.Append(valueIndex).ToArray()));
 
             int offset = valueIndex < 128 ? 0 : 128;
 
@@ -330,7 +330,7 @@ public partial class VerkleTree
         {
             for (int i = 0; i < 256; i++)
             {
-                InternalNode? node = _verkleStateStore.GetInternalNode(path.Append((byte)i).ToArray());
+                InternalNode? node = GetInternalNode(path.Append((byte)i).ToArray());
                 commitments[commitmentIndex++] = node == null ? Banderwagon.Identity : node.InternalCommitment.Point;
             }
         }
@@ -350,7 +350,7 @@ public partial class VerkleTree
         Banderwagon[] commitments = new Banderwagon[256];
         for (int i = 0; i < 256; i++)
         {
-            InternalNode? node = _verkleStateStore.GetInternalNode(path.Append((byte)i).ToArray());
+            InternalNode? node = GetInternalNode(path.Append((byte)i).ToArray());
             commitments[i] = node == null ? Banderwagon.Identity : node.InternalCommitment.Point;
         }
         ProofBranchPolynomialCache[path] = Banderwagon.BatchMapToScalarField(commitments);
@@ -364,14 +364,14 @@ public partial class VerkleTree
         List<FrE> c2Hashes = new(256);
         for (int i = 0; i < 128; i++)
         {
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(_verkleStateStore.GetLeaf(stem.Append((byte)i).ToArray()));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stem.Append((byte)i).ToArray()));
             c1Hashes.Add(valueLow);
             c1Hashes.Add(valueHigh);
         }
 
         for (int i = 128; i < 256; i++)
         {
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(_verkleStateStore.GetLeaf(stem.Append((byte)i).ToArray()));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stem.Append((byte)i).ToArray()));
             c2Hashes.Add(valueLow);
             c2Hashes.Add(valueHigh);
         }

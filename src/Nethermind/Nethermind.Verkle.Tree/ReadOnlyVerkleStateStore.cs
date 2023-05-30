@@ -44,7 +44,7 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         _keyValueStore.SetInternalNode(InternalNodeKey, internalNodeValue);
     }
-    public void Flush(long blockNumber) { }
+    public void Flush(long blockNumber, VerkleMemoryDb batch) { }
 
     public void ReverseState() { }
     public void ApplyDiffLayer(BatchChangeSet changeSet)
