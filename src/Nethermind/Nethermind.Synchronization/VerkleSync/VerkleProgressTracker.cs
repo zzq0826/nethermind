@@ -9,19 +9,17 @@ using System.Text;
 using System.Threading;
 using Nethermind.Blockchain;
 using Nethermind.Core;
-using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
 public class VerkleProgressTracker
 {
-
     private const string NO_REQUEST = "NO REQUEST";
-    private readonly byte[] SYNC_PROGRESS_KEY = Encoding.ASCII.GetBytes("VerkleSyncProgressKey");
+    private readonly byte[] SYNC_PROGRESS_KEY = "VerkleSyncProgressKey"u8.ToArray();
 
     // This does not need to be a lot as it spawn other requests. In fact 8 is probably too much. It is severely
     // bottlenecked by _syncCommit lock in SnapProviderHelper, which in turns is limited by the IO.
@@ -37,7 +35,7 @@ public class VerkleProgressTracker
 
     // Partitions are indexed by its limit keccak/address as they are keep in the request struct and remain the same
     // throughout the sync. So its easy.
-    private Dictionary<byte[], SubTreeRangePartition> SubTreeRangePartitions { get; set; } = new();
+    private Dictionary<Stem, SubTreeRangePartition> SubTreeRangePartitions { get; set; } = new();
 
     // Using a queue here to evenly distribute request across partitions. Don't want a situation where one really slow
     // partition is taking up most of the time at the end of the sync.
@@ -55,7 +53,7 @@ public class VerkleProgressTracker
         _pivot = new Pivot(blockTree, logManager);
 
         if (subTreeRangePartitionCount < 1 || subTreeRangePartitionCount > 256)
-            throw new ArgumentException("Account range partition must be between 1 to 256.");
+            throw new ArgumentException("SubTree range partition must be between 1 to 256.");
 
         _subTreeRangePartitionCount = subTreeRangePartitionCount;
         SetupSubTreeRangePartition();
@@ -72,30 +70,22 @@ public class VerkleProgressTracker
         byte curStartingPath = 0;
         int partitionSize = (256 / _subTreeRangePartitionCount);
 
-        for (var i = 0; i < _subTreeRangePartitionCount; i++)
+        for (int i = 0; i < _subTreeRangePartitionCount; i++)
         {
             SubTreeRangePartition partition = new SubTreeRangePartition();
 
-            Keccak startingPath = new Keccak(Keccak.Zero.Bytes.ToArray());
-            startingPath.Bytes[0] = curStartingPath;
+            Stem startingPath = new(Stem.Zero.Bytes.ToArray()) { Bytes = { [0] = curStartingPath } };
 
             partition.NextSubTreePath = startingPath.Bytes;
             partition.SubTreePathStart = startingPath.Bytes;
 
             curStartingPath += (byte)partitionSize;
 
-            Keccak limitPath;
-
             // Special case for the last partition
-            if (i == _subTreeRangePartitionCount - 1)
-            {
-                limitPath = Keccak.MaxValue;
-            }
-            else
-            {
-                limitPath = new Keccak(Keccak.Zero.Bytes.ToArray());
-                limitPath.Bytes[0] = curStartingPath;
-            }
+            Stem limitPath =
+                i == _subTreeRangePartitionCount - 1
+                ? Stem.MaxValue
+                : new Stem(Stem.Zero.Bytes.ToArray()) { Bytes = { [0] = curStartingPath } };
 
             partition.SubTreePathLimit = limitPath.Bytes;
 
@@ -114,7 +104,7 @@ public class VerkleProgressTracker
             return false;
         }
 
-        if (_logger.IsInfo) _logger.Info($"Starting the VERKLE SYNC data sync from the {header.ToString(BlockHeader.Format.Short)} {header.StateRoot} root");
+        if (_logger.IsInfo) _logger.Info($"Starting the VERKLE_SYNC data sync from the {header.ToString(BlockHeader.Format.Short)} {header.StateRoot} root");
 
         return true;
     }
@@ -160,11 +150,11 @@ public class VerkleProgressTracker
 
             SubTreeRange range = new(
                 rootHash.Bytes,
-                partition.NextSubTreePath,
-                partition.SubTreePathLimit,
+                partition.NextSubTreePath.Bytes,
+                partition.SubTreePathLimit.Bytes,
                 blockNumber);
 
-            LogRequest("AccountRange");
+            LogRequest("SubTreeRange");
 
             request.SubTreeRangeRequest = range;
 
@@ -174,7 +164,7 @@ public class VerkleProgressTracker
         bool rangePhaseFinished = IsVerkleGetRangesFinished();
         if (rangePhaseFinished)
         {
-            _logger.Info($"VERKLE SYNC - State Ranges (Phase 1) finished.");
+            _logger.Info($"VERKLE_SYNC - State Ranges (Phase 1) finished.");
             FinishRangePhase();
         }
 
@@ -189,11 +179,11 @@ public class VerkleProgressTracker
     }
 
 
-    public void ReportLeafRefreshFinished(LeafToRefreshRequest accountsToRefreshRequest = null)
+    public void ReportLeafRefreshFinished(LeafToRefreshRequest leafToRefreshRequest = null)
     {
-        if (accountsToRefreshRequest is not null)
+        if (leafToRefreshRequest is not null)
         {
-            foreach (var path in accountsToRefreshRequest.Paths)
+            foreach (byte[]? path in leafToRefreshRequest.Paths)
             {
                 LeafsToRefresh.Enqueue(path);
             }
@@ -207,7 +197,7 @@ public class VerkleProgressTracker
         LeafsToRefresh.Enqueue(leaf);
     }
 
-    public void ReportSubTreeRangePartitionFinished(byte[] hashLimit)
+    public void ReportSubTreeRangePartitionFinished(Stem hashLimit)
     {
         SubTreeRangePartition partition = SubTreeRangePartitions[hashLimit];
 
@@ -218,13 +208,12 @@ public class VerkleProgressTracker
         Interlocked.Decrement(ref _activeSubTreeRequests);
     }
 
-    public void UpdateAccountRangePartitionProgress(byte[] hashLimit, byte[] nextPath, bool moreChildrenToRight)
+    public void UpdateSubTreePartitionProgress(Stem hashLimit, Stem nextPath, bool moreChildrenToRight)
     {
         SubTreeRangePartition partition = SubTreeRangePartitions[hashLimit];
 
         partition.NextSubTreePath = nextPath;
-
-        partition.MoreSubTreesToRight = moreChildrenToRight && Bytes.Comparer.Compare(nextPath, hashLimit) >= 1;
+        partition.MoreSubTreesToRight = moreChildrenToRight && nextPath < hashLimit;
     }
 
     public bool IsVerkleGetRangesFinished()
@@ -240,14 +229,14 @@ public class VerkleProgressTracker
         // Note, as before, the progress actually only store MaxValue or 0. So we can't actually resume
         // verkle sync on restart.
         byte[] progress = _db.Get(SYNC_PROGRESS_KEY);
-        if (progress is { Length: 32 })
+        if (progress is { Length: 31 })
         {
-            Keccak path = new Keccak(progress);
+            Stem path = new(progress);
 
-            if (path == Keccak.MaxValue)
+            if (path == Stem.MaxValue)
             {
-                _logger.Info($"VERKLE SYNC - State Ranges (Phase 1) is finished.");
-                foreach (KeyValuePair<byte[], SubTreeRangePartition> partition in SubTreeRangePartitions)
+                _logger.Info($"VERKLE_SYNC - State Ranges (Phase 1) is finished.");
+                foreach (KeyValuePair<Stem, SubTreeRangePartition> partition in SubTreeRangePartitions)
                 {
                     partition.Value.MoreSubTreesToRight = false;
                 }
@@ -255,14 +244,14 @@ public class VerkleProgressTracker
             }
             else
             {
-                _logger.Info($"VERKLE SYNC - State Ranges (Phase 1) progress loaded from DB:{path}");
+                _logger.Info($"VERKLE_SYNC - State Ranges (Phase 1) progress loaded from DB:{path}");
             }
         }
     }
 
     private void FinishRangePhase()
     {
-        _db.Set(SYNC_PROGRESS_KEY, Keccak.MaxValue.Bytes);
+        _db.Set(SYNC_PROGRESS_KEY, Stem.MaxValue.Bytes);
     }
 
     private void LogRequest(string reqType)
@@ -270,17 +259,17 @@ public class VerkleProgressTracker
         if (_reqCount % 100 == 0)
         {
             int totalPathProgress = 0;
-            foreach (KeyValuePair<byte[], SubTreeRangePartition> kv in SubTreeRangePartitions)
+            foreach (KeyValuePair<Stem, SubTreeRangePartition> kv in SubTreeRangePartitions)
             {
-                SubTreeRangePartition? partiton = kv.Value;
-                int nextAccount = partiton.NextSubTreePath[0] * 256 + partiton.NextSubTreePath[1];
-                int startAccount = partiton.SubTreePathStart[0] * 256 + partiton.SubTreePathStart[1];
+                SubTreeRangePartition? partition = kv.Value;
+                int nextAccount = partition.NextSubTreePath.Bytes[0] * 256 + partition.NextSubTreePath.Bytes[1];
+                int startAccount = partition.SubTreePathStart.Bytes[0] * 256 + partition.SubTreePathStart.Bytes[1];
                 totalPathProgress += nextAccount - startAccount;
             }
 
             double progress = 100 * totalPathProgress / (double)(256 * 256);
 
-            if (_logger.IsInfo) _logger.Info($"VERKLE SYNC - progress of State Ranges (Phase 1): {progress:f3}% [{new string('*', (int)progress / 10)}{new string(' ', 10 - (int)progress / 10)}]");
+            if (_logger.IsInfo) _logger.Info($"VERKLE_SYNC - progress of State Ranges (Phase 1): {progress:f3}% [{new string('*', (int)progress / 10)}{new string(' ', 10 - (int)progress / 10)}]");
         }
 
         if (_logger.IsTrace || _reqCount % 1000 == 0)
@@ -288,7 +277,7 @@ public class VerkleProgressTracker
             int moreAccountCount = SubTreeRangePartitions.Count(kv => kv.Value.MoreSubTreesToRight);
 
             _logger.Info(
-                $"VERKLE SYNC - ({reqType}, diff:{_pivot.Diff}) {moreAccountCount} - Requests Account:{_activeSubTreeRequests} | Refresh:{_activeLeafRefreshRequests} -  Refresh:{LeafsToRefresh.Count}");
+                $"VERKLE_SYNC - ({reqType}, diff:{_pivot.Diff}) {moreAccountCount} - Requests Account:{_activeSubTreeRequests} | Refresh:{_activeLeafRefreshRequests} -  Refresh:{LeafsToRefresh.Count}");
         }
     }
 
@@ -296,9 +285,9 @@ public class VerkleProgressTracker
     // A partition of the top level account range starting from `SubTreePathStart` to `SubTreePathLimit` (exclusive).
     private class SubTreeRangePartition
     {
-        public byte[] NextSubTreePath { get; set; } = Keccak.Zero.Bytes;
-        public byte[] SubTreePathStart { get; set; } = Keccak.Zero.Bytes; // Not really needed, but useful
-        public byte[] SubTreePathLimit { get; set; } = Keccak.MaxValue.Bytes;
+        public Stem NextSubTreePath { get; set; } = Stem.Zero;
+        public Stem SubTreePathStart { get; set; } = Stem.Zero; // Not really needed, but useful
+        public Stem SubTreePathLimit { get; set; } = Stem.MaxValue;
         public bool MoreSubTreesToRight { get; set; } = true;
     }
 }

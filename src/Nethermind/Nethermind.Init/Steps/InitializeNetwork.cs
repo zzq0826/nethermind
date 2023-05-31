@@ -39,6 +39,7 @@ using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Reporting;
 using Nethermind.Synchronization.SnapSync;
+using Nethermind.Synchronization.VerkleSync;
 
 namespace Nethermind.Init.Steps;
 
@@ -103,6 +104,9 @@ public class InitializeNetwork : IStep
         ProgressTracker progressTracker = new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager, _syncConfig.SnapSyncAccountRangePartitionCount);
         _api.SnapProvider = new SnapProvider(progressTracker, _api.DbProvider, _api.LogManager);
 
+        VerkleProgressTracker verkleProgressTracker =  new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager, _syncConfig.VerkleSyncAccountRangePartitionCount);
+        _api.VerkleProvider = new VerkleSyncProvider(verkleProgressTracker, _api.DbProvider, _api.LogManager);
+
         ISyncProgressResolver syncProgressResolver = _api.SpecProvider!.GenesisSpec.IsVerkleTreeEipEnabled switch
         {
             true => new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.ReadOnlyVerkleTrieStore!, progressTracker, _syncConfig, _api.LogManager),
@@ -155,6 +159,7 @@ public class InitializeNetwork : IStep
                 _api.SyncModeSelector,
                 _syncConfig,
                 _api.SnapProvider,
+                _api.VerkleProvider,
                 _api.BlockDownloaderFactory,
                 _api.Pivot,
                 syncReport,

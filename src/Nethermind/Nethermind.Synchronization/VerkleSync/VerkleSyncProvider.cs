@@ -11,8 +11,6 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Logging;
-using Nethermind.State;
-using Nethermind.Synchronization.SnapSync;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Proofs;
@@ -49,7 +47,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
         if (response.SubTrees.Length == 0 && response.Proofs.Length == 0)
         {
-            _logger.Trace($"VERKLE SYNC - GetSubTreeRange - requested expired RootHash:{request.RootHash}");
+            _logger.Trace($"VERKLE_SYNC - GetSubTreeRange - requested expired RootHash:{request.RootHash}");
 
             result = AddRangeResult.ExpiredRootHash;
         }
@@ -68,8 +66,8 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         return result;
     }
 
-    public AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, byte[] startingStem,
-        PathWithSubTree[] subTrees, byte[]? proofs = null, byte[]? limitStem = null)
+    public AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, Stem startingStem,
+        PathWithSubTree[] subTrees, byte[]? proofs = null, Stem? limitStem = null)
     {
         limitStem ??= Keccak.MaxValue.Bytes[..31];
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes) ?? throw new Exception("root point invalid");
@@ -80,14 +78,20 @@ public class VerkleSyncProvider: IVerkleSyncProvider
             bool correct =
                 VerkleTree.CreateStatelessTreeFromRange(store, vProof, rootPoint, startingStem, limitStem,
                     subTrees);
-            if (!correct) return AddRangeResult.DifferentRootHash;
+            if (!correct)
+            {
+                _logger.Trace(
+                    $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem}");
+                return AddRangeResult.DifferentRootHash;
+            }
+
+            _progressTracker.UpdateSubTreePartitionProgress(limitStem, subTrees[^1].Path, true);
+            return AddRangeResult.OK;
         }
-        catch (Exception e)
+        finally
         {
-            Console.WriteLine(e);
-            throw;
+            _trieStorePool.Return(store);
         }
-        return AddRangeResult.OK;
     }
 
 

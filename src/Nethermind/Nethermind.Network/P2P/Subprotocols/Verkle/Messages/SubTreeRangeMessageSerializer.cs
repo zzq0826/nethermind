@@ -39,10 +39,10 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
                     subTreeLength += Rlp.LengthOf(t.Leaf);
                 }
 
-                int pwaLength = Rlp.LengthOf(pwa.Path) + Rlp.LengthOfSequence(subTreeLength);
+                int pwaLength = Rlp.LengthOf(pwa.Path.Bytes) + Rlp.LengthOfSequence(subTreeLength);
 
                 stream.StartSequence(pwaLength);
-                stream.Encode(pwa.Path);
+                stream.Encode(pwa.Path.Bytes);
                 stream.StartSequence(subTreeLength);
                 foreach (LeafInSubTree leaf in pwa.SubTree)
                 {
@@ -110,7 +110,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
             for (int i = 0; i < message.PathsWithSubTrees.Length; i++)
             {
                 PathWithSubTree pwa = message.PathsWithSubTrees[i];
-                int itemLength = Rlp.LengthOf(pwa.Path);
+                int itemLength = Rlp.LengthOf(pwa.Path.Bytes);
                 int subTreeLength = 0;
                 for (int j = 0; j < pwa.SubTree.Length; j++)
                 {

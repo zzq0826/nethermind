@@ -4,6 +4,7 @@
 using DotNetty.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Network.P2P.Subprotocols.Verkle.Messages;
 
@@ -15,9 +16,9 @@ public class GetSubTreeRangeMessageSerializer: VerkleMessageSerializerBase<GetSu
 
         rlpStream.Encode(message.RequestId);
         rlpStream.Encode(message.SubTreeRange.RootHash.Bytes);
-        rlpStream.Encode(message.SubTreeRange.StartingStem);
+        rlpStream.Encode(message.SubTreeRange.StartingStem.Bytes);
 
-        rlpStream.Encode(message.SubTreeRange.LimitStem ?? Keccak.MaxValue.Bytes);
+        rlpStream.Encode(message.SubTreeRange.LimitStem?.Bytes ?? Stem.MaxValue.Bytes);
         rlpStream.Encode(message.ResponseBytes == 0 ? 1000_000 : message.ResponseBytes);
     }
 
@@ -37,8 +38,8 @@ public class GetSubTreeRangeMessageSerializer: VerkleMessageSerializerBase<GetSu
     {
         contentLength = Rlp.LengthOf(message.RequestId);
         contentLength += Rlp.LengthOf(message.SubTreeRange.RootHash.Bytes);
-        contentLength += Rlp.LengthOf(message.SubTreeRange.StartingStem);
-        contentLength += Rlp.LengthOf(message.SubTreeRange.LimitStem);
+        contentLength += Rlp.LengthOf(message.SubTreeRange.StartingStem.Bytes);
+        contentLength += Rlp.LengthOf(message.SubTreeRange.LimitStem?.Bytes);
         contentLength += Rlp.LengthOf(message.ResponseBytes);
 
         return Rlp.LengthOfSequence(contentLength);

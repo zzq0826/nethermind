@@ -243,7 +243,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     }
     public bool IsFullySynced(Keccak stateRoot)
     {
-        return false;
+        return stateRoot.Bytes.SequenceEqual(GetStateRoot().Bytes);
     }
 
     public Pedersen GetStateRoot()

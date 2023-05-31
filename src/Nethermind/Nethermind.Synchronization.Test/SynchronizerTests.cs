@@ -41,6 +41,7 @@ using Nethermind.Trie.Pruning;
 using NSubstitute;
 using NUnit.Framework;
 using Nethermind.Synchronization.SnapSync;
+using Nethermind.Synchronization.VerkleSync;
 
 namespace Nethermind.Synchronization.Test
 {
@@ -323,6 +324,9 @@ namespace Nethermind.Synchronization.Test
                 ProgressTracker progressTracker = new(BlockTree, dbProvider.StateDb, LimboLogs.Instance);
                 SnapProvider snapProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
 
+                VerkleProgressTracker verkleProgressTracker = new(BlockTree, dbProvider.StateDb, LimboLogs.Instance);
+                VerkleSyncProvider verkleProvider = new(verkleProgressTracker, dbProvider, LimboLogs.Instance);
+
                 TrieStore trieStore = new(stateDb, LimboLogs.Instance);
                 SyncProgressResolver syncProgressResolver = new(
                     BlockTree,
@@ -372,6 +376,7 @@ namespace Nethermind.Synchronization.Test
                         syncModeSelector,
                         syncConfig,
                         snapProvider,
+                        verkleProvider,
                         blockDownloaderFactory,
                         pivot,
                         poSSwitcher,
@@ -404,6 +409,7 @@ namespace Nethermind.Synchronization.Test
                         syncModeSelector,
                         syncConfig,
                         snapProvider,
+                        verkleProvider,
                         blockDownloaderFactory,
                         pivot,
                         syncReport,

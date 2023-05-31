@@ -1,17 +1,19 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Verkle.Tree.Utils;
+
 namespace Nethermind.Verkle.Tree.Sync;
 
 public class PathWithSubTree
 {
-    public PathWithSubTree(byte[] stem, LeafInSubTree[] subTree)
+    public PathWithSubTree(Stem stem, LeafInSubTree[] subTree)
     {
         Path = stem;
         SubTree = subTree;
     }
 
-    public byte[]  Path { get; set; }
+    public Stem  Path { get; set; }
     public LeafInSubTree[]  SubTree { get; set; }
 }
 

@@ -12,7 +12,7 @@ public interface IVerkleSyncProvider
     bool CanSync();
 
     AddRangeResult AddSubTreeRange(SubTreeRange request, SubTreesAndProofs response);
-    AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, byte[] startingStem, PathWithSubTree[] subTrees, byte[] proofs = null, byte[] limitStem = null!);
+    AddRangeResult AddSubTreeRange(long blockNumber, Pedersen expectedRootHash, Stem startingStem, PathWithSubTree[] subTrees, byte[] proofs = null, Stem limitStem = null!);
 
     void RefreshLeafs(LeafToRefreshRequest request, byte[][] response);
 

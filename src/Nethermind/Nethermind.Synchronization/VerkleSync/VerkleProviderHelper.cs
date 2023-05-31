@@ -22,11 +22,11 @@ public class VerkleProviderHelper
             byte[][] proofs = null
         )
     {
-        byte[] lastStem = subTrees[^1].Path;
+        byte[] lastStem = subTrees[^1].Path.Bytes;
 
         foreach (PathWithSubTree? subTree in subTrees)
         {
-            tree.InsertStemBatch(subTree.Path, subTree.SubTree);
+            tree.InsertStemBatch(subTree.Path.Bytes, subTree.SubTree);
             tree.Commit();
         }
 

@@ -43,6 +43,7 @@ using NUnit.Framework;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Config;
+using Nethermind.Synchronization.VerkleSync;
 
 namespace Nethermind.Synchronization.Test
 {
@@ -344,6 +345,8 @@ namespace Nethermind.Synchronization.Test
 
             ProgressTracker progressTracker = new(tree, dbProvider.StateDb, LimboLogs.Instance);
             SnapProvider snapProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
+            VerkleProgressTracker verkleProgressTracker = new VerkleProgressTracker(tree, dbProvider.StateDb, LimboLogs.Instance);
+            VerkleSyncProvider verkleProvider = new(verkleProgressTracker, dbProvider, LimboLogs.Instance);
 
             SyncProgressResolver resolver = new(
                 tree, receiptStorage, trieStore, progressTracker, syncConfig, logManager);
@@ -370,6 +373,7 @@ namespace Nethermind.Synchronization.Test
                 StaticSelector.Full,
                 syncConfig,
                 snapProvider,
+                verkleProvider,
                 blockDownloaderFactory,
                 pivot,
                 syncReport,

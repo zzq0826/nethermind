@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Sync;
 
 public class SubTreeRange
 {
-    public SubTreeRange(Pedersen stateRoot, byte[] startingStem, byte[]? limitStem = null, long? blockNumber = null)
+    public SubTreeRange(Pedersen stateRoot, Stem startingStem, Stem? limitStem = null, long? blockNumber = null)
     {
         RootHash = stateRoot;
         StartingStem = startingStem;
@@ -25,12 +26,12 @@ public class SubTreeRange
     /// <summary>
     /// Stem of the first sub-tree to retrieve
     /// </summary>
-    public byte[] StartingStem { get; }
+    public Stem StartingStem { get; }
 
     /// <summary>
     /// Stem after which to stop serving data
     /// </summary>
-    public byte[]? LimitStem { get; }
+    public Stem? LimitStem { get; }
 
     public override string ToString()
     {
