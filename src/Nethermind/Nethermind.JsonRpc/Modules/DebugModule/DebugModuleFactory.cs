@@ -95,7 +95,13 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 _receiptStorage,
                 _blockTree,
                 transactionProcessorAdapter);
-
+#if DEBUG
+            DebugStyleTracer dbgTracer = new(
+                chainProcessingEnv.ChainProcessor,
+                _receiptStorage,
+                _blockTree,
+                transactionProcessorAdapter);
+#endif
             DebugBridge debugBridge = new(
                 _configProvider,
                 _dbProvider,
@@ -104,7 +110,11 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
                 _receiptStorage,
                 _receiptsMigration,
                 _specProvider,
-                _syncModeSelector);
+                _syncModeSelector
+#if DEBUG
+                , dbgTracer
+#endif
+                );
 
             return new DebugRpcModule(_logManager, debugBridge, _jsonRpcConfig);
         }

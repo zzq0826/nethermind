@@ -26,7 +26,7 @@ namespace Nethermind.Evm.Tracing
             TxTraces = new ResettableList<TTrace>();
         }
 
-        private TTracer? CurrentTxTracer { get; set; }
+        protected TTracer? CurrentTxTracer { get; set; }
 
         protected abstract TTracer OnStart(Transaction? tx);
         protected abstract TTrace OnEnd(TTracer txTracer);

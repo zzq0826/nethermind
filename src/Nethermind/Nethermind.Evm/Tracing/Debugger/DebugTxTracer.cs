@@ -17,14 +17,14 @@ using Nethermind.State;
 using Nethermind.State.Tracing;
 
 namespace Nethermind.Evm.Tracing.DebugTrace;
-public class DebugTracer : ITxTracer, ITxTracerWrapper, IDisposable
+public class DebugTxTracer : ITxTracer, ITxTracerWrapper, IDisposable
 {
     public enum DebugPhase
     {
         Starting, Blocked, Running, Aborted
     }
 
-    public DebugTracer(ITxTracer tracer)
+    public DebugTxTracer(ITxTracer tracer)
     {
         InnerTracer = tracer;
     }

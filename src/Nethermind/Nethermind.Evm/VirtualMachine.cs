@@ -597,7 +597,7 @@ public class VirtualMachine : IVirtualMachine
         bool isTrace = _logger.IsTrace;
         bool traceOpcodes = _txTracer.IsTracingInstructions;
 #if DEBUG
-        DebugTracer? debugger = _txTracer.GetTracer<DebugTracer>();
+        DebugTxTracer? debugger = _txTracer.GetTracer<DebugTxTracer>();
 #endif
 
         ref readonly ExecutionEnvironment env = ref vmState.Env;

@@ -19,6 +19,12 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
         GethLikeTxTrace GetTransactionTrace(Keccak blockHash, int index, CancellationToken cancellationToken, GethTraceOptions? gethTraceOptions = null);
         GethLikeTxTrace GetTransactionTrace(Rlp blockRlp, Keccak transactionHash, CancellationToken cancellationToken, GethTraceOptions? gethTraceOptions = null);
         GethLikeTxTrace? GetTransactionTrace(Transaction transaction, BlockParameter blockParameter, CancellationToken cancellationToken, GethTraceOptions? gethTraceOptions = null);
+        GethLikeTxTrace  DebugTransactionTrace(Keccak transactionHash, CancellationToken cancellationToken);
+        GethLikeTxTrace  DebugTransactionTrace(long blockNumber, int index, CancellationToken cancellationToken);
+        GethLikeTxTrace  DebugTransactionTrace(Keccak blockHash, int index, CancellationToken cancellationToken);
+        GethLikeTxTrace  DebugTransactionTrace(Rlp blockRlp, Keccak transactionHash, CancellationToken cancellationToken);
+        GethLikeTxTrace? DebugTransactionTrace(Transaction transaction, BlockParameter blockParameter, CancellationToken cancellationToken);
+
         GethLikeTxTrace[] GetBlockTrace(BlockParameter blockParameter, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null);
         GethLikeTxTrace[] GetBlockTrace(Rlp blockRlp, CancellationToken cancellationToken, GethTraceOptions? gethTraceOptions = null);
         byte[] GetBlockRlp(Keccak blockHash);

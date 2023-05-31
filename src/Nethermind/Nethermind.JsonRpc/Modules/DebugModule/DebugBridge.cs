@@ -27,6 +27,9 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
     {
         private readonly IConfigProvider _configProvider;
         private readonly IGethStyleTracer _tracer;
+#if DEBUG
+        private readonly IDebugStyleTracer _dbgTracer;
+#endif
         private readonly IBlockTree _blockTree;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IReceiptsMigration _receiptsMigration;
@@ -42,10 +45,17 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
             IReceiptStorage receiptStorage,
             IReceiptsMigration receiptsMigration,
             ISpecProvider specProvider,
-            ISyncModeSelector syncModeSelector)
+            ISyncModeSelector syncModeSelector
+#if DEBUG
+            , IDebugStyleTracer dbgTracer
+#endif
+            )
         {
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+#if DEBUG
+            _dbgTracer = dbgTracer ?? throw new ArgumentNullException(nameof(dbgTracer));
+#endif
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _receiptsMigration = receiptsMigration ?? throw new ArgumentNullException(nameof(receiptsMigration));
@@ -136,7 +146,32 @@ namespace Nethermind.JsonRpc.Modules.DebugModule
 
         public GethLikeTxTrace? GetTransactionTrace(Transaction transaction, BlockParameter blockParameter, CancellationToken cancellationToken, GethTraceOptions? gethTraceOptions = null)
         {
-            return _tracer.Trace(blockParameter, transaction, gethTraceOptions ?? GethTraceOptions.Default, cancellationToken);
+            return _dbgTracer.Trace(blockParameter, transaction,cancellationToken);
+        }
+
+        public GethLikeTxTrace DebugTransactionTrace(Keccak transactionHash, CancellationToken cancellationToken)
+        {
+            return _dbgTracer.Trace(transactionHash, cancellationToken);
+        }
+
+        public GethLikeTxTrace DebugTransactionTrace(long blockNumber, int index, CancellationToken cancellationToken)
+        {
+            return _dbgTracer.Trace(blockNumber, index, cancellationToken);
+        }
+
+        public GethLikeTxTrace DebugTransactionTrace(Keccak blockHash, int index, CancellationToken cancellationToken)
+        {
+            return _dbgTracer.Trace(blockHash, index, cancellationToken);
+        }
+
+        public GethLikeTxTrace DebugTransactionTrace(Rlp blockRlp, Keccak transactionHash, CancellationToken cancellationToken)
+        {
+            return _dbgTracer.Trace(blockRlp, transactionHash, cancellationToken);
+        }
+
+        public GethLikeTxTrace? DebugTransactionTrace(Transaction transaction, BlockParameter blockParameter, CancellationToken cancellationToken)
+        {
+            return _dbgTracer.Trace(blockParameter, transaction, cancellationToken);
         }
 
         public GethLikeTxTrace[] GetBlockTrace(BlockParameter blockParameter, CancellationToken cancellationToken, GethTraceOptions gethTraceOptions = null)
