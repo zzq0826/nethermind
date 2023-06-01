@@ -13,10 +13,11 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.State.Snap;
+using Nethermind.Synchronization.RangeSync;
 
 namespace Nethermind.Synchronization.SnapSync
 {
-    public class SnapProgressTracker: IRangeProgressTracker
+    public class SnapProgressTracker: IRangeProgressTracker<SnapSyncBatch>
     {
         private const string NO_REQUEST = "NO REQUEST";
 
@@ -51,14 +52,14 @@ namespace Nethermind.Synchronization.SnapSync
         private ConcurrentQueue<AccountWithStorageStartingHash> AccountsToRefresh { get; set; } = new();
 
 
-        private readonly Pivot _pivot;
+        private readonly RangeSync.Pivot _pivot;
 
         public SnapProgressTracker(IBlockTree blockTree, IDb db, ILogManager logManager, int accountRangePartitionCount = 8)
         {
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _db = db ?? throw new ArgumentNullException(nameof(db));
 
-            _pivot = new Pivot(blockTree, logManager);
+            _pivot = new RangeSync.Pivot(blockTree, logManager);
 
             if (accountRangePartitionCount < 1 || accountRangePartitionCount > 256)
                 throw new ArgumentException("Account range partition must be between 1 to 256.");

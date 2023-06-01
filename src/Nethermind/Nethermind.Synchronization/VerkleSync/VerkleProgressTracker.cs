@@ -11,12 +11,13 @@ using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Synchronization.RangeSync;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
-public class VerkleProgressTracker: IRangeProgressTracker
+public class VerkleProgressTracker: IRangeProgressTracker<VerkleSyncBatch>
 {
     private const string NO_REQUEST = "NO REQUEST";
     private readonly byte[] SYNC_PROGRESS_KEY = "VerkleSyncProgressKey"u8.ToArray();
@@ -43,14 +44,14 @@ public class VerkleProgressTracker: IRangeProgressTracker
     private ConcurrentQueue<byte[]> LeafsToRefresh { get; set; } = new();
 
 
-    private readonly Pivot _pivot;
+    private readonly RangeSync.Pivot _pivot;
 
     public VerkleProgressTracker(IBlockTree blockTree, IDb db, ILogManager logManager, int subTreeRangePartitionCount = 8)
     {
         _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         _db = db ?? throw new ArgumentNullException(nameof(db));
 
-        _pivot = new Pivot(blockTree, logManager);
+        _pivot = new RangeSync.Pivot(blockTree, logManager);
 
         if (subTreeRangePartitionCount < 1 || subTreeRangePartitionCount > 256)
             throw new ArgumentException("SubTree range partition must be between 1 to 256.");

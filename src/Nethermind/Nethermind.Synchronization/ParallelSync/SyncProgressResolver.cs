@@ -9,6 +9,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Synchronization.RangeSync;
 using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Synchronization.ParallelSync
@@ -23,7 +24,7 @@ namespace Nethermind.Synchronization.ParallelSync
         private readonly IBlockTree _blockTree;
         private readonly IReceiptStorage _receiptStorage;
         private readonly ISyncTrieStore _trieNodeResolver;
-        private readonly IRangeProgressTracker _rangeProgressTracker;
+        private readonly IRangeFinishTracker _rangeProgressTracker;
         private readonly ISyncConfig _syncConfig;
 
         // ReSharper disable once NotAccessedField.Local
@@ -35,7 +36,7 @@ namespace Nethermind.Synchronization.ParallelSync
         public SyncProgressResolver(IBlockTree blockTree,
             IReceiptStorage receiptStorage,
             ISyncTrieStore trieNodeResolver,
-            IRangeProgressTracker rangeProgressTracker,
+            IRangeFinishTracker rangeProgressTracker,
             ISyncConfig syncConfig,
             ILogManager logManager)
         {
