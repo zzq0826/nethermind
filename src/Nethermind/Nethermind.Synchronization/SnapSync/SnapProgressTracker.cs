@@ -16,7 +16,7 @@ using Nethermind.State.Snap;
 
 namespace Nethermind.Synchronization.SnapSync
 {
-    public class ProgressTracker
+    public class SnapProgressTracker
     {
         private const string NO_REQUEST = "NO REQUEST";
 
@@ -53,7 +53,7 @@ namespace Nethermind.Synchronization.SnapSync
 
         private readonly Pivot _pivot;
 
-        public ProgressTracker(IBlockTree blockTree, IDb db, ILogManager logManager, int accountRangePartitionCount = 8)
+        public SnapProgressTracker(IBlockTree blockTree, IDb db, ILogManager logManager, int accountRangePartitionCount = 8)
         {
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _db = db ?? throw new ArgumentNullException(nameof(db));

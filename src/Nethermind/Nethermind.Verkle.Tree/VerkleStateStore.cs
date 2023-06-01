@@ -241,10 +241,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
         FullStatePersistedBlock = changeSet.ToBlockNumber;
     }
-    public bool IsFullySynced(Keccak stateRoot)
-    {
-        return stateRoot.Bytes.SequenceEqual(GetStateRoot().Bytes);
-    }
+
+    public bool IsFullySynced(Keccak stateRoot) => _stateRootToBlocks[new Pedersen(stateRoot.Bytes)] != -2;
 
     public Pedersen GetStateRoot()
     {
