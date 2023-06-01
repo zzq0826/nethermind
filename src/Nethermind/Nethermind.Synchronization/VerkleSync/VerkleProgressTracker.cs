@@ -16,7 +16,7 @@ using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
-public class VerkleProgressTracker
+public class VerkleProgressTracker: IRangeProgressTracker
 {
     private const string NO_REQUEST = "NO REQUEST";
     private readonly byte[] SYNC_PROGRESS_KEY = "VerkleSyncProgressKey"u8.ToArray();
@@ -161,7 +161,7 @@ public class VerkleProgressTracker
             return (request, false);
         }
 
-        bool rangePhaseFinished = IsVerkleGetRangesFinished();
+        bool rangePhaseFinished = IsGetRangesFinished();
         if (rangePhaseFinished)
         {
             _logger.Info($"VERKLE_SYNC - State Ranges (Phase 1) finished.");
@@ -170,7 +170,7 @@ public class VerkleProgressTracker
 
         LogRequest(NO_REQUEST);
 
-        return (null, IsVerkleGetRangesFinished());
+        return (null, IsGetRangesFinished());
     }
 
     private bool ShouldRequestSubTreeRequests()
@@ -216,7 +216,7 @@ public class VerkleProgressTracker
         partition.MoreSubTreesToRight = moreChildrenToRight && nextPath < hashLimit;
     }
 
-    public bool IsVerkleGetRangesFinished()
+    public bool IsGetRangesFinished()
     {
         return SubTreeRangeReadyForRequest.IsEmpty
                && LeafsToRefresh.IsEmpty

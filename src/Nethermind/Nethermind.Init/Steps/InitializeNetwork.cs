@@ -101,16 +101,16 @@ public class InitializeNetwork : IStep
 
         CanonicalHashTrie cht = new CanonicalHashTrie(_api.DbProvider!.ChtDb);
 
-        ProgressTracker progressTracker = new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager, _syncConfig.SnapSyncAccountRangePartitionCount);
-        _api.SnapProvider = new SnapProvider(progressTracker, _api.DbProvider, _api.LogManager);
+        SnapProgressTracker snapProgressTracker = new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager, _syncConfig.SnapSyncAccountRangePartitionCount);
+        _api.SnapProvider = new SnapProvider(snapProgressTracker, _api.DbProvider, _api.LogManager);
 
         VerkleProgressTracker verkleProgressTracker =  new(_api.BlockTree!, _api.DbProvider.StateDb, _api.LogManager, _syncConfig.VerkleSyncAccountRangePartitionCount);
         _api.VerkleProvider = new VerkleSyncProvider(verkleProgressTracker, _api.DbProvider, _api.LogManager);
 
         ISyncProgressResolver syncProgressResolver = _api.SpecProvider!.GenesisSpec.IsVerkleTreeEipEnabled switch
         {
-            true => new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.ReadOnlyVerkleTrieStore!, progressTracker, _syncConfig, _api.LogManager),
-            false => new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.ReadOnlyTrieStore!, progressTracker, _syncConfig, _api.LogManager)
+            true => new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.ReadOnlyVerkleTrieStore!, verkleProgressTracker, _syncConfig, _api.LogManager),
+            false => new SyncProgressResolver(_api.BlockTree!, _api.ReceiptStorage!, _api.ReadOnlyTrieStore!, snapProgressTracker, _syncConfig, _api.LogManager)
         };
 
         _api.SyncProgressResolver = syncProgressResolver;

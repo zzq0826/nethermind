@@ -16,7 +16,7 @@ using Nethermind.State.Snap;
 
 namespace Nethermind.Synchronization.SnapSync
 {
-    public class SnapProgressTracker
+    public class SnapProgressTracker: IRangeProgressTracker
     {
         private const string NO_REQUEST = "NO REQUEST";
 
@@ -230,7 +230,7 @@ namespace Nethermind.Synchronization.SnapSync
                 return (request, false);
             }
 
-            bool rangePhaseFinished = IsSnapGetRangesFinished();
+            bool rangePhaseFinished = IsGetRangesFinished();
             if (rangePhaseFinished)
             {
                 _logger.Info($"SNAP - State Ranges (Phase 1) finished.");
@@ -239,7 +239,7 @@ namespace Nethermind.Synchronization.SnapSync
 
             LogRequest(NO_REQUEST);
 
-            return (null, IsSnapGetRangesFinished());
+            return (null, IsGetRangesFinished());
         }
 
         private bool ShouldRequestAccountRequests()
@@ -335,7 +335,7 @@ namespace Nethermind.Synchronization.SnapSync
             partition.MoreAccountsToRight = moreChildrenToRight && nextPath < hashLimit;
         }
 
-        public bool IsSnapGetRangesFinished()
+        public bool IsGetRangesFinished()
         {
             return AccountRangeReadyForRequest.IsEmpty
                 && StoragesToRetrieve.IsEmpty

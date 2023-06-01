@@ -141,10 +141,10 @@ public class VerkleSyncFeed: SyncFeed<VerkleSyncBatch?>, IDisposable
 
                             if (allLastSuccess == 0 && allLastFailures > peerLastFailures)
                             {
+                                // TODO: here try to get proofs and witnesses from block and update the state when
+                                //   pivot changes - this will allow to get rid of healing
                                 _syncProvider.UpdatePivot();
-
                                 _resultLog.Clear();
-
                                 break;
                             }
                         }

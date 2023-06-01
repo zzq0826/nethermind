@@ -57,6 +57,7 @@ namespace Nethermind.Synchronization.ParallelSync
         private readonly long _pivotNumber;
         private bool FastSyncEnabled => _syncConfig.FastSync;
         private bool SnapSyncEnabled => _syncConfig.SnapSync && !_isSnapSyncDisabledAfterAnyStateSync;
+        private bool VerkleSyncEnabled => _syncConfig.VerkleSync;
         private bool FastBlocksEnabled => _syncConfig.FastSync && _syncConfig.FastBlocks;
         private bool FastBodiesEnabled => FastBlocksEnabled && _syncConfig.DownloadBodiesInFastSync;
         private bool FastReceiptsEnabled => FastBlocksEnabled && _syncConfig.DownloadReceiptsInFastSync;
@@ -564,7 +565,7 @@ namespace Nethermind.Synchronization.ParallelSync
         {
             bool isInStateSync = best.IsInStateSync;
             bool snapSyncDisabled = !SnapSyncEnabled;
-            bool snapRangesFinished = _syncProgressResolver.IsSnapGetRangesFinished();
+            bool snapRangesFinished = _syncProgressResolver.IsGetRangesFinished();
 
             bool result = isInStateSync && (snapSyncDisabled || snapRangesFinished);
 
@@ -583,7 +584,7 @@ namespace Nethermind.Synchronization.ParallelSync
         {
             bool isInStateSync = best.IsInStateSync;
             bool isCloseToHead = best.TargetBlock >= best.Header && (best.TargetBlock - best.Header) < Constants.MaxDistanceFromHead;
-            bool snapNotFinished = !_syncProgressResolver.IsSnapGetRangesFinished();
+            bool snapNotFinished = !_syncProgressResolver.IsGetRangesFinished();
 
             if (_logger.IsTrace)
             {

@@ -343,13 +343,13 @@ namespace Nethermind.Synchronization.Test
                 new BlocksConfig(),
                 logManager);
 
-            ProgressTracker progressTracker = new(tree, dbProvider.StateDb, LimboLogs.Instance);
-            SnapProvider snapProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
+            SnapProgressTracker snapProgressTracker = new(tree, dbProvider.StateDb, LimboLogs.Instance);
+            SnapProvider snapProvider = new(snapProgressTracker, dbProvider, LimboLogs.Instance);
             VerkleProgressTracker verkleProgressTracker = new VerkleProgressTracker(tree, dbProvider.StateDb, LimboLogs.Instance);
             VerkleSyncProvider verkleProvider = new(verkleProgressTracker, dbProvider, LimboLogs.Instance);
 
             SyncProgressResolver resolver = new(
-                tree, receiptStorage, trieStore, progressTracker, syncConfig, logManager);
+                tree, receiptStorage, trieStore, snapProgressTracker, syncConfig, logManager);
             TotalDifficultyBetterPeerStrategy bestPeerStrategy = new(LimboLogs.Instance);
             MultiSyncModeSelector selector = new(resolver, syncPeerPool, syncConfig, No.BeaconSync, bestPeerStrategy, logManager);
             Pivot pivot = new(syncConfig);
