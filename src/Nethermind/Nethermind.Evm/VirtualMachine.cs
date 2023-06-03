@@ -448,14 +448,16 @@ public class VirtualMachine : IVirtualMachine
 
     private static bool UpdateGas(long gasCost, ref long gasAvailable)
     {
-        // Console.WriteLine($"{gasCost}");
-        if (gasAvailable < gasCost)
+        long gas = gasAvailable - gasCost;
+        if (gas >= 0)
         {
-            return false;
+            gasAvailable = gas;
+            return true;
         }
 
-        gasAvailable -= gasCost;
-        return true;
+        // Jump forward for false, to be unpredicted in naïve branch prediction
+        // As it is rare not to have enough gas (and tx to revert)
+        return false;
     }
 
     private static void UpdateGasUp(long refund, ref long gasAvailable)
