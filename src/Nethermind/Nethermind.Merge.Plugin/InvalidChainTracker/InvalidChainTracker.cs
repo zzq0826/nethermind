@@ -21,6 +21,8 @@ namespace Nethermind.Merge.Plugin.InvalidChainTracker;
 /// </summary>
 public class InvalidChainTracker : IInvalidChainTracker
 {
+    public const int MaxRetries = 5;
+
     private readonly IPoSSwitcher _poSSwitcher;
     private readonly IBlockFinder _blockFinder;
     private readonly IBlockCacheService _blockCacheService;
@@ -52,7 +54,8 @@ public class InvalidChainTracker : IInvalidChainTracker
         });
     }
 
-    private void OnBlockchainProcessorInvalidBlock(object? sender, IBlockchainProcessor.InvalidBlockEventArgs args) => OnInvalidBlock(args.InvalidBlock.Hash!, args.InvalidBlock.ParentHash);
+    private void OnBlockchainProcessorInvalidBlock(object? sender, IBlockchainProcessor.InvalidBlockEventArgs args)
+        => OnInvalidBlock(args.InvalidBlock.Hash!, args.InvalidBlock.ParentHash);
 
     public void SetChildParent(Keccak child, Keccak parent)
     {
@@ -155,6 +158,7 @@ public class InvalidChainTracker : IInvalidChainTracker
         lock (failedBlockNode)
         {
             failedBlockNode.LastValidHash = effectiveParent;
+            failedBlockNode.RetryCount++;
         }
         PropagateLastValidHash(failedBlockNode);
     }
@@ -170,14 +174,15 @@ public class InvalidChainTracker : IInvalidChainTracker
                 lastValidHash = node.LastValidHash;
             }
 
-            return node.LastValidHash is not null;
+            return node.RetryCount >= MaxRetries;
         }
     }
 
-    class Node
+    private class Node
     {
         public HashSet<Keccak> Children { get; } = new();
         public Keccak? LastValidHash { get; set; }
+        public int RetryCount { get; set; }
     }
 
     public void Dispose()
