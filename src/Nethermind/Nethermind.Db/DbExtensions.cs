@@ -149,12 +149,17 @@ namespace Nethermind.Db
 
         public static TItem? Get<TItem>(this IDb db, Keccak key, IRlpStreamDecoder<TItem> decoder, LruCache<ValueKeccak, TItem> cache = null, bool shouldCache = true) where TItem : class
         {
+            return db.Get(key, key.Bytes, decoder, cache, shouldCache);
+        }
+
+        public static TItem? Get<TItem>(this IDb db, Keccak key, Span<byte> keyWithBlockNum, IRlpStreamDecoder<TItem> decoder, LruCache<ValueKeccak, TItem> cache = null, bool shouldCache = true) where TItem : class
+        {
             TItem item = cache?.Get(key);
             if (item is null)
             {
                 if (db is IDbWithSpan spanDb && decoder is IRlpValueDecoder<TItem> valueDecoder)
                 {
-                    Span<byte> data = spanDb.GetSpan(key);
+                    Span<byte> data = spanDb.GetSpan(keyWithBlockNum);
                     if (data.IsNull())
                     {
                         return null;
@@ -177,7 +182,7 @@ namespace Nethermind.Db
                 }
                 else
                 {
-                    byte[]? data = db.Get(key);
+                    byte[]? data = db.Get(keyWithBlockNum);
                     if (data is null)
                     {
                         return null;
