@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
@@ -24,7 +25,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     private Pedersen? PersistedStateRoot { get;  set; }
 
-    private StackQueue<(long, VerkleMemoryDb)> BlockCache { get; set; }
+    private StackQueue<(long, ReadOnlyVerkleMemoryDb)> BlockCache { get; set; }
 
     public Pedersen StateRoot { get; private set; }
 
@@ -48,7 +49,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         Storage = new VerkleKeyValueDb(dbProvider);
         History = new VerkleHistoryStore(dbProvider);
         _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
-        BlockCache = new StackQueue<(long, VerkleMemoryDb)>(maxNumberOfBlocksInCache);
+        BlockCache = new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
         StateRoot = GetStateRoot();
@@ -98,10 +99,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 #if DEBUG
         if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
 #endif
-        using StackQueue<(long, VerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
+        using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
         while (diffs.MoveNext())
         {
-            if (diffs.Current.Item2.LeafTable.TryGetValue(key, out byte[]? node)) return node;
+            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
         }
 
         return Storage.GetLeaf(key, out byte[]? value) ? value : null;
@@ -109,7 +110,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
-        using StackQueue<(long, VerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
+        using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
         while (diffs.MoveNext())
         {
             if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node;
@@ -141,19 +142,24 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         {
             PersistedStateRoot = GetStateRoot();
             FullStateCacheBlock = FullStatePersistedBlock = 0;
-            PersistBlockChanges(batch, Storage);
+            PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             StateRoot = GetStateRoot();
             _stateRootToBlocks[StateRoot] = blockNumber;
             return;
         }
         if (blockNumber <= FullStateCacheBlock)
-            throw new InvalidOperationException("Cannot flush for same block number multiple times");
+            throw new InvalidOperationException("Cannot flush for same block number `multiple times");
 
-        if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, batch), out (long, VerkleMemoryDb) element))
+        ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
-            Pedersen root = GetStateRoot(element.Item2) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
+            InternalTable = batch.InternalTable, LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
+        };
+
+        if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch), out (long, ReadOnlyVerkleMemoryDb) element))
+        {
+            Pedersen root = GetStateRoot(element.Item2.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
             PersistedStateRoot = root;
-            VerkleMemoryDb reverseDiff = PersistBlockChanges(element.Item2, Storage);
+            VerkleMemoryDb reverseDiff = PersistBlockChanges(element.Item2.InternalTable, element.Item2.LeafTable, Storage);
 
             History.InsertDiff(element.Item1, element.Item2, reverseDiff);
             FullStatePersistedBlock = element.Item1;
@@ -256,6 +262,11 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return db.GetInternalNode(Array.Empty<byte>(), out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
     }
 
+    private static Pedersen? GetStateRoot(InternalStore db)
+    {
+        return db.TryGetValue(Array.Empty<byte>(), out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
+    }
+
     public bool MoveToStateRoot(Pedersen stateRoot)
     {
         Pedersen currentRoot = GetStateRoot();
@@ -299,13 +310,13 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return true;
     }
 
-    private static VerkleMemoryDb PersistBlockChanges(VerkleMemoryDb blockChanges, VerkleKeyValueDb storage)
+    private static VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
     {
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         VerkleMemoryDb reverseDiff = new();
 
-        foreach (KeyValuePair<byte[], byte[]?> entry in blockChanges.LeafTable)
+        foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
         {
             Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (storage.GetLeaf(entry.Key, out byte[]? node)) reverseDiff.LeafTable[entry.Key] = node;
@@ -314,7 +325,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             storage.SetLeaf(entry.Key, entry.Value);
         }
 
-        foreach (KeyValuePair<byte[], InternalNode?> entry in blockChanges.InternalTable)
+        foreach (KeyValuePair<byte[], InternalNode?> entry in internalStore)
         {
             Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (storage.GetInternalNode(entry.Key, out InternalNode? node)) reverseDiff.InternalTable[entry.Key] = node;

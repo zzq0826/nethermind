@@ -7,10 +7,10 @@ using Nethermind.Serialization.Rlp;
 namespace Nethermind.Verkle.Tree.Serializers;
 
 
-public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>
+public class LeafStoreSerializer
 {
     public static LeafStoreSerializer Instance => new();
-    public int GetLength(LeafStore item, RlpBehaviors rlpBehaviors)
+    public int GetLength(LeafStoreInterface item, RlpBehaviors rlpBehaviors)
     {
         int length = Rlp.LengthOf(item.Count);
         foreach (KeyValuePair<byte[], byte[]?> pair in item)
@@ -32,7 +32,7 @@ public class LeafStoreSerializer : IRlpStreamDecoder<LeafStore>
         return item;
     }
 
-    public void Encode(RlpStream stream, LeafStore item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public void Encode(RlpStream stream, LeafStoreInterface item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         stream.Encode(item.Count);
         foreach (KeyValuePair<byte[], byte[]?> pair in item)

@@ -6,11 +6,19 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.Serializers;
 
-public class VerkleMemoryDbSerializer : IRlpStreamDecoder<VerkleMemoryDb>
+public class VerkleMemoryDbSerializer
 {
     public static VerkleMemoryDbSerializer Instance => new();
 
     public int GetLength(VerkleMemoryDb item, RlpBehaviors rlpBehaviors)
+    {
+        int length = 0;
+        length += LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None);
+        length += InternalStoreSerializer.Instance.GetLength(item.InternalTable, RlpBehaviors.None);
+        return length;
+    }
+
+    public int GetLength(ReadOnlyVerkleMemoryDb item, RlpBehaviors rlpBehaviors)
     {
         int length = 0;
         length += LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None);
@@ -26,6 +34,12 @@ public class VerkleMemoryDbSerializer : IRlpStreamDecoder<VerkleMemoryDb>
         );
     }
     public void Encode(RlpStream stream, VerkleMemoryDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    {
+        LeafStoreSerializer.Instance.Encode(stream, item.LeafTable);
+        InternalStoreSerializer.Instance.Encode(stream, item.InternalTable);
+    }
+
+    public void Encode(RlpStream stream, ReadOnlyVerkleMemoryDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         LeafStoreSerializer.Instance.Encode(stream, item.LeafTable);
         InternalStoreSerializer.Instance.Encode(stream, item.InternalTable);

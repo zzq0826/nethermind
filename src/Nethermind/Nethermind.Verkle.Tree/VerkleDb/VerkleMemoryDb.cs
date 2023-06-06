@@ -6,6 +6,12 @@ using Nethermind.Verkle.Tree.Nodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 
+public class ReadOnlyVerkleMemoryDb
+{
+    public LeafStoreSorted LeafTable;
+    public InternalStore InternalTable;
+}
+
 public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
 {
     public LeafStore LeafTable { get; }

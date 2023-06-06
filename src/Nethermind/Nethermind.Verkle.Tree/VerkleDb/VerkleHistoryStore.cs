@@ -22,6 +22,12 @@ public class VerkleHistoryStore
         ReverseDiff.InsertDiff(blockNumber, preState);
     }
 
+    public void InsertDiff(long blockNumber, ReadOnlyVerkleMemoryDb postState, VerkleMemoryDb preState)
+    {
+        ForwardDiff.InsertDiff(blockNumber, postState);
+        ReverseDiff.InsertDiff(blockNumber, preState);
+    }
+
     public BatchChangeSet GetBatchDiff(long fromBlock, long toBlock)
     {
         VerkleMemoryDb diff = (fromBlock > toBlock) switch
