@@ -137,7 +137,7 @@ namespace Nethermind.Blockchain.Test.Producers
                 specProvider,
                 NullBloomStorage.Instance,
                 LimboLogs.Instance);
-            VerkleStateTree stateTree = new VerkleStateTree(dbProvider);
+            VerkleStateTree stateTree = new VerkleStateTree(dbProvider, LimboLogs.Instance);
             VerkleStateReader stateReader = new(stateTree, dbProvider.GetDb<IDb>(DbNames.Code), LimboLogs.Instance);
             VerkleWorldState worldState = new VerkleWorldState(stateTree, dbProvider.RegisteredDbs[DbNames.Code], LimboLogs.Instance);
             BlockhashProvider blockhashProvider = new(blockTree, LimboLogs.Instance);

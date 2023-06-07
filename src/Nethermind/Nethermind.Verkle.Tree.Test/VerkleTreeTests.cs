@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
+using Nethermind.Logging;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Utils;
@@ -96,10 +97,10 @@ public class VerkleTreeTests
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);

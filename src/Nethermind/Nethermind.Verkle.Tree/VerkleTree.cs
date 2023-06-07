@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
@@ -19,6 +20,8 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree: IVerkleTree
 {
+    private readonly ILogger _logger;
+
     private static byte[] RootKey = Array.Empty<byte>();
     private VerkleMemoryDb _treeCache;
     public readonly IVerkleStore _verkleStateStore;
@@ -42,18 +45,20 @@ public partial class VerkleTree: IVerkleTree
 
     private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache;
 
-    public VerkleTree(IDbProvider dbProvider)
+    public VerkleTree(IDbProvider dbProvider, ILogManager logManager)
     {
+        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
         _treeCache = new VerkleMemoryDb();
-        _verkleStateStore = new VerkleStateStore(dbProvider);
+        _verkleStateStore = new VerkleStateStore(dbProvider, logManager);
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
         ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
     }
 
-    public VerkleTree(IVerkleStore verkleStateStore)
+    public VerkleTree(IVerkleStore verkleStateStore, ILogManager logManager)
     {
+        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
         _treeCache = new VerkleMemoryDb();
         _verkleStateStore = verkleStateStore;
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
@@ -66,12 +71,14 @@ public partial class VerkleTree: IVerkleTree
     {
         try
         {
+            if(_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}");
             if (GetStateRoot().Equals(stateRoot)) return true;
             _verkleStateStore.MoveToStateRoot(stateRoot);
             return true;
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            if(_logger.IsDebug) _logger.Error($"MoveToStateRoot: failed isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}", e);
             return false;
         }
     }
@@ -182,6 +189,7 @@ public partial class VerkleTree: IVerkleTree
         if (newValue.Length != 32) throw new ArgumentException("newValue must be 32 bytes", nameof(newValue));
 #endif
 
+        // break the values to calculate the commitments for the leaf
         (FrE newValLow, FrE newValHigh) = VerkleUtils.BreakValueInLowHigh(newValue);
         (FrE oldValLow, FrE oldValHigh) = VerkleUtils.BreakValueInLowHigh(oldValue);
 
@@ -214,8 +222,12 @@ public partial class VerkleTree: IVerkleTree
 
     public void Commit()
     {
+        if (_logger.IsDebug) _logger.Debug($"Commiting: number of subTrees {_leafUpdateCache.Count}");
         foreach (KeyValuePair<byte[], LeafUpdateDelta> leafDelta in _leafUpdateCache)
         {
+            if (_logger.IsTrace)
+                _logger.Trace(
+                    $"Commit: stem:{leafDelta.Key.ToHexString()} deltaCommitment:C1:{leafDelta.Value.DeltaC1} C2{leafDelta.Value.DeltaC2}");
             UpdateTreeCommitments(leafDelta.Key, leafDelta.Value);
         }
         _leafUpdateCache.Clear();
@@ -295,7 +307,7 @@ public partial class VerkleTree: IVerkleTree
         traverseContext.CurrentIndex -= 1;
         if (changeStemToBranch)
         {
-            InternalNode newChild = new InternalNode(VerkleNodeType.BranchNode);
+            InternalNode newChild = new(VerkleNodeType.BranchNode);
             newChild.InternalCommitment.AddPoint(child.InternalCommitment.Point);
             // since this is a new child, this would be just the parentDeltaHash.PointToField
             // now since there was a node before and that value is deleted - we need to subtract

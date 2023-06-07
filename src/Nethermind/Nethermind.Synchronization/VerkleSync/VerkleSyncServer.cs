@@ -39,7 +39,7 @@ public class VerkleSyncServer
 
         if (nodes is null) return (new List<PathWithSubTree>(), new VerkleProof());
 
-        VerkleTree tree = new (_store);
+        VerkleTree tree = new (_store, _logManager);
         VerkleProof vProof =
             tree.CreateVerkleRangeProof(startingStem.Bytes, nodes[^1].Path.Bytes, out rootPoint);
         return (nodes, vProof);

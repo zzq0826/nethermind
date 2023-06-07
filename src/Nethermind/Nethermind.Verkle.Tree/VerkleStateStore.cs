@@ -4,6 +4,7 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
+using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
@@ -31,6 +32,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public Pedersen StateRoot { get; private set; }
 
+    private readonly ILogger _logger;
+
     public Pedersen RootHash
     {
         get => GetStateRoot();
@@ -46,8 +49,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     private readonly StateRootToBlockMap _stateRootToBlocks;
 
-    public VerkleStateStore(IDbProvider dbProvider, int maxNumberOfBlocksInCache = 128)
+    public VerkleStateStore(IDbProvider dbProvider, ILogManager logManager, int maxNumberOfBlocksInCache = 128)
     {
+        _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
         History = new VerkleHistoryStore(dbProvider);
         _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
@@ -91,6 +95,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     private void InitRootHash()
     {
+        _logger.Info($"VerkleStateStore: init rootHash");
         InternalNode? node = GetInternalNode(Array.Empty<byte>());
         if (node is not null) return;
         Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
@@ -140,6 +145,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber) is called multiple times for the same block number
     public void Flush(long blockNumber, VerkleMemoryDb batch)
     {
+        if (_logger.IsDebug)
+            _logger.Debug(
+                $"VerkleStateStore - Flushing: {blockNumber} InternalDb:{batch.InternalTable.Count} LeafDb:{batch.LeafTable.Count}");
+
         if (blockNumber == 0)
         {
             PersistedStateRoot = GetStateRoot();
@@ -147,6 +156,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             StateRoot = GetStateRoot();
             _stateRootToBlocks[StateRoot] = blockNumber;
+            _logger.Info($"VerkleStateStore: Special case for block 0, StateRoot:{StateRoot}");
             return;
         }
         if (blockNumber <= FullStateCacheBlock)
@@ -154,15 +164,18 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
         ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
-            InternalTable = batch.InternalTable, LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
+            InternalTable = batch.InternalTable,
+            LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
         };
 
         if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch), out (long, ReadOnlyVerkleMemoryDb) element))
         {
+            _logger.Info($"BlockCache is full - got forwardDiff BlockNumber:{element.Item1} IN:{element.Item2.InternalTable.Count} LN:{element.Item2.LeafTable.Count}");
             Pedersen root = GetStateRoot(element.Item2.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
             PersistedStateRoot = root;
+            _logger.Info($"StateRoot after persisting forwardDiff: {root}");
             VerkleMemoryDb reverseDiff = PersistBlockChanges(element.Item2.InternalTable, element.Item2.LeafTable, Storage);
-
+            _logger.Info($"reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
             History.InsertDiff(element.Item1, element.Item2, reverseDiff);
             FullStatePersistedBlock = element.Item1;
             Storage.LeafDb.Flush();
@@ -172,6 +185,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         FullStateCacheBlock = blockNumber;
         StateRoot = GetStateRoot();
         _stateRootToBlocks[StateRoot] = blockNumber;
+        _logger.Info(
+            $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} FullStatePersistedBlock:{FullStatePersistedBlock} FullStateCacheBlock:{FullStateCacheBlock} StateRoot:{StateRoot} blockNumber:{blockNumber}");
     }
 
     // now the full state back in time by one block.
@@ -388,8 +403,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
     }
 
-    private static VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
+    private VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
     {
+        if(_logger.IsDebug) _logger.Debug($"PersistBlockChanges: InternalStore:{internalStore.Count} LeafStore:{leafStore.Count}");
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         VerkleMemoryDb reverseDiff = new();
@@ -411,6 +427,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
             if(entry.Value.ShouldPersist) storage.SetInternalNode(entry.Key, entry.Value);
         }
+
+        if (_logger.IsDebug)
+            _logger.Debug(
+                $"PersistBlockChanges: ReverseDiff InternalStore:{reverseDiff.InternalTable.Count} LeafStore:{reverseDiff.LeafTable.Count}");
 
         return reverseDiff;
     }

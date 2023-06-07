@@ -75,7 +75,7 @@ namespace Nethermind.Evm.Test
                 case StateType.Verkle:
                     IDbProvider provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
                     _stateDb = provider.StateDb;
-                    VerkleStateTree vTree = new VerkleStateTree(provider);
+                    VerkleStateTree vTree = new VerkleStateTree(provider, LimboLogs.Instance);
                     TestState = new VerkleWorldState(vTree, new MemDb(), logManager);
                     break;
                 default:

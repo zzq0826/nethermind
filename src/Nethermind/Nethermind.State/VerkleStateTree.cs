@@ -9,6 +9,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Int256;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Utils;
@@ -18,11 +19,11 @@ namespace Nethermind.State;
 public class VerkleStateTree : VerkleTree
 {
 
-    public VerkleStateTree(IDbProvider dbProvider) : base(dbProvider)
+    public VerkleStateTree(IDbProvider dbProvider, ILogManager logManager) : base(dbProvider, logManager)
     {
     }
 
-    public VerkleStateTree(IVerkleStore stateStore) : base(stateStore)
+    public VerkleStateTree(IVerkleStore stateStore, ILogManager logManager) : base(stateStore, logManager)
     {
     }
 

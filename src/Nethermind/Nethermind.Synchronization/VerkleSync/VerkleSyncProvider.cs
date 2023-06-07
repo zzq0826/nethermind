@@ -150,7 +150,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
         public IVerkleStore Create()
         {
-            return new VerkleStateStore(_dbProvider, 0);
+            return new VerkleStateStore(_dbProvider, _logManager,0);
         }
 
         public bool Return(IVerkleStore obj)

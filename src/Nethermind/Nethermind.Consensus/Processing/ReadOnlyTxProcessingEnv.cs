@@ -82,8 +82,8 @@ namespace Nethermind.Consensus.Processing
             DbProvider = readOnlyDbProvider ?? throw new ArgumentNullException(nameof(readOnlyDbProvider));
             ReadOnlyDb codeDb = readOnlyDbProvider.CodeDb.AsReadOnly(true);
 
-            StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyTrieStore), codeDb, logManager);
-            StateProvider = new VerkleWorldState(new VerkleStateTree(readOnlyTrieStore), codeDb, logManager);
+            StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyTrieStore, logManager), codeDb, logManager);
+            StateProvider = new VerkleWorldState(new VerkleStateTree(readOnlyTrieStore, logManager), codeDb, logManager);
 
             BlockTree = readOnlyBlockTree ?? throw new ArgumentNullException(nameof(readOnlyBlockTree));
             BlockhashProvider = new BlockhashProvider(BlockTree, logManager);

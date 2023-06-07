@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
@@ -261,7 +262,7 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        VerkleTree tree = new(store);
+        VerkleTree tree = new(store, LimboLogs.Instance);
 
         HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees, startStem.BytesAsSpan, endStem.BytesAsSpan);
         tree.InsertSubTreesForSync(subTrees);

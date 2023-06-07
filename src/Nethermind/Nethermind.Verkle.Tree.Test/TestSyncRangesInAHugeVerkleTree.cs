@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
+using Nethermind.Logging;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -26,10 +27,10 @@ public class TestSyncRangesInAHugeVerkleTree
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);

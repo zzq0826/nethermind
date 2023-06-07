@@ -5,6 +5,7 @@ using System.Net.Mime;
 using System.Reflection;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
+using Nethermind.Logging;
 using Nethermind.Verkle.Tree;
 using NUnit.Framework;
 
@@ -29,10 +30,10 @@ public class InsertHugeTreeTests
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider);
+                return new VerkleTree(provider, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);

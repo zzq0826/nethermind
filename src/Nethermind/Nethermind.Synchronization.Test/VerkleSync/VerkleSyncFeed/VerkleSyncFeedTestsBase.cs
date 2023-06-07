@@ -66,7 +66,7 @@ public class VerkleSyncFeedTestsBase
 
     protected static void SetStorage(IVerkleStore trieStore, Address address, byte i)
     {
-        VerkleStateTree tree = new VerkleStateTree(trieStore);
+        VerkleStateTree tree = new VerkleStateTree(trieStore, LimboLogs.Instance);
         for (int j = 0; j < i; j++)
         {
             StorageCell cell = new(address, i);
@@ -115,11 +115,11 @@ public class VerkleSyncFeedTestsBase
 
             _logger = logger;
 
-            RemoteTrieStore = new VerkleStateStore(RemoteDbProvider);
-            LocalTrieStore = new VerkleStateStore(LocalDbProvider);
+            RemoteTrieStore = new VerkleStateStore(RemoteDbProvider, LimboLogs.Instance);
+            LocalTrieStore = new VerkleStateStore(LocalDbProvider, LimboLogs.Instance);
 
-            RemoteStateTree = new VerkleStateTree(RemoteTrieStore);
-            LocalStateTree = new VerkleStateTree(LocalTrieStore);
+            RemoteStateTree = new VerkleStateTree(RemoteTrieStore, LimboLogs.Instance);
+            LocalStateTree = new VerkleStateTree(LocalTrieStore, LimboLogs.Instance);
         }
 
         public IDbProvider RemoteDbProvider;

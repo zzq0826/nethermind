@@ -68,9 +68,9 @@ namespace Nethermind.Core.Test.Builders
 
             public static VerkleStateTree GetVerkleStateTree(IVerkleStore? store)
             {
-                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null));
+                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), LimboLogs.Instance);
 
-                var stateTree = new VerkleStateTree(store);
+                var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 
                 FillStateTreeWithTestAccounts(stateTree);
 

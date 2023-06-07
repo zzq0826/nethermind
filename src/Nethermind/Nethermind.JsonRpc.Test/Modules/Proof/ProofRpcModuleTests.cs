@@ -69,7 +69,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Proof
             {
                 StateType.Merkle => new(_dbProvider, _blockTree, new TrieStore(_dbProvider.StateDb, LimboLogs.Instance).AsReadOnly(),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(TestBlockchainIds.ChainId, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), receiptStorage, _specProvider, LimboLogs.Instance),
-                StateType.Verkle => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new VerkleMemoryDb()),
+                StateType.Verkle => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider, LimboLogs.Instance).AsReadOnly(new VerkleMemoryDb()),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(TestBlockchainIds.ChainId, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), receiptStorage, _specProvider, LimboLogs.Instance),
                 _ => throw new ArgumentOutOfRangeException()
             };
@@ -214,7 +214,7 @@ namespace Nethermind.JsonRpc.Test.Modules.Proof
             {
                 StateType.Merkle => new(_dbProvider, _blockTree, new TrieStore(_dbProvider.StateDb, LimboLogs.Instance).AsReadOnly(),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(TestBlockchainIds.ChainId, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), _receiptFinder, _specProvider, LimboLogs.Instance),
-                StateType.Verkle => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider).AsReadOnly(new VerkleMemoryDb()),
+                StateType.Verkle => new(_dbProvider, _blockTree, new VerkleStateStore(_dbProvider, LimboLogs.Instance).AsReadOnly(new VerkleMemoryDb()),
                     new CompositeBlockPreprocessorStep(new RecoverSignatures(new EthereumEcdsa(TestBlockchainIds.ChainId, LimboLogs.Instance), NullTxPool.Instance, _specProvider, LimboLogs.Instance)), _receiptFinder, _specProvider, LimboLogs.Instance),
                 _ => throw new ArgumentOutOfRangeException()
             };

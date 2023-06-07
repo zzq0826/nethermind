@@ -8,6 +8,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Proofs;
 
@@ -183,7 +184,7 @@ public class VerkleProofTest
     public void BenchmarkProofCalculation(int iteration, int warmup)
     {
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new VerkleTree(db);
+        VerkleTree tree = new VerkleTree(db, LimboLogs.Instance);
         byte[][] keys = new byte[1000][];
         for (int i = 0; i < 1000; i++)
         {
@@ -218,7 +219,7 @@ public class VerkleProofTest
     {
         Random rand = new(0);
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new(db);
+        VerkleTree tree = new(db, LimboLogs.Instance);
         byte[][] values = new byte[1000][];
         for (int i = 0; i < 1000; i++) values[i] = Keccak.EmptyTreeHash.Bytes;
 

@@ -166,10 +166,10 @@ namespace Nethermind.Init.Steps
             }
             else
             {
-                VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider);
+                VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, getApi.LogManager);
                 ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
-                worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore), codeDb, getApi.LogManager);
-                stateReader = setApi.StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyVerkleStateStore), codeDb, getApi.LogManager);
+                worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
+                stateReader = setApi.StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyVerkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
             }
 
             setApi.TransactionComparerProvider = new TransactionComparerProvider(getApi.SpecProvider!, getApi.BlockTree.AsReadOnly());
@@ -188,8 +188,8 @@ namespace Nethermind.Init.Steps
                         IWorldState diagStateProvider;
                         if (getApi.SpecProvider.GenesisSpec.IsVerkleTreeEipEnabled)
                         {
-                            VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider);
-                            diagStateProvider = new VerkleWorldState(new VerkleStateTree(verkleStateStore), codeDb, getApi.LogManager);
+                            VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider,  getApi.LogManager);
+                            diagStateProvider = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
                         }
                         else
                         {
