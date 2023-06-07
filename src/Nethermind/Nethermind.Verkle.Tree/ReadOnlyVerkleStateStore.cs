@@ -5,6 +5,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
@@ -86,12 +87,7 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, blockNumber);
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot)
-    {
-        return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot);
-    }
-
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
+    public PathWithSubTree[]? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }

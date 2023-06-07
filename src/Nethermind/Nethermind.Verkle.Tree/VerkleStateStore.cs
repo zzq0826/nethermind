@@ -6,6 +6,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
@@ -440,13 +441,59 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot)
+    public PathWithSubTree[]? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
     {
-        throw new NotImplementedException();
-    }
+        long blockNumber = _stateRootToBlocks[stateRoot];
+        using IEnumerator<KeyValuePair<byte[], byte[]?>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
-    {
-        throw new NotImplementedException();
+        long currentBytes = 0;
+
+        List<LeafInSubTree> leafs = new();
+        SpanDictionary<byte, List<LeafInSubTree>> rangesToReturn = new(Bytes.SpanEqualityComparer);
+
+        if (!ranges.MoveNext()) return null;
+
+        // handle the first element
+        Span<byte> stem = ranges.Current.Key.AsSpan()[..31];
+        rangesToReturn.TryAdd(stem, new List<LeafInSubTree>());
+        rangesToReturn[stem].Add(new LeafInSubTree(ranges.Current.Key[31], ranges.Current.Value!));
+        currentBytes += 64;
+
+
+        bool bytesConsumed = false;
+        while (ranges.MoveNext())
+        {
+            if (currentBytes > bytes)
+            {
+                bytesConsumed = true;
+                break;
+            }
+        }
+
+        if (bytesConsumed)
+        {
+            // this means the iterator is not empty but the bytes is consumed, now we need to complete the current
+            // subtree we are processing
+            while (ranges.MoveNext())
+            {
+                // if stem is present that means we have to complete that subTree
+                stem = ranges.Current.Key.AsSpan()[..31];
+                if (rangesToReturn.TryGetValue(stem, out List<LeafInSubTree>? listOfLeafs))
+                {
+                    listOfLeafs.Add(new LeafInSubTree(ranges.Current.Key[31], ranges.Current.Value!));
+                    continue;
+                }
+                break;
+            }
+        }
+
+        PathWithSubTree[] pathWithSubTrees = new PathWithSubTree[rangesToReturn.Count];
+        int index = 0;
+        foreach (KeyValuePair<byte[], List<LeafInSubTree>> keyVal in rangesToReturn)
+        {
+            pathWithSubTrees[index++] = new PathWithSubTree(keyVal.Key, keyVal.Value.ToArray());
+        }
+
+        return pathWithSubTrees;
     }
 }

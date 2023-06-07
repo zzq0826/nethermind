@@ -35,20 +35,13 @@ public class VerkleSyncServer
     public (PathWithSubTree[], VerkleProof) GetSubTreeRanges(Pedersen rootHash, Stem startingStem, Stem? limitStem, long byteLimit, out Banderwagon rootPoint)
     {
         rootPoint = default;
-        IEnumerable<KeyValuePair<byte[], byte[]?>>? range = _store.GetLeafRangeIterator(startingStem.Bytes, limitStem.Bytes, rootHash, byteLimit);
+        PathWithSubTree[]? nodes = _store.GetLeafRangeIterator(startingStem.Bytes, limitStem.Bytes, rootHash, byteLimit);
 
-        List<PathWithSubTree> nodes = new List<PathWithSubTree>();
-        foreach (KeyValuePair<byte[], byte[]> keyVal in range)
-        {
-            LeafInSubTree leaf = new LeafInSubTree(keyVal.Key[31], keyVal.Value);
-            PathWithSubTree? pathWithSubTree = new PathWithSubTree(keyVal.Key, new LeafInSubTree[] { leaf });
-            nodes.Add(pathWithSubTree);
-        }
+        if (nodes is null) return (Array.Empty<PathWithSubTree>(), new VerkleProof());
 
-        if (nodes.Count == 0) return (nodes.ToArray(), new VerkleProof());
         VerkleTree tree = new (_store);
         VerkleProof vProof =
             tree.CreateVerkleRangeProof(startingStem.Bytes, nodes[^1].Path.Bytes, out rootPoint);
-        return (nodes.ToArray(), vProof);
+        return (nodes, vProof);
     }
 }
