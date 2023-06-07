@@ -287,7 +287,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     public bool MoveToStateRoot(Pedersen stateRoot)
     {
         Pedersen currentRoot = GetStateRoot();
-
+        _logger.Info($"VerkleStateStore - MoveToStateRoot: WantedStateRoot:{stateRoot} CurrentStateRoot:{currentRoot}");
         // if the target root node is same as current - return true
         if (currentRoot.Equals(stateRoot)) return true;
         // TODO: this is actually not possible - not sure if return true is correct here
@@ -297,6 +297,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         if(fromBlock == -1) return false;
         long toBlock = _stateRootToBlocks[stateRoot];
         if (toBlock == -1) return false;
+
+        _logger.Info($"VerkleStateStore - MoveToStateRoot: fromBlock:{fromBlock} toBlock:{toBlock}");
 
         if (fromBlock > toBlock)
         {
