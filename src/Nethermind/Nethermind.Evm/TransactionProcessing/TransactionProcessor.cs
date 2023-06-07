@@ -470,6 +470,8 @@ namespace Nethermind.Evm.TransactionProcessing
             if (!noValidation && notSystemTransaction)
             {
                 block.GasUsed += spentGas;
+                // expected gas used : 6000000 (correct) 58?????? (incorrect)
+                // found gas used : 6000000
             }
 
             if (txTracer.IsTracingReceipt)
