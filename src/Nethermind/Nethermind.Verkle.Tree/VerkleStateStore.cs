@@ -441,14 +441,13 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
     }
 
-    public PathWithSubTree[]? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
+    public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
     {
         long blockNumber = _stateRootToBlocks[stateRoot];
         using IEnumerator<KeyValuePair<byte[], byte[]?>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
 
         long currentBytes = 0;
 
-        List<LeafInSubTree> leafs = new();
         SpanDictionary<byte, List<LeafInSubTree>> rangesToReturn = new(Bytes.SpanEqualityComparer);
 
         if (!ranges.MoveNext()) return null;
@@ -487,11 +486,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             }
         }
 
-        PathWithSubTree[] pathWithSubTrees = new PathWithSubTree[rangesToReturn.Count];
-        int index = 0;
+        List<PathWithSubTree> pathWithSubTrees = new(rangesToReturn.Count);
         foreach (KeyValuePair<byte[], List<LeafInSubTree>> keyVal in rangesToReturn)
         {
-            pathWithSubTrees[index++] = new PathWithSubTree(keyVal.Key, keyVal.Value.ToArray());
+            pathWithSubTrees.Add(new PathWithSubTree(keyVal.Key, keyVal.Value.ToArray()));
         }
 
         return pathWithSubTrees;
