@@ -238,7 +238,7 @@ public class Pedersen : IEquatable<Pedersen>, IComparable<Pedersen>
             throw new ArgumentException($"{nameof(Pedersen)} must be {Size} bytes and was {bytes.Length} bytes", nameof(bytes));
         }
 
-        Bytes = bytes;
+        Bytes = bytes.AsSpan().ToArray();
     }
 
     public override string ToString()

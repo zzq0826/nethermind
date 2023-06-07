@@ -52,7 +52,7 @@ public partial class VerkleTree: IVerkleTree
         ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
     }
 
-    protected VerkleTree(IVerkleStore verkleStateStore)
+    public VerkleTree(IVerkleStore verkleStateStore)
     {
         _treeCache = new VerkleMemoryDb();
         _verkleStateStore = verkleStateStore;
@@ -95,7 +95,7 @@ public partial class VerkleTree: IVerkleTree
         _treeCache.SetLeaf(key.BytesAsSpan, value);
     }
 
-    public void Insert(Pedersen key, byte[] value)
+    public void Insert(Pedersen key, ReadOnlySpan<byte> value)
     {
         _isDirty = true;
 #if DEBUG
@@ -104,7 +104,7 @@ public partial class VerkleTree: IVerkleTree
         ReadOnlySpan<byte> stem = key.StemAsSpan;
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
-        leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key, value), key.SuffixByte);
+        leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key, value.ToArray()), key.SuffixByte);
         _leafUpdateCache[stem] = leafUpdateDelta;
     }
 

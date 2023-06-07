@@ -10,7 +10,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public interface IVerkleStore: IStoreWithReorgBoundary
+public interface IVerkleStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
     public Pedersen RootHash { get; set; }
     byte[]? GetLeaf(ReadOnlySpan<byte> key);
@@ -39,7 +39,7 @@ public interface IVerkleTree
     public Pedersen StateRoot { get; set; }
     public bool MoveToStateRoot(Pedersen stateRoot);
     public byte[]? Get(Pedersen key);
-    public void Insert(Pedersen key, byte[] value);
+    public void Insert(Pedersen key, ReadOnlySpan<byte> value);
     public void Commit();
     public void CommitTree(long blockNumber);
     public void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null);
@@ -64,5 +64,17 @@ public interface IReadOnlyVerkleState
     public Pedersen StateRoot { get; }
     byte[]? GetLeaf(ReadOnlySpan<byte> key);
     InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
+}
+
+public interface IVerkleSyncTireStore
+{
+    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange,
+        byte[] toRange, long blockNumber);
+
+    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange,
+        byte[] toRange, Pedersen stateRoot);
+
+    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange,
+        byte[] toRange, Pedersen stateRoot, long bytes);
 }
 
