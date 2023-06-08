@@ -105,6 +105,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
         while (rangeEnum.MoveNext())
         {
+            Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} Value:{rangeEnum.Current.Value.ToHexString()}");
             Assert.IsTrue(rangeEnum.Current.Value.SequenceEqual(kvMap[rangeEnum.Current.Key]));
         }
     }

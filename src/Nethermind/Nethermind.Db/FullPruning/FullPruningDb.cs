@@ -130,17 +130,17 @@ namespace Nethermind.Db.FullPruning
             cloningDb?.Clear();
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
         {
             return _currentDb.GetEnumerator();
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
         {
             return _currentDb.GetEnumerator(start);
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
         {
             return _currentDb.GetEnumerator(start, end);
         }

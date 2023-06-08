@@ -119,24 +119,24 @@ public class ColumnDb : IDbWithSpan
     /// <exception cref="NotSupportedException"></exception>
     public void Clear() { throw new NotSupportedException(); }
 
-    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
-        return _mainDb.GetAllCore(iterator).GetEnumerator();
+        return _mainDb.GetAllCore(iterator);
     }
 
-    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
         iterator.Seek(start);
-        return _mainDb.GetAllCore(iterator).GetEnumerator();
+        return _mainDb.GetAllCore(iterator);
     }
 
-    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
         iterator.Seek(start);
-        return _mainDb.GetAllCore(iterator).GetEnumerator();
+        return _mainDb.GetAllCore(iterator);
     }
 
     private void UpdateWriteMetrics() => _mainDb.UpdateWriteMetrics();

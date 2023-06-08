@@ -329,10 +329,10 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return true;
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
     {
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
-        List<IEnumerator<KeyValuePair<byte[], byte[]?>>> iterators = new();
+        List<IEnumerator<KeyValuePair<byte[], byte[]>>> iterators = new();
 
         // TODO: optimize this to start from a specific blockNumber - or better yet get the list of enumerators directly
         using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator blockEnumerator =
@@ -346,32 +346,34 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             // TODO: here we construct a set from the LeafTable so that we can do the GetViewBetween
             //   obviously this is very un-optimal but the idea is to replace the LeafTable with SortedSet in the
             //   blockCache itself. The reason we want to use GetViewBetween because this is optimal to do seek
-            DictionarySortedSet<byte[], byte[]?> currentSet = new (blockEnumerator.Current.Item2.LeafTable, Bytes.Comparer);
+            DictionarySortedSet<byte[], byte[]> currentSet = new (blockEnumerator.Current.Item2.LeafTable, Bytes.Comparer);
 
             // construct the iterators that starts for the specific range using GetViewBetween
-            IEnumerator<KeyValuePair<byte[],byte[]?>> enumerator = currentSet
+            IEnumerator<KeyValuePair<byte[],byte[]>> enumerator = currentSet
                 .GetViewBetween(
-                    new KeyValuePair<byte[], byte[]?>(fromRange, null),
-                    new KeyValuePair<byte[], byte[]?>(toRange, null))
+                    new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes),
+                    new KeyValuePair<byte[], byte[]>(toRange, Pedersen.Zero.Bytes))
                 .GetEnumerator();
             iterators.Add(enumerator);
         }
+
+        iterators.Add(Storage.LeafDb.GetEnumerator(fromRange, toRange).GetEnumerator());
 
         try
         {
             // kvMap is used to keep a map of keyValues we encounter - this is for ease of access - but not optimal
             // TODO: remove this - merge kvMap and kvEnumMap
-            Dictionary<byte[], byte[]?> kvMap = new (Bytes.EqualityComparer);
+            Dictionary<byte[], byte[]> kvMap = new (Bytes.EqualityComparer);
 
             // this created a sorted structure for all the keys and the corresponding enumerators. the idea is that get
             // the first key (sorted), remove the key, then move the enumerator to next and insert the new key and
             // enumerator again
-            DictionarySortedSet<byte[], IEnumerator<KeyValuePair<byte[], byte[]?>>> keyEnumMap = new(Bytes.Comparer);
+            DictionarySortedSet<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> keyEnumMap = new(Bytes.Comparer);
 
-            foreach (IEnumerator<KeyValuePair<byte[], byte[]?>> enumerator in iterators)
+            foreach (IEnumerator<KeyValuePair<byte[], byte[]>> enumerator in iterators)
             {
                 if (!enumerator.MoveNext()) continue;
-                KeyValuePair<byte[], byte[]?> current = enumerator.Current;
+                KeyValuePair<byte[], byte[]> current = enumerator.Current;
                 // add the new key and the corresponding enumerator
                 keyEnumMap.Add(current.Key, enumerator);
                 // add the key and corresponding value
@@ -382,26 +384,26 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             {
 
                 // get the first value from the sorted set
-                KeyValuePair<byte[], IEnumerator<KeyValuePair<byte[], byte[]?>>> value = keyEnumMap.Min;
+                KeyValuePair<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> value = keyEnumMap.Min;
                 // remove the corresponding element because it will be used
                 keyEnumMap.Remove(value.Key);
 
                 // get the enumerator and move it to next and insert he corresponding values
-                IEnumerator<KeyValuePair<byte[], byte[]?>> enumerator = value.Value;
+                IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = value.Value;
                 if (enumerator.MoveNext())
                 {
-                    KeyValuePair<byte[], byte[]?> current = enumerator.Current;
+                    KeyValuePair<byte[], byte[]> current = enumerator.Current;
                     keyEnumMap.Add(current.Key, enumerator);
                     kvMap.Add(current.Key, current.Value);
                 }
 
                 // return the value
-                yield return new KeyValuePair<byte[], byte[]?> (value.Key, kvMap[value.Key]!);
+                yield return new KeyValuePair<byte[], byte[]> (value.Key, kvMap[value.Key]!);
             }
         }
         finally
         {
-            foreach (IEnumerator<KeyValuePair<byte[], byte[]?>> t in iterators) t.Dispose();
+            foreach (IEnumerator<KeyValuePair<byte[], byte[]>> t in iterators) t.Dispose();
         }
     }
 

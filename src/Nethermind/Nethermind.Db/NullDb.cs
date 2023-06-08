@@ -51,17 +51,17 @@ namespace Nethermind.Db
         public IDb Innermost => this;
         public void Flush() { }
         public void Clear() { }
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
         {
             yield break;
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
         {
             yield break;
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
         {
             yield break;
         }

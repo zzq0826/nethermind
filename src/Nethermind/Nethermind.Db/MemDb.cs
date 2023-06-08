@@ -12,64 +12,6 @@ using Nethermind.Core.Extensions;
 
 namespace Nethermind.Db
 {
-    public class SortedMemDb : MemDb
-    {
-        private SortedSet<byte[]> _keys;
-
-        public SortedMemDb(string name) : base(name)
-        {
-            _keys = new(Bytes.Comparer);
-        }
-
-        public SortedMemDb() : base()
-        {
-            _keys = new(Bytes.Comparer);
-        }
-
-        public SortedMemDb(int writeDelay, int readDelay): base(writeDelay, readDelay)
-        {
-            _keys = new(Bytes.Comparer);
-        }
-
-        public override void Remove(ReadOnlySpan<byte> key)
-        {
-            base.Remove(key);
-            _keys.Remove(key.ToArray());
-        }
-
-        public override IBatch StartBatch()
-        {
-            return this.LikeABatch();
-        }
-
-        public override void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
-        {
-            base.Set(key, value, flags);
-            _keys.Add(key.ToArray());
-        }
-
-        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
-        {
-            using SortedSet<byte[]>.Enumerator keyEnumerator = _keys.GetEnumerator();
-            while (keyEnumerator.MoveNext())
-                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
-        }
-
-        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
-        {
-            return GetEnumerator(start, _keys.Max);
-        }
-
-        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
-        {
-            using SortedSet<byte[]>.Enumerator keyEnumerator = _keys
-                .GetViewBetween(start, end)
-                .GetEnumerator();
-
-            while (keyEnumerator.MoveNext())
-                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
-        }
-    }
     public class MemDb : IFullDb, IDbWithSpan
     {
         private readonly int _writeDelay; // for testing scenarios
@@ -77,23 +19,27 @@ namespace Nethermind.Db
         public long ReadsCount { get; private set; }
         public long WritesCount { get; private set; }
 
+        private readonly SortedSet<byte[]>? _sortedKeys;
         private readonly SpanConcurrentDictionary<byte, byte[]?> _db;
 
-        public MemDb(string name)
-            : this(0, 0)
+        public MemDb(string name, bool sorted = false)
+            : this(0, 0, sorted)
         {
             Name = name;
         }
 
-        public MemDb() : this(0, 0)
+        public MemDb(bool sorted = false) : this(0, 0, sorted)
         {
+            Name = "";
         }
 
-        public MemDb(int writeDelay, int readDelay)
+        public MemDb(int writeDelay, int readDelay, bool sorted = false)
         {
+            Name = "";
             _writeDelay = writeDelay;
             _readDelay = readDelay;
             _db = new SpanConcurrentDictionary<byte, byte[]>(Bytes.SpanEqualityComparer);
+            if (sorted) _sortedKeys = new SortedSet<byte[]>();
         }
 
         public string Name { get; }
@@ -127,6 +73,7 @@ namespace Nethermind.Db
         public virtual void Remove(ReadOnlySpan<byte> key)
         {
             _db.TryRemove(key, out _);
+            _sortedKeys?.Remove(key.ToArray());
         }
 
         public bool KeyExists(ReadOnlySpan<byte> key)
@@ -143,26 +90,63 @@ namespace Nethermind.Db
         public void Clear()
         {
             _db.Clear();
+            _sortedKeys?.Clear();
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
         {
-            throw new NotImplementedException();
+            if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
+            using SortedSet<byte[]>.Enumerator keyEnumerator = _sortedKeys.GetEnumerator();
+            while (keyEnumerator.MoveNext())
+                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
         {
-            throw new NotImplementedException();
+            if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
+            return GetEnumerator(start, _sortedKeys.Max);
         }
 
-        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
         {
-            throw new NotImplementedException();
+            if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
+            using SortedSet<byte[]>.Enumerator keyEnumerator = _sortedKeys
+                .GetViewBetween(start, end)
+                .GetEnumerator();
+
+            while (keyEnumerator.MoveNext())
+                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
         }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]?>> GetAll(bool ordered = false) => _db;
+        public IEnumerable<KeyValuePair<byte[], byte[]?>> GetAll(bool ordered = false)
+        {
+            return ordered ? GetAllSortedIterator() : _db;
+        }
 
-        public IEnumerable<byte[]> GetAllValues(bool ordered = false) => Values;
+        private IEnumerable<KeyValuePair<byte[], byte[]?>> GetAllSortedIterator()
+        {
+            if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
+            using SortedSet<byte[]>.Enumerator iterator = _sortedKeys.GetEnumerator();
+            while (iterator.MoveNext())
+            {
+                yield return new KeyValuePair<byte[], byte[]?>(iterator.Current, _db[iterator.Current!]);
+            }
+        }
+
+        private  IEnumerable<byte[]> GetAllValuesSortedIterator()
+        {
+            if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
+            using SortedSet<byte[]>.Enumerator iterator = _sortedKeys.GetEnumerator();
+            while (iterator.MoveNext())
+            {
+                yield return _db[iterator.Current!];
+            }
+        }
+
+        public IEnumerable<byte[]> GetAllValues(bool ordered = false)
+        {
+            return ordered ? GetAllValuesSortedIterator() : Values;
+        }
 
         public virtual IBatch StartBatch()
         {
