@@ -130,19 +130,19 @@ namespace Nethermind.Db
             public void Flush() => _wrapped.Flush();
 
             public void Clear() => _wrapped.Clear();
-            public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
+            public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator()
             {
-                return _wrapped.GetEnumerator();
+                return _wrapped.GetIterator();
             }
 
-            public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+            public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start)
             {
-                return _wrapped.GetEnumerator(start);
+                return _wrapped.GetIterator(start);
             }
 
-            public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+            public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start, byte[] end)
             {
-                return _wrapped.GetEnumerator(start, end);
+                return _wrapped.GetIterator(start, end);
             }
 
             public long GetSize() => _wrapped.GetSize();

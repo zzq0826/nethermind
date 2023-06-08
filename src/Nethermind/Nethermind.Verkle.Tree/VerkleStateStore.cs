@@ -357,7 +357,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             iterators.Add(enumerator);
         }
 
-        iterators.Add(Storage.LeafDb.GetEnumerator(fromRange, toRange).GetEnumerator());
+        iterators.Add(Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator());
 
         try
         {

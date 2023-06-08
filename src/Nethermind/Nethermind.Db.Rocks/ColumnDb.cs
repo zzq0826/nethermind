@@ -119,20 +119,20 @@ public class ColumnDb : IDbWithSpan
     /// <exception cref="NotSupportedException"></exception>
     public void Clear() { throw new NotSupportedException(); }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator()
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
         return _mainDb.GetAllCore(iterator);
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start)
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
         iterator.Seek(start);
         return _mainDb.GetAllCore(iterator);
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start, byte[] end)
     {
         using Iterator iterator = _mainDb.CreateIterator(true, _columnFamily);
         iterator.Seek(start);

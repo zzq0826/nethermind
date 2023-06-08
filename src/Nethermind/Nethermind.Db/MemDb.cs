@@ -39,7 +39,7 @@ namespace Nethermind.Db
             _writeDelay = writeDelay;
             _readDelay = readDelay;
             _db = new SpanConcurrentDictionary<byte, byte[]>(Bytes.SpanEqualityComparer);
-            if (sorted) _sortedKeys = new SortedSet<byte[]>();
+            if (sorted) _sortedKeys = new SortedSet<byte[]>(Bytes.Comparer);
         }
 
         public string Name { get; }
@@ -93,7 +93,7 @@ namespace Nethermind.Db
             _sortedKeys?.Clear();
         }
 
-        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator()
         {
             if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
             using SortedSet<byte[]>.Enumerator keyEnumerator = _sortedKeys.GetEnumerator();
@@ -101,13 +101,13 @@ namespace Nethermind.Db
                 yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
         }
 
-        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start)
         {
             if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
-            return GetEnumerator(start, _sortedKeys.Max);
+            return GetIterator(start, _sortedKeys.Max);
         }
 
-        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        public virtual IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start, byte[] end)
         {
             if (_sortedKeys is null) throw new ArgumentException($"cannot get ordered data");
             using SortedSet<byte[]>.Enumerator keyEnumerator = _sortedKeys

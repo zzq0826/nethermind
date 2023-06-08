@@ -92,7 +92,7 @@ namespace Nethermind.Db.Test
                 db.Set(key, value.AsSpan().ToArray());
             }
 
-            var xx = db.GetEnumerator();
+            var xx = db.GetIterator();
 
             foreach (KeyValuePair<byte[], byte[]> x in xx)
             {

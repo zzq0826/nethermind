@@ -90,19 +90,19 @@ namespace Nethermind.Db
 
         public void Clear() { throw new InvalidOperationException(); }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator()
         {
-            return _wrappedDb.GetEnumerator();
+            return _wrappedDb.GetIterator();
         }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start)
         {
-            return _wrappedDb.GetEnumerator(start);
+            return _wrappedDb.GetIterator(start);
         }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetIterator(byte[] start, byte[] end)
         {
-            return _wrappedDb.GetEnumerator(start, end);
+            return _wrappedDb.GetIterator(start, end);
         }
 
         public virtual void ClearTempChanges()
