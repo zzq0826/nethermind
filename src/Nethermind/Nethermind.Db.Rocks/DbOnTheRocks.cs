@@ -796,6 +796,26 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         Delete();
     }
 
+    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+    {
+        using Iterator iterator = CreateIterator(true);
+        return GetAllCore(iterator).GetEnumerator();
+    }
+
+    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+    {
+        using Iterator iterator = CreateIterator(true);
+        iterator.Seek(start);
+        return GetAllCore(iterator).GetEnumerator();
+    }
+
+    public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+    {
+        using Iterator iterator = CreateIterator(true);
+        iterator.Seek(start);
+        return GetAllCore(iterator).GetEnumerator();
+    }
+
     private void Delete()
     {
         try

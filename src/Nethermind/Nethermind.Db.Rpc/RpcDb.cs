@@ -74,6 +74,20 @@ namespace Nethermind.Db.Rpc
         public IDb Innermost => this; // record db is just a helper DB here
         public void Flush() { }
         public void Clear() { }
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        {
+            throw new NotImplementedException();
+        }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> GetAll(bool ordered = false) => _recordDb.GetAll();
 

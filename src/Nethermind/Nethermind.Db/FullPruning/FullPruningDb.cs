@@ -130,6 +130,21 @@ namespace Nethermind.Db.FullPruning
             cloningDb?.Clear();
         }
 
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        {
+            return _currentDb.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        {
+            return _currentDb.GetEnumerator(start);
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        {
+            return _currentDb.GetEnumerator(start, end);
+        }
+
         /// <inheritdoc />
         public bool CanStartPruning => _pruningContext is null; // we can start pruning only if no pruning is in progress
 

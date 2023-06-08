@@ -12,6 +12,64 @@ using Nethermind.Core.Extensions;
 
 namespace Nethermind.Db
 {
+    public class SortedMemDb : MemDb
+    {
+        private SortedSet<byte[]> _keys;
+
+        public SortedMemDb(string name) : base(name)
+        {
+            _keys = new(Bytes.Comparer);
+        }
+
+        public SortedMemDb() : base()
+        {
+            _keys = new(Bytes.Comparer);
+        }
+
+        public SortedMemDb(int writeDelay, int readDelay): base(writeDelay, readDelay)
+        {
+            _keys = new(Bytes.Comparer);
+        }
+
+        public override void Remove(ReadOnlySpan<byte> key)
+        {
+            base.Remove(key);
+            _keys.Remove(key.ToArray());
+        }
+
+        public override IBatch StartBatch()
+        {
+            return this.LikeABatch();
+        }
+
+        public override void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
+        {
+            base.Set(key, value, flags);
+            _keys.Add(key.ToArray());
+        }
+
+        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        {
+            using SortedSet<byte[]>.Enumerator keyEnumerator = _keys.GetEnumerator();
+            while (keyEnumerator.MoveNext())
+                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
+        }
+
+        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        {
+            return GetEnumerator(start, _keys.Max);
+        }
+
+        public new IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        {
+            using SortedSet<byte[]>.Enumerator keyEnumerator = _keys
+                .GetViewBetween(start, end)
+                .GetEnumerator();
+
+            while (keyEnumerator.MoveNext())
+                yield return new KeyValuePair<byte[], byte[]>(keyEnumerator.Current, Get(keyEnumerator.Current));
+        }
+    }
     public class MemDb : IFullDb, IDbWithSpan
     {
         private readonly int _writeDelay; // for testing scenarios
@@ -85,6 +143,21 @@ namespace Nethermind.Db
         public void Clear()
         {
             _db.Clear();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]?>> GetAll(bool ordered = false) => _db;

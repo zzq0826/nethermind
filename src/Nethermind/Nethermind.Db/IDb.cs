@@ -25,5 +25,9 @@ namespace Nethermind.Db
         void Clear();
 
         public IReadOnlyDb CreateReadOnly(bool createInMemWriteStore) => new ReadOnlyDb(this, createInMemWriteStore);
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator();
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start);
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator(byte[] start, byte[] end);
     }
 }
