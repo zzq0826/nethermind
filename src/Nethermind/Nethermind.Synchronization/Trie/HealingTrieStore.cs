@@ -58,7 +58,7 @@ public class HealingTrieStore : TrieStore
         {
             byte[]? rlp = RecoverRlpFromNetwork(keccak).GetAwaiter().GetResult();
             if (rlp is null) throw new TrieException($"Could not recover {keccak} from network", e);
-            if (_logger.IsWarn) _logger.Warn($"Recovered RLP!");
+            if (_logger.IsWarn) _logger.Warn("Recovered RLP!");
             _keyValueStore.Set(keccak.Bytes, rlp);
             return rlp;
         }

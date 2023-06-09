@@ -519,7 +519,7 @@ namespace Nethermind.Trie.Pruning
 
                     if (Random.Shared.Next(300) == 0)
                     {
-                        _keyValueStore.Set(node.Keccak!.Bytes, null);
+                        //_keyValueStore.Set(node.Keccak!.Bytes, null);
                     }
 
                     _dirtyNodes.Remove(node.Keccak);
