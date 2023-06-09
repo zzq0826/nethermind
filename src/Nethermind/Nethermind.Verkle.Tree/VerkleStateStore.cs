@@ -334,50 +334,65 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
         List<IEnumerator<KeyValuePair<byte[], byte[]>>> iterators = new();
 
+        // kvMap is used to keep a map of keyValues we encounter - this is for ease of access - but not optimal
+        // TODO: remove this - merge kvMap and kvEnumMap
+        Dictionary<byte[], byte[]> kvMap = new (Bytes.EqualityComparer);
+        // this created a sorted structure for all the keys and the corresponding enumerators. the idea is that get
+        // the first key (sorted), remove the key, then move the enumerator to next and insert the new key and
+        // enumerator again
+        DictionarySortedSet<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> keyEnumMap = new(Bytes.Comparer);
+
         // TODO: optimize this to start from a specific blockNumber - or better yet get the list of enumerators directly
         using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator blockEnumerator =
             BlockCache.GetStackEnumerator();
-
-        while (blockEnumerator.MoveNext())
-        {
-            // enumerate till we get to the required block number
-            if(blockEnumerator.Current.Item1 > blockNumber) continue;
-
-            // TODO: here we construct a set from the LeafTable so that we can do the GetViewBetween
-            //   obviously this is very un-optimal but the idea is to replace the LeafTable with SortedSet in the
-            //   blockCache itself. The reason we want to use GetViewBetween because this is optimal to do seek
-            DictionarySortedSet<byte[], byte[]> currentSet = new (blockEnumerator.Current.Item2.LeafTable, Bytes.Comparer);
-
-            // construct the iterators that starts for the specific range using GetViewBetween
-            IEnumerator<KeyValuePair<byte[],byte[]>> enumerator = currentSet
-                .GetViewBetween(
-                    new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes),
-                    new KeyValuePair<byte[], byte[]>(toRange, Pedersen.Zero.Bytes))
-                .GetEnumerator();
-            iterators.Add(enumerator);
-        }
-
-        iterators.Add(Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator());
-
         try
         {
-            // kvMap is used to keep a map of keyValues we encounter - this is for ease of access - but not optimal
-            // TODO: remove this - merge kvMap and kvEnumMap
-            Dictionary<byte[], byte[]> kvMap = new (Bytes.EqualityComparer);
-
-            // this created a sorted structure for all the keys and the corresponding enumerators. the idea is that get
-            // the first key (sorted), remove the key, then move the enumerator to next and insert the new key and
-            // enumerator again
-            DictionarySortedSet<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> keyEnumMap = new(Bytes.Comparer);
-
-            foreach (IEnumerator<KeyValuePair<byte[], byte[]>> enumerator in iterators)
+            int iteratorPriority = 0;
+            while (blockEnumerator.MoveNext())
             {
-                if (!enumerator.MoveNext()) continue;
+                // enumerate till we get to the required block number
+                if(blockEnumerator.Current.Item1 > blockNumber) continue;
+
+                // TODO: here we construct a set from the LeafTable so that we can do the GetViewBetween
+                //   obviously this is very un-optimal but the idea is to replace the LeafTable with SortedSet in the
+                //   blockCache itself. The reason we want to use GetViewBetween because this is optimal to do seek
+                DictionarySortedSet<byte[], byte[]> currentSet = new (blockEnumerator.Current.Item2.LeafTable, Bytes.Comparer);
+
+                // construct the iterators that starts for the specific range using GetViewBetween
+                IEnumerator<KeyValuePair<byte[],byte[]>> enumerator = currentSet
+                    .GetViewBetween(
+                        new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes),
+                        new KeyValuePair<byte[], byte[]>(toRange, Pedersen.Zero.Bytes))
+                    .GetEnumerator();
+
+                if (!enumerator.MoveNext())
+                {
+                    enumerator.Dispose();
+                    continue;
+                }
+                iterators.Add(enumerator);
+
                 KeyValuePair<byte[], byte[]> current = enumerator.Current;
                 // add the new key and the corresponding enumerator
                 keyEnumMap.Add(current.Key, enumerator);
                 // add the key and corresponding value
                 kvMap.Add(current.Key, current.Value);
+            }
+
+            IEnumerator<KeyValuePair<byte[], byte[]>> kvEnum = Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator();
+            if (!kvEnum.MoveNext())
+            {
+                kvEnum.Dispose();
+            }
+            else
+            {
+                iterators.Add(kvEnum);
+
+                KeyValuePair<byte[], byte[]> kvCurrent = kvEnum.Current;
+                // add the new key and the corresponding enumerator
+                keyEnumMap.Add(kvCurrent.Key, kvEnum);
+                // add the key and corresponding value
+                kvMap.Add(kvCurrent.Key, kvCurrent.Value);
             }
 
             while (keyEnumMap.Count > 0)
