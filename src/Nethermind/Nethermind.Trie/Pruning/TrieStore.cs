@@ -502,7 +502,6 @@ namespace Nethermind.Trie.Pruning
         {
             if (_logger.IsDebug) _logger.Debug($"Pruning nodes {MemoryUsedByDirtyCache / 1.MB()}MB , last persisted block: {LastPersistedBlockNumber} current: {LatestCommittedBlockNumber}.");
             Stopwatch stopwatch = Stopwatch.StartNew();
-
             long newMemory = 0;
             foreach ((ValueKeccak key, TrieNode node) in _dirtyNodes.AllNodes)
             {
@@ -517,6 +516,12 @@ namespace Nethermind.Trie.Pruning
                             throw new InvalidOperationException($"Persisted {node} {key} != {node.Keccak}");
                         }
                     }
+
+                    if (Random.Shared.Next(300) == 0)
+                    {
+                        _keyValueStore.Set(node.Keccak!.Bytes, null);
+                    }
+
                     _dirtyNodes.Remove(node.Keccak);
 
                     Metrics.PrunedPersistedNodesCount++;
