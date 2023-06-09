@@ -58,6 +58,7 @@ public class HealingTrieStore : TrieStore
         {
             byte[]? rlp = RecoverRlpFromNetwork(keccak).GetAwaiter().GetResult();
             if (rlp is null) throw new TrieException($"Could not recover {keccak} from network", e);
+            if (_logger.IsWarn) _logger.Warn($"Recovered RLP!");
             _keyValueStore.Set(keccak.Bytes, rlp);
             return rlp;
         }
@@ -70,18 +71,18 @@ public class HealingTrieStore : TrieStore
         if (_logger.IsWarn) _logger.Warn($"Missing trie node {keccak}, trying to recover from network");
         CancellationTokenSource cts = new(_timeout);
 
-            List<KeyRecovery> keyRecoveries = await GenerateKeyRecoveries(keccak, cts);
-            try
+        List<KeyRecovery> keyRecoveries = await GenerateKeyRecoveries(keccak, cts);
+        try
+        {
+            return await CheckKeyRecoveriesResults(keyRecoveries, cts);
+        }
+        finally
+        {
+            foreach (KeyRecovery keyRecovery in keyRecoveries)
             {
-                return await CheckKeyRecoveriesResults(keyRecoveries, cts);
+                _syncPeerPool.Free(keyRecovery.Allocation);
             }
-            finally
-            {
-                foreach (KeyRecovery keyRecovery in keyRecoveries)
-                {
-                    _syncPeerPool.Free(keyRecovery.Allocation);
-                }
-            }
+        }
     }
 
     private static async Task<byte[]?> CheckKeyRecoveriesResults(List<KeyRecovery> keyRecoveries, CancellationTokenSource cts)
@@ -110,6 +111,7 @@ public class HealingTrieStore : TrieStore
         StateSyncBatch request = new(_chainHeadStateProvider!.StateRoot, NodeDataType.All, requestedNodes);
         List<KeyRecovery> keyRecoveries = await AllocatePeers(request);
 
+        if (_logger.IsWarn) _logger.Warn($"Allocated {keyRecoveries.Count} peers for recovery of {keccak}");
         using ArrayPoolList<Keccak> requestedHashes = new(1) { keccak };
         foreach (KeyRecovery keyRecovery in keyRecoveries)
         {
@@ -144,7 +146,11 @@ public class HealingTrieStore : TrieStore
         try
         {
             byte[][] rlp = await allocation.Current!.SyncPeer.GetNodeData(requestedHashes, cts.Token);
-            return rlp.Length == 1 ? rlp[0] : null;
+            if (rlp.Length == 1)
+            {
+                if (_logger.IsWarn) _logger.Warn($"Recovered RLP from peer {allocation.Current.SyncPeer} with {rlp[0].Length} bytes");
+                return rlp[0];
+            }
         }
         catch (OperationCanceledException) { }
         catch (Exception e)
