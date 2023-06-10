@@ -10,6 +10,7 @@ using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
+using LeafEnumerator = System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<byte[],byte[]>>;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -332,15 +333,15 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
     {
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
-        List<IEnumerator<KeyValuePair<byte[], byte[]>>> iterators = new();
+        List<LeafEnumerator> iterators = new();
 
         // kvMap is used to keep a map of keyValues we encounter - this is for ease of access - but not optimal
         // TODO: remove this - merge kvMap and kvEnumMap
-        Dictionary<byte[], byte[]> kvMap = new (Bytes.EqualityComparer);
+        Dictionary<byte[], KeyValuePair<int, byte[]>> kvMap = new(Bytes.EqualityComparer);
         // this created a sorted structure for all the keys and the corresponding enumerators. the idea is that get
         // the first key (sorted), remove the key, then move the enumerator to next and insert the new key and
         // enumerator again
-        DictionarySortedSet<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> keyEnumMap = new(Bytes.Comparer);
+        DictionarySortedSet<byte[], (LeafEnumerator, int)> keyEnumMap = new(Bytes.Comparer);
 
         // TODO: optimize this to start from a specific blockNumber - or better yet get the list of enumerators directly
         using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator blockEnumerator =
@@ -374,12 +375,13 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
                 KeyValuePair<byte[], byte[]> current = enumerator.Current;
                 // add the new key and the corresponding enumerator
-                keyEnumMap.Add(current.Key, enumerator);
+                keyEnumMap.Add(current.Key, (enumerator, iteratorPriority));
                 // add the key and corresponding value
-                kvMap.Add(current.Key, current.Value);
+                kvMap.Add(current.Key, new (iteratorPriority, current.Value));
+                iteratorPriority++;
             }
 
-            IEnumerator<KeyValuePair<byte[], byte[]>> kvEnum = Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator();
+            LeafEnumerator kvEnum = Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator();
             if (!kvEnum.MoveNext())
             {
                 kvEnum.Dispose();
@@ -390,35 +392,46 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
                 KeyValuePair<byte[], byte[]> kvCurrent = kvEnum.Current;
                 // add the new key and the corresponding enumerator
-                keyEnumMap.Add(kvCurrent.Key, kvEnum);
+                keyEnumMap.Add(kvCurrent.Key, (kvEnum, iteratorPriority));
                 // add the key and corresponding value
-                kvMap.Add(kvCurrent.Key, kvCurrent.Value);
+                kvMap.Add(kvCurrent.Key, new(iteratorPriority, kvCurrent.Value));
             }
 
             while (keyEnumMap.Count > 0)
             {
-
                 // get the first value from the sorted set
-                KeyValuePair<byte[], IEnumerator<KeyValuePair<byte[], byte[]>>> value = keyEnumMap.Min;
+                KeyValuePair<byte[], (LeafEnumerator, int)> value = keyEnumMap.Min;
                 // remove the corresponding element because it will be used
                 keyEnumMap.Remove(value.Key);
 
                 // get the enumerator and move it to next and insert he corresponding values
-                IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = value.Value;
+                LeafEnumerator enumerator = value.Value.Item1;
                 if (enumerator.MoveNext())
                 {
                     KeyValuePair<byte[], byte[]> current = enumerator.Current;
-                    keyEnumMap.Add(current.Key, enumerator);
-                    kvMap.Add(current.Key, current.Value);
+                    keyEnumMap.Add(current.Key, value.Value);
+
+                    // no here check if the value already exist and if the priority of value of higher or lower and
+                    // update accordingly
+                    KeyValuePair<int, byte[]> valueToInsert = new(value.Value.Item2, current.Value);
+                    if (kvMap.TryGetValue(current.Key, out KeyValuePair<int, byte[]> valueExisting))
+                    {
+                        // priority of the new value is smaller (more) than the priority of old value
+                        if (valueExisting.Key > valueToInsert.Key) kvMap.Add(current.Key, valueToInsert);
+                    }
+                    else
+                    {
+                        kvMap.Add(current.Key, valueToInsert);
+                    }
                 }
 
                 // return the value
-                yield return new KeyValuePair<byte[], byte[]> (value.Key, kvMap[value.Key]!);
+                yield return new KeyValuePair<byte[], byte[]> (value.Key, kvMap[value.Key].Value);
             }
         }
         finally
         {
-            foreach (IEnumerator<KeyValuePair<byte[], byte[]>> t in iterators) t.Dispose();
+            foreach (LeafEnumerator t in iterators) t.Dispose();
         }
     }
 
