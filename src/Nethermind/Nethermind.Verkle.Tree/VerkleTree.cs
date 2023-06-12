@@ -173,6 +173,11 @@ public partial class VerkleTree: IVerkleTree
         _leafUpdateCache[stem.ToArray()] = leafUpdateDelta;
     }
 
+    public void InsertStemBatch(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        InsertStemBatch(stem.BytesAsSpan, leafIndexValueMap);
+    }
+
     private Banderwagon UpdateLeafAndGetDelta(Pedersen key, byte[] value)
     {
         byte[]? oldValue = Get(key);

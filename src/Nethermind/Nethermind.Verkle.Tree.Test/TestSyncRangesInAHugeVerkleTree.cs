@@ -3,9 +3,12 @@
 
 using System.Diagnostics;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
+using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -18,6 +21,25 @@ public class TestSyncRangesInAHugeVerkleTree
         string tempDir = Path.GetTempPath();
         string dbname = "VerkleTrie_TestID_" + TestContext.CurrentContext.Test.ID;
         return Path.Combine(tempDir, dbname);
+    }
+
+    private static IVerkleStore GetVerkleStoreForTest(DbMode dbMode)
+    {
+        IDbProvider provider;
+        switch (dbMode)
+        {
+            case DbMode.MemDb:
+                provider = VerkleDbFactory.InitDatabase(dbMode, null);
+                break;
+            case DbMode.PersistantDb:
+                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
+                break;
+            case DbMode.ReadOnlyDb:
+            default:
+                throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
+        }
+
+        return new VerkleStateStore(provider, LimboLogs.Instance);
     }
 
     private static VerkleTree GetVerkleTreeForTest(DbMode dbMode)
@@ -44,6 +66,29 @@ public class TestSyncRangesInAHugeVerkleTree
         if (Directory.Exists(dbPath))
         {
             Directory.Delete(dbPath, true);
+        }
+    }
+
+    [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
+    public void CreateBigVerkleTree(DbMode dbMode)
+    {
+        const int pathPoolCount = 100_000;
+
+        IVerkleStore store = TestItem.GetVerkleStore(dbMode);
+        VerkleTree tree = new(store, LimboLogs.Instance);
+
+        TestItem.InsertBigVerkleTree(tree, 200, 10, pathPoolCount, out SortedDictionary<Pedersen, byte[]> leafs);
+
+        Pedersen[] keysArray = leafs.Keys.ToArray();
+        int keyLength = keysArray.Length;
+        using IEnumerator<KeyValuePair<byte[], byte[]>> rangeEnum =
+            tree._verkleStateStore.GetLeafRangeIterator(keysArray[keyLength/4].Bytes, keysArray[(keyLength*2)/3].Bytes, 180).GetEnumerator();
+
+        while (rangeEnum.MoveNext())
+        {
+            Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafs[rangeEnum.Current.Key].ToHexString()}");
+            Assert.That(rangeEnum.Current.Value.SequenceEqual(leafs[rangeEnum.Current.Key]), Is.True);
         }
     }
 
@@ -99,14 +144,13 @@ public class TestSyncRangesInAHugeVerkleTree
 
 
         byte[][] keysArray = keys.ToArray();
-        VerkleStateStore store = tree._verkleStateStore as VerkleStateStore;
-        using IEnumerator<KeyValuePair<byte[], byte[]?>> rangeEnum =
-            store.GetLeafRangeIterator(keysArray[30], keysArray[90], 180).GetEnumerator();
+        using IEnumerator<KeyValuePair<byte[], byte[]>> rangeEnum =
+            tree._verkleStateStore.GetLeafRangeIterator(keysArray[30], keysArray[90], 180).GetEnumerator();
 
         while (rangeEnum.MoveNext())
         {
             Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} Value:{rangeEnum.Current.Value.ToHexString()}");
-            Assert.IsTrue(rangeEnum.Current.Value.SequenceEqual(kvMap[rangeEnum.Current.Key]));
+            Assert.That(rangeEnum.Current.Value.SequenceEqual(kvMap[rangeEnum.Current.Key]), Is.True);
         }
     }
 }
