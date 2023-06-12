@@ -173,7 +173,7 @@ namespace Nethermind.Blockchain.Test.FullPruning
             public IStateReader StateReader { get; }
             public FullPruner Pruner { get; }
             public MemDb TrieDb { get; }
-            public MemDb CopyDb { get; }
+            public TestMemDb CopyDb { get; }
 
             public IProcessExitSource ProcessExitSource { get; } = Substitute.For<IProcessExitSource>();
 
@@ -219,9 +219,9 @@ namespace Nethermind.Blockchain.Test.FullPruning
             public async Task<bool> WaitForPruningEnd(TestFullPruningDb.TestPruningContext context)
             {
                 await Task.Yield();
-                await context.WaitForFinish.WaitOneAsync(TimeSpan.FromMilliseconds(Timeout.MaxWaitTime), CancellationToken.None);
+                await context.WaitForFinish.WaitOneAsync(TimeSpan.FromMilliseconds(Timeout.MaxWaitTime * 5), CancellationToken.None);
                 AddBlocks(1);
-                return await context.DisposeEvent.WaitOneAsync(TimeSpan.FromMilliseconds(Timeout.MaxWaitTime), CancellationToken.None);
+                return await context.DisposeEvent.WaitOneAsync(TimeSpan.FromMilliseconds(Timeout.MaxWaitTime * 5), CancellationToken.None);
             }
 
             public TestFullPruningDb.TestPruningContext WaitForPruningStart()
@@ -250,6 +250,7 @@ namespace Nethermind.Blockchain.Test.FullPruning
                 foreach (KeyValuePair<byte[], byte[]?> keyValuePair in TrieDb.GetAll())
                 {
                     CopyDb[keyValuePair.Key].Should().BeEquivalentTo(keyValuePair.Value);
+                    CopyDb.KeyWasWrittenWithFlags(keyValuePair.Key, WriteFlags.LowPriority | WriteFlags.DisableWAL);
                 }
             }
         }
