@@ -71,24 +71,89 @@ public class TestSyncRangesInAHugeVerkleTree
 
     [TestCase(DbMode.MemDb)]
     [TestCase(DbMode.PersistantDb)]
-    public void CreateBigVerkleTree(DbMode dbMode)
+    public void GetSyncRangeForBigVerkleTree(DbMode dbMode)
     {
         const int pathPoolCount = 100_000;
+        const int numBlocks = 200;
+        const int leafPerBlock = 10;
+        const int blockToGetIteratorFrom = 180;
 
         IVerkleStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
-        TestItem.InsertBigVerkleTree(tree, 200, 10, pathPoolCount, out SortedDictionary<Pedersen, byte[]> leafs);
+        Pedersen[] pathPool = new Pedersen[pathPoolCount];
+        SortedDictionary<Pedersen, byte[]> leafs = new();
+        SortedDictionary<Pedersen, byte[]> leafsForSync = new();
+
+        for (int i = 0; i < pathPoolCount; i++)
+        {
+            byte[] key = new byte[32];
+            ((UInt256)i).ToBigEndian(key);
+            Pedersen keccak = new Pedersen(key);
+            pathPool[i] = keccak;
+        }
+
+
+        for (int leafIndex = 0; leafIndex < 10000; leafIndex++)
+        {
+            byte[] value = new byte[32];
+            Random.NextBytes(value);
+            Pedersen path = pathPool[Random.Next(pathPool.Length - 1)];
+            tree.Insert(path, value);
+            leafs[path] = value;
+            leafsForSync[path] = value;
+        }
+
+        tree.Commit();
+        tree.CommitTree(0);
+
+
+        for (int blockNumber = 1; blockNumber <= numBlocks; blockNumber++)
+        {
+            for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
+            {
+                byte[] leafValue = new byte[32];
+
+                Random.NextBytes(leafValue);
+                Pedersen path = pathPool[Random.Next(pathPool.Length - 1)];
+
+                if (leafs.ContainsKey(path))
+                {
+                    if (!(Random.NextSingle() > 0.5)) continue;
+                    Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
+                    tree.Insert(path, leafValue);
+                    leafs[path] = leafValue;
+                    if(blockToGetIteratorFrom >= blockNumber) leafsForSync[path] = leafValue;
+                    Console.WriteLine("new values");
+                }
+                else
+                {
+                    Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
+                    tree.Insert(path, leafValue);
+                    leafs[path] = leafValue;
+                    if(blockToGetIteratorFrom >= blockNumber) leafsForSync[path] = leafValue;
+                }
+            }
+
+            tree.Commit();
+            tree.CommitTree(blockNumber);
+        }
+
 
         Pedersen[] keysArray = leafs.Keys.ToArray();
         int keyLength = keysArray.Length;
         using IEnumerator<KeyValuePair<byte[], byte[]>> rangeEnum =
-            tree._verkleStateStore.GetLeafRangeIterator(keysArray[keyLength/4].Bytes, keysArray[(keyLength*2)/3].Bytes, 180).GetEnumerator();
+            tree._verkleStateStore
+                .GetLeafRangeIterator(
+                keysArray[keyLength/4].Bytes,
+                keysArray[(keyLength*2)/3].Bytes, 180)
+                .GetEnumerator();
+
 
         while (rangeEnum.MoveNext())
         {
-            Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafs[rangeEnum.Current.Key].ToHexString()}");
-            Assert.That(rangeEnum.Current.Value.SequenceEqual(leafs[rangeEnum.Current.Key]), Is.True);
+            Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
+            Assert.That(rangeEnum.Current.Value.SequenceEqual(leafsForSync[rangeEnum.Current.Key]), Is.True);
         }
     }
 
