@@ -16,6 +16,11 @@ public partial class EngineRpcModule : IEngineRpcModule
 
     public Task<ResultWrapper<PayloadStatusV1>> engine_newPayloadV3(ExecutionPayload executionPayload, byte[][]? blobVersionedHashes = null)
     {
+        if (!_specProvider.GetSpec(executionPayload.BlockNumber, executionPayload.Timestamp).IsEip4844Enabled)
+        {
+            return engine_newPayloadV2(executionPayload);
+        }
+
         if (blobVersionedHashes is null)
         {
             string error = "Blob versioned hashes must be set";
