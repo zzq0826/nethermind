@@ -378,6 +378,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
                         iterators.Add(enumerator);
                         // add the new key and the corresponding enumerator
                         keyEnumMap.Add(current.Key, new(enumerator, iteratorPriority));
+                        break;
                     }
                 }
                 if (!isIteratorUsed)
@@ -400,6 +401,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
                     iterators.Add(persistentLeafsIterator);
                     // add the new key and the corresponding enumerator
                     keyEnumMap.Add(current.Key, new (persistentLeafsIterator, iteratorPriority));
+                    break;
                 }
             }
             if (!isPersistentIteratorUsed)
@@ -459,8 +461,11 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
                 // get the enumerator and move it to next and insert the corresponding values recursively
                 InsertAndMoveIteratorRecursive(value.Value);
 
+                byte[] returnValue = kvMap[value.Key].Value;
+                kvMap.Remove(value.Key);
+
                 // return the value
-                yield return new KeyValuePair<byte[], byte[]> (value.Key, kvMap[value.Key].Value);
+                yield return new KeyValuePair<byte[], byte[]> (value.Key, returnValue);
             }
         }
         finally
