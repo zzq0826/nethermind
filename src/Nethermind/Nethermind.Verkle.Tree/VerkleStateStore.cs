@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
+using DotNetty.Common.Utilities;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -330,6 +331,47 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return true;
     }
 
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Pedersen stateRoot, long bytes)
+    {
+        if(bytes == 0)  yield break;
+
+        long blockNumber = _stateRootToBlocks[stateRoot];
+        byte[] fromRangeBytes = new byte[32];
+        byte[] toRangeBytes = new byte[32];
+        fromRange.BytesAsSpan.CopyTo(fromRangeBytes);
+        toRange.BytesAsSpan.CopyTo(toRangeBytes);
+        fromRangeBytes[31] = 0;
+        toRangeBytes[31] = 255;
+
+        using LeafEnumerator enumerator = GetLeafRangeIterator(fromRangeBytes, toRangeBytes, blockNumber).GetEnumerator();
+
+        int usedBytes = 0;
+
+        HashSet<Stem> listOfStem = new();
+        Stem currentStem = fromRange;
+        List<LeafInSubTree> subTree = new(256);
+
+        while (enumerator.MoveNext())
+        {
+            KeyValuePair<byte[], byte[]> current = enumerator.Current;
+            if (listOfStem.Contains(current.Key.Slice(0,31)))
+            {
+                subTree.Add(new LeafInSubTree(current.Key[31], current.Value));
+                usedBytes += 31;
+            }
+            else
+            {
+                if (subTree.Count != 0) yield return new PathWithSubTree(currentStem, subTree.ToArray());
+                if (usedBytes >= bytes) break;
+
+                currentStem = new Stem(current.Key.Slice(0,31).ToArray());
+                listOfStem.Add(currentStem);
+                subTree.Add(new LeafInSubTree(current.Key[31], current.Value));
+                usedBytes += 31 + 33;
+            }
+        }
+    }
+
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
     {
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
@@ -535,7 +577,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
     {
         long blockNumber = _stateRootToBlocks[stateRoot];
-        using IEnumerator<KeyValuePair<byte[], byte[]?>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
+        using IEnumerator<KeyValuePair<byte[], byte[]>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
 
         long currentBytes = 0;
 

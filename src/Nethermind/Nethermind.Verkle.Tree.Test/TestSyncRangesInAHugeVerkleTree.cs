@@ -8,6 +8,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
@@ -108,6 +109,7 @@ public class TestSyncRangesInAHugeVerkleTree
         tree.CommitTree(0);
 
 
+        Pedersen stateRoot180 = Pedersen.Zero;
         for (int blockNumber = 1; blockNumber <= numBlocks; blockNumber++)
         {
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
@@ -137,6 +139,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
             tree.Commit();
             tree.CommitTree(blockNumber);
+            if (blockNumber == blockToGetIteratorFrom) stateRoot180 = tree.StateRoot;
         }
 
 
@@ -155,6 +158,23 @@ public class TestSyncRangesInAHugeVerkleTree
             Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
             Assert.That(rangeEnum.Current.Value.SequenceEqual(leafsForSync[rangeEnum.Current.Key]), Is.True);
         }
+
+        using IEnumerator<PathWithSubTree> rangeEnumSized =
+            tree._verkleStateStore
+                .GetLeafRangeIterator(
+                    keysArray[keyLength/4].StemAsSpan.ToArray(),
+                    keysArray[(keyLength*2)/3].StemAsSpan.ToArray(), stateRoot180, 1000)
+                .GetEnumerator();
+
+
+        while (rangeEnumSized.MoveNext())
+        {
+            Console.WriteLine($"{rangeEnumSized.Current.Path}");
+            // Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
+            // Assert.That(rangeEnum.Current.Value.SequenceEqual(leafsForSync[rangeEnum.Current.Key]), Is.True);
+        }
+
+
     }
 
 

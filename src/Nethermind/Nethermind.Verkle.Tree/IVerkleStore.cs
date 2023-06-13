@@ -72,7 +72,6 @@ public interface IVerkleSyncTireStore
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange,
         byte[] toRange, long blockNumber);
 
-    public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange,
-        byte[] toRange, Pedersen stateRoot, long bytes);
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Pedersen stateRoot, long bytes);
 }
 

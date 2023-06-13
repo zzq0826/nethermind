@@ -82,12 +82,12 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
         return _verkleStateStore.IsFullySynced(stateRoot);
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]?>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, blockNumber);
     }
 
-    public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Pedersen stateRoot, long bytes)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }

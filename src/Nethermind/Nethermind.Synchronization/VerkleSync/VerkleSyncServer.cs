@@ -35,7 +35,7 @@ public class VerkleSyncServer
     public (List<PathWithSubTree>, VerkleProof) GetSubTreeRanges(Pedersen rootHash, Stem startingStem, Stem? limitStem, long byteLimit, out Banderwagon rootPoint)
     {
         rootPoint = default;
-        List<PathWithSubTree>? nodes = _store.GetLeafRangeIterator(startingStem.Bytes, limitStem.Bytes, rootHash, byteLimit);
+        List<PathWithSubTree>? nodes = _store.GetLeafRangeIterator(startingStem, limitStem?? Stem.MaxValue, rootHash, byteLimit).ToList();
 
         if (nodes is null) return (new List<PathWithSubTree>(), new VerkleProof());
 
