@@ -70,34 +70,33 @@ public partial class VerkleTree
                 .InternalCommitment.Point;
         }
     }
-    // public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
-    // {
-    //     (bool, UpdateHint?) verification = Verify(proof, keys, values, root);
-    //     if (!verification.Item1) return false;
-    //
-    //     InsertAfterVerification(verification.Item2!.Value, keys, values, root, false);
-    //     return true;
-    // }
+    public bool InsertIntoStatelessTree(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root)
+    {
+        bool verification = VerifyVerkleProof(proof, keys, values, root, out UpdateHint? updateHint);
+        if (!verification) return false;
+        InsertAfterVerification(updateHint!.Value, keys, values, root, false);
+        return true;
+    }
 
-    // public void InsertAfterVerification(UpdateHint hint, List<byte[]> keys, List<byte[]?> values, Banderwagon root, bool skipRoot = true)
-    // {
-    //     if (!skipRoot)
-    //     {
-    //         InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
-    //         SetInternalNode(Array.Empty<byte>(), rootNode);
-    //     }
-    //
-    //     AddStatelessInternalNodes(hint);
-    //
-    //     for (int i = 0; i < keys.Count; i++)
-    //     {
-    //         byte[]? value = values[i];
-    //         if(value is null) continue;
-    //         Set(keys[i], value);
-    //     }
-    // }
+    public void InsertAfterVerification(UpdateHint hint, List<byte[]> keys, List<byte[]?> values, Banderwagon root, bool skipRoot = true)
+    {
+        if (!skipRoot)
+        {
+            InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
+            SetInternalNode(Array.Empty<byte>(), rootNode);
+        }
 
-    public void AddStatelessInternalNodes(UpdateHint hint, Dictionary<byte[], LeafUpdateDelta> subTrees)
+        AddStatelessInternalNodes(hint);
+
+        for (int i = 0; i < keys.Count; i++)
+        {
+            byte[]? value = values[i];
+            if(value is null) continue;
+            Set(keys[i], value);
+        }
+    }
+
+    public void AddStatelessInternalNodes(UpdateHint hint)
     {
         List<byte> pathList = new();
         foreach ((Stem stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
