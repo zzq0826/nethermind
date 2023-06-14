@@ -23,7 +23,6 @@ namespace Nethermind.Synchronization.VerkleSync;
 public class VerkleSyncProvider: IVerkleSyncProvider
 {
     private readonly ObjectPool<IVerkleStore> _trieStorePool;
-    private readonly IDbProvider _dbProvider;
     private readonly ILogManager _logManager;
     private readonly ILogger _logger;
 
@@ -31,9 +30,9 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public VerkleSyncProvider(VerkleProgressTracker progressTracker, IDbProvider dbProvider, ILogManager logManager)
     {
-        _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
+        IDbProvider dbProvider1 = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-        _trieStorePool = new DefaultObjectPool<IVerkleStore>(new TrieStorePoolPolicy(_dbProvider, logManager));
+        _trieStorePool = new DefaultObjectPool<IVerkleStore>(new TrieStorePoolPolicy(dbProvider1, logManager));
 
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _logger = logManager.GetClassLogger();
@@ -47,7 +46,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
         if (response.SubTrees.Length == 0 && response.Proofs.Length == 0)
         {
-            _logger.Trace($"VERKLE_SYNC - GetSubTreeRange - requested expired RootHash:{request.RootHash}");
+            if(_logger.IsTrace) _logger.Trace($"VERKLE_SYNC - GetSubTreeRange - requested expired RootHash:{request.RootHash}");
 
             result = AddRangeResult.ExpiredRootHash;
         }
@@ -80,7 +79,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
                     subTrees);
             if (!correct)
             {
-                _logger.Trace(
+                if(_logger.IsTrace) _logger.Trace(
                     $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem}");
                 return AddRangeResult.DifferentRootHash;
             }
