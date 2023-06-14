@@ -4,10 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Nethermind.Core.Crypto;
 using Nethermind.Logging;
-using Nethermind.Serialization.Rlp;
-using Nethermind.State;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Proofs;
@@ -35,8 +32,9 @@ public class VerkleSyncServer
     public (List<PathWithSubTree>, VerkleProof) GetSubTreeRanges(Pedersen rootHash, Stem startingStem, Stem? limitStem, long byteLimit, out Banderwagon rootPoint)
     {
         rootPoint = default;
+        if(_logger.IsDebug) _logger.Debug($"Getting SubTreeRanges - RH:{rootHash} S:{startingStem} L:{limitStem} Bytes:{byteLimit}");
         List<PathWithSubTree> nodes = _store.GetLeafRangeIterator(startingStem, limitStem?? Stem.MaxValue, rootHash, byteLimit).ToList();
-
+        if(_logger.IsDebug) _logger.Debug($"Nodes Count - {nodes.Count}");
         if (nodes.Count == 0) return (new List<PathWithSubTree>(), new VerkleProof());
 
         VerkleTree tree = new (_store, _logManager);
