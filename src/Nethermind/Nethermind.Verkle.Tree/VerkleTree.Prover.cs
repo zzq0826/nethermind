@@ -3,6 +3,8 @@
 
 using System.Data;
 using System.Diagnostics;
+using Nethermind.Core;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -18,6 +20,28 @@ public partial class VerkleTree
 {
     private Dictionary<byte[], FrE[]> ProofBranchPolynomialCache { get; }
     private Dictionary<Stem, SuffixPoly> ProofStemPolynomialCache { get; }
+
+    public ExecutionWitness GenerateExecutionWitness(List<byte[]> keys, out Banderwagon rootPoint)
+    {
+        VerkleProof proof = CreateVerkleProof(keys, out rootPoint);
+
+        SpanDictionary<byte, List<SuffixStateDiff>> stemStateDiff = new(Bytes.SpanEqualityComparer);
+        foreach (byte[] key in keys)
+        {
+            SuffixStateDiff suffixData = new() { Suffix = key[31], CurrentValue = Get(key) };
+            if (!stemStateDiff.TryGetValue(key.Slice(0, 31), out List<SuffixStateDiff>? suffixStateDiffList))
+            {
+                suffixStateDiffList = new();
+                stemStateDiff.TryAdd(key.Slice(0, 31), suffixStateDiffList);
+            }
+            suffixStateDiffList.Add(suffixData);
+        }
+
+        List<StemStateDiff> stemStateDiffList = stemStateDiff.Select(stemStateDiffData =>
+            new StemStateDiff { Stem = stemStateDiffData.Key, SuffixDiffs = stemStateDiffData.Value }).ToList();
+
+        return new ExecutionWitness { Proof = proof, StateDiff = new StateDiff { SuffixDiffs = stemStateDiffList } };
+    }
 
     public VerkleProof CreateVerkleProof(List<byte[]> keys, out Banderwagon rootPoint)
     {
