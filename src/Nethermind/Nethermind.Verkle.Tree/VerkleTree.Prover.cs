@@ -21,7 +21,7 @@ public partial class VerkleTree
     private Dictionary<byte[], FrE[]> ProofBranchPolynomialCache { get; }
     private Dictionary<Stem, SuffixPoly> ProofStemPolynomialCache { get; }
 
-    public ExecutionWitness GenerateExecutionWitness(List<byte[]> keys, out Banderwagon rootPoint)
+    public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
     {
         VerkleProof proof = CreateVerkleProof(keys, out rootPoint);
 
@@ -43,13 +43,13 @@ public partial class VerkleTree
         return new ExecutionWitness { Proof = proof, StateDiff = new StateDiff { SuffixDiffs = stemStateDiffList } };
     }
 
-    public VerkleProof CreateVerkleProof(List<byte[]> keys, out Banderwagon rootPoint)
+    public VerkleProof CreateVerkleProof(byte[][] keys, out Banderwagon rootPoint)
     {
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
 
         Dictionary<Stem, byte> depthsByStem = new();
-        ExtPresent[] extStatus = new ExtPresent[keys.Count];
+        ExtPresent[] extStatus = new ExtPresent[keys.Length];
 
         // generate prover path for keys
         Dictionary<byte[], HashSet<byte>> neededOpenings = new(Bytes.EqualityComparer);

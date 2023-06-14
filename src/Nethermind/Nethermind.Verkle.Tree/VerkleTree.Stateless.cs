@@ -96,6 +96,29 @@ public partial class VerkleTree
         }
     }
 
+    public bool InsertIntoStatelessTree(ExecutionWitness execWitness, Banderwagon root, bool skipRoot = true)
+    {
+        bool isVerified = VerkleTree.VerifyVerkleProof(execWitness, root, out UpdateHint? updateHint);
+        if (!isVerified) return false;
+
+        if (!skipRoot)
+        {
+            InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
+            SetInternalNode(Array.Empty<byte>(), rootNode);
+        }
+
+        AddStatelessInternalNodes(updateHint.Value);
+
+        foreach (StemStateDiff stemStateDiff in execWitness.StateDiff.SuffixDiffs)
+        {
+            InsertStemBatch(stemStateDiff.Stem,
+                stemStateDiff.SuffixDiffs.Select(x => new LeafInSubTree(x.Suffix, x.CurrentValue)));
+        }
+
+        return true;
+
+    }
+
     public void AddStatelessInternalNodes(UpdateHint hint)
     {
         List<byte> pathList = new();

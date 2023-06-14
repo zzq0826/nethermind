@@ -105,6 +105,13 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         return AddRangeResult.OK;
     }
 
+    public bool HealTheTreeFromExecutionWitness(ExecutionWitness execWitness, Banderwagon root)
+    {
+        IVerkleStore store = _trieStorePool.Get();
+        VerkleTree tree = new (store, LimboLogs.Instance);
+        return tree.InsertIntoStatelessTree(execWitness, root, false);
+    }
+
     public void RefreshLeafs(LeafToRefreshRequest request, byte[][] response)
     {
         throw new NotImplementedException();
