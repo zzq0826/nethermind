@@ -101,9 +101,9 @@ public partial class VerkleTree
             case VerkleNodeType.StemNode:
                 {
                     visitor.VisitStemNode(node, trieVisitContext);
-                    byte[] stemKey = node.Stem;
+                    Stem stemKey = node.Stem;
                     Span<byte> childKey = stackalloc byte[32];
-                    stemKey.CopyTo(childKey);
+                    stemKey.Bytes.CopyTo(childKey);
                     trieVisitContext.Level++;
                     for (int i = 0; i < 256; i++)
                     {

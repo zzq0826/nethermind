@@ -36,14 +36,14 @@ public class InternalNode
 
     private static readonly Banderwagon _initFirstElementCommitment = Committer.ScalarMul(FrE.One, 0);
 
-    public byte[]? Stem { get; }
+    public Stem? Stem { get; }
 
     public InternalNode Clone()
     {
         return NodeType switch
         {
             VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
-            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, (byte[])Stem!.Clone(), C1!.Dup(), C2!.Dup(), InternalCommitment.Dup()),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, Stem, C1!.Dup(), C2!.Dup(), InternalCommitment.Dup()),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -60,7 +60,7 @@ public class InternalNode
         InternalCommitment = commitment;
     }
 
-    public InternalNode(VerkleNodeType nodeType, byte[] stem)
+    public InternalNode(VerkleNodeType nodeType, Stem stem)
     {
         NodeType = nodeType;
         Stem = stem;
@@ -72,7 +72,7 @@ public class InternalNode
         InitCommitmentHash = InternalCommitment.PointAsField;
     }
 
-    public InternalNode(VerkleNodeType nodeType, byte[] stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
+    public InternalNode(VerkleNodeType nodeType, Stem stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
     {
         NodeType = nodeType;
         Stem = stem;
@@ -81,7 +81,7 @@ public class InternalNode
         InternalCommitment = internalCommitment;
     }
 
-    internal InternalNode(VerkleNodeType nodeType, byte[] stem, byte[] c1, byte[] c2, byte[] extCommit)
+    internal InternalNode(VerkleNodeType nodeType, Stem stem, byte[] c1, byte[] c2, byte[] extCommit)
     {
         NodeType = nodeType;
         Stem = stem;
@@ -93,7 +93,7 @@ public class InternalNode
     private Banderwagon GetInitialCommitment()
     {
         return _initFirstElementCommitment +
-               Committer.ScalarMul(FrE.FromBytesReduced(Stem!.Reverse().ToArray()), 1);
+               Committer.ScalarMul(FrE.FromBytesReduced(Stem!.Bytes.Reverse().ToArray()), 1);
     }
 
     public FrE UpdateCommitment(Banderwagon point)

@@ -17,17 +17,17 @@ public static class VerkleNodes
         return new InternalNode(VerkleNodeType.BranchNode, commitment);
     }
 
-    public static InternalNode CreateStatelessStemNode(byte[] stem, Commitment internalCommitment)
+    public static InternalNode CreateStatelessStemNode(Stem stem, Commitment internalCommitment)
     {
         return new(VerkleNodeType.StemNode, stem, null, null, internalCommitment) { IsStateless = true };
     }
 
-    public static InternalNode CreateStatelessStemNode(byte[] stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
+    public static InternalNode CreateStatelessStemNode(Stem stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
     {
         return new(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment) { IsStateless = true };
     }
 
-    public static InternalNode CreateStatelessStemNode(byte[] stem)
+    public static InternalNode CreateStatelessStemNode(Stem stem)
     {
         return new(VerkleNodeType.StemNode, stem) { IsStateless = true };
     }

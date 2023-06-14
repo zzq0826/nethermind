@@ -50,7 +50,7 @@ public class InternalNodeSerializer : IRlpStreamDecoder<InternalNode>, IRlpObjec
                 break;
             case VerkleNodeType.StemNode:
                 stream.WriteByte((byte)VerkleNodeType.StemNode);
-                stream.Write(item.Stem!);
+                stream.Write(item.Stem!.Bytes);
                 stream.Write(item.C1!.Point.ToBytes());
                 stream.Write(item.C2!.Point.ToBytes());
                 stream.Write(item.InternalCommitment.Point.ToBytes());

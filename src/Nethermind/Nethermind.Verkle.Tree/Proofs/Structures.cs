@@ -8,6 +8,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Proofs;
 
@@ -101,9 +102,9 @@ public struct VerificationHint
 
 public struct UpdateHint
 {
-    public Dictionary<byte[], (ExtPresent, byte)> DepthAndExtByStem { get; set; }
+    public Dictionary<Stem, (ExtPresent, byte)> DepthAndExtByStem { get; set; }
     public Dictionary<List<byte>, Banderwagon> CommByPath { get; set; }
-    public SortedDictionary<List<byte>, byte[]> DifferentStemNoProof { get; set; }
+    public SortedDictionary<List<byte>, Stem> DifferentStemNoProof { get; set; }
 }
 
 public enum ExtPresent : byte

@@ -10,52 +10,63 @@ using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
 using Nethermind.Verkle.Proofs;
 using Nethermind.Verkle.Tree.Proofs;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    private static byte[][] GetStemsFromKeys(Span<byte[]> keys, int numberOfStems)
+    private static Stem[] GetStemsFromKeys(Span<byte[]> keys, int numberOfStems)
     {
-        byte[][] stems = new byte[numberOfStems][];
-        int stemIndex = 1;
+        Stem[] stems = new Stem[numberOfStems];
         stems[0] = keys[0][..31];
-        IEqualityComparer<byte[]> comparer = Bytes.EqualityComparer;
+
+        int stemIndex = 1;
         for (int i = 1; i < keys.Length; i++)
         {
             byte[] currentStem = keys[i][..31];
-            if(comparer.Equals(stems[stemIndex-1], currentStem)) continue;
+            if (stems[stemIndex - 1].Equals(currentStem)) continue;
             stems[stemIndex++] = currentStem;
         }
         return stems;
     }
 
-    public static bool VerifyVerkleProof(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
+    public static bool VerifyVerkleProof(
+        IpaProofStruct ipaProof,
+        Banderwagon d,
+        Banderwagon[] commsSorted,
+        byte[] depths,
+        ExtPresent[] extensionPresent,
+        Stem[] differentStemNoProof,
+        List<byte[]> keys,
+        List<byte[]?> values,
+        Banderwagon root,
+        [NotNullWhen(true)]out UpdateHint? updateHint)
     {
         updateHint = null;
 
-        int numberOfStems = proof.VerifyHint.Depths.Length;
+        int numberOfStems = depths.Length;
 
         // sorted commitments including root
-        List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { root };
-        commSortedByPath.AddRange(proof.CommsSorted);
+        List<Banderwagon> commSortedByPath = new(commsSorted.Length + 1) { root };
+        commSortedByPath.AddRange(commsSorted);
 
-        byte[][] stems = GetStemsFromKeys(CollectionsMarshal.AsSpan(keys), numberOfStems);
+        Stem[] stems = GetStemsFromKeys(CollectionsMarshal.AsSpan(keys), numberOfStems);
 
         // map stems to depth and extension status and create a list of stem with extension present
-        Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
-        HashSet<byte[]> stemsWithExtension = new(Bytes.EqualityComparer);
+        Dictionary<Stem, (ExtPresent, byte)> depthsAndExtByStem = new();
+        HashSet<Stem> stemsWithExtension = new();
         for (int i = 0; i < numberOfStems; i++)
         {
-            ExtPresent extPresent = proof.VerifyHint.ExtensionPresent[i];
-            depthsAndExtByStem.Add(stems[i], (extPresent, proof.VerifyHint.Depths[i]));
+            ExtPresent extPresent = extensionPresent[i];
+            depthsAndExtByStem.Add(stems[i], (extPresent, depths[i]));
             if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
         }
 
         SortedSet<List<byte>> allPaths = new(new ListComparer());
         SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
         Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
-        SortedDictionary<List<byte>, byte[]> otherStemsByPrefix = new(new ListComparer());
+        SortedDictionary<List<byte>, Stem> otherStemsByPrefix = new(new ListComparer());
         foreach ((byte[] key, byte[]? value) in keys.Zip(values))
         {
             byte[] stem = key[..31];
@@ -80,23 +91,23 @@ public partial class VerkleTree
 
                     Debug.Assert(depth != stem.Length);
 
-                    byte[] otherStem;
+                    Stem otherStem;
 
                     // find the stems that are equal to the stem we are assuming to be without extension
                     // this happens when we initially added this stem when we were searching for another one
                     // but then in a future key, we found that we needed this stem too.
-                    byte[][] found = stemsWithExtension.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
+                    Stem[] found = stemsWithExtension.Where(x => x.BytesAsSpan[..depth].SequenceEqual(stem[..depth])).ToArray();
 
                     switch (found.Length)
                     {
                         case 0:
-                            found = proof.VerifyHint.DifferentStemNoProof.Where(x => x[..depth].SequenceEqual(stem[..depth])).ToArray();
-                            byte[] encounteredStem = found[^1];
+                            found = differentStemNoProof.Where(x => x.BytesAsSpan[..depth].SequenceEqual(stem[..depth])).ToArray();
+                            Stem encounteredStem = found[^1];
                             otherStem = encounteredStem;
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
                             leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
-                            leafValuesByPathAndZ.Add((new List<byte>(stem[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Reverse().ToArray()));
+                            leafValuesByPathAndZ.Add((new List<byte>(stem[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Bytes.Reverse().ToArray()));
                             break;
                         case 1:
                             otherStem = found[0];
@@ -155,7 +166,7 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        bool isTrue = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        bool isTrue = VerifyVerkleProofStruct(new VerkleProofStruct(ipaProof, d), allPathsAndZs, leafValuesByPathAndZ, commByPath);
         updateHint = new UpdateHint
         {
             DepthAndExtByStem = depthsAndExtByStem,
@@ -164,6 +175,14 @@ public partial class VerkleTree
         };
 
         return isTrue;
+    }
+
+    public static bool VerifyVerkleProof(VerkleProof proof, List<byte[]> keys, List<byte[]?> values, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
+    {
+        return VerifyVerkleProof(proof.Proof.IpaProof, proof.Proof.D, proof.CommsSorted, proof.VerifyHint.Depths,
+            proof.VerifyHint.ExtensionPresent, proof.VerifyHint.DifferentStemNoProof.Select(x => new Stem(x)).ToArray(),
+            keys, values, root,
+            out updateHint);
     }
 
     private static bool VerifyVerkleProofStruct(VerkleProofStruct proof, SortedSet<(List<byte>, byte)> allPathsAndZs, Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ,  Dictionary<List<byte>, Banderwagon> commByPath)

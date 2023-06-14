@@ -53,7 +53,7 @@ public partial class VerkleTree: IVerkleTree
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
-        ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
+        ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
 
     public VerkleTree(IVerkleStore verkleStateStore, ILogManager logManager)
@@ -64,7 +64,7 @@ public partial class VerkleTree: IVerkleTree
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
         _stateRoot = _verkleStateStore.RootHash;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
-        ProofStemPolynomialCache = new Dictionary<byte[], SuffixPoly>(Bytes.EqualityComparer);
+        ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
 
     public bool MoveToStateRoot(Pedersen stateRoot)
@@ -263,7 +263,7 @@ public partial class VerkleTree: IVerkleTree
         SetInternalNode(RootKey, newRoot);
     }
 
-    private InternalNode? GetInternalNode(byte[] nodeKey)
+    private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey)
     {
         return _treeCache.GetInternalNode(nodeKey, out InternalNode? value)
             ? value
@@ -331,7 +331,7 @@ public partial class VerkleTree: IVerkleTree
         Debug.Assert(node.IsStem);
 
         (List<byte> sharedPath, byte? pathDiffIndexOld, byte? pathDiffIndexNew) =
-            VerkleUtils.GetPathDifference(node.Stem!, traverseContext.Stem.ToArray());
+            VerkleUtils.GetPathDifference(node.Stem!.Bytes, traverseContext.Stem.ToArray());
 
         if (sharedPath.Count != 31)
         {

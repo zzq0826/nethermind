@@ -100,17 +100,17 @@ public partial class VerkleTree
     public void AddStatelessInternalNodes(UpdateHint hint, Dictionary<byte[], LeafUpdateDelta> subTrees)
     {
         List<byte> pathList = new();
-        foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
+        foreach ((Stem stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
         {
             pathList.Clear();
             for (int i = 0; i < depth - 1; i++)
             {
-                pathList.Add(stem[i]);
+                pathList.Add(stem.Bytes[i]);
                 InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList]));
                 SetInternalNode(pathList.ToArray(), node);
             }
 
-            pathList.Add(stem[depth-1]);
+            pathList.Add(stem.Bytes[depth-1]);
 
             InternalNode stemNode;
             byte[] pathOfStem;
@@ -121,7 +121,7 @@ public partial class VerkleTree
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.DifferentStem:
-                    byte[] otherStem = hint.DifferentStemNoProof[pathList];
+                    Stem otherStem = hint.DifferentStemNoProof[pathList];
                     Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
                     stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
