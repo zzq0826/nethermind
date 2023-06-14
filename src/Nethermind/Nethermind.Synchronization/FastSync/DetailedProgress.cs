@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
@@ -44,11 +46,14 @@ namespace Nethermind.Synchronization.FastSync
 
         internal (DateTime small, DateTime full) LastReportTime = (DateTime.MinValue, DateTime.MinValue);
 
-        private readonly IChainEstimations _chainEstimations;
+        private Known.SizeInfo? _chainSizeInfo;
 
         public DetailedProgress(ulong chainId, byte[] serializedInitialState)
         {
-            _chainEstimations = ChainSizes.CreateChainSizeInfo(chainId);
+            if (Known.ChainSize.TryGetValue(chainId, out Known.SizeInfo value))
+            {
+                _chainSizeInfo = value;
+            }
 
             LoadFromSerialized(serializedInitialState);
         }
@@ -70,12 +75,12 @@ namespace Nethermind.Synchronization.FastSync
 
                 Metrics.StateSynced = DataSize;
                 string dataSizeInfo = $"{(decimal)DataSize / 1000 / 1000,6:F2}MB";
-                if (_chainEstimations.StateSize is not null)
+                if (_chainSizeInfo != null)
                 {
-                    decimal percentage = Math.Min(1, (decimal)DataSize / _chainEstimations.StateSize.Value);
+                    decimal percentage = Math.Min(1, (decimal)DataSize / _chainSizeInfo.Value.Current);
                     dataSizeInfo = string.Concat(
                         $"~{percentage:P2} | ", dataSizeInfo,
-                        $" / ~{(decimal)_chainEstimations.StateSize.Value / 1000 / 1000,6:F2}MB");
+                        $" / ~{(decimal)_chainSizeInfo.Value.Current / 1000 / 1000,6:F2}MB");
                 }
 
                 if (logger.IsInfo) logger.Info(

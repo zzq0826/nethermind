@@ -7,7 +7,7 @@ using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
 
-namespace Nethermind.Core.Extensions
+namespace Nethermind.HealthChecks
 {
     public static class DbDriveInfoProvider
     {
@@ -17,7 +17,7 @@ namespace Nethermind.Core.Extensions
             {
                 string dPath = dir.LinkTarget ?? dir.FullName;
                 IEnumerable<IDriveInfo> candidateDrives = drives.Where(drive => dPath.StartsWith(drive.RootDirectory.FullName));
-                IDriveInfo? result = null;
+                IDriveInfo result = null;
                 foreach (IDriveInfo driveInfo in candidateDrives)
                 {
                     result ??= driveInfo;
@@ -27,7 +27,7 @@ namespace Nethermind.Core.Extensions
                     }
                 }
 
-                return result!;
+                return result;
             }
 
             DirectoryInfo topDir = new(dbPath);

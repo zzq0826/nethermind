@@ -14,7 +14,7 @@ using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
 using Nethermind.JsonRpc;
 using Nethermind.Monitoring.Config;
-using Nethermind.Core.Extensions;
+using Nethermind.Core.Exceptions;
 
 namespace Nethermind.HealthChecks
 {

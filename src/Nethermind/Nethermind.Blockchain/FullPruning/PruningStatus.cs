@@ -18,11 +18,6 @@ public enum PruningStatus
     Disabled,
 
     /// <summary>
-    /// Pruning failed because of low disk space
-    /// </summary>
-    NotEnoughDiskSpace,
-
-    /// <summary>
     /// Delayed - full pruning is temporary disabled. Too little time from previous successful pruning.
     /// </summary>
     Delayed,
