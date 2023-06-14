@@ -122,15 +122,15 @@ public class TestSyncRangesInAHugeVerkleTree
                 if (leafs.ContainsKey(path))
                 {
                     if (!(Random.NextSingle() > 0.5)) continue;
-                    Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
+                    // Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
                     tree.Insert(path, leafValue);
                     leafs[path] = leafValue;
                     if(blockToGetIteratorFrom >= blockNumber) leafsForSync[path] = leafValue;
-                    Console.WriteLine("new values");
+                    // Console.WriteLine("new values");
                 }
                 else
                 {
-                    Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
+                    // Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
                     tree.Insert(path, leafValue);
                     leafs[path] = leafValue;
                     if(blockToGetIteratorFrom >= blockNumber) leafsForSync[path] = leafValue;
@@ -155,7 +155,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
         while (rangeEnum.MoveNext())
         {
-            Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
+            // Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
             Assert.That(rangeEnum.Current.Value.SequenceEqual(leafsForSync[rangeEnum.Current.Key]), Is.True);
         }
 
@@ -167,14 +167,16 @@ public class TestSyncRangesInAHugeVerkleTree
                 .GetEnumerator();
 
 
+        long bytesSent = 0;
         while (rangeEnumSized.MoveNext())
         {
             Console.WriteLine($"{rangeEnumSized.Current.Path}");
+            bytesSent += 31;
+            bytesSent = rangeEnumSized.Current.SubTree.Aggregate(bytesSent, (current, xx) => current + 33);
             // Console.WriteLine($"Key:{rangeEnum.Current.Key.ToHexString()} AcValue:{rangeEnum.Current.Value.ToHexString()} ExValue:{leafsForSync[rangeEnum.Current.Key].ToHexString()}");
             // Assert.That(rangeEnum.Current.Value.SequenceEqual(leafsForSync[rangeEnum.Current.Key]), Is.True);
         }
-
-
+        Console.WriteLine($"{bytesSent}");
     }
 
 
