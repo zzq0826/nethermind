@@ -76,10 +76,19 @@ namespace Nethermind.Core
             }
             set
             {
-                lock (this)
+                bool lockTaken = false;
+                while (!lockTaken)
+                {
+                    _hashSpinLock.Enter(ref lockTaken);
+                }
+                try
                 {
                     ClearPreHashInternal();
                     _hash = value;
+                }
+                finally
+                {
+                    _hashSpinLock.Exit();
                 }
             }
         }
