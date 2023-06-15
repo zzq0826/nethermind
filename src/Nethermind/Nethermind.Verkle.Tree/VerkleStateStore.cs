@@ -363,7 +363,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             {
                 if (subTree.Count != 0) yield return new PathWithSubTree(currentStem, subTree.ToArray());
                 if (usedBytes >= bytes) break;
-
+                subTree.Clear();
                 currentStem = new Stem(current.Key.Slice(0,31).ToArray());
                 listOfStem.Add(currentStem);
                 subTree.Add(new LeafInSubTree(current.Key[31], current.Value));

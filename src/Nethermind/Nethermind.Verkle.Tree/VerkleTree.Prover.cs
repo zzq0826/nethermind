@@ -109,7 +109,7 @@ public partial class VerkleTree
         return finalProof;
     }
 
-    public VerkleProof CreateVerkleRangeProof(byte[] startStem, byte[] endStem, out Banderwagon rootPoint)
+    public VerkleProof CreateVerkleRangeProof(Stem startStem, Stem endStem, out Banderwagon rootPoint)
     {
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
@@ -122,19 +122,19 @@ public partial class VerkleTree
         HashSet<byte[]> stemList = new(Bytes.EqualityComparer);
 
         int prefixLength = 0;
-        while (prefixLength<startStem.Length)
+        while (prefixLength<startStem.Bytes.Length)
         {
-            if (startStem[prefixLength] != endStem[prefixLength]) break;
+            if (startStem.Bytes[prefixLength] != endStem.Bytes[prefixLength]) break;
             prefixLength++;
         }
 
         int keyIndex = 0;
-        foreach (byte[] stem in new[] { startStem, endStem })
+        foreach (Stem stem in new[] { startStem, endStem })
         {
             for (int i = 0; i < 32; i++)
             {
                 if(keyIndex == 1 && i <= prefixLength) continue;
-                byte[] parentPath = stem[..i];
+                byte[] parentPath = stem.Bytes[..i];
                 InternalNode? node = GetInternalNode(parentPath);
                 if (node != null)
                 {
@@ -145,12 +145,12 @@ public partial class VerkleTree
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
                             if (i < prefixLength)
                             {
-                                neededOpenings[parentPath].Add(startStem[i]);
+                                neededOpenings[parentPath].Add(startStem.Bytes[i]);
                                 continue;
                             }
 
-                            int startIndex = startStem[i];
-                            int endIndex = endStem[i];
+                            int startIndex = startStem.Bytes[i];
+                            int endIndex = endStem.Bytes[i];
                             if (i > prefixLength)
                             {
                                 if (keyIndex == 0) endIndex = 255;
@@ -163,7 +163,7 @@ public partial class VerkleTree
                             }
                             continue;
                         case VerkleNodeType.StemNode:
-                            Stem keyStem = stem[..31];
+                            Stem keyStem = stem;
                             depthsByStem.TryAdd(keyStem, (byte)i);
                             CreateStemProofPolynomialIfNotExist(keyStem);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
@@ -184,7 +184,7 @@ public partial class VerkleTree
                 }
                 else
                 {
-                    byte[] keyStem = stem[..31];
+                    Stem keyStem = stem;
                     extStatus[keyIndex++] = ExtPresent.None;
                     depthsByStem.TryAdd(keyStem, (byte)(i));
                 }

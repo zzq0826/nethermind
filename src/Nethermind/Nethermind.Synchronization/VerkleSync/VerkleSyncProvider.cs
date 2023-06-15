@@ -71,11 +71,12 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         limitStem ??= Keccak.MaxValue.Bytes[..31];
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes) ?? throw new Exception("root point invalid");
         IVerkleStore store = _trieStorePool.Get();
+        VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         try
         {
             VerkleProof vProof = VerkleProof.Decode(proofs!);
             bool correct =
-                VerkleTree.CreateStatelessTreeFromRange(store, vProof, rootPoint, startingStem, limitStem,
+                tree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, limitStem,
                     subTrees);
             if (!correct)
             {
@@ -98,8 +99,9 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         PathWithSubTree[] subTrees, VerkleProof proof, byte[] limitStem)
     {
         IVerkleStore store = _trieStorePool.Get();
+        VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         bool correct =
-            VerkleTree.CreateStatelessTreeFromRange(store, proof, rootPoint, startingStem, limitStem,
+            tree.CreateStatelessTreeFromRange(proof, rootPoint, startingStem, limitStem,
                 subTrees);
         if (!correct) return AddRangeResult.DifferentRootHash;
         return AddRangeResult.OK;

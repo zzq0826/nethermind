@@ -169,7 +169,7 @@ public partial class VerkleTree
         }
     }
 
-    public static bool CreateStatelessTreeFromRange(IVerkleStore store, VerkleProof proof, Banderwagon rootPoint, Stem startStem, Stem endStem, PathWithSubTree[] subTrees)
+    public bool CreateStatelessTreeFromRange(VerkleProof proof, Banderwagon rootPoint, Stem startStem, Stem endStem, PathWithSubTree[] subTrees)
     {
         const int numberOfStems = 2;
         List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { rootPoint };
@@ -284,10 +284,8 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        VerkleTree tree = new(store, LimboLogs.Instance);
-
         HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees, startStem.BytesAsSpan, endStem.BytesAsSpan);
-        tree.InsertSubTreesForSync(subTrees);
+        InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
         foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in depthsAndExtByStem)
@@ -296,7 +294,7 @@ public partial class VerkleTree
             for (int i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem[i]);
-                tree.InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
+                InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
             }
 
             pathList.Add(stem[depth-1]);
@@ -304,15 +302,15 @@ public partial class VerkleTree
             switch (extStatus)
             {
                 case ExtPresent.None:
-                    tree.InsertPlaceholderForNotPresentStem(stem, pathList.ToArray(), new Commitment());
+                    InsertPlaceholderForNotPresentStem(stem, pathList.ToArray(), new Commitment());
                     break;
                 case ExtPresent.DifferentStem:
                     byte[] otherStem = otherStemsByPrefix[pathList];
-                    tree.InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(), new(commByPath[pathList]));
+                    InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(), new(commByPath[pathList]));
                     break;
                 case ExtPresent.Present:
                     Commitment internalCommitment = new(commByPath[pathList]);
-                    if (!tree.VerifyCommitmentThenInsertStem(pathList.ToArray(), stem, internalCommitment))
+                    if (!VerifyCommitmentThenInsertStem(pathList.ToArray(), stem, internalCommitment))
                         return false;
                     break;
                 default:
@@ -341,10 +339,10 @@ public partial class VerkleTree
             }
         }
 
-        tree.InsertStemBatchForSync(stemBatch, commByPath);
+        InsertStemBatchForSync(stemBatch, commByPath);
         bool verification = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
-        if (!verification) tree.Reset();
-        else tree.CommitTree(0);
+        if (!verification) Reset();
+        else CommitTree(0);
 
         return verification;
     }
