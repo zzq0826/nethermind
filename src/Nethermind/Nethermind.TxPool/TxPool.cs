@@ -14,8 +14,10 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Timers;
 using Nethermind.Crypto;
+using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.TxPool.Collections;
 using Nethermind.TxPool.Filters;
 
@@ -44,8 +46,10 @@ namespace Nethermind.TxPool
 
         private readonly IAccountStateProvider _accounts;
 
+        private readonly IDb _blobTransactionsDb;
         private readonly IChainHeadInfoProvider _headInfo;
         private readonly ITxPoolConfig _txPoolConfig;
+        private readonly TxDecoder _txDecoder = new();
 
         private readonly ILogger _logger;
 
@@ -67,6 +71,7 @@ namespace Nethermind.TxPool
         /// </summary>
         /// <param name="txStorage">Tx storage used to reject known transactions.</param>
         /// <param name="ecdsa">Used to recover sender addresses from transaction signatures.</param>
+        /// <param name="blobTransactionsDb"></param>
         /// <param name="chainHeadInfoProvider"></param>
         /// <param name="txPoolConfig"></param>
         /// <param name="validator"></param>
@@ -76,6 +81,7 @@ namespace Nethermind.TxPool
         /// <param name="thereIsPriorityContract"></param>
         public TxPool(
             IEthereumEcdsa ecdsa,
+            IDb blobTransactionsDb,
             IChainHeadInfoProvider chainHeadInfoProvider,
             ITxPoolConfig txPoolConfig,
             ITxValidator validator,
@@ -85,6 +91,7 @@ namespace Nethermind.TxPool
             bool thereIsPriorityContract = false)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
+            _blobTransactionsDb = blobTransactionsDb ?? throw new ArgumentNullException(nameof(blobTransactionsDb));
             _headInfo = chainHeadInfoProvider ?? throw new ArgumentNullException(nameof(chainHeadInfoProvider));
             _txPoolConfig = txPoolConfig;
             _accounts = _headInfo.AccountStateProvider;
@@ -181,7 +188,7 @@ namespace Nethermind.TxPool
                         try
                         {
                             ReAddReorganisedTransactions(args.PreviousBlock);
-                            RemoveProcessedTransactions(args.Block.Transactions);
+                            RemoveProcessedTransactions(args.Block);
                             UpdateBuckets();
                             _broadcaster.BroadcastPersistentTxs();
                             Metrics.TransactionCount = _transactions.Count;
@@ -217,11 +224,28 @@ namespace Nethermind.TxPool
                     _hashCache.Delete(tx.Hash!);
                     SubmitTx(tx, isEip155Enabled ? TxHandlingOptions.None : TxHandlingOptions.PreEip155Signing);
                 }
+
+                if (_blobTransactionsDb.KeyExists(previousBlock.Number))
+                {
+                    byte[]? rawBlobTxs = _blobTransactionsDb.Get(previousBlock.Number);
+                    Transaction[] blobTxs = _txDecoder.DecodeArray(new RlpStream(rawBlobTxs!));
+
+                    for (int i = 0; i < blobTxs.Length; i++)
+                    {
+                        Transaction tx = blobTxs[i];
+                        _hashCache.Delete(tx.Hash!);
+                        SubmitTx(tx, isEip155Enabled ? TxHandlingOptions.None : TxHandlingOptions.PreEip155Signing);
+                    }
+
+                    _blobTransactionsDb.Delete(previousBlock.Number);
+                }
             }
         }
 
-        private void RemoveProcessedTransactions(Transaction[] blockTransactions)
+        private void RemoveProcessedTransactions(Block block)
         {
+            Transaction[] blockTransactions = block.Transactions;
+            List<Transaction>? blobTxs = null;
             long discoveredForPendingTxs = 0;
             long discoveredForHashCache = 0;
             long eip1559Txs = 0;
@@ -236,6 +260,12 @@ namespace Nethermind.TxPool
                     discoveredForHashCache++;
                 }
 
+                if (transaction.SupportsBlobs)
+                {
+                    blobTxs ??= new List<Transaction>(Eip4844Constants.MaxBlobsPerBlock);
+                    blobTxs.Add(transaction);
+                }
+
                 if (!RemoveIncludedTransaction(transaction))
                 {
                     discoveredForPendingTxs++;
@@ -245,6 +275,11 @@ namespace Nethermind.TxPool
                 {
                     eip1559Txs++;
                 }
+            }
+
+            if (blobTxs is not null)
+            {
+                _blobTransactionsDb.Set(block.Number, _txDecoder.EncodeToNewNettyStream(blobTxs.ToArray()).Data!);
             }
 
             long transactionsInBlock = blockTransactions.Length;
@@ -620,7 +655,7 @@ namespace Nethermind.TxPool
         private static void AddNodeInfoEntryForTxPool()
         {
             ThisNodeInfo.AddInfo("Mem est tx   :",
-                $"{(LruCache<ValueKeccak, object>.CalculateMemorySize(32, MemoryAllowance.TxHashCacheSize) + LruCache<Keccak, Transaction>.CalculateMemorySize(4096, MemoryAllowance.MemPoolSize)) / 1000 / 1000}MB"
+                $"{(LruCache<ValueKeccak, object>.CalculateMemorySize(32, MemoryAllowance.TxHashCacheSize) + LruCache<Keccak, Transaction>.CalculateMemorySize(4096, MemoryAllowance.MemPoolSize)) / 1000 / 1000} MB"
                     .PadLeft(8));
         }
 
