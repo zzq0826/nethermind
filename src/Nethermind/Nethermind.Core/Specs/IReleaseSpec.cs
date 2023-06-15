@@ -263,6 +263,11 @@ namespace Nethermind.Core.Specs
         bool IsEip4844Enabled { get; }
 
         /// <summary>
+        /// Opcode shuffle
+        /// </summary>
+        bool IsEipXXXXEnabled { get; }
+
+        /// <summary>
         /// Should transactions be validated against chainId.
         /// </summary>
         /// <remarks>Backward compatibility for early Kovan blocks.</remarks>
@@ -340,5 +345,7 @@ namespace Nethermind.Core.Specs
         public bool TransientStorageEnabled => IsEip1153Enabled;
 
         public bool WithdrawalsEnabled => IsEip4895Enabled;
+
+        public bool IsCancunOpcodeShuffleEnabled => IsEipXXXXEnabled;
     }
 }

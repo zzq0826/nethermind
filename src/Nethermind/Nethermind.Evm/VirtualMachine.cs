@@ -631,6 +631,8 @@ public class VirtualMachine : IVirtualMachine
         int programCounter = vmState.ProgramCounter;
         Span<byte> code = env.CodeInfo.MachineCode.AsSpan();
 
+        InstructionResolver resolver = new(spec);
+
         static void UpdateCurrentState(EvmState state, int pc, long gas, int stackHead)
         {
             state.ProgramCounter = pc;
@@ -663,7 +665,7 @@ public class VirtualMachine : IVirtualMachine
 #if DEBUG
             debugger?.TryWait(ref vmState, ref programCounter, ref gasAvailable, ref stack.Head);
 #endif
-            Instruction instruction = (Instruction)code[programCounter];
+            Instruction instruction = resolver.GetInstruction(code[programCounter]);
             // Console.WriteLine(instruction);
 
             if (traceOpcodes)

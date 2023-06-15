@@ -153,5 +153,7 @@ namespace Nethermind.Specs.Test
         public bool IsEip3860Enabled => _spec.IsEip3860Enabled;
         public bool IsEip4895Enabled => _spec.IsEip4895Enabled;
         public ulong WithdrawalTimestamp => _spec.WithdrawalTimestamp;
+
+        public bool IsEipXXXXEnabled => _spec.IsEipXXXXEnabled;
     }
 }
