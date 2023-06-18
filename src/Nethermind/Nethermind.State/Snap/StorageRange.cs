@@ -34,9 +34,14 @@ namespace Nethermind.State.Snap
         /// </summary>
         public ValueKeccak? LimitHash { get; set; }
 
+        /// <summary>
+        /// Mark this request as large storage
+        /// </summary>
+        public bool LargeStorage { get; set; }
+
         public override string ToString()
         {
-            return $"StorageRange: ({BlockNumber}, {RootHash}, {StartingHash}, {LimitHash})";
+            return $"StorageRange: ({BlockNumber}, {RootHash}, {StartingHash}, {LimitHash}, {LargeStorage})";
         }
     }
 }

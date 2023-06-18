@@ -136,7 +136,7 @@ namespace Nethermind.Synchronization.SnapSync
                     }
 
                     PathWithAccount account = request.Accounts[i];
-                    result = AddStorageRange(request.BlockNumber.Value, account, account.Account.StorageRoot, request.StartingHash, responses[i], proofs);
+                    result = AddStorageRange(request.BlockNumber.Value, account, account.Account.StorageRoot, request.StartingHash, request.LargeStorage, responses[i], proofs);
 
                     slotCount += responses[i].Length;
                 }
@@ -159,7 +159,7 @@ namespace Nethermind.Synchronization.SnapSync
             return result;
         }
 
-        public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, PathWithStorageSlot[] slots, byte[][]? proofs = null)
+        public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, bool isLargeStorage, PathWithStorageSlot[] slots, byte[][]? proofs = null)
         {
             ITrieStore store = _trieStorePool.Get();
             StorageTree tree = new(store, _logManager);
@@ -171,10 +171,16 @@ namespace Nethermind.Synchronization.SnapSync
                 {
                     if (moreChildrenToRight)
                     {
+                        if (startingHash.GetValueOrDefault() == ValueKeccak.Zero)
+                        {
+                            isLargeStorage = EstimateIsLargeStorage(slots);
+                        }
+
                         StorageRange range = new()
                         {
                             Accounts = new[] { pathWithAccount },
-                            StartingHash = slots[^1].Path
+                            StartingHash = slots[^1].Path,
+                            LargeStorage = isLargeStorage
                         };
 
                         _progressTracker.EnqueueStorageRange(range);
@@ -199,6 +205,41 @@ namespace Nethermind.Synchronization.SnapSync
             {
                 _trieStorePool.Return(store);
             }
+        }
+
+        private static bool EstimateIsLargeStorage(PathWithStorageSlot[] slots)
+        {
+            if (slots.Length == 0)
+            {
+                return false;
+            }
+
+            double proportion =
+                slots[^1].Path.Bytes[..4].ReadEthUInt32()
+                / (double)UInt32.MaxValue;
+
+            double valueSize = 0;
+            foreach (PathWithStorageSlot pathWithStorageSlot in slots)
+            {
+                valueSize += pathWithStorageSlot.SlotRlpValue.Length;
+            }
+
+            if (proportion != 0)
+            {
+                double estimatedSize = valueSize / proportion;
+                // On mainnet stats for these threshold are:
+                // 300 account larger 500kB
+                // 150 account larger 1MB
+                // 30 account larger 5MB
+                // 15 account larger 10MB
+                // nice pattern :-)
+                if (estimatedSize > 500.KiB())
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void RefreshAccounts(AccountsToRefreshRequest request, byte[][] response)

@@ -45,7 +45,9 @@ namespace Nethermind.Synchronization.SnapSync
         // Using a queue here to evenly distribute request across partitions. Don't want a situation where one really slow
         // partition is taking up most of the time at the end of the sync.
         private ConcurrentQueue<AccountRangePartition> AccountRangeReadyForRequest { get; set; } = new();
+        // On mainnet there is 5k of these, so not going to try to limit it.
         private ConcurrentQueue<StorageRange> NextSlotRange { get; set; } = new();
+        private ConcurrentQueue<StorageRange> NextLargeSlotRange { get; set; } = new();
         private ConcurrentQueue<PathWithAccount> StoragesToRetrieve { get; set; } = new();
         private ConcurrentQueue<ValueKeccak> CodesToRetrieve { get; set; } = new();
         private ConcurrentQueue<AccountWithStorageStartingHash> AccountsToRefresh { get; set; } = new();
@@ -176,7 +178,7 @@ namespace Nethermind.Synchronization.SnapSync
 
                 return (request, false);
             }
-            else if (TryDequeNextSlotRange(out StorageRange slotRange))
+            else if (TryDequeNextLargeSlotRange(out StorageRange slotRange))
             {
                 slotRange.RootHash = rootHash;
                 slotRange.BlockNumber = blockNumber;
@@ -209,6 +211,17 @@ namespace Nethermind.Synchronization.SnapSync
                 LogRequest($"StoragesToRetrieve:{storagesToQuery.Count}");
 
                 request.StorageRangeRequest = storageRange;
+
+                return (request, false);
+            }
+            else if (TryDequeNextSlotRange(out slotRange))
+            {
+                slotRange.RootHash = rootHash;
+                slotRange.BlockNumber = blockNumber;
+
+                LogRequest($"NextSlotRange:{slotRange.Accounts.Length}");
+
+                request.StorageRangeRequest = slotRange;
 
                 return (request, false);
             }
@@ -245,7 +258,14 @@ namespace Nethermind.Synchronization.SnapSync
 
         private bool ShouldRequestAccountRequests()
         {
-            return _activeAccountRequests < _accountRangePartitionCount && NextSlotRange.Count < 10 && StoragesToRetrieve.Count < 5 * STORAGE_BATCH_SIZE && CodesToRetrieve.Count < 5 * CODES_BATCH_SIZE;
+            return _activeAccountRequests < _accountRangePartitionCount
+
+                   // Note, the amount of next slot range on mainnet is < 5500. Basically this mean no limit for these two
+                   && NextLargeSlotRange.Count < 100
+                   && NextSlotRange.Count < 10000
+
+                   && StoragesToRetrieve.Count < 20 * STORAGE_BATCH_SIZE
+                   && CodesToRetrieve.Count < 20 * CODES_BATCH_SIZE;
         }
 
         public void EnqueueCodeHashes(ReadOnlySpan<ValueKeccak> codeHashes)
@@ -334,6 +354,7 @@ namespace Nethermind.Synchronization.SnapSync
         {
             return AccountRangeReadyForRequest.IsEmpty
                 && StoragesToRetrieve.IsEmpty
+                && NextLargeSlotRange.IsEmpty
                 && NextSlotRange.IsEmpty
                 && CodesToRetrieve.IsEmpty
                 && AccountsToRefresh.IsEmpty
@@ -396,7 +417,7 @@ namespace Nethermind.Synchronization.SnapSync
                 int moreAccountCount = AccountRangePartitions.Count(kv => kv.Value.MoreAccountsToRight);
 
                 _logger.Info(
-                    $"Snap - ({reqType}, diff:{_pivot.Diff}) {moreAccountCount} - Requests Account:{_activeAccountRequests} | Storage:{_activeStorageRequests} | Code:{_activeCodeRequests} | Refresh:{_activeAccRefreshRequests} - Queues Slots:{NextSlotRange.Count} | Storages:{StoragesToRetrieve.Count} | Codes:{CodesToRetrieve.Count} | Refresh:{AccountsToRefresh.Count}");
+                    $"Snap - ({reqType}, diff:{_pivot.Diff}) {moreAccountCount} - Requests Account:{_activeAccountRequests} | Storage:{_activeStorageRequests} | Code:{_activeCodeRequests} | Refresh:{_activeAccRefreshRequests} - Queues Slots:{NextSlotRange.Count} | Large Slots:{NextLargeSlotRange.Count} | Storages:{StoragesToRetrieve.Count} | Codes:{CodesToRetrieve.Count} | Refresh:{AccountsToRefresh.Count}");
             }
         }
 
@@ -404,6 +425,18 @@ namespace Nethermind.Synchronization.SnapSync
         {
             Interlocked.Increment(ref _activeStorageRequests);
             if (!NextSlotRange.TryDequeue(out item))
+            {
+                Interlocked.Decrement(ref _activeStorageRequests);
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryDequeNextLargeSlotRange(out StorageRange item)
+        {
+            Interlocked.Increment(ref _activeStorageRequests);
+            if (!NextLargeSlotRange.TryDequeue(out item))
             {
                 Interlocked.Decrement(ref _activeStorageRequests);
                 return false;
