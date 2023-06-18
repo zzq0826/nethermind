@@ -171,7 +171,7 @@ namespace Nethermind.Synchronization.SnapSync
                 {
                     if (moreChildrenToRight)
                     {
-                        if (startingHash.GetValueOrDefault() == ValueKeccak.Zero)
+                        if (!isLargeStorage)
                         {
                             isLargeStorage = EstimateIsLargeStorage(slots);
                         }
@@ -209,14 +209,14 @@ namespace Nethermind.Synchronization.SnapSync
 
         private static bool EstimateIsLargeStorage(PathWithStorageSlot[] slots)
         {
-            if (slots.Length == 0)
+            if (slots.Length <= 1)
             {
                 return false;
             }
 
-            double proportion =
-                slots[^1].Path.Bytes[..4].ReadEthUInt32()
-                / (double)UInt32.MaxValue;
+            double startValue = slots[0].Path.Bytes[..4].ReadEthUInt32();
+            double endValue = slots[^1].Path.Bytes[..4].ReadEthUInt32();
+            double proportion = (endValue - startValue) / UInt32.MaxValue;
 
             double valueSize = 0;
             foreach (PathWithStorageSlot pathWithStorageSlot in slots)
