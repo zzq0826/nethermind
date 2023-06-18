@@ -23,8 +23,12 @@ namespace Nethermind.Synchronization.SnapSync
         private const int STORAGE_BATCH_SIZE = 1_200;
         private const int CODES_BATCH_SIZE = 1_000;
         private readonly byte[] ACC_PROGRESS_KEY = Encoding.ASCII.GetBytes("AccountProgressKey");
-        private const int HighCodeQueueThreshold = 20 * CODES_BATCH_SIZE;
+
         private const int HighStorageQueueThreshold = 20 * STORAGE_BATCH_SIZE;
+
+        // Should take at about 64MB of RAM. The queue is made large because its easy to parallelize compared to other
+        // requests, so we try to give priority to other requests.
+        private const int HighCodeQueueThreshold = 2000 * CODES_BATCH_SIZE;
 
         // This does not need to be a lot as it spawn other requests. In fact 8 is probably too much. It is severely
         // bottlenecked by _syncCommit lock in SnapProviderHelper, which in turns is limited by the IO.
@@ -166,12 +170,14 @@ namespace Nethermind.Synchronization.SnapSync
                 return CreateNextSlotRangeRequest(slotRange, rootHash, blockNumber, request);
             }
 
-            // We kinda always want to do this, but we don't want to do if batch size is too low, which is a waste.
+            // We kinda always want to do this, so that we can know what are the large slots as soon as possible,
+            // but we don't want to do it  if batch size is too low, which is a waste.
             if (StoragesToRetrieve.Count > STORAGE_BATCH_SIZE)
             {
                 return DequeStorageRequests(rootHash, blockNumber, request);
             }
 
+            // Next slot range is the second lowest priority among request next to codes. There arent that many of them
             if (TryDequeNextSlotRange(out slotRange))
             {
                 return CreateNextSlotRangeRequest(slotRange, rootHash, blockNumber, request);
