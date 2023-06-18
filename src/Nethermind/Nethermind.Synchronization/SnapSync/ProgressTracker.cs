@@ -320,7 +320,14 @@ namespace Nethermind.Synchronization.SnapSync
         {
             if (storageRange is not null)
             {
-                NextSlotRange.Enqueue(storageRange);
+                if (storageRange.LargeStorage)
+                {
+                    NextLargeSlotRange.Enqueue(storageRange);
+                }
+                else
+                {
+                    NextSlotRange.Enqueue(storageRange);
+                }
             }
         }
 

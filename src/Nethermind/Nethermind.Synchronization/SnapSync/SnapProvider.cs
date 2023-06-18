@@ -228,11 +228,10 @@ namespace Nethermind.Synchronization.SnapSync
             {
                 double estimatedSize = valueSize / proportion;
                 // On mainnet stats for these threshold are:
-                // 300 account larger 500kB
-                // 150 account larger 1MB
-                // 30 account larger 5MB
-                // 15 account larger 10MB
-                // nice pattern :-)
+                // 1600 account larger 500kB
+                // 900 account larger 1MB
+                // 200 account larger 5MB
+                // 100 account larger 10MB
                 if (estimatedSize > 500.KiB())
                 {
                     return true;
