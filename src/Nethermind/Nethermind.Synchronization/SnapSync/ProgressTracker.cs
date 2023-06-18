@@ -23,6 +23,8 @@ namespace Nethermind.Synchronization.SnapSync
         private const int STORAGE_BATCH_SIZE = 1_200;
         private const int CODES_BATCH_SIZE = 1_000;
         private readonly byte[] ACC_PROGRESS_KEY = Encoding.ASCII.GetBytes("AccountProgressKey");
+        private const int HighCodeQueueThreshold = 20 * CODES_BATCH_SIZE;
+        private const int HighStorageQueueThreshold = 20 * STORAGE_BATCH_SIZE;
 
         // This does not need to be a lot as it spawn other requests. In fact 8 is probably too much. It is severely
         // bottlenecked by _syncCommit lock in SnapProviderHelper, which in turns is limited by the IO.
@@ -144,104 +146,45 @@ namespace Nethermind.Synchronization.SnapSync
 
             if (!AccountsToRefresh.IsEmpty)
             {
-                Interlocked.Increment(ref _activeAccRefreshRequests);
-
-                LogRequest($"AccountsToRefresh:{AccountsToRefresh.Count}");
-
-                int queueLength = AccountsToRefresh.Count;
-                AccountWithStorageStartingHash[] paths = new AccountWithStorageStartingHash[queueLength];
-
-                for (int i = 0; i < queueLength && AccountsToRefresh.TryDequeue(out var acc); i++)
-                {
-                    paths[i] = acc;
-                }
-
-                request.AccountsToRefreshRequest = new AccountsToRefreshRequest() { RootHash = rootHash, Paths = paths };
-
-                return (request, false);
-
+                return DequeAccountRefreshRequest(request, rootHash);
             }
 
             if (ShouldRequestAccountRequests() && AccountRangeReadyForRequest.TryDequeue(out AccountRangePartition partition))
             {
-                Interlocked.Increment(ref _activeAccountRequests);
-
-                AccountRange range = new(
-                    rootHash,
-                    partition.NextAccountPath,
-                    partition.AccountPathLimit,
-                    blockNumber);
-
-                LogRequest("AccountRange");
-
-                request.AccountRangeRequest = range;
-
-                return (request, false);
+                return CreateNextAccountRangeRequest(rootHash, partition, blockNumber, request);
             }
-            else if (TryDequeNextLargeSlotRange(out StorageRange slotRange))
+
+            // Too much code, requests them
+            if (CodesToRetrieve.Count > HighCodeQueueThreshold)
             {
-                slotRange.RootHash = rootHash;
-                slotRange.BlockNumber = blockNumber;
-
-                LogRequest($"NextSlotRange:{slotRange.Accounts.Length}");
-
-                request.StorageRangeRequest = slotRange;
-
-                return (request, false);
+                return DequeCodeRequests(request);
             }
-            else if (!StoragesToRetrieve.IsEmpty)
+
+            // Large storage takes priority.
+            if (TryDequeNextLargeSlotRange(out StorageRange slotRange))
             {
-                Interlocked.Increment(ref _activeStorageRequests);
-
-                // TODO: optimize this
-                List<PathWithAccount> storagesToQuery = new(STORAGE_BATCH_SIZE);
-                for (int i = 0; i < STORAGE_BATCH_SIZE && StoragesToRetrieve.TryDequeue(out PathWithAccount storage); i++)
-                {
-                    storagesToQuery.Add(storage);
-                }
-
-                StorageRange storageRange = new()
-                {
-                    RootHash = rootHash,
-                    Accounts = storagesToQuery.ToArray(),
-                    StartingHash = ValueKeccak.Zero,
-                    BlockNumber = blockNumber
-                };
-
-                LogRequest($"StoragesToRetrieve:{storagesToQuery.Count}");
-
-                request.StorageRangeRequest = storageRange;
-
-                return (request, false);
+                return CreateNextSlotRangeRequest(slotRange, rootHash, blockNumber, request);
             }
-            else if (TryDequeNextSlotRange(out slotRange))
+
+            // We kinda always want to do this, but we don't want to do if batch size is too low, which is a waste.
+            if (StoragesToRetrieve.Count > STORAGE_BATCH_SIZE)
             {
-                slotRange.RootHash = rootHash;
-                slotRange.BlockNumber = blockNumber;
-
-                LogRequest($"NextSlotRange:{slotRange.Accounts.Length}");
-
-                request.StorageRangeRequest = slotRange;
-
-                return (request, false);
+                return DequeStorageRequests(rootHash, blockNumber, request);
             }
-            else if (!CodesToRetrieve.IsEmpty)
+
+            if (TryDequeNextSlotRange(out slotRange))
             {
-                Interlocked.Increment(ref _activeCodeRequests);
+                return CreateNextSlotRangeRequest(slotRange, rootHash, blockNumber, request);
+            }
 
-                // TODO: optimize this
-                List<ValueKeccak> codesToQuery = new(CODES_BATCH_SIZE);
-                for (int i = 0; i < CODES_BATCH_SIZE && CodesToRetrieve.TryDequeue(out ValueKeccak codeHash); i++)
-                {
-                    codesToQuery.Add(codeHash);
-                }
-                codesToQuery.Sort();
-
-                LogRequest($"CodesToRetrieve:{codesToQuery.Count}");
-
-                request.CodesRequest = codesToQuery.ToArray();
-
-                return (request, false);
+            // Running out of things to request... requests whatever is left.
+            if (!StoragesToRetrieve.IsEmpty)
+            {
+                return DequeStorageRequests(rootHash, blockNumber, request);
+            }
+            if (!CodesToRetrieve.IsEmpty)
+            {
+                return DequeCodeRequests(request);
             }
 
             bool rangePhaseFinished = IsSnapGetRangesFinished();
@@ -256,16 +199,113 @@ namespace Nethermind.Synchronization.SnapSync
             return (null, IsSnapGetRangesFinished());
         }
 
+        private (SnapSyncBatch request, bool finished) DequeAccountRefreshRequest(SnapSyncBatch request, Keccak rootHash)
+        {
+            Interlocked.Increment(ref _activeAccRefreshRequests);
+
+            LogRequest($"AccountsToRefresh:{AccountsToRefresh.Count}");
+
+            int queueLength = AccountsToRefresh.Count;
+            AccountWithStorageStartingHash[] paths = new AccountWithStorageStartingHash[queueLength];
+
+            for (int i = 0; i < queueLength && AccountsToRefresh.TryDequeue(out var acc); i++)
+            {
+                paths[i] = acc;
+            }
+
+            request.AccountsToRefreshRequest = new AccountsToRefreshRequest() { RootHash = rootHash, Paths = paths };
+
+            return (request, false);
+        }
+
+        private (SnapSyncBatch request, bool finished) CreateNextAccountRangeRequest(Keccak rootHash,
+            AccountRangePartition partition, long blockNumber, SnapSyncBatch request)
+        {
+            Interlocked.Increment(ref _activeAccountRequests);
+
+            AccountRange range = new(
+                rootHash,
+                partition.NextAccountPath,
+                partition.AccountPathLimit,
+                blockNumber);
+
+            LogRequest("AccountRange");
+
+            request.AccountRangeRequest = range;
+
+            return (request, false);
+        }
+
+        private (SnapSyncBatch request, bool finished) DequeStorageRequests(Keccak rootHash, long blockNumber,
+            SnapSyncBatch request)
+        {
+            Interlocked.Increment(ref _activeStorageRequests);
+
+            // TODO: optimize this
+            List<PathWithAccount> storagesToQuery = new(STORAGE_BATCH_SIZE);
+            for (int i = 0; i < STORAGE_BATCH_SIZE && StoragesToRetrieve.TryDequeue(out PathWithAccount storage); i++)
+            {
+                storagesToQuery.Add(storage);
+            }
+
+            StorageRange storageRange = new()
+            {
+                RootHash = rootHash,
+                Accounts = storagesToQuery.ToArray(),
+                StartingHash = ValueKeccak.Zero,
+                BlockNumber = blockNumber
+            };
+
+            LogRequest($"StoragesToRetrieve:{storagesToQuery.Count}");
+
+            request.StorageRangeRequest = storageRange;
+
+            return (request, false);
+        }
+
+        private (SnapSyncBatch request, bool finished) CreateNextSlotRangeRequest(StorageRange slotRange, Keccak rootHash,
+            long blockNumber, SnapSyncBatch request)
+        {
+            slotRange.RootHash = rootHash;
+            slotRange.BlockNumber = blockNumber;
+
+            LogRequest($"NextSlotRange:{slotRange.Accounts.Length}");
+
+            request.StorageRangeRequest = slotRange;
+
+            return (request, false);
+        }
+
+        private (SnapSyncBatch request, bool finished) DequeCodeRequests(SnapSyncBatch request)
+        {
+            Interlocked.Increment(ref _activeCodeRequests);
+
+            // TODO: optimize this
+            List<ValueKeccak> codesToQuery = new(CODES_BATCH_SIZE);
+            for (int i = 0; i < CODES_BATCH_SIZE && CodesToRetrieve.TryDequeue(out ValueKeccak codeHash); i++)
+            {
+                codesToQuery.Add(codeHash);
+            }
+
+            codesToQuery.Sort();
+
+            LogRequest($"CodesToRetrieve:{codesToQuery.Count}");
+
+            request.CodesRequest = codesToQuery.ToArray();
+
+            return (request, false);
+        }
+
         private bool ShouldRequestAccountRequests()
         {
             return _activeAccountRequests < _accountRangePartitionCount
 
-                   // Note, the amount of next slot range on mainnet is < 5500. Basically this mean no limit for these two
+                   // Note, the amount of next slot range on mainnet is usually < 10000. Basically this mean no limit for these two
                    && NextLargeSlotRange.Count < 100
                    && NextSlotRange.Count < 10000
 
-                   && StoragesToRetrieve.Count < 20 * STORAGE_BATCH_SIZE
-                   && CodesToRetrieve.Count < 20 * CODES_BATCH_SIZE;
+                   && StoragesToRetrieve.Count < HighStorageQueueThreshold
+                   && CodesToRetrieve.Count < HighCodeQueueThreshold;
         }
 
         public void EnqueueCodeHashes(ReadOnlySpan<ValueKeccak> codeHashes)
