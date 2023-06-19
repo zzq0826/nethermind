@@ -225,7 +225,7 @@ public partial class VerkleTree: IVerkleTree
         return deltaLow + deltaHigh;
     }
 
-    public void Commit()
+    public void Commit(bool forSync = false)
     {
         if (_logger.IsDebug) _logger.Debug($"Commiting: number of subTrees {_leafUpdateCache.Count}");
         foreach (KeyValuePair<byte[], LeafUpdateDelta> leafDelta in _leafUpdateCache)
@@ -233,7 +233,7 @@ public partial class VerkleTree: IVerkleTree
             if (_logger.IsTrace)
                 _logger.Trace(
                     $"Commit: stem:{leafDelta.Key.ToHexString()} deltaCommitment:C1:{leafDelta.Value.DeltaC1} C2{leafDelta.Value.DeltaC2}");
-            UpdateTreeCommitments(leafDelta.Key, leafDelta.Value);
+            UpdateTreeCommitments(leafDelta.Key, leafDelta.Value, forSync);
         }
         _leafUpdateCache.Clear();
         _isDirty = false;
@@ -242,15 +242,16 @@ public partial class VerkleTree: IVerkleTree
 
     public void CommitTree(long blockNumber)
     {
+        _isDirty = false;
         _verkleStateStore.Flush(blockNumber, _treeCache);
         _treeCache = new VerkleMemoryDb();
         _stateRoot = _verkleStateStore.RootHash;
     }
 
-    private void UpdateTreeCommitments(Span<byte> stem, LeafUpdateDelta leafUpdateDelta)
+    private void UpdateTreeCommitments(Span<byte> stem, LeafUpdateDelta leafUpdateDelta, bool forSync = false)
     {
         // calculate this by update the leafs and calculating the delta - simple enough
-        TraverseContext context = new TraverseContext(stem, leafUpdateDelta);
+        TraverseContext context = new(stem, leafUpdateDelta) { ForSync = forSync };
         Banderwagon rootDelta = TraverseBranch(context);
         UpdateRootNode(rootDelta);
     }
@@ -372,10 +373,30 @@ public partial class VerkleTree: IVerkleTree
             return (internalCommitment - node.InternalCommitment.Point, true);
         }
 
-        InternalNode updatedStemNode = node.Clone();
-        FrE deltaFr = updatedStemNode.UpdateCommitment(traverseContext.LeafUpdateDelta);
-        SetInternalNode(traverseContext.Stem[..traverseContext.CurrentIndex].ToArray(), updatedStemNode);
-        return (Committer.ScalarMul(deltaFr, traverseContext.Stem[traverseContext.CurrentIndex - 1]), false);
+        byte[] absolutePath = traverseContext.Stem[..traverseContext.CurrentIndex].ToArray();
+        byte childIndex = traverseContext.Stem[traverseContext.CurrentIndex - 1];
+        if (traverseContext.ForSync)
+        {
+            // 1. create new suffix node
+            // 2. update the C1 or C2 - we already know the leafDelta - traverseContext.LeafUpdateDelta
+            // 3. update ExtensionCommitment
+            // 4. get the delta for commitment - ExtensionCommitment - 0;
+            InternalNode stem = new InternalNode(VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
+            FrE deltaFr = stem.UpdateCommitment(traverseContext.LeafUpdateDelta);
+            FrE deltaHash = deltaFr + stem.InitCommitmentHash!.Value;
+
+            // 1. Add internal.stem node
+            // 2. return delta from ExtensionCommitment
+            SetInternalNode(absolutePath, stem);
+            return (Committer.ScalarMul(deltaHash, childIndex), false);
+        }
+        else
+        {
+            InternalNode updatedStemNode = node.Clone();
+            FrE deltaFr = updatedStemNode.UpdateCommitment(traverseContext.LeafUpdateDelta);
+            SetInternalNode(absolutePath, updatedStemNode);
+            return (Committer.ScalarMul(deltaFr, childIndex), false);
+        }
     }
 
     private Banderwagon FillSpaceWithBranchNodes(byte[] path, int length, Banderwagon deltaPoint)
@@ -403,6 +424,7 @@ public partial class VerkleTree: IVerkleTree
     public ref struct TraverseContext
     {
         public LeafUpdateDelta LeafUpdateDelta { get; }
+        public bool ForSync { get; set; }
         public Span<byte> Stem { get; }
         public int CurrentIndex { get; set; }
 

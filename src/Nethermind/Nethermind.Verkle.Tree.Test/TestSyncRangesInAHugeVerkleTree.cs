@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
+using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
@@ -251,6 +252,10 @@ public class TestSyncRangesInAHugeVerkleTree
             remoteTree.CommitTree(blockNumber);
         }
 
+        Banderwagon root = default;
+        ExecutionWitness executionWitness = default;
+        SortedSet<byte[]> update = new(Bytes.Comparer);
+
         int startingHashIndex = 0;
         int endHashIndex = 0;
         for (int blockNumber = numBlocks1 + 1; blockNumber <= numBlocks1 + 5; blockNumber++)
@@ -271,10 +276,18 @@ public class TestSyncRangesInAHugeVerkleTree
                 startingHashIndex = endHashIndex + 1;
             }
 
+            if (update.Count != 0)
+            {
+                // use execution witness to heal
+                bool insertedWitness = localTree.InsertIntoStatelessTree(executionWitness, root, false);
+                Assert.IsTrue(insertedWitness);
+                localTree.CommitTree(0);
+            }
+
+            update = new SortedSet<byte[]>(Bytes.Comparer);
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
             {
                 byte[] leafValue = new byte[32];
-
                 Random.NextBytes(leafValue);
                 Pedersen path = pathPool[Random.Next(pathPool.Length - 1)];
 
@@ -284,6 +297,7 @@ public class TestSyncRangesInAHugeVerkleTree
                     // Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
+                    update.Add(path.Bytes);
                     // Console.WriteLine("new values");
                 }
                 else
@@ -291,11 +305,14 @@ public class TestSyncRangesInAHugeVerkleTree
                     // Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
+                    update.Add(path.Bytes);
                 }
             }
 
             remoteTree.Commit();
             remoteTree.CommitTree(blockNumber);
+
+            executionWitness = remoteTree.GenerateExecutionWitness(update.ToArray(), out root);
         }
 
         endHashIndex = startingHashIndex + 1000;
@@ -310,11 +327,36 @@ public class TestSyncRangesInAHugeVerkleTree
             PathWithSubTree[] range = remoteTree._verkleStateStore.GetLeafRangeIterator(
                 pathPool[startingHashIndex].StemAsSpan.ToArray(),
                 pathPool[endHashIndex].StemAsSpan.ToArray(),
-                remoteTree.StateRoot, 10000000).ToArray();
+                remoteTree.StateRoot, 100000000).ToArray();
             ProcessSubTreeRange(remoteTree, localTree, numBlocks1 + numBlocks2, remoteTree.StateRoot, range);
 
             startingHashIndex += 1000;
         }
+
+
+
+        if (update.Count != 0)
+        {
+            // use execution witness to heal
+            bool insertedWitness = localTree.InsertIntoStatelessTree(executionWitness, root, false);
+            Assert.IsTrue(insertedWitness);
+            localTree.CommitTree(0);
+        }
+
+        VerkleTreeDumper oldTreeDumper = new();
+        VerkleTreeDumper newTreeDumper = new();
+
+        localTree.Accept(oldTreeDumper, localTree.StateRoot);
+        remoteTree.Accept(newTreeDumper, remoteTree.StateRoot);
+
+        Console.WriteLine("oldTreeDumper");
+        Console.WriteLine(oldTreeDumper.ToString());
+        Console.WriteLine("newTreeDumper");
+        Console.WriteLine(newTreeDumper.ToString());
+
+        oldTreeDumper.ToString().Should().BeEquivalentTo(newTreeDumper.ToString());
+
+        Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
     }
 
     private static void ProcessSubTreeRange(VerkleTree remoteTree, VerkleTree localTree, int blockNumber, Pedersen stateRoot, PathWithSubTree[] subTrees)

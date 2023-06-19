@@ -49,13 +49,12 @@ public partial class VerkleTree
         ProofStemPolynomialCache.Clear();
 
         Dictionary<Stem, byte> depthsByStem = new();
-        ExtPresent[] extStatus = new ExtPresent[keys.Length];
+        Dictionary<Stem, ExtPresent> extStatus = new();
 
         // generate prover path for keys
         Dictionary<byte[], HashSet<byte>> neededOpenings = new(Bytes.EqualityComparer);
         HashSet<byte[]> stemList = new(Bytes.EqualityComparer);
 
-        int keyIndex = 0;
         foreach (byte[] key in keys)
         {
             for (int i = 0; i < 32; i++)
@@ -80,11 +79,11 @@ public partial class VerkleTree
                             if (keyStem == node.Stem)
                             {
                                 neededOpenings[parentPath].Add(key[31]);
-                                extStatus[keyIndex++] = ExtPresent.Present;
+                                extStatus.TryAdd(keyStem, ExtPresent.Present);
                             }
                             else
                             {
-                                extStatus[keyIndex++] = ExtPresent.DifferentStem;
+                                extStatus.TryAdd(keyStem, ExtPresent.DifferentStem);
                             }
                             break;
                         default:
@@ -94,7 +93,7 @@ public partial class VerkleTree
                 else
                 {
                     byte[] keyStem = key[..31];
-                    extStatus[keyIndex++] = ExtPresent.None;
+                    extStatus.TryAdd(keyStem, ExtPresent.None);
                     depthsByStem.TryAdd(keyStem, (byte)(i));
                 }
                 // reaching here means end of the path for the leaf
@@ -104,7 +103,7 @@ public partial class VerkleTree
 
         VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, addLeafOpenings: true, out rootPoint);
         finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
-        finalProof.VerifyHint.ExtensionPresent = extStatus;
+        finalProof.VerifyHint.ExtensionPresent = extStatus.Values.ToArray();
 
         return finalProof;
     }

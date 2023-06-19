@@ -50,7 +50,7 @@ public static partial class TestItem
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleStore GetVerkleStore(DbMode dbMode)
+    public static IVerkleStore GetVerkleStore(DbMode dbMode, int history = 128)
     {
         IDbProvider provider;
         switch (dbMode)
@@ -66,7 +66,7 @@ public static partial class TestItem
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleStateStore(provider, LimboLogs.Instance);
+        return new VerkleStateStore(provider, LimboLogs.Instance,maxNumberOfBlocksInCache: history);
     }
 
     public static VerkleStateTree GetVerkleStateTree(IVerkleStore? store)

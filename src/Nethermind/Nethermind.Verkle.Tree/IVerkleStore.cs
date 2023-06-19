@@ -41,7 +41,7 @@ public interface IVerkleTree
     public bool MoveToStateRoot(Pedersen stateRoot);
     public byte[]? Get(Pedersen key);
     public void Insert(Pedersen key, ReadOnlySpan<byte> value);
-    public void Commit();
+    public void Commit(bool forSync = false);
     public void CommitTree(long blockNumber);
     public void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null);
     public void Accept(IVerkleTreeVisitor visitor, Pedersen rootHash, VisitingOptions? visitingOptions = null);

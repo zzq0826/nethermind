@@ -98,7 +98,7 @@ public partial class VerkleTree
 
     public bool InsertIntoStatelessTree(ExecutionWitness execWitness, Banderwagon root, bool skipRoot = true)
     {
-        bool isVerified = VerkleTree.VerifyVerkleProof(execWitness, root, out UpdateHint? updateHint);
+        bool isVerified = VerifyVerkleProof(execWitness, root, out UpdateHint? updateHint);
         if (!isVerified) return false;
 
         if (!skipRoot)
