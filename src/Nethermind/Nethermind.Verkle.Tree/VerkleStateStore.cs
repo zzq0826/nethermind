@@ -370,6 +370,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
                 usedBytes += 31 + 33;
             }
         }
+        if (subTree.Count != 0) yield return new PathWithSubTree(currentStem, subTree.ToArray());
     }
 
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
