@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nethermind.Core.Extensions;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Core.Verkle;
 
 public unsafe struct ValueStem
 {

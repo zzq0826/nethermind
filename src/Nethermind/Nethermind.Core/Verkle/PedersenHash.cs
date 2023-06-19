@@ -1,3 +1,4 @@
+using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -6,7 +7,7 @@ using Nethermind.Int256;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Core.Verkle;
 
 public static class PedersenHash
 {

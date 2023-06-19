@@ -8,6 +8,7 @@ using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
+using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.State.Tracing;
 using Nethermind.Verkle.Tree;

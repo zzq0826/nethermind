@@ -1,7 +1,6 @@
 using FluentAssertions;
+using Nethermind.Core.Verkle;
 using Nethermind.Int256;
-using Nethermind.Verkle.Tree.Utils;
-using PedersenHash = Nethermind.Verkle.Tree.Utils.PedersenHash;
 
 namespace Nethermind.Verkle.Tree.Test
 {

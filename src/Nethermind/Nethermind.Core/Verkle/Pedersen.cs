@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,7 +10,7 @@ using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Core.Verkle;
 
 [DebuggerStepThrough]
 [DebuggerDisplay("{ToString()}")]

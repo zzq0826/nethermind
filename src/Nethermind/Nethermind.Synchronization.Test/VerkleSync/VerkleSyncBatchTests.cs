@@ -4,6 +4,7 @@
 using System;
 using FluentAssertions;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Verkle;
 using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;

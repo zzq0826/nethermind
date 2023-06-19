@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Core.Verkle;
 
 public readonly struct LeafKey:  IEquatable<LeafKey>, IComparable<LeafKey>
 {

@@ -3,6 +3,7 @@
 
 using FluentAssertions;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Tree;

@@ -3,6 +3,7 @@
 
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
@@ -12,7 +13,7 @@ using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
-using Committer = Nethermind.Verkle.Tree.Utils.Committer;
+using Committer = Nethermind.Core.Verkle.Committer;
 using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 
 namespace Nethermind.Verkle.Tree;

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Network.P2P.Subprotocols.Verkle.Messages;

@@ -1,16 +1,19 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using FastEnumUtility;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Proofs;
 using Nethermind.Verkle.Tree.Utils;
 
-namespace Nethermind.Verkle.Tree.Proofs;
+namespace Nethermind.Core.Verkle;
 
 public struct VerkleProof
 {

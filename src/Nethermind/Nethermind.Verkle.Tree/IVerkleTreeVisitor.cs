@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Verkle;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Utils;

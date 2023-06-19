@@ -4,6 +4,7 @@
 using System;
 using FluentAssertions;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;

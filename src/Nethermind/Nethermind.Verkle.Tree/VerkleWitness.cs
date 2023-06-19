@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Int256;
 using Nethermind.Verkle.Tree.Utils;
 

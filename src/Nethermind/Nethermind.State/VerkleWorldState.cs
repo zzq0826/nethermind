@@ -10,13 +10,18 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Verkle;
+using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State.Tracing;
 using Nethermind.State.Witnesses;
 using Nethermind.Trie;
+using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Utils;
+using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.State;
 
@@ -45,6 +50,18 @@ public class VerkleWorldState : IWorldState
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         _tree = verkleTree;
         _storageProvider = new VerkleStorageProvider(verkleTree, logManager);
+    }
+
+    // create a state provider using execution witness
+    public VerkleWorldState(ExecutionWitness executionWitness, Banderwagon root, ILogManager? logManager)
+    {
+        _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
+        _tree = new VerkleStateTree(
+            new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), new MemDb(), new MemDb(), logManager),
+            logManager);
+        _codeDb = new MemDb();
+        _storageProvider = new VerkleStorageProvider(_tree, logManager);
+        _tree.InsertIntoStatelessTree(executionWitness, root,false);
     }
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)

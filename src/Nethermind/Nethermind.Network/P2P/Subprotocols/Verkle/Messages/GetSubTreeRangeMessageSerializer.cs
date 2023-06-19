@@ -3,6 +3,7 @@
 
 using DotNetty.Buffers;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Verkle;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Utils;
 

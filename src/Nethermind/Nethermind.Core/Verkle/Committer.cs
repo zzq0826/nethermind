@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 
-namespace Nethermind.Verkle.Tree.Utils
+namespace Nethermind.Core.Verkle
 {
     public struct Committer
     {

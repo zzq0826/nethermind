@@ -1,7 +1,9 @@
+using System;
 using Nethermind.Core.Caching;
 using Nethermind.Int256;
+using Nethermind.Verkle.Tree.Utils;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Core.Verkle;
 
 public readonly struct AccountHeader
 {

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
+using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
