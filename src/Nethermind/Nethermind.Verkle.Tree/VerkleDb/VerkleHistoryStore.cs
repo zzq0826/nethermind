@@ -16,6 +16,12 @@ public class VerkleHistoryStore
         ReverseDiff = new DiffLayer(dbProvider.ReverseDiff, DiffType.Reverse);
     }
 
+    public VerkleHistoryStore(IDb forwardDiff, IDb reverseDiff)
+    {
+        ForwardDiff = new DiffLayer(forwardDiff, DiffType.Forward);
+        ReverseDiff = new DiffLayer(reverseDiff, DiffType.Reverse);
+    }
+
     public void InsertDiff(long blockNumber, VerkleMemoryDb postState, VerkleMemoryDb preState)
     {
         ForwardDiff.InsertDiff(blockNumber, postState);

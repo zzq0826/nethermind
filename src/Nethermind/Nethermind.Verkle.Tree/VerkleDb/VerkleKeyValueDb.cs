@@ -10,14 +10,19 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 
 public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
 {
-    private readonly IDbProvider _dbProvider;
-
-    public IDb LeafDb => _dbProvider.LeafDb;
-    public IDb InternalNodeDb => _dbProvider.InternalNodesDb;
+    public IDb LeafDb { get; }
+    public IDb InternalNodeDb { get; }
 
     public VerkleKeyValueDb(IDbProvider dbProvider)
     {
-        _dbProvider = dbProvider;
+        LeafDb = dbProvider.LeafDb;
+        InternalNodeDb = dbProvider.InternalNodesDb;
+    }
+
+    public VerkleKeyValueDb(IDb internalNodeDb, IDb leafDb)
+    {
+        LeafDb = leafDb;
+        InternalNodeDb = internalNodeDb;
     }
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key) => LeafDb.Get(key);

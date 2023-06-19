@@ -6,6 +6,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
@@ -30,7 +31,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     private Pedersen? PersistedStateRoot { get;  set; }
 
-    private StackQueue<(long, ReadOnlyVerkleMemoryDb)> BlockCache { get; set; }
+    private StackQueue<(long, ReadOnlyVerkleMemoryDb)>? BlockCache { get; }
 
     public Pedersen StateRoot { get; private set; }
 
@@ -47,7 +48,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     // We try to avoid fetching from this, and we only store at the end of a batch insert
     private VerkleKeyValueDb Storage { get; }
 
-    private VerkleHistoryStore History { get; }
+    private VerkleHistoryStore? History { get; }
 
     private readonly StateRootToBlockMap _stateRootToBlocks;
 
@@ -57,7 +58,60 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         Storage = new VerkleKeyValueDb(dbProvider);
         History = new VerkleHistoryStore(dbProvider);
         _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
-        BlockCache = new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+        BlockCache = maxNumberOfBlocksInCache == 0
+            ? null
+            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+        MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
+        InitRootHash();
+        StateRoot = GetStateRoot();
+        FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
+        FullStateCacheBlock = -1;
+
+        // TODO: why should we store using block number - use stateRoot to index everything
+        // but i think block number is easy to understand and it maintains a sequence
+        if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
+    }
+
+    public VerkleStateStore(
+        IDb leafDb,
+        IDb internalDb,
+        IDb forwardDiff,
+        IDb reverseDiff,
+        IDb stateRootToBlocks,
+        ILogManager logManager,
+        int maxNumberOfBlocksInCache = 128)
+    {
+        _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
+        Storage = new VerkleKeyValueDb(internalDb, leafDb);
+        History = new VerkleHistoryStore(forwardDiff, reverseDiff);
+        _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
+        BlockCache = maxNumberOfBlocksInCache == 0
+            ? null
+            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+        MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
+        InitRootHash();
+        StateRoot = GetStateRoot();
+        FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
+        FullStateCacheBlock = -1;
+
+        // TODO: why should we store using block number - use stateRoot to index everything
+        // but i think block number is easy to understand and it maintains a sequence
+        if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
+    }
+
+    public VerkleStateStore(
+        IDb leafDb,
+        IDb internalDb,
+        IDb stateRootToBlocks,
+        ILogManager logManager,
+        int maxNumberOfBlocksInCache = 128)
+    {
+        _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
+        Storage = new VerkleKeyValueDb(internalDb, leafDb);
+        _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
+        BlockCache = maxNumberOfBlocksInCache == 0
+            ? null
+            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
         StateRoot = GetStateRoot();
@@ -78,20 +132,17 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     // for this fromBlock < toBlock - move forward in time
     public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
     {
-        return History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
+        return History?.GetBatchDiff(fromBlock, toBlock).DiffLayer ?? throw new ArgumentException("History not Enabled");
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock > toBlock - move back in time
     public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
     {
-        return History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
+        return History?.GetBatchDiff(fromBlock, toBlock).DiffLayer ?? throw new ArgumentException("History not Enabled");
     }
 
-    public void Reset()
-    {
-        BlockCache.Clear();
-    }
+    public void Reset() => BlockCache?.Clear();
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
@@ -108,10 +159,13 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 #if DEBUG
         if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
 #endif
-        using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
-        while (diffs.MoveNext())
+        if (BlockCache is not null)
         {
-            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
+            using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
+            while (diffs.MoveNext())
+            {
+                if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
+            }
         }
 
         return Storage.GetLeaf(key, out byte[]? value) ? value : null;
@@ -119,11 +173,15 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
-        using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
-        while (diffs.MoveNext())
+        if (BlockCache is not null)
         {
-            if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node;
+            using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
+            while (diffs.MoveNext())
+            {
+                if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node;
+            }
         }
+
         return Storage.GetInternalNode(key, out InternalNode? value) ? value : null;
     }
 
@@ -170,16 +228,33 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
         };
 
-        if (!BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch), out (long, ReadOnlyVerkleMemoryDb) element))
+        bool persistBlock = false;
+        ReadOnlyVerkleMemoryDb elemToPersist;
+        long blockNumberPersist;
+        if (BlockCache is null)
         {
-            _logger.Info($"BlockCache is full - got forwardDiff BlockNumber:{element.Item1} IN:{element.Item2.InternalTable.Count} LN:{element.Item2.LeafTable.Count}");
-            Pedersen root = GetStateRoot(element.Item2.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
+            persistBlock = true;
+            elemToPersist = cacheBatch;
+            blockNumberPersist = blockNumber;
+        }
+        else
+        {
+            persistBlock = !BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch),
+                out (long, ReadOnlyVerkleMemoryDb) element);
+            elemToPersist = element.Item2;
+            blockNumberPersist = element.Item1;
+        }
+
+        if (persistBlock)
+        {
+            _logger.Info($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{elemToPersist.InternalTable.Count} LN:{elemToPersist.LeafTable.Count}");
+            Pedersen root = GetStateRoot(elemToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
             PersistedStateRoot = root;
             _logger.Info($"StateRoot after persisting forwardDiff: {root}");
-            VerkleMemoryDb reverseDiff = PersistBlockChanges(element.Item2.InternalTable, element.Item2.LeafTable, Storage);
+            VerkleMemoryDb reverseDiff = PersistBlockChanges(elemToPersist.InternalTable, elemToPersist.LeafTable, Storage);
             _logger.Info($"reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
-            History.InsertDiff(element.Item1, element.Item2, reverseDiff);
-            FullStatePersistedBlock = element.Item1;
+            History?.InsertDiff(blockNumberPersist, elemToPersist, reverseDiff);
+            FullStatePersistedBlock =blockNumberPersist;
             Storage.LeafDb.Flush();
             Storage.InternalNodeDb.Flush();
         }
@@ -195,13 +270,15 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     public void ReverseState()
     {
 
-        if (BlockCache.Count != 0)
+        if (BlockCache is not null && BlockCache.Count != 0)
         {
             BlockCache.Pop(out _);
             return;
         }
 
-        VerkleMemoryDb reverseDiff = History.GetBatchDiff(FullStatePersistedBlock, FullStatePersistedBlock - 1).DiffLayer;
+        VerkleMemoryDb reverseDiff =
+            History?.GetBatchDiff(FullStatePersistedBlock, FullStatePersistedBlock - 1).DiffLayer ??
+            throw new ArgumentException("History not Enabled");
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
         {
@@ -305,20 +382,24 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         if (fromBlock > toBlock)
         {
             long noOfBlockToMove = fromBlock - toBlock;
-            if (noOfBlockToMove > BlockCache.Count)
+            if (BlockCache is not null && noOfBlockToMove > BlockCache.Count)
             {
                 BlockCache.Clear();
                 fromBlock -= BlockCache.Count;
 
-                BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
+                BatchChangeSet batchDiff = History?.GetBatchDiff(fromBlock, toBlock) ??
+                                           throw new ArgumentException("History not Enabled");
                 ApplyDiffLayer(batchDiff);
 
             }
             else
             {
-                for (int i = 0; i < noOfBlockToMove; i++)
+                if (BlockCache is not null)
                 {
-                    BlockCache.Pop(out _);
+                    for (int i = 0; i < noOfBlockToMove; i++)
+                    {
+                        BlockCache.Pop(out _);
+                    }
                 }
             }
         }
@@ -375,6 +456,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, long blockNumber)
     {
+        if(BlockCache is null) yield break;
+
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
         List<LeafEnumerator> iterators = new();
 
