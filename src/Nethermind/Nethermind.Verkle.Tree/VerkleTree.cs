@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Diagnostics;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
@@ -20,32 +19,32 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree: IVerkleTree
 {
+    private static readonly byte[] _rootKey = Array.Empty<byte>();
     private readonly ILogger _logger;
 
-    private static byte[] RootKey = Array.Empty<byte>();
-    private VerkleMemoryDb _treeCache;
-    public readonly IVerkleStore _verkleStateStore;
 
+    // get and update the state root of the tree
+    // _isDirty - to check if tree is in between insertion and commitment
+    private bool _isDirty;
     private Pedersen _stateRoot;
-
     public Pedersen StateRoot
     {
-        get
-        {
-            if (_isDirty) throw new InvalidOperationException("trying to get root hash of not committed tree");
-            return _stateRoot;
-        }
-        set
-        {
-            MoveToStateRoot(value);
-        }
+        get => _isDirty
+            ? throw new InvalidOperationException("trying to get root hash of not committed tree")
+            : _stateRoot;
+        set => MoveToStateRoot(value);
     }
 
-    private bool _isDirty;
+    // the store that is responsible to store the tree in a key-value store
+    public readonly IVerkleStore _verkleStateStore;
 
+    // cache to maintain recently used or inserted nodes of the tree - should be consistent
+    private VerkleMemoryDb _treeCache;
+
+    // aggregate the stem commitments here and then update the entire tree when Commit() is called
     private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache;
 
-    public VerkleTree(IDbProvider dbProvider, ILogManager logManager)
+    public VerkleTree(IDbProvider dbProvider, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
         _treeCache = new VerkleMemoryDb();
@@ -56,7 +55,7 @@ public partial class VerkleTree: IVerkleTree
         ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
 
-    public VerkleTree(IVerkleStore verkleStateStore, ILogManager logManager)
+    public VerkleTree(IVerkleStore verkleStateStore, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
         _treeCache = new VerkleMemoryDb();
@@ -67,27 +66,27 @@ public partial class VerkleTree: IVerkleTree
         ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
 
+    private Pedersen GetStateRoot()
+    {
+        InternalNode rootNode = GetInternalNode(Array.Empty<byte>()) ?? throw new InvalidOperationException();
+        return new Pedersen(rootNode.InternalCommitment.Point.ToBytes().ToArray());
+    }
+
     public bool MoveToStateRoot(Pedersen stateRoot)
     {
         try
         {
-            if(_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}");
+            if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}");
             if (GetStateRoot().Equals(stateRoot)) return true;
             _verkleStateStore.MoveToStateRoot(stateRoot);
             return true;
         }
         catch (Exception e)
         {
-            if(_logger.IsDebug) _logger.Error($"MoveToStateRoot: failed isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}", e);
+            if (_logger.IsDebug)
+                _logger.Error($"MoveToStateRoot: failed isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}", e);
             return false;
         }
-    }
-
-    private Pedersen GetStateRoot()
-    {
-        byte[] stateRoot = GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ??
-                           throw new InvalidOperationException();
-        return new Pedersen(stateRoot);
     }
 
     public byte[]? Get(Pedersen key)
@@ -97,7 +96,7 @@ public partial class VerkleTree: IVerkleTree
             : _verkleStateStore.GetLeaf(key.Bytes);
     }
 
-    public void Set(Pedersen key, byte[]? value)
+    private void SetLeafCache(Pedersen key, byte[]? value)
     {
         _treeCache.SetLeaf(key.BytesAsSpan, value);
     }
@@ -110,7 +109,7 @@ public partial class VerkleTree: IVerkleTree
 #endif
         ReadOnlySpan<byte> stem = key.StemAsSpan;
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
-        if(!present) leafUpdateDelta = new LeafUpdateDelta();
+        if (!present) leafUpdateDelta = new LeafUpdateDelta();
         leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(key, value.ToArray()), key.SuffixByte);
         _leafUpdateCache[stem] = leafUpdateDelta;
     }
@@ -182,7 +181,7 @@ public partial class VerkleTree: IVerkleTree
     {
         byte[]? oldValue = Get(key);
         Banderwagon leafDeltaCommitment = GetLeafDelta(oldValue, value, key.SuffixByte);
-        Set(key, value);
+        SetLeafCache(key, value);
         return leafDeltaCommitment;
     }
 
@@ -207,7 +206,7 @@ public partial class VerkleTree: IVerkleTree
         return deltaLow + deltaHigh;
     }
 
-    public static Banderwagon GetLeafDelta(byte[] newValue, byte index)
+    private static Banderwagon GetLeafDelta(byte[] newValue, byte index)
     {
 
 #if DEBUG
@@ -248,20 +247,12 @@ public partial class VerkleTree: IVerkleTree
         _stateRoot = _verkleStateStore.RootHash;
     }
 
-    private void UpdateTreeCommitments(Span<byte> stem, LeafUpdateDelta leafUpdateDelta, bool forSync = false)
-    {
-        // calculate this by update the leafs and calculating the delta - simple enough
-        TraverseContext context = new(stem, leafUpdateDelta) { ForSync = forSync };
-        Banderwagon rootDelta = TraverseBranch(context);
-        UpdateRootNode(rootDelta);
-    }
-
     private void UpdateRootNode(Banderwagon rootDelta)
     {
-        InternalNode root = GetInternalNode(RootKey) ?? throw new InvalidOperationException("root should be present");
+        InternalNode root = GetInternalNode(_rootKey) ?? throw new InvalidOperationException("root should be present");
         InternalNode newRoot = root.Clone();
         newRoot.InternalCommitment.AddPoint(rootDelta);
-        SetInternalNode(RootKey, newRoot);
+        SetInternalNode(_rootKey, newRoot);
     }
 
     private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey)
@@ -276,142 +267,6 @@ public partial class VerkleTree: IVerkleTree
         _treeCache.SetInternalNode(nodeKey, node);
     }
 
-    public Banderwagon TraverseBranch(TraverseContext traverseContext)
-    {
-        byte childIndex = traverseContext.Stem[traverseContext.CurrentIndex];
-        byte[] absolutePath = traverseContext.Stem[..(traverseContext.CurrentIndex + 1)].ToArray();
-
-        InternalNode? child = GetInternalNode(absolutePath);
-        if (child is null)
-        {
-            // 1. create new suffix node
-            // 2. update the C1 or C2 - we already know the leafDelta - traverseContext.LeafUpdateDelta
-            // 3. update ExtensionCommitment
-            // 4. get the delta for commitment - ExtensionCommitment - 0;
-            InternalNode stem = new InternalNode(VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
-            FrE deltaFr = stem.UpdateCommitment(traverseContext.LeafUpdateDelta);
-            FrE deltaHash = deltaFr + stem.InitCommitmentHash!.Value;
-
-            // 1. Add internal.stem node
-            // 2. return delta from ExtensionCommitment
-            SetInternalNode(absolutePath, stem);
-            return Committer.ScalarMul(deltaHash, childIndex);
-        }
-
-        if (child.IsBranchNode)
-        {
-            traverseContext.CurrentIndex += 1;
-            Banderwagon branchDeltaHash = TraverseBranch(traverseContext);
-            traverseContext.CurrentIndex -= 1;
-            FrE deltaHash = child.UpdateCommitment(branchDeltaHash);
-            SetInternalNode(absolutePath, child);
-            return Committer.ScalarMul(deltaHash, childIndex);
-        }
-
-        traverseContext.CurrentIndex += 1;
-        (Banderwagon stemDeltaHash, bool changeStemToBranch) = TraverseStem(child, traverseContext);
-        traverseContext.CurrentIndex -= 1;
-        if (changeStemToBranch)
-        {
-            InternalNode newChild = new(VerkleNodeType.BranchNode);
-            newChild.InternalCommitment.AddPoint(child.InternalCommitment.Point);
-            // since this is a new child, this would be just the parentDeltaHash.PointToField
-            // now since there was a node before and that value is deleted - we need to subtract
-            // that from the delta as well
-            FrE deltaHash = newChild.UpdateCommitment(stemDeltaHash);
-            SetInternalNode(absolutePath, newChild);
-            return Committer.ScalarMul(deltaHash, childIndex);
-        }
-        // in case of stem, no need to update the child commitment - because this commitment is the suffix commitment
-        // pass on the update to upper level
-        return stemDeltaHash;
-    }
-
-    private (Banderwagon, bool) TraverseStem(InternalNode node, TraverseContext traverseContext)
-    {
-        Debug.Assert(node.IsStem);
-
-        (List<byte> sharedPath, byte? pathDiffIndexOld, byte? pathDiffIndexNew) =
-            VerkleUtils.GetPathDifference(node.Stem!.Bytes, traverseContext.Stem.ToArray());
-
-        if (sharedPath.Count != 31)
-        {
-            int relativePathLength = sharedPath.Count - traverseContext.CurrentIndex;
-            // byte[] relativeSharedPath = sharedPath.ToArray()[traverseContext.CurrentIndex..].ToArray();
-            byte oldLeafIndex = pathDiffIndexOld ?? throw new ArgumentException();
-            byte newLeafIndex = pathDiffIndexNew ?? throw new ArgumentException();
-            // node share a path but not the complete stem.
-
-            // the internal node will be denoted by their sharedPath
-            // 1. create SuffixNode for the traverseContext.Key - get the delta of the commitment
-            // 2. set this suffix as child node of the BranchNode - get the commitment point
-            // 3. set the existing suffix as the child - get the commitment point
-            // 4. update the internal node with the two commitment points
-            InternalNode newStem = new InternalNode(VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
-            FrE deltaFrNewStem = newStem.UpdateCommitment(traverseContext.LeafUpdateDelta);
-            FrE deltaHashNewStem = deltaFrNewStem + newStem.InitCommitmentHash!.Value;
-
-            // creating the stem node for the new suffix node
-            byte[] stemKey = new byte[sharedPath.Count + 1];
-            sharedPath.CopyTo(stemKey);
-            stemKey[^1] = newLeafIndex;
-            SetInternalNode(stemKey, newStem);
-            Banderwagon newSuffixCommitmentDelta = Committer.ScalarMul(deltaHashNewStem, newLeafIndex);
-
-            stemKey = new byte[sharedPath.Count + 1];
-            sharedPath.CopyTo(stemKey);
-            stemKey[^1] = oldLeafIndex;
-            SetInternalNode(stemKey, node);
-
-            Banderwagon oldSuffixCommitmentDelta =
-                Committer.ScalarMul(node.InternalCommitment.PointAsField, oldLeafIndex);
-
-            Banderwagon deltaCommitment = oldSuffixCommitmentDelta + newSuffixCommitmentDelta;
-
-            Banderwagon internalCommitment = FillSpaceWithBranchNodes(sharedPath.ToArray(), relativePathLength, deltaCommitment);
-
-            return (internalCommitment - node.InternalCommitment.Point, true);
-        }
-
-        byte[] absolutePath = traverseContext.Stem[..traverseContext.CurrentIndex].ToArray();
-        byte childIndex = traverseContext.Stem[traverseContext.CurrentIndex - 1];
-        if (traverseContext.ForSync)
-        {
-            // 1. create new suffix node
-            // 2. update the C1 or C2 - we already know the leafDelta - traverseContext.LeafUpdateDelta
-            // 3. update ExtensionCommitment
-            // 4. get the delta for commitment - ExtensionCommitment - 0;
-            InternalNode stem = new InternalNode(VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
-            FrE deltaFr = stem.UpdateCommitment(traverseContext.LeafUpdateDelta);
-            FrE deltaHash = deltaFr + stem.InitCommitmentHash!.Value;
-
-            // 1. Add internal.stem node
-            // 2. return delta from ExtensionCommitment
-            SetInternalNode(absolutePath, stem);
-            return (Committer.ScalarMul(deltaHash, childIndex), false);
-        }
-        else
-        {
-            InternalNode updatedStemNode = node.Clone();
-            FrE deltaFr = updatedStemNode.UpdateCommitment(traverseContext.LeafUpdateDelta);
-            SetInternalNode(absolutePath, updatedStemNode);
-            return (Committer.ScalarMul(deltaFr, childIndex), false);
-        }
-    }
-
-    private Banderwagon FillSpaceWithBranchNodes(byte[] path, int length, Banderwagon deltaPoint)
-    {
-        for (int i = 0; i < length; i++)
-        {
-            InternalNode newInternalNode = new(VerkleNodeType.BranchNode);
-            FrE upwardsDelta = newInternalNode.UpdateCommitment(deltaPoint);
-            SetInternalNode(path[..^i], newInternalNode);
-            deltaPoint = Committer.ScalarMul(upwardsDelta, path[path.Length - i - 1]);
-        }
-
-        return deltaPoint;
-    }
-
     public void Reset()
     {
         _leafUpdateCache.Clear();
@@ -419,20 +274,5 @@ public partial class VerkleTree: IVerkleTree
         ProofStemPolynomialCache.Clear();
         _treeCache = new VerkleMemoryDb();
         _verkleStateStore.Reset();
-    }
-
-    public ref struct TraverseContext
-    {
-        public LeafUpdateDelta LeafUpdateDelta { get; }
-        public bool ForSync { get; set; }
-        public Span<byte> Stem { get; }
-        public int CurrentIndex { get; set; }
-
-        public TraverseContext(Span<byte> stem, LeafUpdateDelta delta)
-        {
-            Stem = stem;
-            CurrentIndex = 0;
-            LeafUpdateDelta = delta;
-        }
     }
 }

@@ -33,7 +33,7 @@ public partial class VerkleTree
             {
                 key[31] = leafs.SuffixByte;
                 leafUpdateDelta.UpdateDelta(GetLeafDelta(leafs.Leaf, leafs.SuffixByte), leafs.SuffixByte);
-                Set(key.ToArray(), leafs.Leaf);
+                SetLeafCache(key.ToArray(), leafs.Leaf);
             }
             _leafUpdateCache[subTree.Path.Bytes] = leafUpdateDelta;
         }
@@ -92,7 +92,7 @@ public partial class VerkleTree
         {
             byte[]? value = values[i];
             if(value is null) continue;
-            Set(keys[i], value);
+            SetLeafCache(keys[i], value);
         }
     }
 
