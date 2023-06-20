@@ -78,7 +78,6 @@ public partial class VerkleTree: IVerkleTree
         try
         {
             if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}");
-            if (GetStateRoot().Equals(stateRoot)) return true;
             _verkleStateStore.MoveToStateRoot(stateRoot);
             return true;
         }
