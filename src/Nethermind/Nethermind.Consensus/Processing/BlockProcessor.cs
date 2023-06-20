@@ -63,7 +63,7 @@ public partial class BlockProcessor : IBlockProcessor
         _blockTransactionsExecutor = blockTransactionsExecutor ?? throw new ArgumentNullException(nameof(blockTransactionsExecutor));
 
 
-        _receiptsTracer = new BlockReceiptsTracer();
+        _receiptsTracer = new BlockReceiptsTracer(true, false);
     }
 
     public event EventHandler<BlockProcessedEventArgs> BlockProcessed;

@@ -7,6 +7,7 @@ using System.Text;
 using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Int256;
 
 namespace Nethermind.Core;
@@ -25,7 +26,8 @@ public class BlockHeader
         long gasLimit,
         ulong timestamp,
         byte[] extraData,
-        UInt256? excessDataGas = null)
+        UInt256? excessDataGas = null,
+        ExecutionWitness? witness = null)
     {
         ParentHash = parentHash;
         UnclesHash = unclesHash;
@@ -36,6 +38,7 @@ public class BlockHeader
         Timestamp = timestamp;
         ExtraData = extraData;
         ExcessDataGas = excessDataGas;
+        Witness = witness;
     }
 
     public WeakReference<BlockHeader>? MaybeParent { get; set; }
@@ -66,6 +69,7 @@ public class BlockHeader
     public UInt256 BaseFeePerGas { get; set; }
     public Keccak? WithdrawalsRoot { get; set; }
     public UInt256? ExcessDataGas { get; set; }
+    public ExecutionWitness? Witness { get; set; }
 
     public bool HasBody => (TxRoot is not null && TxRoot != Keccak.EmptyTreeHash)
         || (UnclesHash is not null && UnclesHash != Keccak.OfAnEmptySequenceRlp)

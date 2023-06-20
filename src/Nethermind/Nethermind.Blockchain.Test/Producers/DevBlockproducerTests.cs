@@ -12,6 +12,7 @@ using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
 using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
@@ -136,20 +137,20 @@ namespace Nethermind.Blockchain.Test.Producers
                 new ChainLevelInfoRepository(dbProvider),
                 specProvider,
                 NullBloomStorage.Instance,
-                LimboLogs.Instance);
-            VerkleStateTree stateTree = new VerkleStateTree(dbProvider, LimboLogs.Instance);
-            VerkleStateReader stateReader = new(stateTree, dbProvider.GetDb<IDb>(DbNames.Code), LimboLogs.Instance);
-            VerkleWorldState worldState = new VerkleWorldState(stateTree, dbProvider.RegisteredDbs[DbNames.Code], LimboLogs.Instance);
-            BlockhashProvider blockhashProvider = new(blockTree, LimboLogs.Instance);
+                SimpleConsoleLogManager.Instance);
+            VerkleStateTree stateTree = new (dbProvider, SimpleConsoleLogManager.Instance);
+            VerkleStateReader stateReader = new(stateTree, dbProvider.GetDb<IDb>(DbNames.Code), SimpleConsoleLogManager.Instance);
+            VerkleWorldState worldState = new (stateTree, dbProvider.RegisteredDbs[DbNames.Code], SimpleConsoleLogManager.Instance);
+            BlockhashProvider blockHashProvider = new(blockTree, SimpleConsoleLogManager.Instance);
             VirtualMachine virtualMachine = new(
-                blockhashProvider,
+                blockHashProvider,
                 specProvider,
-                LimboLogs.Instance);
+                SimpleConsoleLogManager.Instance);
             TransactionProcessor txProcessor = new(
                 specProvider,
                 worldState,
                 virtualMachine,
-                LimboLogs.Instance);
+                SimpleConsoleLogManager.Instance);
             BlockProcessor blockProcessor = new(
                 specProvider,
                 Always.Valid,
@@ -158,13 +159,13 @@ namespace Nethermind.Blockchain.Test.Producers
                 worldState,
                 NullReceiptStorage.Instance,
                 NullWitnessCollector.Instance,
-                LimboLogs.Instance);
+                SimpleConsoleLogManager.Instance);
             BlockchainProcessor blockchainProcessor = new(
                 blockTree,
                 blockProcessor,
                 NullRecoveryStep.Instance,
                 stateReader,
-                LimboLogs.Instance,
+                SimpleConsoleLogManager.Instance,
                 BlockchainProcessor.Options.Default);
             BuildBlocksWhenRequested trigger = new();
             ManualTimestamper timestamper = new ManualTimestamper();
@@ -177,7 +178,7 @@ namespace Nethermind.Blockchain.Test.Producers
                 timestamper,
                 specProvider,
                 new BlocksConfig(),
-                LimboLogs.Instance);
+                SimpleConsoleLogManager.Instance);
 
             blockchainProcessor.Start();
             devBlockProducer.Start();
@@ -186,7 +187,7 @@ namespace Nethermind.Blockchain.Test.Producers
             AutoResetEvent autoResetEvent = new(false);
 
             blockTree.NewHeadBlock += (s, e) => autoResetEvent.Set();
-            blockTree.SuggestBlock(Build.A.Block.Genesis.TestObject);
+            blockTree.SuggestBlock(Build.A.Block.Genesis.WithStateRoot(Keccak.Zero).TestObject);
 
             autoResetEvent.WaitOne(1000).Should().BeTrue("genesis");
 
