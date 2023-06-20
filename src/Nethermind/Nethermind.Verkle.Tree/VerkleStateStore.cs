@@ -64,10 +64,6 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
-        StateRoot = GetStateRoot();
-        FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
-        FullStateCacheBlock = -1;
-
         // TODO: why should we store using block number - use stateRoot to index everything
         // but i think block number is easy to understand and it maintains a sequence
         if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
@@ -90,14 +86,9 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             ? null
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
-        InitRootHash();
-        StateRoot = GetStateRoot();
-        FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
-        FullStateCacheBlock = -1;
 
-        // TODO: why should we store using block number - use stateRoot to index everything
-        // but i think block number is easy to understand and it maintains a sequence
-        if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
+        InitRootHash();
+
     }
 
     public VerkleStateStore(
@@ -114,10 +105,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             ? null
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
+
         InitRootHash();
-        StateRoot = GetStateRoot();
-        FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
-        FullStateCacheBlock = -1;
 
         // TODO: why should we store using block number - use stateRoot to index everything
         // but i think block number is easy to understand and it maintains a sequence
@@ -151,8 +140,21 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         _logger.Info($"VerkleStateStore: init rootHash");
         InternalNode? node = GetInternalNode(Array.Empty<byte>());
-        if (node is not null) return;
-        Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
+        if (node is not null)
+        {
+            StateRoot = new Pedersen(node.InternalCommitment.Point.ToBytes());
+            FullStatePersistedBlock = _stateRootToBlocks[StateRoot];
+            FullStateCacheBlock = -1;
+        }
+        else
+        {
+            Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
+            StateRoot = Pedersen.Zero;
+            FullStatePersistedBlock = FullStateCacheBlock = -1;
+        }
+        // TODO: why should we store using block number - use stateRoot to index everything
+        // but i think block number is easy to understand and it maintains a sequence
+        if (FullStatePersistedBlock == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
     }
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
@@ -368,8 +370,6 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         Pedersen currentRoot = GetStateRoot();
         _logger.Info($"VerkleStateStore - MoveToStateRoot: WantedStateRoot:{stateRoot} CurrentStateRoot:{currentRoot}");
-        // if the target root node is same as current - return true
-        if (currentRoot.Equals(stateRoot)) return true;
         // TODO: this is actually not possible - not sure if return true is correct here
         if (stateRoot.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes))) return true;
 
@@ -404,12 +404,17 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
                 }
             }
         }
+        else if (fromBlock == toBlock)
+        {
+
+        }
         else
         {
             throw new NotImplementedException("Should be implemented in future (probably)");
         }
 
         Debug.Assert(GetStateRoot().Equals(stateRoot));
+        FullStateCacheBlock = toBlock;
         return true;
     }
 
@@ -646,7 +651,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         {
             get
             {
-                if (Pedersen.Zero.Equals(key)) return -1;
+                // if (Pedersen.Zero.Equals(key)) return -1;
                 byte[]? encodedBlock = _stateRootToBlock[key.Bytes];
                 return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
             }
@@ -654,7 +659,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             {
                 Span<byte> encodedBlock = stackalloc byte[8];
                 BinaryPrimitives.WriteInt64LittleEndian(encodedBlock, value);
-                _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
+                if(!_stateRootToBlock.KeyExists(key.Bytes))
+                    _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
             }
         }
     }
