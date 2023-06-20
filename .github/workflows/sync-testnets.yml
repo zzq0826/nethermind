@@ -43,6 +43,8 @@ jobs:
       
       - name: Instal with brew and start
         run: |
+          export DYLD_FALLBACK_LIBRARY_PATH="
+          <homebrew/path>/lib"
           brew update
           brew install lz4 snappy zstd
           brew tap nethermindeth/nethermind
