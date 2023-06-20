@@ -23,11 +23,11 @@ jobs:
           echo "BUILD_TIMESTAMP=$(date '+%s')" >> $GITHUB_OUTPUT
           echo "COMMIT_HASH=$(git describe --always --exclude=* --abbrev=40)" >> $GITHUB_OUTPUT
           
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build docker image
-        run: docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load .
+      #- name: Set up Docker Buildx
+      #  uses: docker/setup-buildx-action@v2
+#
+      #- name: Build docker image
+      #  run: docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load .
 
       - name: Setup Go environment
         uses: actions/setup-go@v4.0.0
@@ -48,7 +48,7 @@ jobs:
           ./build/sedge deps install
           ./build/sedge generate --logging none -p $GITHUB_WORKSPACE/sedge \
           full-node --map-all --no-mev-boost --no-validator --network chiado \
-          -c lighthouse:sigp/lighthouse:latest -e nethermind:current_branch_image \
+          -c lighthouse:sigp/lighthouse:latest -e nethermind:nethermind/nethermind:1.19.2 \
           --el-extra-flag Sync.NonValidatorNode=true --el-extra-flag Sync.DownloadBodiesInFastSync=false \
           --el-extra-flag Sync.DownloadReceiptsInFastSync=false \
           --el-extra-flag JsonRpc.EnabledModules=[Eth,Subscribe,Trace,TxPool,Web3,Personal,Proof,Net,Parity,Health,Rpc,Debug] \
@@ -122,11 +122,11 @@ jobs:
           echo "BUILD_TIMESTAMP=$(date '+%s')" >> $GITHUB_OUTPUT
           echo "COMMIT_HASH=$(git describe --always --exclude=* --abbrev=40)" >> $GITHUB_OUTPUT
           
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build docker image
-        run: docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load .
+      #- name: Set up Docker Buildx
+      #  uses: docker/setup-buildx-action@v2
+#
+      #- name: Build docker image
+      #  run: docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load .
 
       - name: Setup Go environment
         uses: actions/setup-go@v4.0.0
@@ -147,7 +147,7 @@ jobs:
           ./build/sedge deps install
           ./build/sedge generate --logging none -p $GITHUB_WORKSPACE/sedge \
           full-node --map-all --no-mev-boost --no-validator --network sepolia \
-          -c lighthouse:sigp/lighthouse:latest -e nethermind:current_branch_image \
+          -c lighthouse:sigp/lighthouse:latest -e nethermind:nethermind/nethermind:1.19.2 \
           --el-extra-flag Sync.NonValidatorNode=true --el-extra-flag Sync.DownloadBodiesInFastSync=false \
           --el-extra-flag Sync.DownloadReceiptsInFastSync=false \
           --el-extra-flag JsonRpc.EnabledModules=[Eth,Subscribe,Trace,TxPool,Web3,Personal,Proof,Net,Parity,Health,Rpc,Debug] \
