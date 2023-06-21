@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Receipts;
@@ -227,6 +228,15 @@ public partial class BlockProcessor : IBlockProcessor
         ApplyMinerRewards(block, blockTracer, spec);
         _withdrawalProcessor.ProcessWithdrawals(block, spec);
         _receiptsTracer.EndBlockTrace();
+
+        if (spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
+        {
+            byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
+            _logger.Info($"UsedKeys {usedKeys.Length}");
+            VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
+            if (usedKeys is null || usedKeys.Length == 0) block.Header.Witness = null;
+            else block.Header.Witness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
+        }
 
         _stateProvider.Commit(spec);
         _stateProvider.RecalculateStateRoot();
