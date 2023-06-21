@@ -516,6 +516,8 @@ namespace Nethermind.Evm.TransactionProcessing
                         substate.Logs.Any() ? substate.Logs.ToArray() : Array.Empty<LogEntry>(), stateRoot);
                 }
             }
+
+            if (txTracer.IsTracingVerkleWitness) txTracer.SetVerkleWitnessKeys(witness.GetAccessedKeys());
         }
 
         private void PrepareAccountForContractDeployment(Address contractAddress, IReleaseSpec spec)
