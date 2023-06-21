@@ -228,7 +228,7 @@ namespace Nethermind.Evm.Tracing
         private Transaction? _currentTx;
         public IReadOnlyList<TxReceipt> TxReceipts => _txReceipts;
         public TxReceipt LastReceipt => _txReceipts[^1];
-        public IReadOnlyList<IReadOnlyList<byte[]>> WitnessKeys => _witnessKeys;
+        public SortedSet<byte[]> WitnessKeys => _aggregatedWitnessKeys;
         public IReadOnlyList<byte[]> LastWitness => _witnessKeys[^1];
         public bool IsTracingRewards => _otherTracer.IsTracingRewards;
         public int TakeSnapshot() => _txReceipts.Count;
