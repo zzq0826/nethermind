@@ -22,6 +22,11 @@ public partial class VerkleTree
 
     public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
     {
+        if (keys.Length == 0)
+        {
+            rootPoint = default;
+            return new ExecutionWitness();
+        }
         VerkleProof proof = CreateVerkleProof(keys, out rootPoint);
 
         SpanDictionary<byte, List<SuffixStateDiff>> stemStateDiff = new(Bytes.SpanEqualityComparer);
@@ -44,6 +49,11 @@ public partial class VerkleTree
 
     public VerkleProof CreateVerkleProof(byte[][] keys, out Banderwagon rootPoint)
     {
+        if (keys.Length == 0)
+        {
+            rootPoint = default;
+            return new VerkleProof();
+        }
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
 

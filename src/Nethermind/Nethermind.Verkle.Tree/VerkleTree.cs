@@ -30,9 +30,7 @@ public partial class VerkleTree: IVerkleTree
     private Pedersen _stateRoot;
     public Pedersen StateRoot
     {
-        get => _isDirty
-            ? throw new InvalidOperationException("trying to get root hash of not committed tree")
-            : _stateRoot;
+        get => GetStateRoot();
         set => MoveToStateRoot(value);
     }
 
@@ -77,14 +75,14 @@ public partial class VerkleTree: IVerkleTree
     {
         try
         {
-            if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}");
+            if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty: {_isDirty} from: {_stateRoot} to: {stateRoot}");
             _verkleStateStore.MoveToStateRoot(stateRoot);
             return true;
         }
         catch (Exception e)
         {
             if (_logger.IsDebug)
-                _logger.Error($"MoveToStateRoot: failed isDirty:{_isDirty} from:{_stateRoot} to:{stateRoot}", e);
+                _logger.Error($"MoveToStateRoot: failed isDirty: {_isDirty} from: {_stateRoot} to: {stateRoot}", e);
             return false;
         }
     }
