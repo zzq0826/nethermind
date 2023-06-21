@@ -8,6 +8,7 @@ using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Trie;
+using Nethermind.Verkle.Tree;
 using Metrics = Nethermind.Db.Metrics;
 
 namespace Nethermind.State;
@@ -23,6 +24,13 @@ public class VerkleStateReader : IStateReader
         _logger = logManager?.GetClassLogger<StateReader>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         _state = verkleTree;
+    }
+
+    public VerkleStateReader(IVerkleStore verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
+    {
+        _logger = logManager?.GetClassLogger<StateReader>() ?? throw new ArgumentNullException(nameof(logManager));
+        _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
+        _state = new VerkleStateTree(verkleTree, logManager);;
     }
 
     public Account? GetAccount(Keccak stateRoot, Address address)

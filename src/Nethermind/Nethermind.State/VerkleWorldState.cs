@@ -52,6 +52,14 @@ public class VerkleWorldState : IWorldState
         _storageProvider = new VerkleStorageProvider(verkleTree, logManager);
     }
 
+    public VerkleWorldState(IVerkleStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
+    {
+        _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
+        _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
+        _tree = new VerkleStateTree(verkleStateStore, logManager);
+        _storageProvider = new VerkleStorageProvider(_tree, logManager);
+    }
+
     // create a state provider using execution witness
     public VerkleWorldState(ExecutionWitness executionWitness, Banderwagon root, ILogManager? logManager)
     {
@@ -81,7 +89,10 @@ public class VerkleWorldState : IWorldState
         set => _tree.StateRoot = new Pedersen(value.Bytes);
     }
 
-
+    public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
+    {
+        return _tree.GenerateExecutionWitness(keys, out rootPoint);
+    }
 
     public bool AccountExists(Address address)
     {
