@@ -400,6 +400,11 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
+        public BlockHeader GetPivotHeader()
+        {
+            return _pivot.GetPivotHeader();
+        }
+
         private bool TryDequeNextSlotRange(out StorageRange item)
         {
             Interlocked.Increment(ref _activeStorageRequests);

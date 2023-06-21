@@ -321,6 +321,11 @@ namespace Nethermind.Synchronization.SnapSync
             _progressTracker.UpdatePivot();
         }
 
+        public BlockHeader GetPivotHeader()
+        {
+            return _progressTracker.GetPivotHeader();
+        }
+
         private class TrieStorePoolPolicy : IPooledObjectPolicy<ITrieStore>
         {
             private readonly IKeyValueStoreWithBatching _stateDb;

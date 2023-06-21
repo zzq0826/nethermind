@@ -410,9 +410,13 @@ namespace Nethermind.Synchronization.FastSync
             ResetStateRoot(_blockNumber, _rootNode, currentState);
         }
 
-        public void ResetStateRootToBestSuggested(SyncFeedState currentState)
+        public void ResetStateRootToBestSuggested(SyncFeedState currentState, BlockHeader? bestSuggested)
         {
-            BlockHeader bestSuggested = _blockTree.BestSuggestedHeader;
+            if (bestSuggested is null || bestSuggested.Number == 0)
+            {
+                bestSuggested = _blockTree.BestSuggestedHeader;
+            }
+
             if (bestSuggested is null || bestSuggested.Number == 0)
             {
                 return;

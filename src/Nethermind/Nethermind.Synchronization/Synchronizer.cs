@@ -180,7 +180,14 @@ namespace Nethermind.Synchronization
         private void StartStateSyncComponents()
         {
             TreeSync treeSync = new(SyncMode.StateNodes, _dbProvider.CodeDb, _dbProvider.StateDb, _blockTree, _logManager);
-            _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _logManager);
+            if (_syncConfig.SnapSync)
+            {
+                _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _snapProvider, _logManager);
+            }
+            else
+            {
+                _stateSyncFeed = new StateSyncFeed(_syncMode, treeSync, _logManager);
+            }
             SyncDispatcher<StateSyncBatch> stateSyncDispatcher = CreateDispatcher(
                 _stateSyncFeed,
                 new StateSyncDownloader(_logManager),

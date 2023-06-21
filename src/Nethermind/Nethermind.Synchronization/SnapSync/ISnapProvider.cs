@@ -6,12 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.State.Snap;
 
 namespace Nethermind.Synchronization.SnapSync
 {
-    public interface ISnapProvider
+    public interface ISnapProvider: IPivotHeaderProvider
     {
         (SnapSyncBatch request, bool finished) GetNextRequest();
 
@@ -29,5 +30,15 @@ namespace Nethermind.Synchronization.SnapSync
 
         bool IsSnapGetRangesFinished();
         void UpdatePivot();
+    }
+
+    public interface IPivotHeaderProvider
+    {
+        BlockHeader? GetPivotHeader();
+    }
+
+    public class NoopPivotHeaderProvider: IPivotHeaderProvider
+    {
+        public BlockHeader? GetPivotHeader() => null;
     }
 }

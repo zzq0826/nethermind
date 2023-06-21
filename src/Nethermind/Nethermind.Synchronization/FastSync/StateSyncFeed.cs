@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Nethermind.Logging;
 using Nethermind.Synchronization.ParallelSync;
 using Nethermind.Synchronization.Peers;
+using Nethermind.Synchronization.SnapSync;
 
 namespace Nethermind.Synchronization.FastSync
 {
@@ -22,20 +23,28 @@ namespace Nethermind.Synchronization.FastSync
         private readonly ILogger _logger;
         private readonly ISyncModeSelector _syncModeSelector;
         private readonly TreeSync _treeSync;
+        private readonly IPivotHeaderProvider _pivotHeaderProvider;
 
         public override bool IsMultiFeed => true;
 
         public override AllocationContexts Contexts => AllocationContexts.State;
 
-        public StateSyncFeed(
-            ISyncModeSelector syncModeSelector,
+        public StateSyncFeed(ISyncModeSelector syncModeSelector,
             TreeSync treeSync,
+            ILogManager logManager): this(syncModeSelector, treeSync, new NoopPivotHeaderProvider(), logManager)
+        {
+
+        }
+
+        public StateSyncFeed(ISyncModeSelector syncModeSelector,
+            TreeSync treeSync,
+            IPivotHeaderProvider pivotHeaderProvider,
             ILogManager logManager)
         {
             _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
             _treeSync = treeSync ?? throw new ArgumentNullException(nameof(treeSync));
             _syncModeSelector.Changed += SyncModeSelectorOnChanged;
-
+            _pivotHeaderProvider = pivotHeaderProvider;
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 
@@ -80,7 +89,7 @@ namespace Nethermind.Synchronization.FastSync
             {
                 if ((e.Current & SyncMode.StateNodes) == SyncMode.StateNodes)
                 {
-                    _treeSync.ResetStateRootToBestSuggested(CurrentState);
+                    _treeSync.ResetStateRootToBestSuggested(CurrentState, _pivotHeaderProvider.GetPivotHeader());
                     Activate();
                 }
             }
