@@ -1,13 +1,11 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Int256;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
@@ -73,10 +71,12 @@ public struct VerkleWitness : IVerkleWitness
     /// <param name="caller"></param>
     /// <param name="callee"></param>
     /// <returns></returns>
-    public long AccessValueTransfer(Address caller, Address callee)
+    public long AccessValueTransfer(Address caller, Address? callee)
     {
 
-        var gas = AccessAccount(caller, AccountHeaderAccess.Balance, true) + AccessAccount(callee, AccountHeaderAccess.Balance, true);
+        var gas = AccessAccount(caller, AccountHeaderAccess.Balance, true) +
+                  // this generally happens in the case of contract creation
+                  (callee == null ? 0 : AccessAccount(callee, AccountHeaderAccess.Balance, true));
         // _logger.Info($"AccessForCodeOpCodes: {caller.Bytes.ToHexString()} {gas}");
         return gas;
     }
