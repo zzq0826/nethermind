@@ -1,21 +1,36 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.IO;
 using System.Text;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Trie
 {
     public class TreeDumper : ITreeVisitor
     {
-        private StringBuilder _builder = new();
+        private SimpleConsoleLogger _logger => SimpleConsoleLogger.Instance;
+        private const string FilePath = "/home/paprika.txt";
+        private BinaryWriter Writer = new BinaryWriter(File.Open(FilePath, FileMode.Create), Encoding.UTF8, false);
+
+        private bool CollectLeafs(byte[] key, byte[] value)
+        {
+            byte[]? path = Nibbles.ToBytes(key);
+            Account account = decoder.Decode(new RlpStream(value));
+            _logger.Info($"COLLECTING {path.ToHexString()}");
+            Writer.Write(path);
+            Writer.Write(account.Balance.ToLittleEndian());
+            Writer.Write(account.Nonce.ToLittleEndian());
+            return true;
+        }
 
         public void Reset()
         {
-            _builder.Clear();
+            Writer = new BinaryWriter(File.Open(FilePath, FileMode.Create), Encoding.UTF8, false);
         }
 
         public bool IsFullDbScan => true;
@@ -27,14 +42,6 @@ namespace Nethermind.Trie
 
         public void VisitTree(Keccak rootHash, TrieVisitContext trieVisitContext)
         {
-            if (rootHash == Keccak.EmptyTreeHash)
-            {
-                _builder.AppendLine("EMPTY TREEE");
-            }
-            else
-            {
-                _builder.AppendLine(trieVisitContext.IsStorage ? "STORAGE TREE" : "STATE TREE");
-            }
         }
 
         private string GetPrefix(TrieVisitContext context) => string.Concat($"{GetIndent(context.Level)}", context.IsStorage ? "STORAGE " : string.Empty, $"{GetChildIndex(context)}");
@@ -44,46 +51,25 @@ namespace Nethermind.Trie
 
         public void VisitMissingNode(Keccak nodeHash, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeHash}");
         }
 
         public void VisitBranch(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}BRANCH | -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
         }
 
         public void VisitExtension(TrieNode node, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}EXTENSION {Nibbles.FromBytes(node.Key).ToPackedByteArray().ToHexString(false)} -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
         }
 
         private AccountDecoder decoder = new();
 
         public void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[] value = null)
         {
-            string leafDescription = trieVisitContext.IsStorage ? "LEAF " : "ACCOUNT ";
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}{leafDescription} {Nibbles.FromBytes(node.Key).ToPackedByteArray().ToHexString(false)} -> {(node.Keccak?.Bytes ?? node.FullRlp)?.ToHexString()}");
-            if (!trieVisitContext.IsStorage)
-            {
-                Account account = decoder.Decode(new RlpStream(value));
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  NONCE: {account.Nonce}");
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  BALANCE: {account.Balance}");
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  IS_CONTRACT: {account.IsContract}");
-            }
-            else
-            {
-                _builder.AppendLine($"{GetPrefix(trieVisitContext)}  VALUE: {new RlpStream(value).DecodeByteArray().ToHexString(true, true)}");
-            }
+            CollectLeafs(trieVisitContext.AbsolutePathNibbles.ToArray(), value);
         }
 
         public void VisitCode(Keccak codeHash, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetPrefix(trieVisitContext)}CODE {codeHash}");
-        }
-
-        public override string ToString()
-        {
-            return _builder.ToString();
         }
     }
 }

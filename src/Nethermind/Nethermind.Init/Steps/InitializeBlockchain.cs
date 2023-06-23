@@ -177,8 +177,9 @@ namespace Nethermind.Init.Steps
                         {
                             StateRoot = getApi.BlockTree!.Head?.StateRoot ?? Keccak.EmptyTreeHash
                         };
-                        TrieStats stats = diagStateProvider.CollectStats(getApi.DbProvider.CodeDb, _api.LogManager);
-                        _logger.Info($"Starting from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}{Environment.NewLine}" + stats);
+                        _logger.Info($"Starting from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
+                        diagStateProvider.DumpState();
+                        _logger.Info($"Done from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
                     }
                     catch (Exception ex)
                     {
