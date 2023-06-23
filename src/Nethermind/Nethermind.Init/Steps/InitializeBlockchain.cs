@@ -167,25 +167,22 @@ namespace Nethermind.Init.Steps
 
             if (_api.Config<IInitConfig>().DiagnosticMode == DiagnosticMode.VerifyTrie)
             {
-                Task.Run(() =>
+                try
                 {
-                    try
+                    _logger!.Info("Collecting trie stats and verifying that no nodes are missing...");
+                    TrieStore noPruningStore = new(stateWitnessedBy, No.Pruning, Persist.EveryBlock, getApi.LogManager);
+                    IStateProvider diagStateProvider = new StateProvider(noPruningStore, codeDb, getApi.LogManager)
                     {
-                        _logger!.Info("Collecting trie stats and verifying that no nodes are missing...");
-                        TrieStore noPruningStore = new(stateWitnessedBy, No.Pruning, Persist.EveryBlock, getApi.LogManager);
-                        IStateProvider diagStateProvider = new StateProvider(noPruningStore, codeDb, getApi.LogManager)
-                        {
-                            StateRoot = getApi.BlockTree!.Head?.StateRoot ?? Keccak.EmptyTreeHash
-                        };
-                        _logger.Info($"Starting from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
-                        diagStateProvider.DumpState();
-                        _logger.Info($"Done from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger!.Error(ex.ToString());
-                    }
-                });
+                        StateRoot = getApi.BlockTree!.Head?.StateRoot ?? Keccak.EmptyTreeHash
+                    };
+                    _logger.Info($"Starting from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
+                    diagStateProvider.DumpState();
+                    _logger.Info($"Done from {getApi.BlockTree.Head?.Number} {getApi.BlockTree.Head?.StateRoot}");
+                }
+                catch (Exception ex)
+                {
+                    _logger!.Error(ex.ToString());
+                }
             }
 
             // Init state if we need system calls before actual processing starts
