@@ -47,6 +47,7 @@ namespace Nethermind.AccountAbstraction.Executor
             IReleaseSpec spec)
         {
             IEnumerable<Transaction> transactions = GetTransactions(block);
+            PreloadCode(block, transactions);
 
             int i = 0;
             LinkedHashSet<Transaction> transactionsInBlock = new(ByHashTxComparer.Instance);

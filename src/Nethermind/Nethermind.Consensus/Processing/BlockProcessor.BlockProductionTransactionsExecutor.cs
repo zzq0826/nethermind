@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Specs;
@@ -64,7 +66,7 @@ namespace Nethermind.Consensus.Processing
             public virtual TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec)
             {
                 IEnumerable<Transaction> transactions = GetTransactions(block);
-
+                PreloadCode(block, transactions);
                 int i = 0;
                 LinkedHashSet<Transaction> transactionsInBlock = new(ByHashTxComparer.Instance);
                 foreach (Transaction currentTx in transactions)
@@ -77,6 +79,15 @@ namespace Nethermind.Consensus.Processing
 
                 SetTransactions(block, transactionsInBlock);
                 return receiptsTracer.TxReceipts.ToArray();
+            }
+
+            protected void PreloadCode(Block block, IEnumerable<Transaction> transactions)
+            {
+                ThreadPool.QueueUserWorkItem((txData) =>
+                {
+                    Thread.CurrentThread.Priority = ThreadPriority.Highest;
+                    _transactionProcessor.PreloadCodeInfo(txData.Header, txData.transactions);
+                }, (block.Header, transactions), preferLocal: false);
             }
 
             protected TxAction ProcessTransaction(

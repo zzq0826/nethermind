@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Generic;
+
 using Nethermind.Core;
 using Nethermind.Evm.Tracing;
 
@@ -27,5 +29,7 @@ namespace Nethermind.Evm.TransactionProcessing
         /// Call transaction, no validations, commit state
         /// </summary>
         void Trace(Transaction transaction, BlockHeader block, ITxTracer txTracer);
+
+        void PreloadCodeInfo(BlockHeader block, IEnumerable<Transaction> transactions);
     }
 }

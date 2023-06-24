@@ -17,6 +17,7 @@ using Nethermind.Specs;
 using Nethermind.State;
 using Nethermind.State.Tracing;
 using Transaction = Nethermind.Core.Transaction;
+using System.Collections.Generic;
 
 namespace Nethermind.Evm.TransactionProcessing
 {
@@ -544,6 +545,31 @@ namespace Nethermind.Evm.TransactionProcessing
             }
 
             return spentGas;
+        }
+
+        public void PreloadCodeInfo(BlockHeader block, IEnumerable<Transaction> transactions)
+        {
+            IReleaseSpec spec = _specProvider.GetSpec(block);
+            bool isFirst = true;
+            foreach (Transaction transaction in transactions)
+            {
+                if (isFirst)
+                {
+                    // Skip First txn
+                    isFirst = false;
+                    continue;
+                }
+                if (!_worldState.AccountExists(transaction.SenderAddress))
+                {
+                    continue;
+                }
+
+                Address? to = transaction.To;
+                if (to is not null && !transaction.IsContractCreation)
+                {
+                    _virtualMachine.GetCachedCodeInfo(_worldState, transaction.To, spec);
+                }
+            }
         }
     }
 }

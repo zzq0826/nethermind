@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Db;
 using Nethermind.Evm.Tracing;
 using Nethermind.State;
 
@@ -36,6 +37,8 @@ namespace Nethermind.Evm.TransactionProcessing
         public void Trace(Transaction transaction, BlockHeader block, ITxTracer txTracer) =>
             _transactionProcessor.Trace(transaction, block, txTracer);
 
+        public void PreloadCodeInfo(BlockHeader block, IEnumerable<Transaction> transactions) =>
+            _transactionProcessor.PreloadCodeInfo(block, transactions);
 
         public bool IsContractDeployed(Address address) => _stateProvider.IsContract(address);
 

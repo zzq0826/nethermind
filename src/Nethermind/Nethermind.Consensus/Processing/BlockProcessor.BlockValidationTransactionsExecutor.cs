@@ -3,6 +3,8 @@
 
 using System;
 using System.Linq;
+using System.Threading;
+
 using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.Tracing;
@@ -33,9 +35,11 @@ namespace Nethermind.Consensus.Processing
 
             public TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec)
             {
-                for (int i = 0; i < block.Transactions.Length; i++)
+                Transaction[] transactions = block.Transactions;
+                PreloadCode(block, transactions);
+                for (int i = 0; i < transactions.Length; i++)
                 {
-                    Transaction currentTx = block.Transactions[i];
+                    Transaction currentTx = transactions[i];
                     ProcessTransaction(block, currentTx, i, receiptsTracer, processingOptions);
                 }
                 return receiptsTracer.TxReceipts.ToArray();
@@ -45,6 +49,15 @@ namespace Nethermind.Consensus.Processing
             {
                 _transactionProcessor.ProcessTransaction(block, currentTx, receiptsTracer, processingOptions, _stateProvider);
                 TransactionProcessed?.Invoke(this, new TxProcessedEventArgs(index, currentTx, receiptsTracer.TxReceipts[index]));
+            }
+
+            private void PreloadCode(Block block, Transaction[] transactions)
+            {
+                ThreadPool.QueueUserWorkItem((txData) =>
+                {
+                    Thread.CurrentThread.Priority = ThreadPriority.Highest;
+                    _transactionProcessor.PreloadCodeInfo(txData.Header, txData.transactions);
+                }, (block.Header, transactions), preferLocal: false);
             }
         }
     }

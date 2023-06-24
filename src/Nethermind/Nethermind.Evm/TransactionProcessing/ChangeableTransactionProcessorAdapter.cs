@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Generic;
+
 using Nethermind.Core;
 using Nethermind.Evm.Tracing;
 
@@ -26,5 +28,8 @@ namespace Nethermind.Evm.TransactionProcessing
         {
             CurrentAdapter.Execute(transaction, block, txTracer);
         }
+
+        public void PreloadCodeInfo(BlockHeader block, IEnumerable<Transaction> transactions) =>
+            CurrentAdapter.PreloadCodeInfo(block, transactions);
     }
 }

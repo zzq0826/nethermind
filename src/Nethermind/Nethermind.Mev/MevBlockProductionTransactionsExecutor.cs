@@ -50,6 +50,7 @@ namespace Nethermind.Mev
         public override TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec)
         {
             IEnumerable<Transaction> transactions = GetTransactions(block);
+            PreloadCode(block, transactions);
             LinkedHashSet<Transaction> transactionsInBlock = new(ByHashTxComparer.Instance);
             List<BundleTransaction> bundleTransactions = new();
             Keccak? bundleHash = null;

@@ -82,6 +82,7 @@ namespace Nethermind.State
             return account.IsContract;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public bool AccountExists(Address address)
         {
             if (_intraBlockCache.TryGetValue(address, out Stack<int> value))
@@ -322,6 +323,7 @@ namespace Nethermind.State
             return _currentPosition;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void Restore(int snapshot)
         {
             if (snapshot > _currentPosition)
@@ -418,6 +420,7 @@ namespace Nethermind.State
             public Account? After { get; }
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void Commit(IReleaseSpec releaseSpec, IWorldStateTracer stateTracer, bool isGenesis = false)
         {
             if (_currentPosition == -1)
@@ -661,6 +664,7 @@ namespace Nethermind.State
             return account;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         private Account? GetThroughCache(Address address)
         {
             if (_intraBlockCache.TryGetValue(address, out Stack<int> value))
@@ -693,6 +697,7 @@ namespace Nethermind.State
             Push(ChangeType.Delete, address, null);
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         private void Push(ChangeType changeType, Address address, Account? touchedAccount)
         {
             SetupCache(address);
@@ -707,6 +712,7 @@ namespace Nethermind.State
             _changes[_currentPosition] = new Change(changeType, address, touchedAccount);
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         private void PushNew(Address address, Account account)
         {
             SetupCache(address);
