@@ -69,7 +69,11 @@ public class VerkleWorldState : IWorldState
             logManager);
         _codeDb = new MemDb();
         _storageProvider = new VerkleStorageProvider(_tree, logManager);
-        _tree.InsertIntoStatelessTree(executionWitness, root,false);
+
+        if (!_tree.InsertIntoStatelessTree(executionWitness, root, false))
+        {
+            throw new ArgumentException("invalid proof");
+        }
     }
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)
@@ -91,6 +95,7 @@ public class VerkleWorldState : IWorldState
 
     public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
     {
+        _logger.Info($"GenerateExecutionWitness: {keys.Length}");
         return _tree.GenerateExecutionWitness(keys, out rootPoint);
     }
 
