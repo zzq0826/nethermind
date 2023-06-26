@@ -64,7 +64,7 @@ public partial class BlockProcessor : IBlockProcessor
         _blockTransactionsExecutor = blockTransactionsExecutor ?? throw new ArgumentNullException(nameof(blockTransactionsExecutor));
 
 
-        _receiptsTracer = new BlockReceiptsTracer(true, false);
+        _receiptsTracer = new BlockReceiptsTracer(true, true);
     }
 
     public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
@@ -229,8 +229,10 @@ public partial class BlockProcessor : IBlockProcessor
         _withdrawalProcessor.ProcessWithdrawals(block, spec);
         _receiptsTracer.EndBlockTrace();
 
-        if (spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
+        _logger.Info($"TEST BLOCK PROCESSOR VIRTUAL: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options}");
+        if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
         {
+            _logger.Info($"we are adding witness");
             byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
             _logger.Info($"UsedKeys {usedKeys.Length}");
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
@@ -268,7 +270,8 @@ public partial class BlockProcessor : IBlockProcessor
             bh.GasLimit,
             bh.Timestamp,
             bh.ExtraData,
-            bh.ExcessDataGas)
+            bh.ExcessDataGas,
+            bh.Witness)
         {
             Bloom = Bloom.Empty,
             Author = bh.Author,
@@ -284,6 +287,11 @@ public partial class BlockProcessor : IBlockProcessor
             WithdrawalsRoot = bh.WithdrawalsRoot,
             IsPostMerge = bh.IsPostMerge,
         };
+        if (bh.MaybeParent is not null)
+        {
+            bh.MaybeParent.TryGetTarget(out BlockHeader maybeParent);
+            headerForProcessing.MaybeParent = new WeakReference<BlockHeader>(maybeParent);
+        }
 
         return suggestedBlock.CreateCopy(headerForProcessing);
     }

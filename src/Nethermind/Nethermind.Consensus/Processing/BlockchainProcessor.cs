@@ -109,7 +109,7 @@ namespace Nethermind.Consensus.Processing
 
         public void Enqueue(Block block, ProcessingOptions processingOptions)
         {
-            if (_logger.IsTrace) _logger.Trace($"Enqueuing a new block {block.ToString(Block.Format.Short)} for processing.");
+            if (_logger.IsTrace) _logger.Trace($"Enqueuing a new block {block.ToString(Block.Format.Full)} for processing.");
 
             int currentRecoveryQueueSize = Interlocked.Add(ref _currentRecoveryQueueSize, block.Transactions.Length);
             Keccak? blockHash = block.Hash!;
@@ -270,7 +270,7 @@ namespace Nethermind.Consensus.Processing
 
                     Block block = blockRef.Block;
 
-                    if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
+                    if (_logger.IsTrace) _logger.Trace($"Processing block in processor {block.ToString(Block.Format.Full)}).");
                     _stats.Start();
 
                     Block processedBlock = Process(block, blockRef.ProcessingOptions, _compositeBlockTracer.GetTracer());
@@ -564,6 +564,7 @@ namespace Nethermind.Consensus.Processing
 
                 branchingPoint = _blockTree.FindParentHeader(toBeProcessed.Header,
                     BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+                toBeProcessed.Header.MaybeParent = new WeakReference<BlockHeader>(branchingPoint);
                 if (branchingPoint is null)
                 {
                     // genesis block
