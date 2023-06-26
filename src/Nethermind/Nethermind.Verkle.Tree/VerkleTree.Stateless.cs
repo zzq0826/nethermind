@@ -140,7 +140,7 @@ public partial class VerkleTree
             switch (extStatus)
             {
                 case ExtPresent.None:
-                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, new Commitment());
+                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, new Commitment(), new Commitment(), new Commitment());
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.DifferentStem:

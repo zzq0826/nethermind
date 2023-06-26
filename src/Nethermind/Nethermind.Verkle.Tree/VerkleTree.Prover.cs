@@ -5,6 +5,7 @@ using System.Data;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
@@ -19,6 +20,12 @@ public partial class VerkleTree
 {
     private Dictionary<byte[], FrE[]> ProofBranchPolynomialCache { get; }
     private Dictionary<Stem, SuffixPoly> ProofStemPolynomialCache { get; }
+
+    public ExecutionWitness GenerateExecutionWitnessFromStore(byte[][] keys, out Banderwagon rootPoint)
+    {
+        VerkleTree tree = new(_verkleStateStore, LimboLogs.Instance);
+        return tree.GenerateExecutionWitness(keys, out rootPoint);
+    }
 
     public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
     {
@@ -220,8 +227,9 @@ public partial class VerkleTree
         {
             if (stemList.Contains(elem.Key))
             {
-                bool stemWithNoProof = AddStemCommitmentsOpenings(elem.Key, elem.Value, queries, addLeafOpenings);
-                if (stemWithNoProof) stemWithNoProofSet.Add(elem.Key);
+                InternalNode? suffix = GetInternalNode(elem.Key);
+                bool stemWithNoProof = AddStemCommitmentsOpenings(suffix, elem.Value, queries, addLeafOpenings);
+                if (stemWithNoProof) stemWithNoProofSet.Add(suffix.Stem.Bytes);
                 continue;
             }
 
@@ -261,15 +269,11 @@ public partial class VerkleTree
         queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly), node!.InternalCommitment.Point, childIndex, poly[childIndex])));
     }
 
-    private bool AddStemCommitmentsOpenings(byte[] stemPath, HashSet<byte> stemChild, List<VerkleProverQuery> queries, bool addLeafOpenings = true)
+    private bool AddStemCommitmentsOpenings(InternalNode? suffix, HashSet<byte> stemChild, List<VerkleProverQuery> queries, bool addLeafOpenings)
     {
-        InternalNode? suffix = GetInternalNode(stemPath);
-        stemPath = suffix.Stem.Bytes;
+        byte[] stemPath = suffix!.Stem!.Bytes;
         AddExtensionCommitmentOpenings(stemPath, addLeafOpenings? stemChild: new byte[]{}, suffix, queries);
-        if (stemChild.Count == 0)
-        {
-            return true;
-        }
+        if (stemChild.Count == 0) return true;
 
         // this is used for sync proofs - we dont need to include proofs for leaf openings as we send all the leafs
         // the client can generate the leaf and verify the commitments

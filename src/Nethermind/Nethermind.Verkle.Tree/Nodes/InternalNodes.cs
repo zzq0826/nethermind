@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
+using System.Text;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -44,7 +46,7 @@ public class InternalNode
         return NodeType switch
         {
             VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
-            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, Stem, C1!.Dup(), C2!.Dup(), InternalCommitment.Dup()),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, Stem!, C1?.Dup(), C2?.Dup(), InternalCommitment.Dup()),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -128,5 +130,20 @@ public class InternalNode
                                   + Committer.ScalarMul(deltaC2Commit, 3);
 
         return InternalCommitment.UpdateCommitmentGetDelta(deltaCommit);
+    }
+
+    public override string ToString()
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.AppendLine($"InternalNode: {InternalCommitment.Point.ToBytes().ToHexString()}");
+        builder.AppendLine($"NodeType: {NodeType}");
+        if (NodeType == VerkleNodeType.StemNode)
+        {
+            builder.AppendLine($"Stem: {Stem.ToString()}");
+            builder.AppendLine($"C1: {C1?.Point.ToBytes().ToHexString()}");
+            builder.AppendLine($"C2: {C2?.Point.ToBytes().ToHexString()}");
+        }
+
+        return builder.ToString();
     }
 }
