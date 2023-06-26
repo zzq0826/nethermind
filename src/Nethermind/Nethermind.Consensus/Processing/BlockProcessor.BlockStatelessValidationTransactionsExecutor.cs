@@ -43,7 +43,8 @@ public partial class BlockProcessor
 
         private void ProcessTransaction(Block block, Transaction currentTx, int index, BlockReceiptsTracer receiptsTracer, ProcessingOptions processingOptions)
         {
-            VerkleWorldState worldState = new(block.Header.Witness!.Value, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, LimboLogs.Instance);
+            block.Header.MaybeParent.TryGetTarget(out BlockHeader maybeParent);
+            VerkleWorldState worldState = new(block.Header.Witness!.Value, Banderwagon.FromBytes(maybeParent.StateRoot.Bytes)!.Value, LimboLogs.Instance);
             _transactionProcessor.ProcessTransaction(block, currentTx, receiptsTracer, processingOptions, worldState);
             TransactionProcessed?.Invoke(this, new TxProcessedEventArgs(index, currentTx, receiptsTracer.TxReceipts[index]));
         }
