@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
@@ -109,6 +110,22 @@ public class BlockHeader
         }
         builder.AppendLine($"{indent}IsPostMerge: {IsPostMerge}");
         builder.AppendLine($"{indent}TotalDifficulty: {TotalDifficulty}");
+
+        if (Witness is not null)
+        {
+            builder.AppendLine($"{indent}ExecutionWitness");
+            builder.AppendLine($"{indent}{indent}StateDiff: {Witness.Value.StateDiff.SuffixDiffs.Count}");
+            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {Witness.Value.Proof.D}");
+            builder.AppendLine($"{indent}{indent}{indent}D: {Witness.Value.Proof.D.ToBytes().ToHexString()}");
+            builder.AppendLine(
+                $"{indent}{indent}{indent}IpaProof: {Witness.Value.Proof.IpaProof.Encode().ToHexString()}");
+            builder.AppendLine(
+                $"{indent}{indent}{indent}ExtensionPresent: {Witness.Value.Proof.DepthExtensionPresent.ToHexString()}");
+            builder.AppendLine(
+                $"{indent}{indent}{indent}OtherStems: {string.Join(", ", Witness.Value.Proof.OtherStems.Select(x => x.ToString()))}");
+            builder.AppendLine(
+                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", Witness.Value.Proof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
+        }
 
         return builder.ToString();
     }
