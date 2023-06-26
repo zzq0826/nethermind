@@ -96,7 +96,7 @@ public class VerkleWorldState : IWorldState
     public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)
     {
         _logger.Info($"GenerateExecutionWitness: {keys.Length}");
-        return _tree.GenerateExecutionWitness(keys, out rootPoint);
+        return _tree.GenerateExecutionWitnessFromStore(keys, out rootPoint);
     }
 
     public bool AccountExists(Address address)
