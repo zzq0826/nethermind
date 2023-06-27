@@ -25,6 +25,7 @@ namespace Nethermind.Evm.TransactionProcessing
     {
         private readonly EthereumEcdsa _ecdsa;
         private readonly ILogger _logger;
+        private readonly ILogManager? _logManager;
         private readonly ISpecProvider _specProvider;
         private readonly IWorldState _worldState;
         private readonly IVirtualMachine _virtualMachine;
@@ -64,6 +65,7 @@ namespace Nethermind.Evm.TransactionProcessing
             IVirtualMachine? virtualMachine,
             ILogManager? logManager)
         {
+            _logManager = logManager;
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _worldState = worldState ?? throw new ArgumentNullException(nameof(worldState));
@@ -92,6 +94,11 @@ namespace Nethermind.Evm.TransactionProcessing
         public void Trace(Transaction transaction, BlockHeader block, ITxTracer txTracer)
         {
             Execute(transaction, block, txTracer, ExecutionOptions.NoValidation);
+        }
+
+        public ITransactionProcessor WithNewStateProvider(IWorldState worldState)
+        {
+            return new TransactionProcessor(_specProvider, worldState, _virtualMachine, _logManager);
         }
 
         private void QuickFail(Transaction tx, BlockHeader block, ITxTracer txTracer, bool eip658NotEnabled,
@@ -133,6 +140,7 @@ namespace Nethermind.Evm.TransactionProcessing
             bool deleteCallerAccount = false;
 
             VerkleWitness witness = new();
+            _logger.Info("VerkleWitness: Created");
 
             if (!notSystemTransaction)
             {
@@ -429,6 +437,8 @@ namespace Nethermind.Evm.TransactionProcessing
 
             Address gasBeneficiary = block.GasBeneficiary;
             bool gasBeneficiaryNotDestroyed = substate?.DestroyList.Contains(gasBeneficiary) != true;
+            // TODO: check and modify
+            witness.AccessCompleteAccount(gasBeneficiary);
             if (statusCode == StatusCode.Failure || gasBeneficiaryNotDestroyed)
             {
                 if (notSystemTransaction)

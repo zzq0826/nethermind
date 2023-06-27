@@ -9,7 +9,6 @@ using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.State;
-using Nethermind.Verkle.Curve;
 
 namespace Nethermind.Consensus.Processing;
 
@@ -17,7 +16,8 @@ public partial class BlockProcessor
 {
     public class BlockStatelessValidationTransactionsExecutor : IBlockProcessor.IBlockTransactionsExecutor
     {
-        private readonly ITransactionProcessorAdapter _transactionProcessor;
+        private ITransactionProcessorAdapter _transactionProcessor;
+        private IWorldState? _stateProvider;
 
         public BlockStatelessValidationTransactionsExecutor(ITransactionProcessor transactionProcessor)
             : this(new ExecuteTransactionProcessorAdapter(transactionProcessor))
@@ -27,24 +27,48 @@ public partial class BlockProcessor
         public BlockStatelessValidationTransactionsExecutor(ITransactionProcessorAdapter transactionProcessor)
         {
             _transactionProcessor = transactionProcessor;
+            _stateProvider = null;
+        }
+
+        public BlockStatelessValidationTransactionsExecutor(ITransactionProcessor transactionProcessor, IWorldState worldState)
+            : this(new ExecuteTransactionProcessorAdapter(transactionProcessor), worldState)
+        {
+        }
+
+        public BlockStatelessValidationTransactionsExecutor(ITransactionProcessorAdapter transactionProcessor, IWorldState worldState)
+        {
+            _transactionProcessor = transactionProcessor;
+            _stateProvider = worldState;
         }
 
         public event EventHandler<TxProcessedEventArgs>? TransactionProcessed;
 
+        public IBlockProcessor.IBlockTransactionsExecutor WithNewStateProvider(IWorldState worldState)
+        {
+            _transactionProcessor = _transactionProcessor.WithNewStateProvider(worldState);
+            return new BlockStatelessValidationTransactionsExecutor(_transactionProcessor, worldState);
+        }
+
         public TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec)
         {
-            for (int i = 0; i < block.Transactions.Length; i++)
+            if (!block.IsGenesis)
             {
-                Transaction currentTx = block.Transactions[i];
-                ProcessTransaction(block, currentTx, i, receiptsTracer, processingOptions);
+                var logg = SimpleConsoleLogger.Instance;
+                logg.Info($"---------------------this is old-----------------{_stateProvider.StateRoot}");
+                for (int i = 0; i < block.Transactions.Length; i++)
+                {
+                    Transaction currentTx = block.Transactions[i];
+                    ProcessTransaction(block, currentTx, i, receiptsTracer, _stateProvider, processingOptions);
+                }
+                _stateProvider.Commit(spec);
+                _stateProvider.RecalculateStateRoot();
+                logg.Info($"---------------------this is new-----------------{_stateProvider.StateRoot}");
             }
             return receiptsTracer.TxReceipts.ToArray();
         }
 
-        private void ProcessTransaction(Block block, Transaction currentTx, int index, BlockReceiptsTracer receiptsTracer, ProcessingOptions processingOptions)
+        private void ProcessTransaction(Block block, Transaction currentTx, int index, BlockReceiptsTracer receiptsTracer, IWorldState worldState, ProcessingOptions processingOptions)
         {
-            block.Header.MaybeParent.TryGetTarget(out BlockHeader maybeParent);
-            VerkleWorldState worldState = new(block.Header.Witness!.Value, Banderwagon.FromBytes(maybeParent.StateRoot.Bytes)!.Value, LimboLogs.Instance);
             _transactionProcessor.ProcessTransaction(block, currentTx, receiptsTracer, processingOptions, worldState);
             TransactionProcessed?.Invoke(this, new TxProcessedEventArgs(index, currentTx, receiptsTracer.TxReceipts[index]));
         }

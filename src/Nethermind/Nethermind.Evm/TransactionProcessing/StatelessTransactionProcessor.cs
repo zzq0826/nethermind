@@ -56,4 +56,9 @@ public class StatelessTransactionProcessor: ITransactionProcessor
         TransactionProcessor txn = new (_specProvider, worldState, _virtualMachine, _logManager);
         txn.Trace(transaction, block, txTracer);
     }
+
+    public ITransactionProcessor WithNewStateProvider(IWorldState worldState)
+    {
+        return this;
+    }
 }

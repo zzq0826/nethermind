@@ -236,7 +236,7 @@ public partial class VerkleTree: IVerkleTree
         {
             if (_logger.IsTrace)
                 _logger.Trace(
-                    $"Commit: stem:{leafDelta.Key.ToHexString()} deltaCommitment:C1:{leafDelta.Value.DeltaC1} C2{leafDelta.Value.DeltaC2}");
+                    $"Commit: stem:{leafDelta.Key.ToHexString()} deltaCommitment:C1:{leafDelta.Value.DeltaC1?.ToBytes().ToHexString()} C2{leafDelta.Value.DeltaC2?.ToBytes().ToHexString()}");
             UpdateTreeCommitments(leafDelta.Key, leafDelta.Value, forSync);
         }
         _leafUpdateCache.Clear();
