@@ -49,12 +49,11 @@ public class StatelessTreeTest
         }
     }
 
-    [TestCase(DbMode.MemDb)]
-    public void InsertAndCreateStatelessTree(DbMode dbMode)
+    [TestCase(DbMode.MemDb, 10, 20, 30)]
+    [TestCase(DbMode.MemDb, 100, 200, 300)]
+    [TestCase(DbMode.MemDb, 1000, 2000, 3000)]
+    public void InsertAndCreateStatelessTree(DbMode dbMode, int start, int end, int pathCount)
     {
-        const int start = 1;
-        const int end = 2;
-        const int pathCount = 3;
         VerkleTree initTree = GetVerkleTreeForTest(dbMode);
 
         Pedersen[] pathPool = new Pedersen[pathCount];
