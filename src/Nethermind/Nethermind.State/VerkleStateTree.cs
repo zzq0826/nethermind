@@ -74,8 +74,8 @@ public class VerkleStateTree : VerkleTree
         {
             Pedersen key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
 #if DEBUG
-            Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(chunk));
+            Console.WriteLine("K: " + key.ToString());
+            Console.WriteLine("V: " + chunk.ToHexString());
 #endif
             Insert(key, chunk);
             chunkId += 1;
@@ -86,8 +86,8 @@ public class VerkleStateTree : VerkleTree
     {
         Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(cell.Address.Bytes, cell.Index);
 #if DEBUG
-                    Console.WriteLine("K: " + EnumerableExtensions.ToString(key));
-                    Console.WriteLine("V: " + EnumerableExtensions.ToString(value));
+        Console.WriteLine("K: " + key.ToString());
+        Console.WriteLine("V: " + value.ToHexString());
 #endif
         Insert(key, value);
     }
