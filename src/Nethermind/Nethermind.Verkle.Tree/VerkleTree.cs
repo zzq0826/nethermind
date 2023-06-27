@@ -23,7 +23,6 @@ public partial class VerkleTree: IVerkleTree
     private static readonly byte[] _rootKey = Array.Empty<byte>();
     private readonly ILogger _logger;
 
-
     // get and update the state root of the tree
     // _isDirty - to check if tree is in between insertion and commitment
     private bool _isDirty;
@@ -104,6 +103,7 @@ public partial class VerkleTree: IVerkleTree
         _isDirty = true;
 #if DEBUG
         if (value.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(value));
+        SimpleConsoleLogger.Instance.Info($"K:{key.Bytes.ToHexString()} V:{value.ToHexString()}");
 #endif
         ReadOnlySpan<byte> stem = key.StemAsSpan;
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
@@ -117,15 +117,6 @@ public partial class VerkleTree: IVerkleTree
         _isDirty = true;
 #if DEBUG
         if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
-        Span<byte> keyD = new byte[32];
-        IEnumerable<(byte, byte[])> indexValueMap = leafIndexValueMap as (byte, byte[])[] ?? leafIndexValueMap.ToArray();
-        foreach ((byte, byte[]) keyVal in indexValueMap)
-        {
-            stem.CopyTo(keyD);
-            keyD[31] = keyVal.Item1;
-            Console.WriteLine("KA: " + EnumerableExtensions.ToString(keyD.ToArray()));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Item2));
-        }
 #endif
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
@@ -135,6 +126,9 @@ public partial class VerkleTree: IVerkleTree
         foreach ((byte index, byte[] value) in leafIndexValueMap)
         {
             key[31] = index;
+#if DEBUG
+             SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{value.ToHexString()}");
+#endif
             leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), value), key[31]);
         }
 
@@ -146,15 +140,6 @@ public partial class VerkleTree: IVerkleTree
         _isDirty = true;
 #if DEBUG
         if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
-        Span<byte> keyD = new byte[32];
-        IEnumerable<(byte, byte[])> indexValueMap = leafIndexValueMap as (byte, byte[])[] ?? leafIndexValueMap.ToArray();
-        foreach ((byte, byte[]) keyVal in indexValueMap)
-        {
-            stem.CopyTo(keyD);
-            keyD[31] = keyVal.Item1;
-            Console.WriteLine("KA: " + EnumerableExtensions.ToString(keyD.ToArray()));
-            Console.WriteLine("V: " + EnumerableExtensions.ToString(keyVal.Item2));
-        }
 #endif
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
@@ -164,6 +149,9 @@ public partial class VerkleTree: IVerkleTree
         foreach (LeafInSubTree leaf in leafIndexValueMap)
         {
             key[31] = leaf.SuffixByte;
+#if DEBUG
+            SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{leaf.Leaf?.ToHexString()}");
+#endif
             leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), leaf.Leaf), key[31]);
         }
 
@@ -241,7 +229,7 @@ public partial class VerkleTree: IVerkleTree
     {
         _isDirty = false;
         _verkleStateStore.Flush(blockNumber, _treeCache);
-        _treeCache = new VerkleMemoryDb();
+        // _treeCache = new VerkleMemoryDb();
         _stateRoot = _verkleStateStore.RootHash;
     }
 
