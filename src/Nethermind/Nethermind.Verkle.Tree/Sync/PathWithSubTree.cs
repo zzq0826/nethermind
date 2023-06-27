@@ -22,9 +22,9 @@ public class PathWithSubTree
 public readonly struct LeafInSubTree
 {
     public readonly byte SuffixByte;
-    public readonly byte[] Leaf;
+    public readonly byte[]? Leaf;
 
-    public LeafInSubTree(byte suffixByte, byte[] leaf)
+    public LeafInSubTree(byte suffixByte, byte[]? leaf)
     {
         SuffixByte = suffixByte;
         Leaf = leaf;
@@ -42,6 +42,6 @@ public readonly struct LeafInSubTree
 
     public override string ToString()
     {
-        return $"{SuffixByte}:{Leaf.ToHexString()}";
+        return $"{SuffixByte}:{Leaf?.ToHexString()}";
     }
 }

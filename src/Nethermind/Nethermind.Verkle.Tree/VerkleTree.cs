@@ -163,6 +163,25 @@ public partial class VerkleTree: IVerkleTree
         InsertStemBatch(stem.BytesAsSpan, leafIndexValueMap);
     }
 
+    private void InsertStemBatchStateless(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        InsertStemBatchStateless(stem.BytesAsSpan, leafIndexValueMap);
+    }
+
+    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        Span<byte> key = new byte[32];
+        stem.CopyTo(key);
+        foreach (LeafInSubTree leaf in leafIndexValueMap)
+        {
+            key[31] = leaf.SuffixByte;
+#if DEBUG
+            SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{leaf.Leaf?.ToHexString()}");
+#endif
+            SetLeafCache(key.ToArray(), leaf.Leaf);
+        }
+    }
+
     private Banderwagon UpdateLeafAndGetDelta(Pedersen key, byte[] value)
     {
         byte[]? oldValue = Get(key);

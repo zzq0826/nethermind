@@ -97,7 +97,7 @@ public partial class VerkleTree
         }
     }
 
-    public bool InsertIntoStatelessTree(ExecutionWitness execWitness, Banderwagon root, bool skipRoot = true)
+    public bool InsertIntoStatelessTree(ExecutionWitness execWitness, Banderwagon root, bool skipRoot = false)
     {
         bool isVerified = VerifyVerkleProof(execWitness, root, out UpdateHint? updateHint);
         if (!isVerified) return false;
@@ -112,15 +112,16 @@ public partial class VerkleTree
 
         foreach (StemStateDiff stemStateDiff in execWitness.StateDiff.SuffixDiffs)
         {
-            InsertStemBatch(stemStateDiff.Stem,
+            InsertStemBatchStateless(stemStateDiff.Stem,
                 stemStateDiff.SuffixDiffs.Select(x => new LeafInSubTree(x.Suffix, x.CurrentValue)));
         }
 
+        CommitTree(0);
         return true;
 
     }
 
-    public void AddStatelessInternalNodes(UpdateHint hint)
+    private void AddStatelessInternalNodes(UpdateHint hint)
     {
         List<byte> pathList = new();
         foreach ((Stem stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
