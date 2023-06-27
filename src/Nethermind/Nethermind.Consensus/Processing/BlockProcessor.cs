@@ -12,6 +12,7 @@ using Nethermind.Consensus.Validators;
 using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
@@ -25,14 +26,14 @@ namespace Nethermind.Consensus.Processing;
 public partial class BlockProcessor : IBlockProcessor
 {
     private readonly ILogger _logger;
-    private readonly ISpecProvider _specProvider;
+    protected readonly ISpecProvider _specProvider;
     protected readonly IWorldState _stateProvider;
     private readonly IReceiptStorage _receiptStorage;
     private readonly IWitnessCollector _witnessCollector;
-    private readonly IWithdrawalProcessor _withdrawalProcessor;
+    protected readonly IWithdrawalProcessor _withdrawalProcessor;
     private readonly IBlockValidator _blockValidator;
     private readonly IRewardCalculator _rewardCalculator;
-    private readonly IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor;
+    protected readonly IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor;
 
     private const int MaxUncommittedBlocks = 64;
 
@@ -40,7 +41,7 @@ public partial class BlockProcessor : IBlockProcessor
     /// We use a single receipt tracer for all blocks. Internally receipt tracer forwards most of the calls
     /// to any block-specific tracers.
     /// </summary>
-    private readonly BlockReceiptsTracer _receiptsTracer;
+    protected readonly BlockReceiptsTracer _receiptsTracer;
 
     public BlockProcessor(
         ISpecProvider? specProvider,
@@ -297,7 +298,7 @@ public partial class BlockProcessor : IBlockProcessor
     }
 
     // TODO: block processor pipeline
-    private void ApplyMinerRewards(Block block, IBlockTracer tracer, IReleaseSpec spec)
+    protected void ApplyMinerRewards(Block block, IBlockTracer tracer, IReleaseSpec spec)
     {
         if (_logger.IsTrace) _logger.Trace("Applying miner rewards:");
         BlockReward[] rewards = _rewardCalculator.CalculateRewards(block);
