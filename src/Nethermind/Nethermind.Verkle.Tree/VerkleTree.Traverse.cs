@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Diagnostics;
+using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
@@ -16,6 +17,7 @@ public partial class VerkleTree
     {
         TraverseContext context = new(stem, leafUpdateDelta) { ForSync = forSync };
         Banderwagon rootDelta = TraverseBranch(context);
+        if(_logger.IsTrace) _logger.Trace($"RootDelta To Apply: {rootDelta.ToBytes().ToHexString()}");
         UpdateRootNode(rootDelta);
     }
 
@@ -25,8 +27,9 @@ public partial class VerkleTree
         byte[] absolutePath = traverseContext.Stem[..(traverseContext.CurrentIndex + 1)].ToArray();
 
         InternalNode? child = GetInternalNode(absolutePath);
-        if (child is null)
+        if (child is null || (child.IsStem && child.InternalCommitment.Point.Equals(new Banderwagon())))
         {
+            if(_logger.IsTrace) _logger.Trace($"Create New Stem Node");
             // 1. create new suffix node
             // 2. update the C1 or C2 - we already know the leafDelta - traverseContext.LeafUpdateDelta
             // 3. update ExtensionCommitment
@@ -46,6 +49,7 @@ public partial class VerkleTree
             traverseContext.CurrentIndex += 1;
             Banderwagon branchDeltaHash = TraverseBranch(traverseContext);
             traverseContext.CurrentIndex -= 1;
+            if(_logger.IsTrace) _logger.Trace($"TraverseBranch Delta:{branchDeltaHash.ToBytes().ToHexString()}");
 
             FrE deltaHash = child.UpdateCommitment(branchDeltaHash);
             SetInternalNode(absolutePath, child);
@@ -56,6 +60,7 @@ public partial class VerkleTree
         traverseContext.CurrentIndex += 1;
         (Banderwagon stemDeltaHash, bool changeStemToBranch) = TraverseStem(child, traverseContext);
         traverseContext.CurrentIndex -= 1;
+        if(_logger.IsTrace) _logger.Trace($"TraverseStem Delta:{stemDeltaHash.ToBytes().ToHexString()}");
 
         if (changeStemToBranch)
         {
@@ -127,7 +132,7 @@ public partial class VerkleTree
             // 2. update the C1 or C2 - we already know the leafDelta - traverseContext.LeafUpdateDelta
             // 3. update ExtensionCommitment
             // 4. get the delta for commitment - ExtensionCommitment - 0;
-            InternalNode stem = new InternalNode(VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
+            InternalNode stem = new (VerkleNodeType.StemNode, traverseContext.Stem.ToArray());
             FrE deltaFr = stem.UpdateCommitment(traverseContext.LeafUpdateDelta);
             FrE deltaHash = deltaFr + stem.InitCommitmentHash!.Value;
 

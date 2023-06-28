@@ -84,13 +84,13 @@ public class InternalNode
         InternalCommitment = internalCommitment;
     }
 
-    internal InternalNode(VerkleNodeType nodeType, Stem stem, byte[] c1, byte[] c2, byte[] extCommit)
+    public InternalNode(VerkleNodeType nodeType, Stem stem, byte[] c1, byte[] c2, byte[] extCommit, bool subGroupCheck=false)
     {
         NodeType = nodeType;
         Stem = stem;
-        C1 = new Commitment(Banderwagon.FromBytes(c1, subgroupCheck: false)!.Value);
-        C2 = new Commitment(Banderwagon.FromBytes(c2, subgroupCheck: false)!.Value);
-        InternalCommitment = new Commitment(Banderwagon.FromBytes(extCommit, subgroupCheck: false)!.Value);
+        C1 = new Commitment(Banderwagon.FromBytes(c1, subGroupCheck)!.Value);
+        C2 = new Commitment(Banderwagon.FromBytes(c2, subGroupCheck)!.Value);
+        InternalCommitment = new Commitment(Banderwagon.FromBytes(extCommit, subGroupCheck)!.Value);
     }
 
     private Banderwagon GetInitialCommitment()

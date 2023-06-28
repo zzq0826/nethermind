@@ -63,7 +63,10 @@ public partial class VerkleTree
             foreach (byte[] stem in prefixWithStem.Value)
             {
                 TraverseContext context = new(stem, _leafUpdateCache[stem])
-                    { CurrentIndex = prefixWithStem.Key.Length - 1 };
+                {
+                    CurrentIndex = prefixWithStem.Key.Length - 1,
+                    ForSync = true
+                };
                 TraverseBranch(context);
             }
 
@@ -290,6 +293,7 @@ public partial class VerkleTree
         InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
+        InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
         foreach ((byte[]? stem, (ExtPresent extStatus, byte depth)) in depthsAndExtByStem)
         {
             pathList.Clear();

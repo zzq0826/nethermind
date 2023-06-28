@@ -248,7 +248,7 @@ public partial class VerkleTree: IVerkleTree
     {
         _isDirty = false;
         _verkleStateStore.Flush(blockNumber, _treeCache);
-        // _treeCache = new VerkleMemoryDb();
+        _treeCache = new VerkleMemoryDb();
         _stateRoot = _verkleStateStore.RootHash;
     }
 

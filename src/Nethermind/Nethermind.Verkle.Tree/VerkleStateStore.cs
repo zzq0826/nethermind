@@ -618,7 +618,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             if (storage.GetInternalNode(entry.Key, out InternalNode? node)) reverseDiff.InternalTable[entry.Key] = node;
             else reverseDiff.InternalTable[entry.Key] = null;
 
-            if(entry.Value.ShouldPersist) storage.SetInternalNode(entry.Key, entry.Value);
+            storage.SetInternalNode(entry.Key, entry.Value);
         }
 
         if (_logger.IsDebug)
