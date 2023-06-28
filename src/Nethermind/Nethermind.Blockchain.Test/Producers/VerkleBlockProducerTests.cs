@@ -12,7 +12,7 @@ public class VerkleBlockProducerTests
     [Test]
     public async Task TestBlockProductionWithWitness()
     {
-        var chain = await TestVerkleBlockchain.Create();
+        TestVerkleBlockchain chain = await TestVerkleBlockchain.Create();
         await chain.BuildSomeBlocksWithDeployment(5);
         await chain.BuildSomeBlocks(100);
     }

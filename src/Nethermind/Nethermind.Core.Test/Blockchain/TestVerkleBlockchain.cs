@@ -17,7 +17,6 @@ using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
@@ -35,7 +34,6 @@ using Nethermind.Specs.Forks;
 using Nethermind.Specs.Test;
 using Nethermind.State;
 using Nethermind.State.Repositories;
-using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.VerkleDb;
@@ -45,18 +43,12 @@ namespace Nethermind.Core.Test.Blockchain;
 
 public class TestVerkleBlockchain
 {
-    public const int DefaultTimeout = 4000;
+    public const int DefaultTimeout = 400000;
     public const int PrivateKeyPoolCount = 10000;
-
-    public static Address AccountA = TestItem.AddressA;
-    public static Address AccountB = TestItem.AddressB;
-    public static Address AccountC = TestItem.AddressC;
-    public static Address AddressD = TestItem.AddressD;
-    public static Address AddressE = TestItem.AddressE;
-    public static Address AddressF = TestItem.AddressF;
 
     public PrivateKey[] RandomAddressWithBalance;
 
+    public Random random = new Random(0);
 
     public VerkleStateReader StateReader { get; private set; } = null!;
     public IEthereumEcdsa EthereumEcdsa { get; private set; } = null!;
@@ -140,12 +132,12 @@ public class TestVerkleBlockchain
     public ProducedBlockSuggester Suggester { get; protected set; } = null!;
 
 
-    public static TransactionBuilder<Transaction> BuildSimpleTransaction => Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(AccountB);
+    public static TransactionBuilder<Transaction> BuildSimpleTransaction => Builders.Build.A.Transaction.SignedAndResolved(TestItem.PrivateKeyA).To(TestItem.AddressB);
 
     public void GenerateRandomPrivateKeys(int numKeys)
     {
         RandomAddressWithBalance = new PrivateKey[numKeys];
-        for (int i = 0; i < numKeys; i++) RandomAddressWithBalance[i] = new PrivateKey(TestItem.GetRandomKeccak().Bytes);
+        for (int i = 0; i < numKeys; i++) RandomAddressWithBalance[i] = new PrivateKey(TestItem.GetRandomKeccak(random).Bytes);
     }
 
     public virtual async Task<TestVerkleBlockchain> Build(ISpecProvider? specProvider = null, UInt256? initialValues = null)
@@ -188,11 +180,11 @@ public class TestVerkleBlockchain
 
         NonceManager = new NonceManager(chainHeadInfoProvider.AccountStateProvider);
 
-        _trieStoreWatcher = new TrieStoreBoundaryWatcher(TrieStore, BlockTree, LimboLogs.Instance);
+        _trieStoreWatcher = new TrieStoreBoundaryWatcher(TrieStore, BlockTree, SimpleConsoleLogManager.Instance);
 
         ReceiptStorage = new InMemoryReceiptStorage();
-        VirtualMachine virtualMachine = new(new BlockhashProvider(BlockTree, LogManager), SpecProvider, LimboLogs.Instance);
-        TxProcessor = new TransactionProcessor(SpecProvider, State, virtualMachine, LimboLogs.Instance);
+        VirtualMachine virtualMachine = new(new BlockhashProvider(BlockTree, LogManager), SpecProvider, SimpleConsoleLogManager.Instance);
+        TxProcessor = new TransactionProcessor(SpecProvider, State, virtualMachine, SimpleConsoleLogManager.Instance);
         BlockPreprocessorStep = new RecoverSignatures(EthereumEcdsa, TxPool, SpecProvider, LogManager);
         HeaderValidator = new HeaderValidator(BlockTree, Always.Valid, SpecProvider, LogManager);
 
@@ -248,8 +240,8 @@ public class TestVerkleBlockchain
 
         for (int i = 0; i < numTxn; i++)
         {
-            int fromTx = TestItem.Random.Next(RandomAddressWithBalance.Length - 1);
-            int toTx = TestItem.Random.Next(RandomAddressWithBalance.Length - 1);
+            int fromTx = random.Next(RandomAddressWithBalance.Length - 1);
+            int toTx = random.Next(RandomAddressWithBalance.Length - 1);
             if (fromTx == toTx) toTx = fromTx + 1;
             txns[i] = Builders.Build.A.Transaction.WithTo(RandomAddressWithBalance[fromTx].Address).WithValue(1.GWei())
                 .SignedAndResolved(RandomAddressWithBalance[toTx]).TestObject;
@@ -260,17 +252,19 @@ public class TestVerkleBlockchain
 
     public Transaction[] GenerateRandomTxnWithCode(int numTxn)
     {
-        Transaction[] txns = new Transaction[numTxn];
-
-        for (int i = 0; i < numTxn; i++)
+        List<Transaction> txns = new();
+        int jump = RandomAddressWithBalance.Length / numTxn;
+        int key = 0;
+        while (key < RandomAddressWithBalance.Length)
         {
             byte[] code = new byte[TestItem.Random.Next(2000)];
-            int caller = TestItem.Random.Next(RandomAddressWithBalance.Length - 1);
-            UInt256 nonce = StateReader.GetNonce(BlockTree.Head!.StateRoot!, RandomAddressWithBalance[caller].Address);
-            txns[i] = Builders.Build.A.Transaction.WithTo(null).WithCode(code).WithNonce(nonce)
-                .SignedAndResolved(RandomAddressWithBalance[caller]).TestObject;
+            PrivateKey caller = RandomAddressWithBalance[key];
+            UInt256 nonce = StateReader.GetNonce(BlockTree.Head!.StateRoot!, caller.Address);
+            txns.Add(Builders.Build.A.Transaction.WithTo(null).WithCode(code).WithNonce(nonce).WithGasLimit(200000)
+                .SignedAndResolved(caller).TestObject);
+            key += jump;
         }
-        return txns;
+        return txns.ToArray();
     }
 
     protected virtual async Task AirdropToAddresses()
@@ -436,11 +430,11 @@ public class TestVerkleBlockchain
     }
 
     protected virtual IBlockProcessor CreateBlockProcessor() =>
-        new BlockProcessor(
+        new StatelessBlockProcessor(
             SpecProvider,
             BlockValidator,
             NoBlockRewards.Instance,
-            new BlockProcessor.BlockValidationTransactionsExecutor(TxProcessor, State),
+            new BlockProcessor.BlockStatelessValidationTransactionsExecutor(TxProcessor),
             State,
             ReceiptStorage,
             NullWitnessCollector.Instance,
