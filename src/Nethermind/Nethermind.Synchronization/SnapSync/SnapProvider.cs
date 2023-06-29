@@ -136,14 +136,15 @@ namespace Nethermind.Synchronization.SnapSync
                     }
 
                     PathWithAccount account = request.Accounts[i];
-                    result = AddStorageRange(request.BlockNumber.Value, account, account.Account.StorageRoot, request.StartingHash, responses[i], proofs);
+                    result = AddStorageRange(request.BlockNumber.Value, account, account.Account.StorageRoot, request.StartingHash, request.LimitHash, responses[i], proofs);
 
                     slotCount += responses[i].Length;
                 }
 
                 if (requestLength > responses.Length)
                 {
-                    _progressTracker.ReportFullStorageRequestFinished(request.Accounts.AsSpan(responses.Length, requestLength - responses.Length));
+                    Span<PathWithAccount> remainingAccounts = request.Accounts.AsSpan(responses.Length, requestLength - responses.Length);
+                    _progressTracker.ReportFullStorageRequestFinished(remainingAccounts);
                 }
                 else
                 {
@@ -159,38 +160,72 @@ namespace Nethermind.Synchronization.SnapSync
             return result;
         }
 
-        public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, PathWithStorageSlot[] slots, byte[][]? proofs = null)
+        public AddRangeResult AddStorageRange(
+            long blockNumber,
+            PathWithAccount pathWithAccount,
+            in ValueKeccak expectedRootHash,
+            in ValueKeccak? startingHash,
+            in ValueKeccak? limitHash,
+            PathWithStorageSlot[] slots, byte[][]? proofs = null)
         {
             ITrieStore store = _trieStorePool.Get();
             StorageTree tree = new(store, _logManager);
             try
             {
-                (AddRangeResult result, bool moreChildrenToRight) = SnapProviderHelper.AddStorageRange(tree, blockNumber, startingHash, slots, expectedRootHash, proofs);
+                (AddRangeResult result, bool moreChildrenToRight) = SnapProviderHelper.AddStorageRange(
+                    tree,
+                    blockNumber,
+                    startingHash,
+                    limitHash,
+                    slots,
+                    expectedRootHash,
+                    proofs);
 
                 if (result == AddRangeResult.OK)
                 {
                     if (moreChildrenToRight)
                     {
-                        StorageRange range = new()
+                        if (startingHash == null && limitHash == null && EstimateIsLargeStorage(slots))
                         {
-                            Accounts = new[] { pathWithAccount },
-                            StartingHash = slots[^1].Path
-                        };
+                            var ranges = GenerateKeccakRanges(16);
+                            foreach (var krange in ranges)
+                            {
+                                if (krange.Item1 < slots[^1].Path) continue;
 
-                        _progressTracker.EnqueueStorageRange(range);
+                                StorageRange range = new()
+                                {
+                                    Accounts = new[] { pathWithAccount },
+                                    StartingHash = slots[^1].Path < krange.Item2 ? slots[^1].Path : krange.Item1,
+                                    LimitHash = krange.Item2,
+                                };
+
+                                _progressTracker.EnqueueStorageRange(range);
+                            }
+                        }
+                        else
+                        {
+                            StorageRange range = new()
+                            {
+                                Accounts = new[] { pathWithAccount },
+                                StartingHash = slots[^1].Path,
+                                LimitHash = limitHash,
+                            };
+
+                            _progressTracker.EnqueueStorageRange(range);
+                        }
                     }
                 }
                 else if (result == AddRangeResult.MissingRootHashInProofs)
                 {
                     _logger.Trace($"SNAP - AddStorageRange failed, missing root hash {expectedRootHash} in the proofs, startingHash:{startingHash}");
 
-                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash);
+                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash, limitHash);
                 }
                 else if (result == AddRangeResult.DifferentRootHash)
                 {
                     _logger.Trace($"SNAP - AddStorageRange failed, expected storage root hash:{expectedRootHash} but was {tree.RootHash}, startingHash:{startingHash}");
 
-                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash);
+                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash, limitHash);
                 }
 
                 return result;
@@ -235,7 +270,8 @@ namespace Nethermind.Synchronization.SnapSync
                                 StorageRange range = new()
                                 {
                                     Accounts = new[] { requestedPath.PathAndAccount },
-                                    StartingHash = requestedPath.StorageStartingHash
+                                    StartingHash = requestedPath.StorageStartingHash,
+                                    LimitHash = requestedPath.StorageLimitHash,
                                 };
 
                                 _progressTracker.EnqueueStorageRange(range);
@@ -267,7 +303,7 @@ namespace Nethermind.Synchronization.SnapSync
 
         private void RetryAccountRefresh(AccountWithStorageStartingHash requestedPath)
         {
-            _progressTracker.EnqueueAccountRefresh(requestedPath.PathAndAccount, requestedPath.StorageStartingHash);
+            _progressTracker.EnqueueAccountRefresh(requestedPath.PathAndAccount, requestedPath.StorageStartingHash, requestedPath.StorageLimitHash);
         }
 
         public void AddCodes(ValueKeccak[] requestedHashes, byte[][] codes)
@@ -319,6 +355,75 @@ namespace Nethermind.Synchronization.SnapSync
         public void UpdatePivot()
         {
             _progressTracker.UpdatePivot();
+        }
+
+        private static bool EstimateIsLargeStorage(PathWithStorageSlot[] slots)
+        {
+            if (slots.Length <= 1)
+            {
+                return false;
+            }
+
+            double startValue = slots[0].Path.Bytes[..4].ReadEthUInt32();
+            double endValue = slots[^1].Path.Bytes[..4].ReadEthUInt32();
+            double proportion = (endValue - startValue) / UInt32.MaxValue;
+
+            double valueSize = 0;
+            foreach (PathWithStorageSlot pathWithStorageSlot in slots)
+            {
+                valueSize += pathWithStorageSlot.SlotRlpValue.Length;
+            }
+
+            if (proportion != 0)
+            {
+                double estimatedSize = valueSize / proportion;
+                // On mainnet stats for these threshold are:
+                // 1600 account larger 500kB
+                // 900 account larger 1MB
+                // 200 account larger 5MB
+                // 100 account larger 10MB
+                if (estimatedSize > 10.MiB())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private List<(ValueKeccak, ValueKeccak)> GenerateKeccakRanges(int partitionCount)
+        {
+            // Confusingly dividing the range evenly via UInt256 for example, consistently cause root hash mismatch.
+            // The mismatch happens on exactly the same partition every time, suggesting tome kind of boundary issues
+            // either on proof generation or validation.
+            byte curStartingPath = 0;
+            int partitionSize = (256 / partitionCount);
+
+            List<(ValueKeccak, ValueKeccak)> partitions = new List<(ValueKeccak, ValueKeccak)>();
+            for (var i = 0; i < partitionCount; i++)
+            {
+                ValueKeccak startingPath = new ValueKeccak(Keccak.Zero.Bytes);
+                startingPath.BytesAsSpan[0] = curStartingPath;
+
+                curStartingPath += (byte)partitionSize;
+
+                Keccak limitPath;
+
+                // Special case for the last partition
+                if (i == partitionCount - 1)
+                {
+                    limitPath = Keccak.MaxValue;
+                }
+                else
+                {
+                    limitPath = new Keccak(Keccak.Zero.Bytes);
+                    limitPath.Bytes[0] = curStartingPath;
+                }
+
+                partitions.Add((startingPath, limitPath));
+            }
+
+            return partitions;
         }
 
         private class TrieStorePoolPolicy : IPooledObjectPolicy<ITrieStore>

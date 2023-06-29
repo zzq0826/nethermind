@@ -82,6 +82,7 @@ namespace Nethermind.Synchronization.SnapSync
             StorageTree tree,
             long blockNumber,
             in ValueKeccak? startingHash,
+            in ValueKeccak? limitHash,
             PathWithStorageSlot[] slots,
             in ValueKeccak expectedRootHash,
             byte[][]? proofs = null
@@ -90,9 +91,10 @@ namespace Nethermind.Synchronization.SnapSync
             // TODO: Check the slots boundaries and sorting
 
             ValueKeccak lastHash = slots[^1].Path;
+            ValueKeccak effectiveLimit = limitHash ?? ValueKeccak.MaxValue;
 
             (AddRangeResult result, List<TrieNode> sortedBoundaryList, bool moreChildrenToRight) = FillBoundaryTree(
-                tree, startingHash, lastHash, ValueKeccak.MaxValue, expectedRootHash, proofs);
+                tree, startingHash, lastHash, effectiveLimit, expectedRootHash, proofs);
 
             if (result != AddRangeResult.OK)
             {
