@@ -12,10 +12,18 @@ using Nethermind.Verkle.Tree.Utils;
 namespace Nethermind.Core.Verkle;
 
 
-public struct ExecutionWitness
+public class ExecutionWitness
 {
     public StateDiff StateDiff { get; set; }
-    public WitnessVerkleProof Proof { get; set; }
+    public WitnessVerkleProof? Proof { get; set; }
+
+    public ExecutionWitness() { }
+
+    public ExecutionWitness(StateDiff stateDiff, WitnessVerkleProof proof)
+    {
+        StateDiff = stateDiff;
+        Proof = proof;
+    }
 }
 
 public class WitnessVerkleProof

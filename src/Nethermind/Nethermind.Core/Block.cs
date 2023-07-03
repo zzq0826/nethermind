@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Verkle;
 using Nethermind.Int256;
 
 namespace Nethermind.Core;
@@ -105,6 +106,7 @@ public class Block
     public bool IsBodyMissing => Header.HasBody && Body.IsEmpty;
 
     public Keccak? WithdrawalsRoot => Header.WithdrawalsRoot; // do not add setter here
+    public ExecutionWitness? ExecutionWitness => Header.ExecutionWitness;
 
     public override string ToString() => ToString(Format.Short);
 

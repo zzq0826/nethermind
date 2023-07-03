@@ -30,7 +30,7 @@ public class StatelessTransactionProcessor: ITransactionProcessor
 
     public void Execute(Transaction transaction, BlockHeader block, ITxTracer txTracer)
     {
-        VerkleWorldState worldState = new(block.Witness!.Value, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
+        VerkleWorldState worldState = new(block.ExecutionWitness!, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
         TransactionProcessor txn = new(_specProvider, worldState, _virtualMachine, _logManager);
         txn.Execute(transaction, block, txTracer);
 
@@ -38,21 +38,21 @@ public class StatelessTransactionProcessor: ITransactionProcessor
 
     public void CallAndRestore(Transaction transaction, BlockHeader block, ITxTracer txTracer)
     {
-        VerkleWorldState worldState = new (block.Witness!.Value, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
+        VerkleWorldState worldState = new (block.ExecutionWitness!, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
         TransactionProcessor txn = new (_specProvider, worldState, _virtualMachine, _logManager);
         txn.CallAndRestore(transaction, block, txTracer);
     }
 
     public void BuildUp(Transaction transaction, BlockHeader block, ITxTracer txTracer)
     {
-        VerkleWorldState worldState = new (block.Witness!.Value, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
+        VerkleWorldState worldState = new (block.ExecutionWitness!, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
         TransactionProcessor txn = new (_specProvider, worldState, _virtualMachine, _logManager);
         txn.BuildUp(transaction, block, txTracer);
     }
 
     public void Trace(Transaction transaction, BlockHeader block, ITxTracer txTracer)
     {
-        VerkleWorldState worldState = new (block.Witness!.Value, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
+        VerkleWorldState worldState = new (block.ExecutionWitness!, Banderwagon.FromBytes(block.StateRoot!.Bytes)!.Value, _logManager);
         TransactionProcessor txn = new (_specProvider, worldState, _virtualMachine, _logManager);
         txn.Trace(transaction, block, txTracer);
     }

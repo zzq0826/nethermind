@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core;
-using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Resettables;
@@ -19,14 +18,13 @@ using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Proofs;
-using Nethermind.Verkle.Tree.Utils;
-using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.State;
 
 public class VerkleWorldState : IWorldState
 {
+    public StateType StateType => StateType.Verkle;
+
     private const int StartCapacity = Resettable.StartCapacity;
     private readonly ResettableDictionary<Address, Stack<int>> _intraBlockCache = new ResettableDictionary<Address, Stack<int>>();
     private readonly ResettableHashSet<Address> _committedThisRound = new ResettableHashSet<Address>();
@@ -298,6 +296,17 @@ public class VerkleWorldState : IWorldState
         }
 
         return code;
+    }
+
+    public byte[] GetCodeChunk(Address codeOwner, UInt256 codeChunk)
+    {
+        Pedersen? treeKey = AccountHeader.GetTreeKeyForCodeChunk(codeOwner.Bytes, codeChunk);
+        byte[]? chunk = _tree.Get(treeKey);
+        if (chunk is null)
+        {
+            throw new InvalidOperationException($"Code Chunk {chunk} is missing from the database.");
+        }
+        return chunk;
     }
 
     public byte[] GetCode(Address address)

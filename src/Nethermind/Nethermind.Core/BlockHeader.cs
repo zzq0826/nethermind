@@ -28,7 +28,7 @@ public class BlockHeader
         ulong timestamp,
         byte[] extraData,
         UInt256? excessDataGas = null,
-        ExecutionWitness? witness = null)
+        ExecutionWitness? executionWitness = null)
     {
         ParentHash = parentHash;
         UnclesHash = unclesHash;
@@ -39,7 +39,7 @@ public class BlockHeader
         Timestamp = timestamp;
         ExtraData = extraData;
         ExcessDataGas = excessDataGas;
-        Witness = witness;
+        ExecutionWitness = executionWitness;
     }
 
     public WeakReference<BlockHeader>? MaybeParent { get; set; }
@@ -70,7 +70,7 @@ public class BlockHeader
     public UInt256 BaseFeePerGas { get; set; }
     public Keccak? WithdrawalsRoot { get; set; }
     public UInt256? ExcessDataGas { get; set; }
-    public ExecutionWitness? Witness { get; set; }
+    public ExecutionWitness? ExecutionWitness { get; set; }
 
     public bool HasBody => (TxRoot is not null && TxRoot != Keccak.EmptyTreeHash)
         || (UnclesHash is not null && UnclesHash != Keccak.OfAnEmptySequenceRlp)
@@ -111,20 +111,20 @@ public class BlockHeader
         builder.AppendLine($"{indent}IsPostMerge: {IsPostMerge}");
         builder.AppendLine($"{indent}TotalDifficulty: {TotalDifficulty}");
 
-        if (Witness is not null)
+        if (ExecutionWitness is not null)
         {
             builder.AppendLine($"{indent}ExecutionWitness");
-            builder.AppendLine($"{indent}{indent}StateDiff: {Witness.Value.StateDiff.SuffixDiffs.Count}");
-            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {Witness.Value.Proof.D}");
-            builder.AppendLine($"{indent}{indent}{indent}D: {Witness.Value.Proof.D.ToBytes().ToHexString()}");
+            builder.AppendLine($"{indent}{indent}StateDiff: {ExecutionWitness.StateDiff.SuffixDiffs.Count}");
+            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {ExecutionWitness.Proof!.D}");
+            builder.AppendLine($"{indent}{indent}{indent}D: {ExecutionWitness.Proof.D.ToBytes().ToHexString()}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}IpaProof: {Witness.Value.Proof.IpaProof.Encode().ToHexString()}");
+                $"{indent}{indent}{indent}IpaProof: {ExecutionWitness.Proof.IpaProof.Encode().ToHexString()}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {Witness.Value.Proof.DepthExtensionPresent.ToHexString()}");
+                $"{indent}{indent}{indent}ExtensionPresent: {ExecutionWitness.Proof.DepthExtensionPresent.ToHexString()}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}OtherStems: {string.Join(", ", Witness.Value.Proof.OtherStems.Select(x => x.ToString()))}");
+                $"{indent}{indent}{indent}OtherStems: {string.Join(", ", ExecutionWitness.Proof.OtherStems.Select(x => x.ToString()))}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", Witness.Value.Proof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
+                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", ExecutionWitness.Proof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
         }
 
         return builder.ToString();

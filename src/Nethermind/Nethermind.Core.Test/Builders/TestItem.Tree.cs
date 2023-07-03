@@ -72,7 +72,7 @@ namespace Nethermind.Core.Test.Builders
 
                 var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 
-                FillStateTreeWithTestAccounts(stateTree);
+                // FillStateTreeWithTestAccounts(stateTree);
 
                 return stateTree;
             }

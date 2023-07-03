@@ -128,8 +128,13 @@ public class VirtualMachine : IVirtualMachine
                 {
                     if (_txTracer.IsTracingActions && !currentState.IsContinuation)
                     {
-                        _txTracer.ReportAction(currentState.GasAvailable, currentState.Env.Value, currentState.From, currentState.To, currentState.ExecutionType.IsAnyCreate() ? currentState.Env.CodeInfo.MachineCode : currentState.Env.InputData, currentState.ExecutionType);
-                        if (_txTracer.IsTracingCode) _txTracer.ReportByteCode(currentState.Env.CodeInfo.MachineCode);
+                        _txTracer.ReportAction(currentState.GasAvailable, currentState.Env.Value, currentState.From,
+                            currentState.To,
+                            currentState.ExecutionType.IsAnyCreate()
+                                ? currentState.Env.CodeInfo.MachineCode.ToBytes()
+                                : currentState.Env.InputData, currentState.ExecutionType);
+                        if (_txTracer.IsTracingCode)
+                            _txTracer.ReportByteCode(currentState.Env.CodeInfo.MachineCode.ToBytes());
                     }
 
                     callResult = ExecuteCall(currentState, previousCallResult, previousCallOutput, previousCallOutputDestination, spec);
@@ -387,15 +392,24 @@ public class VirtualMachine : IVirtualMachine
         CodeInfo cachedCodeInfo = _codeCache.Get(codeHash);
         if (cachedCodeInfo is null)
         {
-            byte[] code = worldState.GetCode(codeHash);
-
-            if (code is null)
+            try
             {
-                throw new NullReferenceException($"Code {codeHash} missing in the state for address {codeSource}");
+                byte[] code = worldState.GetCode(codeHash);
+                cachedCodeInfo = new CodeInfo(code);
+                _codeCache.Set(codeHash, cachedCodeInfo);
             }
-
-            cachedCodeInfo = new CodeInfo(code);
-            _codeCache.Set(codeHash, cachedCodeInfo);
+            catch (InvalidOperationException)
+            {
+                // this means that code is not there
+                if (worldState.StateType == StateType.Verkle)
+                {
+                    cachedCodeInfo = new CodeInfo(worldState, codeSource);
+                }
+                else
+                {
+                    throw new NullReferenceException($"Code {codeHash} missing in the state for address {codeSource}");
+                }
+            }
         }
         else
         {
@@ -651,7 +665,7 @@ public class VirtualMachine : IVirtualMachine
         EvmStack stack = new(vmState.DataStack.AsSpan(), vmState.DataStackHead, _txTracer);
         long gasAvailable = vmState.GasAvailable;
         int programCounter = vmState.ProgramCounter;
-        Span<byte> code = env.CodeInfo.MachineCode.AsSpan();
+        ICode code = env.CodeInfo.MachineCode;
 
         if (!vmState.IsContinuation)
         {
@@ -1340,7 +1354,7 @@ public class VirtualMachine : IVirtualMachine
                         Address address = stack.PopAddress();
                         if (!ChargeAccountAccessGas(ref gasAvailable, vmState, address, spec, opCode: instruction)) goto OutOfGas;
 
-                        byte[] accountCode = GetCachedCodeInfo(_worldState, address, spec).MachineCode;
+                        ICode accountCode = GetCachedCodeInfo(_worldState, address, spec).MachineCode;
                         UInt256 codeSize = (UInt256)accountCode.Length;
                         stack.PushUInt256(in codeSize);
                         break;
@@ -1362,7 +1376,7 @@ public class VirtualMachine : IVirtualMachine
                         {
                             if (!UpdateMemoryCost(vmState, ref gasAvailable, in dest, length)) goto OutOfGas;
 
-                            byte[] externalCode = GetCachedCodeInfo(_worldState, address, spec).MachineCode;
+                            ICode externalCode = GetCachedCodeInfo(_worldState, address, spec).MachineCode;
                             ZeroPaddedSpan callDataSlice = externalCode.SliceWithZeroPadding(src, (int)length);
                             vmState.Memory.Save(in dest, callDataSlice);
                             if (_txTracer.IsTracingInstructions)
