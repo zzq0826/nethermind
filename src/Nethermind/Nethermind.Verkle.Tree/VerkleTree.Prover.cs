@@ -51,7 +51,7 @@ public partial class VerkleTree
         List<StemStateDiff> stemStateDiffList = stemStateDiff.Select(stemStateDiffData =>
             new StemStateDiff { Stem = stemStateDiffData.Key, SuffixDiffs = stemStateDiffData.Value }).ToList();
 
-        return new ExecutionWitness { Proof = proof, StateDiff =  stemStateDiffList };
+        return new ExecutionWitness { VerkleProof = proof, StateDiff =  stemStateDiffList };
     }
 
     public VerkleProof CreateVerkleProof(byte[][] keys, out Banderwagon rootPoint)

@@ -4,10 +4,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using FastEnumUtility;
-using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Proofs;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Core.Verkle;
 
@@ -15,20 +13,20 @@ namespace Nethermind.Core.Verkle;
 public class ExecutionWitness
 {
     public List<StemStateDiff> StateDiff { get; set; } = new(0);
-    public WitnessVerkleProof? Proof { get; set; }
+    public WitnessVerkleProof? VerkleProof { get; set; } = null;
 
     public ExecutionWitness() { }
 
     public ExecutionWitness(List<StemStateDiff> stateDiff, WitnessVerkleProof proof)
     {
         StateDiff = stateDiff;
-        Proof = proof;
+        VerkleProof = proof;
     }
 }
 
 public class WitnessVerkleProof
 {
-    public Stem[] OtherStems { get; set; }
+    public Stem[]? OtherStems { get; set; }
     public byte[] DepthExtensionPresent { get; set; }
     public Banderwagon[] CommitmentsByPath { get; set; }
     public Banderwagon D { get; set; }

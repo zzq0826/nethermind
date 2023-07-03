@@ -45,12 +45,12 @@ public partial class VerkleTree
     public static bool VerifyVerkleProof(ExecutionWitness execWitness, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
     {
         updateHint = null;
-        int numberOfStems = execWitness.Proof.DepthExtensionPresent.Length;
+        int numberOfStems = execWitness.VerkleProof.DepthExtensionPresent.Length;
 
         // sorted commitments including root
-        Banderwagon[] commSortedByPath = new Banderwagon[execWitness.Proof.CommitmentsByPath.Length + 1];
+        Banderwagon[] commSortedByPath = new Banderwagon[execWitness.VerkleProof.CommitmentsByPath.Length + 1];
         commSortedByPath[0] = root;
-        execWitness.Proof.CommitmentsByPath.CopyTo(commSortedByPath, 1);
+        execWitness.VerkleProof.CommitmentsByPath.CopyTo(commSortedByPath, 1);
 
         Stem[] stems = GetStemsFromStemStateDiff(execWitness.StateDiff);
 
@@ -58,7 +58,7 @@ public partial class VerkleTree
         HashSet<Stem> stemsWithExtension = new();
         for (int i = 0; i < numberOfStems; i++)
         {
-            byte extAndDepth = execWitness.Proof.DepthExtensionPresent[i];
+            byte extAndDepth = execWitness.VerkleProof.DepthExtensionPresent[i];
             byte depth = (byte)(extAndDepth >> 3);
             ExtPresent extPresent = (ExtPresent)(extAndDepth & 3);
             depthsAndExtByStem.Add(stems[i], (extPresent, depth));
@@ -98,7 +98,7 @@ public partial class VerkleTree
                     switch (found.Length)
                     {
                         case 0:
-                            found = execWitness.Proof.OtherStems.Where(x => x.BytesAsSpan[..depth].SequenceEqual(stem.Bytes[..depth])).ToArray();
+                            found = execWitness.VerkleProof.OtherStems.Where(x => x.BytesAsSpan[..depth].SequenceEqual(stem.Bytes[..depth])).ToArray();
                             Stem encounteredStem = found[^1];
                             otherStem = encounteredStem;
 
@@ -167,7 +167,7 @@ public partial class VerkleTree
             commByPath[path] = comm;
         }
 
-        bool isTrue = VerifyVerkleProofStruct(new VerkleProofStruct(execWitness.Proof.IpaProof, execWitness.Proof.D),
+        bool isTrue = VerifyVerkleProofStruct(new VerkleProofStruct(execWitness.VerkleProof.IpaProof, execWitness.VerkleProof.D),
             allPathsAndZs, leafValuesByPathAndZ, commByPath);
 
         updateHint = new UpdateHint

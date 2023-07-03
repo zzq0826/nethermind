@@ -100,8 +100,19 @@ public partial class VerkleTree
         }
     }
 
-    public bool InsertIntoStatelessTree(ExecutionWitness execWitness, Banderwagon root, bool skipRoot = false)
+    public bool InsertIntoStatelessTree(ExecutionWitness? execWitness, Banderwagon root, bool skipRoot = false)
     {
+        if (execWitness is null || execWitness.VerkleProof is null)
+        {
+            if (!skipRoot)
+            {
+                InternalNode rootNode = new(VerkleNodeType.BranchNode, new Commitment(root));
+                SetInternalNode(Array.Empty<byte>(), rootNode);
+            }
+
+            return true;
+        }
+
         bool isVerified = VerifyVerkleProof(execWitness, root, out UpdateHint? updateHint);
         if (!isVerified) return false;
 

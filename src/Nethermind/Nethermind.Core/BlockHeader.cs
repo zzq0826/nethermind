@@ -115,16 +115,19 @@ public class BlockHeader
         {
             builder.AppendLine($"{indent}ExecutionWitness");
             builder.AppendLine($"{indent}{indent}StateDiff: {ExecutionWitness.StateDiff.Count}");
-            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {ExecutionWitness.Proof!.D}");
-            builder.AppendLine($"{indent}{indent}{indent}D: {ExecutionWitness.Proof.D.ToBytes().ToHexString()}");
+            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {ExecutionWitness.VerkleProof!.D}");
+            builder.AppendLine($"{indent}{indent}{indent}D: {ExecutionWitness.VerkleProof.D.ToBytes().ToHexString()}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}IpaProof: {ExecutionWitness.Proof.IpaProof.Encode().ToHexString()}");
+                $"{indent}{indent}{indent}IpaProof: {ExecutionWitness.VerkleProof.IpaProof.Encode().ToHexString()}");
             builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {ExecutionWitness.Proof.DepthExtensionPresent.ToHexString()}");
+                $"{indent}{indent}{indent}ExtensionPresent: {ExecutionWitness.VerkleProof.DepthExtensionPresent.ToHexString()}");
+
+            if(ExecutionWitness.VerkleProof.OtherStems is not null)
+                builder.AppendLine(
+                    $"{indent}{indent}{indent}OtherStems: {string.Join(", ", ExecutionWitness.VerkleProof.OtherStems.Select(x => x.ToString()))}");
+
             builder.AppendLine(
-                $"{indent}{indent}{indent}OtherStems: {string.Join(", ", ExecutionWitness.Proof.OtherStems.Select(x => x.ToString()))}");
-            builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", ExecutionWitness.Proof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
+                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", ExecutionWitness.VerkleProof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
         }
 
         return builder.ToString();

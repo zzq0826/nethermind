@@ -59,7 +59,7 @@ public class VerkleWorldState : IWorldState
     }
 
     // create a state provider using execution witness
-    public VerkleWorldState(ExecutionWitness executionWitness, Banderwagon root, ILogManager? logManager)
+    public VerkleWorldState(ExecutionWitness? executionWitness, Banderwagon root, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _tree = new VerkleStateTree(
