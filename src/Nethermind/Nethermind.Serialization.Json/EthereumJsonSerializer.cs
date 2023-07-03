@@ -48,6 +48,7 @@ namespace Nethermind.Serialization.Json
                 new PublicKeyConverter(),
                 new TxTypeConverter(),
                 new MemoryByteConverter(),
+                new StemConverter(),
             });
 
         public IList<JsonConverter> BasicConverters { get; } = CommonConverters.ToList();
@@ -69,6 +70,7 @@ namespace Nethermind.Serialization.Json
             new PublicKeyConverter(),
             new TxTypeConverter(),
             new MemoryByteConverter(),
+            new StemConverter(),
         };
 
         public T Deserialize<T>(Stream stream)
