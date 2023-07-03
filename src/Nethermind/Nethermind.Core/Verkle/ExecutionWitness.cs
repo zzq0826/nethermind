@@ -14,12 +14,12 @@ namespace Nethermind.Core.Verkle;
 
 public class ExecutionWitness
 {
-    public StateDiff StateDiff { get; set; }
+    public List<StemStateDiff> StateDiff { get; set; } = new(0);
     public WitnessVerkleProof? Proof { get; set; }
 
     public ExecutionWitness() { }
 
-    public ExecutionWitness(StateDiff stateDiff, WitnessVerkleProof proof)
+    public ExecutionWitness(List<StemStateDiff> stateDiff, WitnessVerkleProof proof)
     {
         StateDiff = stateDiff;
         Proof = proof;

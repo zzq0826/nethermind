@@ -52,7 +52,7 @@ public partial class VerkleTree
         commSortedByPath[0] = root;
         execWitness.Proof.CommitmentsByPath.CopyTo(commSortedByPath, 1);
 
-        Stem[] stems = GetStemsFromStemStateDiff(execWitness.StateDiff.SuffixDiffs);
+        Stem[] stems = GetStemsFromStemStateDiff(execWitness.StateDiff);
 
         Dictionary<Stem, (ExtPresent, byte)> depthsAndExtByStem = new();
         HashSet<Stem> stemsWithExtension = new();
@@ -70,7 +70,7 @@ public partial class VerkleTree
         Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
         SortedDictionary<List<byte>, Stem> otherStemsByPrefix = new(new ListComparer());
 
-        foreach (StemStateDiff stemStateDiff in execWitness.StateDiff.SuffixDiffs)
+        foreach (StemStateDiff stemStateDiff in execWitness.StateDiff)
         {
             Stem stem = stemStateDiff.Stem;
             (ExtPresent extPres, byte depth) = depthsAndExtByStem[stem];

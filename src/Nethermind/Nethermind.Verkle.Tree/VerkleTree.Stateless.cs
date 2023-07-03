@@ -113,7 +113,7 @@ public partial class VerkleTree
 
         AddStatelessInternalNodes(updateHint.Value);
 
-        foreach (StemStateDiff stemStateDiff in execWitness.StateDiff.SuffixDiffs)
+        foreach (StemStateDiff stemStateDiff in execWitness.StateDiff)
         {
             InsertStemBatchStateless(stemStateDiff.Stem,
                 stemStateDiff.SuffixDiffs.Select(x => new LeafInSubTree(x.Suffix, x.CurrentValue)));

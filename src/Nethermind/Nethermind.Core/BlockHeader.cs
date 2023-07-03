@@ -114,7 +114,7 @@ public class BlockHeader
         if (ExecutionWitness is not null)
         {
             builder.AppendLine($"{indent}ExecutionWitness");
-            builder.AppendLine($"{indent}{indent}StateDiff: {ExecutionWitness.StateDiff.SuffixDiffs.Count}");
+            builder.AppendLine($"{indent}{indent}StateDiff: {ExecutionWitness.StateDiff.Count}");
             builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {ExecutionWitness.Proof!.D}");
             builder.AppendLine($"{indent}{indent}{indent}D: {ExecutionWitness.Proof.D.ToBytes().ToHexString()}");
             builder.AppendLine(
