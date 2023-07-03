@@ -72,6 +72,7 @@ public class IpaProofConverter: JsonConverter<IpaProofStruct>
         }
         reader.Read();
         FrE finalEvaluation = new FrE(Bytes.FromHexString(reader.ReadAsString()));
+        reader.Read();
         return new IpaProofStruct(cl, finalEvaluation, cr);
     }
 }

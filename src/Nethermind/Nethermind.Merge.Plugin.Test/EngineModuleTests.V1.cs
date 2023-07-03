@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -26,6 +27,7 @@ using Nethermind.JsonRpc.Test;
 using Nethermind.JsonRpc.Test.Modules;
 using Nethermind.Logging;
 using Nethermind.Merge.Plugin.Data;
+using Nethermind.Serialization.Json;
 using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
@@ -239,6 +241,28 @@ public partial class EngineModuleTests
         Keccak bestSuggestedHeaderHash = chain.BlockTree.BestSuggestedHeader!.Hash!;
         bestSuggestedHeaderHash.Should().Be(getPayloadResult.BlockHash);
         bestSuggestedHeaderHash.Should().NotBe(startingBestSuggestedHeader!.Hash!);
+    }
+
+    [Test]
+    public void TestExecutePayloadSerializationFile()
+    {
+        IJsonSerializer serializer = new EthereumJsonSerializer();
+        using StreamReader encodedPayload = new ("/home/eurus/verkle-testnet-neth/kaustinen/nethermind/src/Nethermind/Nethermind.Merge.Plugin.Test/payload.json");
+        ExecutionPayload? payload = serializer.Deserialize<ExecutionPayload>(encodedPayload.BaseStream);
+        payload.ParentHash.ToString().Should().BeEquivalentTo("0xb6dd1f34a549560d7272a5c870c9f5c9d0d49837ffe3d9666689bfab9b64f916");
+        payload.PrevRandao.ToString().Should().BeEquivalentTo("0x2ecbb0b8141068e728ff32c2da01934e3dc60befbfa3f5ff6274b0e0e6ebb205");
+        payload.ReceiptsRoot.ToString().Should().BeEquivalentTo("0x570c8a20b5e928939ef9adf0a34b20e4b6b7783c33db3c86cfe4d8cbe039ce55");
+        payload.StateRoot.ToString().Should().BeEquivalentTo("0x10db87ce544358c098b9635d0c9bf27a22b449c55cde30f49fe6b01ead621c60");
+        payload.BlockHash.ToString().Should().BeEquivalentTo("0x899ab8d14548e82b4b98237f036d9080b19b768553e81af16689810c4ec18774");
+        payload.ExtraData.ToHexString(true).Should().BeEquivalentTo("0x");
+        payload.FeeRecipient.ToString().Should().BeEquivalentTo("0xf97e180c050e5ab072211ad2c213eb5aee4df134");
+
+        payload.BaseFeePerGas.ToBigEndian().WithoutLeadingZeros().ToHexString(true, true, false).Should().BeEquivalentTo("0x8");
+
+        payload.BlockNumber.ToHexString(true).Should().BeEquivalentTo("0xaa3b3");
+        payload.GasLimit.ToHexString(true).Should().BeEquivalentTo("0x1c9c380");
+        payload.GasUsed.ToHexString(true).Should().BeEquivalentTo("0x9a1dc");
+        payload.Timestamp.ToHexString(true).Should().BeEquivalentTo("0x64a2e768");
     }
 
     [Test]
