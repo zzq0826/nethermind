@@ -113,7 +113,8 @@ public class ExecutionPayload
                 BlockNumber,
                 GasLimit,
                 Timestamp,
-                ExtraData)
+                ExtraData,
+                executionWitness: ExecutionWitness)
             {
                 Hash = BlockHash,
                 ReceiptsRoot = ReceiptsRoot,
