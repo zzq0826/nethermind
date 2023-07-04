@@ -2,16 +2,18 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using Nethermind.Core.Verkle;
 
 namespace Nethermind.Core
 {
     public class BlockBody
     {
-        public BlockBody(Transaction[]? transactions, BlockHeader[]? uncles, Withdrawal[]? withdrawals = null)
+        public BlockBody(Transaction[]? transactions, BlockHeader[]? uncles, Withdrawal[]? withdrawals = null, ExecutionWitness? execWitness = null)
         {
             Transactions = transactions ?? Array.Empty<Transaction>();
             Uncles = uncles ?? Array.Empty<BlockHeader>();
             Withdrawals = withdrawals;
+            ExecutionWitness = execWitness;
         }
 
         public BlockBody() : this(null, null, null) { }
@@ -29,6 +31,8 @@ namespace Nethermind.Core
         public BlockHeader[] Uncles { get; }
 
         public Withdrawal[]? Withdrawals { get; }
+
+        public ExecutionWitness? ExecutionWitness { get; set; }
 
         public bool IsEmpty => Transactions.Length == 0 && Uncles.Length == 0 && (Withdrawals?.Length ?? 0) == 0;
     }

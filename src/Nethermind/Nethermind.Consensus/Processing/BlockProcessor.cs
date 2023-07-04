@@ -239,8 +239,8 @@ public partial class BlockProcessor : IBlockProcessor
             byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
             _logger.Info($"UsedKeys {usedKeys.Length}");
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
-            if (usedKeys is null || usedKeys.Length == 0) block.Header.ExecutionWitness = null;
-            else block.Header.ExecutionWitness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
+            if (usedKeys is null || usedKeys.Length == 0) block.Body.ExecutionWitness = null;
+            else block.Body.ExecutionWitness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
         }
 
         _stateProvider.Commit(spec);
@@ -273,8 +273,7 @@ public partial class BlockProcessor : IBlockProcessor
             bh.GasLimit,
             bh.Timestamp,
             bh.ExtraData,
-            bh.ExcessDataGas,
-            bh.ExecutionWitness)
+            bh.ExcessDataGas)
         {
             Bloom = Bloom.Empty,
             Author = bh.Author,

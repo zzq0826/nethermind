@@ -57,7 +57,7 @@ public class StatelessBlockProcessor: BlockProcessor
         if (!block.IsGenesis)
         {
             block.Header.MaybeParent.TryGetTarget(out BlockHeader maybeParent);
-            worldState = new VerkleWorldState(block.Header.ExecutionWitness!, Banderwagon.FromBytes(maybeParent.StateRoot.Bytes)!.Value, SimpleConsoleLogManager.Instance);
+            worldState = new VerkleWorldState(block.ExecutionWitness!, Banderwagon.FromBytes(maybeParent.StateRoot.Bytes)!.Value, SimpleConsoleLogManager.Instance);
             blockTransactionsExecutor = _blockTransactionsExecutor.WithNewStateProvider(worldState);
         }
         else

@@ -27,8 +27,7 @@ public class BlockHeader
         long gasLimit,
         ulong timestamp,
         byte[] extraData,
-        UInt256? excessDataGas = null,
-        ExecutionWitness? executionWitness = null)
+        UInt256? excessDataGas = null)
     {
         ParentHash = parentHash;
         UnclesHash = unclesHash;
@@ -39,7 +38,6 @@ public class BlockHeader
         Timestamp = timestamp;
         ExtraData = extraData;
         ExcessDataGas = excessDataGas;
-        ExecutionWitness = executionWitness;
     }
 
     public WeakReference<BlockHeader>? MaybeParent { get; set; }
@@ -70,11 +68,9 @@ public class BlockHeader
     public UInt256 BaseFeePerGas { get; set; }
     public Keccak? WithdrawalsRoot { get; set; }
     public UInt256? ExcessDataGas { get; set; }
-    public ExecutionWitness? ExecutionWitness { get; set; }
-
     public bool HasBody => (TxRoot is not null && TxRoot != Keccak.EmptyTreeHash)
-        || (UnclesHash is not null && UnclesHash != Keccak.OfAnEmptySequenceRlp)
-        || (WithdrawalsRoot is not null && WithdrawalsRoot != Keccak.EmptyTreeHash);
+                           || (UnclesHash is not null && UnclesHash != Keccak.OfAnEmptySequenceRlp)
+                           || (WithdrawalsRoot is not null && WithdrawalsRoot != Keccak.EmptyTreeHash);
 
     public bool HasTransactions => (TxRoot is not null && TxRoot != Keccak.EmptyTreeHash);
 
@@ -110,25 +106,6 @@ public class BlockHeader
         }
         builder.AppendLine($"{indent}IsPostMerge: {IsPostMerge}");
         builder.AppendLine($"{indent}TotalDifficulty: {TotalDifficulty}");
-
-        if (ExecutionWitness is not null)
-        {
-            builder.AppendLine($"{indent}ExecutionWitness");
-            builder.AppendLine($"{indent}{indent}StateDiff: {ExecutionWitness.StateDiff.Count}");
-            builder.AppendLine($"{indent}{indent}WitnessVerkleProof: {ExecutionWitness.VerkleProof!.D}");
-            builder.AppendLine($"{indent}{indent}{indent}D: {ExecutionWitness.VerkleProof.D.ToBytes().ToHexString()}");
-            builder.AppendLine(
-                $"{indent}{indent}{indent}IpaProof: {ExecutionWitness.VerkleProof.IpaProof.Encode().ToHexString()}");
-            builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {ExecutionWitness.VerkleProof.DepthExtensionPresent.ToHexString()}");
-
-            if(ExecutionWitness.VerkleProof.OtherStems is not null)
-                builder.AppendLine(
-                    $"{indent}{indent}{indent}OtherStems: {string.Join(", ", ExecutionWitness.VerkleProof.OtherStems.Select(x => x.ToString()))}");
-
-            builder.AppendLine(
-                $"{indent}{indent}{indent}ExtensionPresent: {string.Join(", ", ExecutionWitness.VerkleProof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
-        }
 
         return builder.ToString();
     }

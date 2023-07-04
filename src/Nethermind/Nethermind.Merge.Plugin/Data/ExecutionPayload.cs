@@ -113,8 +113,7 @@ public class ExecutionPayload
                 BlockNumber,
                 GasLimit,
                 Timestamp,
-                ExtraData,
-                executionWitness: ExecutionWitness)
+                ExtraData)
             {
                 Hash = BlockHash,
                 ReceiptsRoot = ReceiptsRoot,
@@ -132,7 +131,7 @@ public class ExecutionPayload
                 ExcessDataGas = ExcessDataGas,
             };
 
-            block = new(header, transactions, Array.Empty<BlockHeader>(), Withdrawals);
+            block = new(header, transactions, Array.Empty<BlockHeader>(), Withdrawals, ExecutionWitness);
 
             return true;
         }
