@@ -605,7 +605,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
         foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
         {
-            Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
+            // in stateless tree - anything can be null
+            // Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (storage.GetLeaf(entry.Key, out byte[]? node)) reverseDiff.LeafTable[entry.Key] = node;
             else reverseDiff.LeafTable[entry.Key] = null;
 
@@ -614,7 +615,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
         foreach (KeyValuePair<byte[], InternalNode?> entry in internalStore)
         {
-            Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
+            // in stateless tree - anything can be null
+            // Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
             if (storage.GetInternalNode(entry.Key, out InternalNode? node)) reverseDiff.InternalTable[entry.Key] = node;
             else reverseDiff.InternalTable[entry.Key] = null;
 
