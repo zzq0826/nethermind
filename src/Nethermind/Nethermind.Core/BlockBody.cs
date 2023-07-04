@@ -23,6 +23,7 @@ namespace Nethermind.Core
         public BlockBody WithChangedUncles(BlockHeader[] uncles) => new(Transactions, uncles, Withdrawals);
 
         public BlockBody WithChangedWithdrawals(Withdrawal[]? withdrawals) => new(Transactions, Uncles, withdrawals);
+        public BlockBody WithChangedExecutionWitness(ExecutionWitness? witness) => new(Transactions, Uncles, Withdrawals, witness);
 
         public static BlockBody WithOneTransactionOnly(Transaction tx) => new(new[] { tx }, null, null);
 
