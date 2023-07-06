@@ -328,6 +328,7 @@ namespace Nethermind.Consensus.Processing
 
             bool shouldProcess =
                 suggestedBlock.IsGenesis
+                // || suggestedBlock.ExecutionWitness is not null
                 || _blockTree.IsBetterThanHead(suggestedBlock.Header)
                 || options.ContainsFlag(ProcessingOptions.ForceProcessing);
 
@@ -520,7 +521,7 @@ namespace Nethermind.Consensus.Processing
                         throw new InvalidOperationException("Attempted to process a disconnected blockchain");
                     }
 
-                    if (!_stateReader.HasStateForBlock(parentOfFirstBlock))
+                    if (!(_blockProcessor is StatelessBlockProcessor) && !_stateReader.HasStateForBlock(parentOfFirstBlock))
                     {
                         throw new InvalidOperationException("Attempted to process a blockchain without having starting state");
                     }
@@ -658,6 +659,10 @@ namespace Nethermind.Consensus.Processing
         private bool RunSimpleChecksAheadOfProcessing(Block suggestedBlock, ProcessingOptions options)
         {
             /* a bit hacky way to get the invalid branch out of the processing loop */
+            // if (suggestedBlock.ExecutionWitness is not null)
+            // {
+            //     _logger.Info($"RunSimpleChecksAheadOfProcessing: ExecutionWitness Present {suggestedBlock.ToString(Block.Format.Short)}");
+            // }
             if (suggestedBlock.Number != 0 &&
                 !_blockTree.IsKnownBlock(suggestedBlock.Number - 1, suggestedBlock.ParentHash))
             {
@@ -672,6 +677,7 @@ namespace Nethermind.Consensus.Processing
                 if (_logger.IsDebug)
                     _logger.Debug(
                         $"Skipping processing block {suggestedBlock.ToString(Block.Format.FullHashAndNumber)} without total difficulty");
+                // suggestedBlock.Header.TotalDifficulty = 1;
                 throw new InvalidOperationException(
                     "Block without total difficulty calculated was suggested for processing");
             }
