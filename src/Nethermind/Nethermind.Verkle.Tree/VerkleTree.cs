@@ -88,9 +88,10 @@ public partial class VerkleTree: IVerkleTree
 
     public byte[]? Get(Pedersen key)
     {
-        return _treeCache.GetLeaf(key.Bytes, out byte[]? value)
-            ? value
-            : _verkleStateStore.GetLeaf(key.Bytes);
+        _treeCache.GetLeaf(key.Bytes, out byte[]? value);
+        value ??= _verkleStateStore.GetLeaf(key.Bytes);
+        Console.WriteLine($"Reading data from VT:{key} {value?.ToHexString()}");
+        return value;
     }
 
     private void SetLeafCache(Pedersen key, byte[]? value)
