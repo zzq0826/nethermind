@@ -6,12 +6,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
+using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Producers;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -19,6 +21,8 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Evm;
+using Nethermind.Evm.Tracing;
+using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Int256;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
@@ -32,6 +36,7 @@ using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.Trie;
+using Nethermind.Verkle.Curve;
 using Newtonsoft.Json;
 using NSubstitute;
 using NUnit.Framework;
@@ -246,6 +251,8 @@ public partial class EngineModuleTests
     [Test]
     public void TestExecutePayloadSerializationFile()
     {
+        Banderwagon root = Banderwagon
+            .FromBytes(Bytes.FromHexString("0x53053c27d4c8bb2f9a2bf0d74995a752a180f2c47a4a44cfdadf53f761eb043b")).Value;
         IJsonSerializer serializer = new EthereumJsonSerializer();
         using StreamReader encodedPayload = new ("/home/eurus/verkle-testnet-neth/kaustinen/nethermind/src/Nethermind/Nethermind.Merge.Plugin.Test/payload.json");
         ExecutionPayload? payload = serializer.Deserialize<ExecutionPayload>(encodedPayload.BaseStream);
@@ -263,6 +270,59 @@ public partial class EngineModuleTests
         payload.GasLimit.ToHexString(true).Should().BeEquivalentTo("0x1c9c380");
         payload.GasUsed.ToHexString(true).Should().BeEquivalentTo("0x9a1dc");
         payload.Timestamp.ToHexString(true).Should().BeEquivalentTo("0x64a2e768");
+
+        VerkleWorldState worldState = new (payload.ExecutionWitness, root, LimboLogs.Instance);
+        Console.WriteLine($"StateRoot: {worldState.StateRoot}");
+    }
+
+    [Test]
+    public void TestAndExecutePayload()
+    {
+        IJsonSerializer serializer = new EthereumJsonSerializer();
+
+        using StreamReader encodedBlockPayload = new ("/home/eurus/verkle-testnet-neth/kaustinen/nethermind/src/Nethermind/Nethermind.Merge.Plugin.Test/payloadBlock.json");
+        ExecutionPayload? blockPayload = serializer.Deserialize<ExecutionPayload>(encodedBlockPayload.BaseStream);
+        blockPayload.TryGetBlock(out Block block, 1);
+
+        using StreamReader encodedParentPayload = new ("/home/eurus/verkle-testnet-neth/kaustinen/nethermind/src/Nethermind/Nethermind.Merge.Plugin.Test/payloadParent.json");
+        ExecutionPayload? parentPayload = serializer.Deserialize<ExecutionPayload>(encodedParentPayload.BaseStream);
+        parentPayload.TryGetBlock(out Block parentBlock, 1);
+
+        block.Header.MaybeParent = new WeakReference<BlockHeader>(parentBlock.Header);
+
+        Banderwagon blockStateRoot = Banderwagon.FromBytes(blockPayload.StateRoot.Bytes)!.Value;
+        Banderwagon parentStateRoot = Banderwagon.FromBytes(parentPayload.StateRoot.Bytes)!.Value;
+
+        VerkleWorldState worldState = new (blockPayload.ExecutionWitness, parentStateRoot, LimboLogs.Instance);
+        worldState.StateRoot.Bytes.Should().BeEquivalentTo(parentStateRoot.ToBytes());
+
+        var txn = new ExecuteTransactionProcessorAdapter(new TransactionProcessor(new TestSpecProvider(Prague.Instance),
+            worldState,
+            new VirtualMachine(new TestBlockhashProvider(), new TestSpecProvider(Prague.Instance), LimboLogs.Instance),
+            LimboLogs.Instance));
+        IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor =
+            new BlockProcessor.BlockStatelessValidationTransactionsExecutor(txn, worldState);
+
+        var _receiptsTracer = new BlockReceiptsTracer(true, true);
+
+        _receiptsTracer.StartNewBlockTrace(block);
+        TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block,  ProcessingOptions.ForceProcessing, _receiptsTracer,  Prague.Instance);
+        _receiptsTracer.EndBlockTrace();
+        Console.WriteLine($"NEW STATE ROOT: {worldState.StateRoot}");
+    }
+
+    public class TestBlockhashProvider : IBlockhashProvider
+    {
+        public static TestBlockhashProvider Instance = new();
+
+        public TestBlockhashProvider()
+        {
+        }
+
+        public Keccak GetBlockhash(BlockHeader currentBlock, in long number)
+        {
+            return Keccak.Compute(number.ToString());
+        }
     }
 
     [Test]
