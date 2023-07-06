@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
+using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
@@ -51,6 +52,7 @@ public partial class BlockProcessor
 
         public TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockReceiptsTracer receiptsTracer, IReleaseSpec spec)
         {
+            // var ecdsa = new EthereumEcdsa(69420, LimboLogs.Instance);
             if (!block.IsGenesis)
             {
                 var logg = SimpleConsoleLogger.Instance;
@@ -58,6 +60,7 @@ public partial class BlockProcessor
                 for (int i = 0; i < block.Transactions.Length; i++)
                 {
                     Transaction currentTx = block.Transactions[i];
+                    // currentTx.SenderAddress = ecdsa.RecoverAddress(currentTx);
                     ProcessTransaction(block, currentTx, i, receiptsTracer, _stateProvider, processingOptions);
                 }
                 _stateProvider.Commit(spec);
