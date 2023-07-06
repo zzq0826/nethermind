@@ -49,6 +49,11 @@ namespace Nethermind.TxPool.Filters
                     overflow |= UInt256.MultiplyOverflow(otherTx.MaxFeePerGas, (UInt256)otherTx.GasLimit, out UInt256 maxTxCost);
                     overflow |= UInt256.AddOverflow(cumulativeCost, maxTxCost, out cumulativeCost);
                     overflow |= UInt256.AddOverflow(cumulativeCost, otherTx.Value, out cumulativeCost);
+                    if (otherTx.SupportsBlobs)
+                    {
+                        // ToDo: add data cost (get_total_data_gas(tx) * tx.max_fee_per_data_gas) to cumulative cost
+                        // https://eips.ethereum.org/EIPS/eip-4844#execution-layer-validation
+                    }
                 }
                 else
                 {
@@ -59,6 +64,10 @@ namespace Nethermind.TxPool.Filters
             overflow |= UInt256.MultiplyOverflow(tx.MaxFeePerGas, (UInt256)tx.GasLimit, out UInt256 cost);
             overflow |= UInt256.AddOverflow(cost, tx.Value, out cost);
             overflow |= UInt256.AddOverflow(cost, cumulativeCost, out cumulativeCost);
+            if (tx.SupportsBlobs)
+            {
+                // ToDo: add data cost (get_total_data_gas(tx) * tx.max_fee_per_data_gas) to cumulative cost
+            }
             if (overflow)
             {
                 if (_logger.IsTrace)

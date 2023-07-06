@@ -141,6 +141,17 @@ namespace Nethermind.TxPool
             ProcessNewHeads();
         }
 
+        // ToDo: general questionmarks
+        // should we limit amount of blob txs in the pool? Maybe max 10% of the pool?
+        // in case of receiving new blob tx then, evict from the pool worse blob one? How to handle it?
+
+        // as 4844 txs are all 1559, maybe create another collection (lets name it _blobTxsRanking) with only selected data of blob txs (hash, maxPriorityFeePerGas, maxFeePerDataGas, UInt256 rank)
+        // have all blob txs in general pool and only selected data in external collection, then it would be easy to check when there is no more place for blob txs and 1for1 replacing is needed
+        // easy to sort - one dimension sorting by rank = MaxPriorityFee, with check for MaxFePerDataGas - if < current data gas, then rank = 0 and first to evict
+        // then when receiving 4844 check _blobTxsRanking.Count == MaxAmountOfBlobTxs, if yes, than pick _blobTxsRank.Last and remove, than add incoming tx. Firstly ofc check if newTx.Rank > worstTx.Rank
+        // problems: if worst 4844 tx is followed by other txs, need to remove them all. If higher nonce have other 4844tx with higher gasFee, should be removed first anyway. So sorting by nonce would be useful again
+        // so creating sortedPool collection of blobTxData? sort like in standard TxPool, but use lightweight versions of blob txs and removal from lightPool causing removal from standard TxPool?
+
         public Transaction[] GetPendingTransactions() => _transactions.GetSnapshot();
 
         public int GetPendingTransactionsCount() => _transactions.Count;
@@ -418,6 +429,12 @@ namespace Nethermind.TxPool
             foreach (Transaction tx in transactions)
             {
                 UInt256 gasBottleneck = 0;
+
+                if (tx.SupportsBlobs)
+                {
+                    // ToDo: if max fee per data gas < current fee, yield return (tx, null);
+                    // so set gasBottleneck to 0 for 4844 txs not able to pay current data gas fee - will be 1st to evict from the pool
+                }
 
                 if (tx.Nonce < currentNonce)
                 {

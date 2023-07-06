@@ -16,6 +16,8 @@ namespace Nethermind.TxPool.Comparison
 
         private CompareReplacedTxByFee() { }
 
+        // ToDo: add replacing rules for data gas, increase min % bump for blobs?
+
         // To replace old transaction, new transaction needs to have fee higher by at least 10% (1/10) of current fee.
         // It is required to avoid acceptance and propagation of transaction with almost the same fee as replaced one.
         private const int PartOfFeeRequiredToIncrease = 10;
