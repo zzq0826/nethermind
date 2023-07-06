@@ -42,7 +42,7 @@ public class IpaProofConverter: JsonConverter<IpaProofStruct>
         writer.WriteEnd();
 
         writer.WritePropertyName("finalEvaluation");
-        serializer.Serialize(writer, value.A.ToBytes());
+        serializer.Serialize(writer, value.A.ToBytesBigEndian());
 
         writer.WriteEndObject();
     }
@@ -71,7 +71,7 @@ public class IpaProofConverter: JsonConverter<IpaProofStruct>
             }
         }
         reader.Read();
-        FrE finalEvaluation = new FrE(Bytes.FromHexString(reader.ReadAsString()));
+        FrE finalEvaluation = FrE.FromBytes(Bytes.FromHexString(reader.ReadAsString()), true);
         reader.Read();
         return new IpaProofStruct(cl, finalEvaluation, cr);
     }
