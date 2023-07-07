@@ -9,7 +9,7 @@ namespace Nethermind.TxPool.Collections
 {
     /// <summary>
     /// Keeps a distinct pool of <see cref="TValue"/> with <see cref="TKey"/> in groups based on <see cref="TGroupKey"/>.
-    /// Uses separate comparator to distinct between elements. If there is duplicate element added it uses ordering comparator and keeps the one that is larger. 
+    /// Uses separate comparator to distinct between elements. If there is duplicate element added it uses ordering comparator and keeps the one that is larger.
     /// </summary>
     /// <typeparam name="TKey">Type of keys of items, unique in pool.</typeparam>
     /// <typeparam name="TValue">Type of items that are kept.</typeparam>
@@ -74,6 +74,8 @@ namespace Nethermind.TxPool.Collections
                 bool isDuplicate = _distinctDictionary.TryGetValue(value, out var oldKvp);
                 if (isDuplicate)
                 {
+                    // ToDo: maybe here use other comparer if txs are blob ones?
+                    // what if only one is blob-type?
                     bool isHigher = _comparer.Compare(value, oldKvp.Value) <= 0;
 
                     if (_logger.IsTrace && !isHigher)

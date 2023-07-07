@@ -223,7 +223,7 @@ namespace Nethermind.TxPool
                     Transaction tx = txs[i];
                     if (tx.SupportsBlobs)
                     {
-                        continue;
+                        continue; // ToDo: handled on branch feature/txpool_4844
                     }
                     _hashCache.Delete(tx.Hash!);
                     SubmitTx(tx, isEip155Enabled ? TxHandlingOptions.None : TxHandlingOptions.PreEip155Signing);
@@ -236,6 +236,7 @@ namespace Nethermind.TxPool
             long discoveredForPendingTxs = 0;
             long discoveredForHashCache = 0;
             long eip1559Txs = 0;
+            long blobTxs = 0;
 
             for (int i = 0; i < blockTransactions.Length; i++)
             {
@@ -256,6 +257,11 @@ namespace Nethermind.TxPool
                 {
                     eip1559Txs++;
                 }
+
+                if (transaction.SupportsBlobs)
+                {
+                    blobTxs++;
+                }
             }
 
             long transactionsInBlock = blockTransactions.Length;
@@ -264,6 +270,8 @@ namespace Nethermind.TxPool
                 Metrics.DarkPoolRatioLevel1 = (float)discoveredForHashCache / transactionsInBlock;
                 Metrics.DarkPoolRatioLevel2 = (float)discoveredForPendingTxs / transactionsInBlock;
                 Metrics.Eip1559TransactionsRatio = (float)eip1559Txs / transactionsInBlock;
+                // ToDo: add metric for blob txs
+                // Metrics.BlobTransactionsRatio = (float)blobTxs / transactionsInBlock;
             }
         }
 
