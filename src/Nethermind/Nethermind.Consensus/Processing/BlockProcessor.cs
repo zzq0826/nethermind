@@ -14,10 +14,12 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Verkle;
 using Nethermind.Crypto;
 using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Serialization.Json;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 
@@ -232,15 +234,18 @@ public partial class BlockProcessor : IBlockProcessor
         _withdrawalProcessor.ProcessWithdrawals(block, spec);
         _receiptsTracer.EndBlockTrace();
 
-        _logger.Info($"TEST BLOCK PROCESSOR VIRTUAL: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options}");
+        ExecutionWitness? witness;
+        _logger.Info($"we are adding witness");
+        byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
+        _logger.Info($"UsedKeys {usedKeys.Length}");
+        VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
+        if (usedKeys is null || usedKeys.Length == 0) witness = null;
+        else witness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
+        IJsonSerializer ser = new EthereumJsonSerializer();
+        _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
         if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
         {
-            _logger.Info($"we are adding witness");
-            byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
-            _logger.Info($"UsedKeys {usedKeys.Length}");
-            VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
-            if (usedKeys is null || usedKeys.Length == 0) block.Body.ExecutionWitness = null;
-            else block.Body.ExecutionWitness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
+            block.Body.ExecutionWitness = witness;
         }
 
         _stateProvider.Commit(spec);
