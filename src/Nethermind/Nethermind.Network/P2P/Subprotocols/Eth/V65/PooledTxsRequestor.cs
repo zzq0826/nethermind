@@ -48,6 +48,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V65
             }
         }
 
+        // ToDo: don't request blob txs by default?
+        // when should we request it and when not?
+
         private void AddMarkUnknownHashes(IReadOnlyList<Keccak> hashes, ArrayPoolList<Keccak> discoveredTxHashes)
         {
             int count = hashes.Count;

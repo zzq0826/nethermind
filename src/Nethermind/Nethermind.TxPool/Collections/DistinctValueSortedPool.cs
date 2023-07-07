@@ -75,7 +75,8 @@ namespace Nethermind.TxPool.Collections
                 if (isDuplicate)
                 {
                     // ToDo: maybe here use other comparer if txs are blob ones?
-                    // what if only one is blob-type?
+                    // what if only one is blob-type? Then probably reject
+                    // there were talks in Austria that in case of blob txs only gas fee can change, so we need to compare txs and reject if there is any change other than MaxFeePerGas/ MaxPriorityFeePerGas, MaxFeePerDataGas
                     bool isHigher = _comparer.Compare(value, oldKvp.Value) <= 0;
 
                     if (_logger.IsTrace && !isHigher)
