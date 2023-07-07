@@ -31,6 +31,8 @@ namespace Nethermind.TxPool.Filters
                 return AcceptTxResult.Accepted;
             }
 
+            // ToDo: reject blob tx with nonce gap
+
             int numberOfSenderTxsInPending = _txs.GetBucketCount(tx.SenderAddress!); // since unknownSenderFilter will run before this one
             UInt256 currentNonce = state.SenderAccount.Nonce;
             long nextNonceInOrder = (long)currentNonce + numberOfSenderTxsInPending;

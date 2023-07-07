@@ -77,6 +77,10 @@ namespace Nethermind.TxPool.Collections
                     // ToDo: maybe here use other comparer if txs are blob ones?
                     // what if only one is blob-type? Then probably reject
                     // there were talks in Austria that in case of blob txs only gas fee can change, so we need to compare txs and reject if there is any change other than MaxFeePerGas/ MaxPriorityFeePerGas, MaxFeePerDataGas
+
+                    // ToDo: blob tx invalidation through replacing tx with lower nonce should not be possible
+                    // before replacement, check if following tx isn't blob type? If is, then allow only fee bump? need to ensure balance then
+                    // maybe blob tx must be with nonce next-to-execute or with other blob txs before? So non-blob pending txs are forbidden before blob one?
                     bool isHigher = _comparer.Compare(value, oldKvp.Value) <= 0;
 
                     if (_logger.IsTrace && !isHigher)
