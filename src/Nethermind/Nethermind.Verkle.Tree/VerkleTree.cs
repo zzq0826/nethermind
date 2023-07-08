@@ -90,7 +90,6 @@ public partial class VerkleTree: IVerkleTree
     {
         _treeCache.GetLeaf(key.Bytes, out byte[]? value);
         value ??= _verkleStateStore.GetLeaf(key.Bytes);
-        Console.WriteLine($"Reading data from VT:{key} {value?.ToHexString()}");
         return value;
     }
 
