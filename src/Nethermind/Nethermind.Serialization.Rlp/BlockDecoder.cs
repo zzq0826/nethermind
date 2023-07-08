@@ -14,7 +14,7 @@ namespace Nethermind.Serialization.Rlp
         private readonly HeaderDecoder _headerDecoder = new();
         private readonly TxDecoder _txDecoder = new();
         private readonly WithdrawalDecoder _withdrawalDecoder = new();
-        private readonly ExecutionWitnessDecoder _witnessDecoder = new();
+        // private readonly ExecutionWitnessDecoder _witnessDecoder = new();
 
         public Block? Decode(RlpStream rlpStream, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
         {
@@ -70,21 +70,22 @@ namespace Nethermind.Serialization.Rlp
                 rlpStream.Check(withdrawalsCheck);
             }
 
-            ExecutionWitness? witness = null;
-            if (rlpStream.Position != blockCheck)
-            {
-                witness = _witnessDecoder.Decode(rlpStream);
-            }
+            // ExecutionWitness? witness = null;
+            // if (rlpStream.Position != blockCheck)
+            // {
+            //     witness = _witnessDecoder.Decode(rlpStream);
+            // }
 
             if ((rlpBehaviors & RlpBehaviors.AllowExtraBytes) != RlpBehaviors.AllowExtraBytes)
             {
                 rlpStream.Check(blockCheck);
             }
 
-            return new(header, transactions, uncleHeaders, withdrawals, witness);
+            return new(header, transactions, uncleHeaders, withdrawals);
         }
 
-        private (int Total, int Txs, int Uncles, int? Withdrawals, int? ExecutionWitness) GetContentLength(Block item, RlpBehaviors rlpBehaviors)
+        // private (int Total, int Txs, int Uncles, int? Withdrawals, int? ExecutionWitness) GetContentLength(Block item, RlpBehaviors rlpBehaviors)
+        private (int Total, int Txs, int Uncles, int? Withdrawals) GetContentLength(Block item, RlpBehaviors rlpBehaviors)
         {
             int contentLength = _headerDecoder.GetLength(item.Header, rlpBehaviors);
 
@@ -103,14 +104,14 @@ namespace Nethermind.Serialization.Rlp
                     contentLength += Rlp.LengthOfSequence(withdrawalsLength.Value);
             }
 
-            int? wintessLength = null;
-            if (item.ExecutionWitness is not null)
-            {
-                wintessLength = ExecutionWitnessDecoder.GetContentLength(item.ExecutionWitness).contentLength;
-                contentLength += Rlp.LengthOfSequence(wintessLength.Value);
-            }
+            // int? wintessLength = null;
+            // if (item.ExecutionWitness is not null)
+            // {
+            //     wintessLength = ExecutionWitnessDecoder.GetContentLength(item.ExecutionWitness).contentLength;
+            //     contentLength += Rlp.LengthOfSequence(wintessLength.Value);
+            // }
 
-            return (contentLength, txLength, unclesLength, withdrawalsLength, wintessLength);
+            return (contentLength, txLength, unclesLength, withdrawalsLength);
         }
 
         private int GetUnclesLength(Block item, RlpBehaviors rlpBehaviors)
@@ -209,18 +210,19 @@ namespace Nethermind.Serialization.Rlp
                 decoderContext.Check(withdrawalsCheck);
             }
 
-            ExecutionWitness? witness = null;
-            if (decoderContext.Position != blockCheck)
-            {
-                witness = _witnessDecoder.Decode(ref decoderContext);
-            }
+            // ExecutionWitness? witness = null;
+            // if (decoderContext.Position != blockCheck)
+            // {
+            //     witness = _witnessDecoder.Decode(ref decoderContext);
+            // }
 
             if ((rlpBehaviors & RlpBehaviors.AllowExtraBytes) != RlpBehaviors.AllowExtraBytes)
             {
                 decoderContext.Check(blockCheck);
             }
 
-            return new(header, transactions, uncleHeaders, withdrawals, witness);
+            // return new(header, transactions, uncleHeaders, withdrawals, witness);
+            return new(header, transactions, uncleHeaders, withdrawals);
         }
 
         public Rlp Encode(Block? item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
@@ -243,7 +245,7 @@ namespace Nethermind.Serialization.Rlp
                 return;
             }
 
-            (int contentLength, int txsLength, int unclesLength, int? withdrawalsLength, int? witnessLength) = GetContentLength(item, rlpBehaviors);
+            (int contentLength, int txsLength, int unclesLength, int? withdrawalsLength) = GetContentLength(item, rlpBehaviors);
             stream.StartSequence(contentLength);
             stream.Encode(item.Header);
             stream.StartSequence(txsLength);
@@ -268,10 +270,10 @@ namespace Nethermind.Serialization.Rlp
                 }
             }
 
-            if (witnessLength.HasValue)
-            {
-                _witnessDecoder.Encode(stream, item.ExecutionWitness);
-            }
+            // if (witnessLength.HasValue)
+            // {
+            //     _witnessDecoder.Encode(stream, item.ExecutionWitness);
+            // }
         }
     }
 }
