@@ -8,6 +8,7 @@ using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Validators;
 using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
@@ -21,6 +22,7 @@ namespace Nethermind.Consensus.Processing;
 public class StatelessBlockProcessor: BlockProcessor
 {
     private readonly ILogger _logger;
+    private readonly ILogManager _logManager;
 
     public StatelessBlockProcessor(
         ISpecProvider? specProvider,
@@ -43,21 +45,24 @@ public class StatelessBlockProcessor: BlockProcessor
             logManager,
             withdrawalProcessor)
     {
-        _logger = logManager?.GetClassLogger<StatelessBlockProcessor>() ?? throw new ArgumentNullException(nameof(logManager));
+        _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));;
+        _logger = _logManager.GetClassLogger<StatelessBlockProcessor>();
     }
 
-    protected override TxReceipt[] ProcessBlock(
-        Block block,
-        IBlockTracer blockTracer,
-        ProcessingOptions options)
+    protected override void InitBranch(Keccak branchStateRoot, bool incrementReorgMetric = true)
     {
 
+    }
+
+    private (IBlockProcessor.IBlockTransactionsExecutor, IWorldState) GetOrCreateExecutorAndState(Block block)
+    {
         IBlockProcessor.IBlockTransactionsExecutor? blockTransactionsExecutor;
         IWorldState worldState;
         if (!block.IsGenesis)
         {
-            block.Header.MaybeParent.TryGetTarget(out BlockHeader maybeParent);
-            worldState = new VerkleWorldState(block.ExecutionWitness!, Banderwagon.FromBytes(maybeParent.StateRoot.Bytes)!.Value, SimpleConsoleLogManager.Instance);
+            block.Header.MaybeParent!.TryGetTarget(out BlockHeader maybeParent);
+            Banderwagon stateRoot = Banderwagon.FromBytes(maybeParent!.StateRoot!.Bytes)!.Value;
+            worldState = new VerkleWorldState(block.ExecutionWitness!, stateRoot, _logManager);
             blockTransactionsExecutor = _blockTransactionsExecutor.WithNewStateProvider(worldState);
         }
         else
@@ -65,6 +70,17 @@ public class StatelessBlockProcessor: BlockProcessor
             blockTransactionsExecutor = _blockTransactionsExecutor;
             worldState = _stateProvider;
         }
+
+        return (blockTransactionsExecutor, worldState);
+    }
+
+    protected override TxReceipt[] ProcessBlock(
+        Block block,
+        IBlockTracer blockTracer,
+        ProcessingOptions options)
+    {
+        (IBlockProcessor.IBlockTransactionsExecutor? blockTransactionsExecutor, IWorldState worldState) =
+            GetOrCreateExecutorAndState(block);
 
         _logger.Info($"ProcessBlock Before: {worldState.StateRoot.Bytes.ToHexString()}");
         IReleaseSpec spec = _specProvider.GetSpec(block.Header);
@@ -81,17 +97,15 @@ public class StatelessBlockProcessor: BlockProcessor
 
         // if we are producing blocks - then calculate and add the witness to the block
         // but we need to remember that the witness needs to be generate for the parent block state (for pre state)
-        _logger.Info($"TEST BLOCK PROCESSOR VIRTUAL: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options}");
-        _logger.Info($"we are adding witness");
-        byte[][]? usedKeysCac = _receiptsTracer.WitnessKeys.ToArray();
-        _logger.Info($"UsedKeys {usedKeysCac.Length}");
-        foreach (var key in usedKeysCac)
-        {
-            _logger.Info($"{key.ToHexString()}");
-        }
+        // byte[][]? usedKeysCac = _receiptsTracer.WitnessKeys.ToArray();
+        // _logger.Info($"UsedKeys {usedKeysCac.Length}");
+        // foreach (var key in usedKeysCac)
+        // {
+        //     _logger.Info($"{key.ToHexString()}");
+        // }
         if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
         {
-            throw new ArgumentException("cannot produce block only process");
+            throw new InvalidOperationException($"{nameof(StatelessBlockProcessor)} cannot produce new block.");
         }
 
         worldState.Commit(spec);
