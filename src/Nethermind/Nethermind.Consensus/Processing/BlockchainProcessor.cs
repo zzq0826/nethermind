@@ -31,6 +31,8 @@ namespace Nethermind.Consensus.Processing
         public ITracerBag Tracers => _compositeBlockTracer;
 
         private readonly IBlockProcessor _blockProcessor;
+        private readonly IBlockProcessor? _statelessBlockProcessor;
+        private bool _canProcessStatelessBlocks = false;
         private readonly IBlockPreprocessorStep _recoveryStep;
         private readonly IStateReader _stateReader;
         private readonly Options _options;
@@ -78,6 +80,40 @@ namespace Nethermind.Consensus.Processing
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _blockProcessor = blockProcessor ?? throw new ArgumentNullException(nameof(blockProcessor));
+            _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
+            _stateReader = stateReader ?? throw new ArgumentNullException(nameof(stateReader));
+            _options = options;
+
+            _blockTree.NewBestSuggestedBlock += OnNewBestBlock;
+            _blockTree.NewHeadBlock += OnNewHeadBlock;
+
+            _stats = new ProcessingStats(_logger);
+        }
+
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="blockTree"></param>
+        /// <param name="blockProcessor"></param>
+        /// <param name="recoveryStep"></param>
+        /// <param name="stateReader"></param>
+        /// <param name="logManager"></param>
+        /// <param name="options"></param>
+        public BlockchainProcessor(
+            IBlockTree? blockTree,
+            IBlockProcessor? blockProcessor,
+            IBlockProcessor? statelessBlockProcessor,
+            IBlockPreprocessorStep? recoveryStep,
+            IStateReader stateReader,
+            ILogManager? logManager,
+            Options options)
+        {
+            _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
+            _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _blockProcessor = blockProcessor ?? throw new ArgumentNullException(nameof(blockProcessor));
+            _statelessBlockProcessor = statelessBlockProcessor ?? throw new ArgumentNullException(nameof(statelessBlockProcessor));
+            _canProcessStatelessBlocks = true;
             _recoveryStep = recoveryStep ?? throw new ArgumentNullException(nameof(recoveryStep));
             _stateReader = stateReader ?? throw new ArgumentNullException(nameof(stateReader));
             _options = options;
@@ -328,9 +364,9 @@ namespace Nethermind.Consensus.Processing
 
             bool shouldProcess =
                 suggestedBlock.IsGenesis
-                // || suggestedBlock.ExecutionWitness is not null
                 || _blockTree.IsBetterThanHead(suggestedBlock.Header)
-                || options.ContainsFlag(ProcessingOptions.ForceProcessing);
+                || options.ContainsFlag(ProcessingOptions.ForceProcessing)
+                || options.ContainsFlag(ProcessingOptions.StatelessProcessing);
 
             if (!shouldProcess)
             {
@@ -521,9 +557,16 @@ namespace Nethermind.Consensus.Processing
                         throw new InvalidOperationException("Attempted to process a disconnected blockchain");
                     }
 
-                    if (!(_blockProcessor is StatelessBlockProcessor) && !_stateReader.HasStateForBlock(parentOfFirstBlock))
+                    if (!_stateReader.HasStateForBlock(parentOfFirstBlock))
                     {
-                        throw new InvalidOperationException("Attempted to process a blockchain without having starting state");
+                        bool canThisBlockBeProcessedStateless = _canProcessStatelessBlocks &&
+                                                                  (blocksToProcess[0].ExecutionWitness is not null);
+                        // here we assume that if a block has execution witness - then all the following block will
+                        // also have execution witness
+                        if (!canThisBlockBeProcessedStateless)
+                        {
+                            throw new InvalidOperationException("Attempted to process a blockchain without having starting state");
+                        }
                     }
                 }
             }
@@ -597,6 +640,7 @@ namespace Nethermind.Consensus.Processing
                     break;
                 }
 
+                // TODO: check if we have a separate condition that we need to account for in Stateless Processing
                 if (isFastSyncTransition)
                 {
                     // If we hit this condition, it means that something is wrong in MultiSyncModeSelector.
