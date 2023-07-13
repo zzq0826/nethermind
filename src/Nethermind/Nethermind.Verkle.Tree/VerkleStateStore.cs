@@ -195,7 +195,8 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
     // if called multiple times, the full state would be fine - but it would corrupt the diffs and historical state will be lost
-    // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber) is called multiple times for the same block number
+    // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber)
+    //   is called multiple times for the same block number, but do we even need this?
     public void Flush(long blockNumber, VerkleMemoryDb batch)
     {
         if (_logger.IsDebug)
@@ -221,7 +222,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
             LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
         };
 
-        bool persistBlock = false;
+        bool persistBlock;
         ReadOnlyVerkleMemoryDb elemToPersist;
         long blockNumberPersist;
         if (BlockCache is null)
