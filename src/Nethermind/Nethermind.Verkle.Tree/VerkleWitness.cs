@@ -196,10 +196,30 @@ public struct VerkleWitness : IVerkleWitness
         // _logger.Info($"AccessForTransaction: {originAddress.Bytes.ToHexString()} {destinationAddress?.Bytes.ToHexString()} {isValueTransfer} {gasCost}");
         return gasCost;
     }
+
+    /// <summary>
+    /// Proof of Absence
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public long AccessForProofOfAbsence(Address address)
     {
         long gas = AccessCompleteAccount(address);
         // _logger.Info($"AccessForProofOfAbsence: {address.Bytes.ToHexString()} {gas}");
+        return gas;
+    }
+
+    /// <summary>
+    /// Call for the gas beneficiary.
+    /// </summary>
+    /// <param name="gasBeneficiary"></param>
+    /// <returns></returns>
+    public long AccessForGasBeneficiary(Address gasBeneficiary)
+    {
+        long gas = AccessAccount(gasBeneficiary,
+            AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce |
+            AccountHeaderAccess.CodeHash | AccountHeaderAccess.CodeSize);
+        // _logger.Info($"AccessCompleteAccount: {address.Bytes.ToHexString()} {isWrite} {gas}");
         return gas;
     }
 

@@ -438,7 +438,7 @@ namespace Nethermind.Evm.TransactionProcessing
             Address gasBeneficiary = block.GasBeneficiary;
             bool gasBeneficiaryNotDestroyed = substate?.DestroyList.Contains(gasBeneficiary) != true;
             // TODO: check and modify
-            witness.AccessCompleteAccount(gasBeneficiary);
+            witness.AccessForGasBeneficiary(gasBeneficiary);
             if (statusCode == StatusCode.Failure || gasBeneficiaryNotDestroyed)
             {
                 if (notSystemTransaction)
