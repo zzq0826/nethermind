@@ -61,6 +61,7 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
         IInvalidChainTracker invalidChainTracker,
         IMergeSyncController mergeSyncController,
         ILogManager logManager,
+        bool processStateless,
         TimeSpan? timeout = null,
         int cacheSize = 50)
     {
@@ -79,7 +80,7 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
         _timeout = TimeSpan.FromSeconds(20);
         if (cacheSize > 0)
             _latestBlocks = new(cacheSize, 0, "LatestBlocks");
-        _processStateless = false;
+        _processStateless = processStateless;
     }
 
     /// <summary>

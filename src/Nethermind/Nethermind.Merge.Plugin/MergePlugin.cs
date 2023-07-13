@@ -18,7 +18,6 @@ using Nethermind.Core;
 using Nethermind.Core.Exceptions;
 using Nethermind.Db;
 using Nethermind.Facade.Proxy;
-using Nethermind.HealthChecks;
 using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.Logging;
@@ -322,7 +321,8 @@ public partial class MergePlugin : IConsensusWrapperPlugin, ISynchronizationPlug
                     _api.BlockProcessingQueue,
                     _invalidChainTracker,
                     _beaconSync,
-                    _api.LogManager),
+                    _api.LogManager,
+                    processStateless: _api.Config<IBlocksConfig>().StatelessProcessing),
                 new ForkchoiceUpdatedHandler(
                     _api.BlockTree,
                     _blockFinalizationManager,
