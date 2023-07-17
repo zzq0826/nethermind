@@ -82,13 +82,11 @@ public class StatelessBlockProcessor: BlockProcessor
         (IBlockProcessor.IBlockTransactionsExecutor? blockTransactionsExecutor, IWorldState worldState) =
             GetOrCreateExecutorAndState(block);
 
-        _logger.Info($"ProcessBlock Before: {worldState.StateRoot.Bytes.ToHexString()}");
         IReleaseSpec spec = _specProvider.GetSpec(block.Header);
 
         _receiptsTracer.SetOtherTracer(blockTracer);
         _receiptsTracer.StartNewBlockTrace(block);
         TxReceipt[] receipts = blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
-        _logger.Info($"ProcessBlock AfterPT: {worldState.StateRoot.Bytes.ToHexString()}");
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
         ApplyMinerRewards(block, blockTracer, spec);

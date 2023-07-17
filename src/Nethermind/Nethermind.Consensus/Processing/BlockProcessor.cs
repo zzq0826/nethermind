@@ -222,13 +222,11 @@ public partial class BlockProcessor : IBlockProcessor
         IBlockTracer blockTracer,
         ProcessingOptions options)
     {
-        _logger.Info($"ProcessBlock Before: {_stateProvider.StateRoot.Bytes.ToHexString()}");
         IReleaseSpec spec = _specProvider.GetSpec(block.Header);
 
         _receiptsTracer.SetOtherTracer(blockTracer);
         _receiptsTracer.StartNewBlockTrace(block);
         TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
-        _logger.Info($"ProcessBlock AfterPT: {_stateProvider.StateRoot.Bytes.ToHexString()}");
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
         ApplyMinerRewards(block, blockTracer, spec);
@@ -236,14 +234,11 @@ public partial class BlockProcessor : IBlockProcessor
         _receiptsTracer.EndBlockTrace();
 
         ExecutionWitness? witness;
-        _logger.Info($"we are adding witness");
-        byte[][]? usedKeys = _receiptsTracer.WitnessKeys.ToArray();
-        _logger.Info($"UsedKeys {usedKeys.Length}");
+        byte[][] usedKeys = _receiptsTracer.WitnessKeys.ToArray();
         VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
-        if (usedKeys is null || usedKeys.Length == 0) witness = null;
-        else witness = verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
-        IJsonSerializer ser = new EthereumJsonSerializer();
-        _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
+        witness = usedKeys.Length == 0 ? null : verkleWorldState?.GenerateExecutionWitness(usedKeys, out _);
+        // IJsonSerializer ser = new EthereumJsonSerializer();
+        // _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
         if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled && !block.IsGenesis)
         {
             block.Body.ExecutionWitness = witness;

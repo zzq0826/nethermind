@@ -140,7 +140,6 @@ namespace Nethermind.Evm.TransactionProcessing
             bool deleteCallerAccount = false;
 
             VerkleWitness witness = new();
-            _logger.Info("VerkleWitness: Created");
 
             if (!notSystemTransaction)
             {
