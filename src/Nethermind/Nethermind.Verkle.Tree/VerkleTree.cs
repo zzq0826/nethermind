@@ -267,9 +267,18 @@ public partial class VerkleTree: IVerkleTree
             : _verkleStateStore.GetInternalNode(nodeKey);
     }
 
-    private void SetInternalNode(byte[] nodeKey, InternalNode node)
+    private void SetInternalNode(byte[] nodeKey, InternalNode node, bool replace = true)
     {
-        _treeCache.SetInternalNode(nodeKey, node);
+        if (replace || !_treeCache.InternalTable.TryGetValue(nodeKey, out InternalNode? prevNode))
+        {
+            _treeCache.SetInternalNode(nodeKey, node);
+        }
+        else
+        {
+            prevNode.C1 ??= node.C1;
+            prevNode.C2 ??= node.C2;
+            _treeCache.SetInternalNode(nodeKey, prevNode);
+        }
     }
 
     public void Reset()

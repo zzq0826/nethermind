@@ -137,6 +137,7 @@ public partial class VerkleTree
 
     private void AddStatelessInternalNodes(UpdateHint hint)
     {
+        var logg = SimpleConsoleLogger.Instance;
         List<byte> pathList = new();
         foreach ((Stem stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
         {
@@ -160,6 +161,7 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.DifferentStem:
                     Stem otherStem = hint.DifferentStemNoProof[pathList];
+                    logg.Info($"DIFFERENT STEM INSERTING: {stem} {otherStem}");
                     Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
                     stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
@@ -181,7 +183,12 @@ public partial class VerkleTree
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            SetInternalNode(pathOfStem, stemNode);
+
+            // logg.Info($"InternalNode: {stemNode.Stem.Bytes.ToHexString()}");
+            // logg.Info($"    IC: {stemNode.InternalCommitment?.Point.ToBytes().ToHexString()}");
+            // logg.Info($"    C1: {stemNode.C1?.Point.ToBytes().ToHexString()}");
+            // logg.Info($"    C2: {stemNode.C1?.Point.ToBytes().ToHexString()}");
+            SetInternalNode(pathOfStem, stemNode, extStatus != ExtPresent.DifferentStem);
         }
     }
 

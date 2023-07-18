@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Utils;
@@ -33,8 +34,8 @@ public class InternalNode
     /// <summary>
     ///  C1, C2, InitCommitmentHash - only relevant for stem nodes
     /// </summary>
-    public Commitment? C1 { get; }
-    public Commitment? C2 { get; }
+    public Commitment? C1 { get; set; }
+    public Commitment? C2 { get; set; }
     public FrE? InitCommitmentHash { get; }
 
     private static readonly Banderwagon _initFirstElementCommitment = Committer.ScalarMul(FrE.One, 0);
@@ -109,6 +110,14 @@ public class InternalNode
 
     public FrE UpdateCommitment(LeafUpdateDelta deltaLeafCommitment)
     {
+        // var logg = SimpleConsoleLogger.Instance;
+        // logg.Info($"InternalNode: {Stem.Bytes.ToHexString()}");
+        // logg.Info($"    IC: {InternalCommitment?.Point.ToBytes().ToHexString()}");
+        // logg.Info($"    C1: {C1?.Point.ToBytes().ToHexString()}");
+        // logg.Info($"    C2: {C1?.Point.ToBytes().ToHexString()}");
+        // logg.Info($"    DeltaC1: {deltaLeafCommitment.DeltaC1?.ToBytes().ToHexString()}");
+        // logg.Info($"    DeltaC2: {deltaLeafCommitment.DeltaC2?.ToBytes().ToHexString()}");
+
         Debug.Assert(NodeType == VerkleNodeType.StemNode);
         FrE deltaC1Commit = FrE.Zero;
         FrE deltaC2Commit = FrE.Zero;

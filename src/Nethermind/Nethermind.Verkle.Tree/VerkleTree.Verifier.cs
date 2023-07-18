@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
@@ -44,6 +45,7 @@ public partial class VerkleTree
 
     public static bool VerifyVerkleProof(ExecutionWitness execWitness, Banderwagon root, [NotNullWhen(true)]out UpdateHint? updateHint)
     {
+        // var logg = SimpleConsoleLogger.Instance;
         updateHint = null;
         int numberOfStems = execWitness.VerkleProof.DepthExtensionPresent.Length;
 
@@ -104,7 +106,7 @@ public partial class VerkleTree
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
                             leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 0)] = FrE.One;
-                            leafValuesByPathAndZ.Add((new List<byte>(stem.Bytes[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Bytes.Reverse().ToArray()));
+                            leafValuesByPathAndZ.TryAdd((new List<byte>(stem.Bytes[..depth]), 1), FrE.FromBytesReduced(encounteredStem.Bytes.Reverse().ToArray()));
                             break;
                         case 1:
                             otherStem = found[0];
@@ -113,7 +115,7 @@ public partial class VerkleTree
                             throw new InvalidDataException($"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
                     }
 
-                    otherStemsByPrefix.Add(stem.Bytes[..depth].ToList(), otherStem);
+                    otherStemsByPrefix.TryAdd(stem.Bytes[..depth].ToList(), otherStem);
 
                     break;
                 case ExtPresent.Present:
