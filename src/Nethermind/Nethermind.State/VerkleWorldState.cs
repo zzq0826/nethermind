@@ -68,7 +68,7 @@ public class VerkleWorldState : IWorldState
         _codeDb = new MemDb();
         _storageProvider = new VerkleStorageProvider(_tree, logManager);
 
-        if (!_tree.InsertIntoStatelessTree(executionWitness, root, false))
+        if (!_tree.InsertIntoStatelessTree(executionWitness, root))
         {
             throw new ArgumentException("invalid proof");
         }
