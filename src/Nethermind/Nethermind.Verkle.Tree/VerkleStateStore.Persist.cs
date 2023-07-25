@@ -37,68 +37,73 @@ public partial class VerkleStateStore
     {
         if (_logger.IsDebug)
             _logger.Debug(
-                $"VerkleStateStore - Flushing:{blockNumber} InternalDb:{batch.InternalTable.Count} LeafDb:{batch.LeafTable.Count}");
+                $"VSS: Flushing:{blockNumber} InternalDb:{batch.InternalTable.Count} LeafDb:{batch.LeafTable.Count}");
 
         if (blockNumber == 0)
         {
-            PersistedStateRoot = GetStateRoot();
-            LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-            StateRoot = GetStateRoot();
+            StateRoot = PersistedStateRoot = RootHash;
+            LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             _stateRootToBlocks[StateRoot] = blockNumber;
-            if (_logger.IsDebug) _logger.Debug($"VerkleStateStore: Special case for block 0, StateRoot:{StateRoot}");
-            return;
-        }
-        if (blockNumber <= LatestCommittedBlockNumber)
-            throw new InvalidOperationException("Cannot flush for same block number `multiple times");
-
-        ReadOnlyVerkleMemoryDb cacheBatch = new()
-        {
-            InternalTable = batch.InternalTable,
-            LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
-        };
-
-        bool persistBlock;
-        ReadOnlyVerkleMemoryDb elemToPersist;
-        long blockNumberPersist;
-        if (BlockCache is null)
-        {
-            persistBlock = true;
-            elemToPersist = cacheBatch;
-            blockNumberPersist = blockNumber;
+            if (_logger.IsDebug) _logger.Debug($"VSS: Special case for block 0, StateRoot:{StateRoot}");
         }
         else
         {
-            persistBlock = !BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch),
-                out (long, ReadOnlyVerkleMemoryDb) element);
-            elemToPersist = element.Item2;
-            blockNumberPersist = element.Item1;
-        }
+            if (blockNumber <= LatestCommittedBlockNumber)
+                throw new InvalidOperationException("Cannot flush for same block number `multiple times");
 
-        if (persistBlock)
-        {
-            _logger.Info($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{elemToPersist.InternalTable.Count} LN:{elemToPersist.LeafTable.Count}");
-            Pedersen root = GetStateRoot(elemToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
-            PersistedStateRoot = root;
-            _logger.Info($"StateRoot after persisting forwardDiff: {root}");
-            VerkleMemoryDb reverseDiff = PersistBlockChanges(elemToPersist.InternalTable, elemToPersist.LeafTable, Storage);
-            _logger.Info($"reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
-            History?.InsertDiff(blockNumberPersist, elemToPersist, reverseDiff);
-            LastPersistedBlockNumber =blockNumberPersist;
-            Storage.LeafDb.Flush();
-            Storage.InternalNodeDb.Flush();
-        }
+            ReadOnlyVerkleMemoryDb cacheBatch = new()
+            {
+                InternalTable = batch.InternalTable,
+                LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
+            };
 
-        LatestCommittedBlockNumber = blockNumber;
-        StateRoot = GetStateRoot();
-        _stateRootToBlocks[StateRoot] = blockNumber;
-        _logger.Info(
-            $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
+            bool shouldPersistBlock;
+            ReadOnlyVerkleMemoryDb changesToPersist;
+            long blockNumberPersist;
+            if (BlockCache is null)
+            {
+                shouldPersistBlock = true;
+                changesToPersist = cacheBatch;
+                blockNumberPersist = blockNumber;
+            }
+            else
+            {
+                shouldPersistBlock = !BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch),
+                    out (long, ReadOnlyVerkleMemoryDb) element);
+                changesToPersist = element.Item2;
+                blockNumberPersist = element.Item1;
+            }
+
+            if (shouldPersistBlock)
+            {
+                if (_logger.IsDebug)
+                    _logger.Debug($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+                Pedersen root = GetStateRoot(changesToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
+                if (_logger.IsDebug)
+                    _logger.Debug($"StateRoot after persisting forwardDiff: {root}");
+                VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
+                if (_logger.IsDebug)
+                    _logger.Debug($"reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
+                History?.InsertDiff(blockNumberPersist, changesToPersist, reverseDiff);
+                PersistedStateRoot = root;
+                LastPersistedBlockNumber = blockNumberPersist;
+                Storage.LeafDb.Flush();
+                Storage.InternalNodeDb.Flush();
+            }
+
+            LatestCommittedBlockNumber = blockNumber;
+            StateRoot = GetStateRoot();
+            _stateRootToBlocks[StateRoot] = blockNumber;
+            _logger.Info(
+                $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
+        }
     }
 
     private VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
     {
-        if(_logger.IsDebug) _logger.Debug($"PersistBlockChanges: InternalStore:{internalStore.Count} LeafStore:{leafStore.Count}");
+        if(_logger.IsDebug) _logger.Debug($"Persisting Changes - InternalStore:{internalStore.Count} LeafStore:{leafStore.Count}");
+
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         VerkleMemoryDb reverseDiff = new();
