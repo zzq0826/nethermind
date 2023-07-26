@@ -292,8 +292,6 @@ public partial class BlockProcessor : IBlockProcessor
 
         block.Header.StateRoot = _stateProvider.StateRoot;
         block.Header.Hash = block.Header.CalculateHash();
-        // TODO: remove
-        _logger.Info($"Statefull: {_stateProvider.StateRoot}");
 
         // try
         // {
