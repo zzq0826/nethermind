@@ -167,6 +167,8 @@ namespace Nethermind.Init.Steps
             else
             {
                 VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, getApi.LogManager);
+                TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(verkleStateStore, _api.BlockTree!, _api.LogManager);
+                getApi.DisposeStack.Push(trieStoreBoundaryWatcher);
                 ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
                 worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
                 stateReader = setApi.StateReader = new VerkleStateReader(new VerkleStateTree(readOnlyVerkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
