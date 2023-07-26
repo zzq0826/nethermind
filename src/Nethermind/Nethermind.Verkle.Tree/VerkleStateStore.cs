@@ -19,18 +19,18 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         InternalNode rootNode = RootNode ?? throw new InvalidOperationException("Root node should always be present");
 
-        byte[] stateRoot = rootNode.InternalCommitment.Point.ToBytes().ToArray();
+        byte[] stateRoot = rootNode.InternalCommitment.ToBytes().ToArray();
         return new Pedersen(stateRoot);
     }
 
     private static Pedersen? GetStateRoot(IVerkleDb db)
     {
-        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
+        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.ToBytes().ToArray()) : null;
     }
 
     private static Pedersen? GetStateRoot(InternalStore db)
     {
-        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
+        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.ToBytes().ToArray()) : null;
     }
 
     // The underlying key value database
@@ -101,7 +101,7 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
         InternalNode? node = RootNode;
         if (node is not null)
         {
-            StateRoot = new Pedersen(node.InternalCommitment.Point.ToBytes());
+            StateRoot = new Pedersen(node.InternalCommitment.ToBytes());
             LastPersistedBlockNumber = _stateRootToBlocks[StateRoot];
             LatestCommittedBlockNumber = -1;
         }

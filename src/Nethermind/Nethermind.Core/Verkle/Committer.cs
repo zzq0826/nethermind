@@ -23,6 +23,8 @@ namespace Nethermind.Core.Verkle
     {
         private FrE? _pointAsField;
 
+        public byte[] ToBytes() => Point.ToBytes();
+
         public Commitment(Banderwagon point)
         {
             Point = point;

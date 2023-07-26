@@ -9,10 +9,9 @@ using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
+
 using Committer = Nethermind.Core.Verkle.Committer;
 using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 

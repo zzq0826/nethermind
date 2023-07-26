@@ -83,7 +83,7 @@ public partial class VerkleStateStore
                     _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 Pedersen root = GetStateRoot(changesToPersist.InternalTable)
                                 ?? (new Pedersen(
-                                    Storage.GetInternalNode(RootNodeKey)?.InternalCommitment.Point.ToBytes()
+                                    Storage.GetInternalNode(RootNodeKey)?.InternalCommitment.ToBytes()
                                         .ToArray() ?? throw new ArgumentException()));
                 if (_logger.IsDebug)
                     _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
