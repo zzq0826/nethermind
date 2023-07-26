@@ -54,6 +54,8 @@ public partial class VerkleStateStore
             if (blockNumber <= LatestCommittedBlockNumber)
                 throw new InvalidOperationException("Cannot flush for same block number `multiple times");
 
+            // create a sorted set for leaves - for snap sync
+            // TODO: create this sorted set while inserting into the batch - will help reducing allocations
             ReadOnlyVerkleMemoryDb cacheBatch = new()
             {
                 InternalTable = batch.InternalTable,

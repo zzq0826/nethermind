@@ -104,7 +104,7 @@ public partial class VerkleStateStore
     public bool MoveToStateRoot(Pedersen stateRoot)
     {
         Pedersen currentRoot = GetStateRoot();
-        _logger.Info($"VerkleStateStore - MoveToStateRoot: WantedStateRoot: {stateRoot} CurrentStateRoot: {currentRoot}");
+        if (_logger.IsDebug) _logger.Debug($"VerkleStateStore - MoveToStateRoot: WantedStateRoot: {stateRoot} CurrentStateRoot: {currentRoot}");
         // TODO: this is actually not possible - not sure if return true is correct here
         if (stateRoot.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes))) return true;
 
@@ -113,7 +113,7 @@ public partial class VerkleStateStore
         long toBlock = _stateRootToBlocks[stateRoot];
         if (toBlock == -1) return false;
 
-        _logger.Info($"VerkleStateStore - MoveToStateRoot: fromBlock: {fromBlock} toBlock: {toBlock}");
+        if (_logger.IsDebug) _logger.Debug($"VerkleStateStore - MoveToStateRoot: fromBlock: {fromBlock} toBlock: {toBlock}");
 
         if (fromBlock > toBlock)
         {
