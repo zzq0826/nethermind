@@ -81,15 +81,10 @@ public partial class VerkleStateStore
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
-                Pedersen root = GetStateRoot(changesToPersist.InternalTable)
-                                ?? (new Pedersen(
-                                    Storage.GetInternalNode(RootNodeKey)?.InternalCommitment.ToBytes()
-                                        .ToArray() ?? throw new ArgumentException()));
-                if (_logger.IsDebug)
-                    _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
+                Pedersen root = GetStateRoot(changesToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
+                if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
                 VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
-                if (_logger.IsDebug)
-                    _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
+                if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
                 History?.InsertDiff(blockNumberPersist, changesToPersist, reverseDiff);
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberPersist;

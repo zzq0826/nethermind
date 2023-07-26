@@ -19,18 +19,18 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
     {
         InternalNode rootNode = RootNode ?? throw new InvalidOperationException("Root node should always be present");
 
-        byte[] stateRoot = rootNode.InternalCommitment.ToBytes().ToArray();
+        byte[] stateRoot = rootNode.Bytes;
         return new Pedersen(stateRoot);
     }
 
     private static Pedersen? GetStateRoot(IVerkleDb db)
     {
-        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.ToBytes().ToArray()) : null;
+        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.Bytes) : null;
     }
 
     private static Pedersen? GetStateRoot(InternalStore db)
     {
-        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.ToBytes().ToArray()) : null;
+        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.Bytes) : null;
     }
 
     // The underlying key value database

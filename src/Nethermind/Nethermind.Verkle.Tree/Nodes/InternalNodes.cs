@@ -18,6 +18,7 @@ public class InternalNode
     public bool IsBranchNode => NodeType == VerkleNodeType.BranchNode;
     public VerkleNodeType NodeType { get; }
     public Commitment InternalCommitment { get; }
+    public byte[] Bytes => InternalCommitment.ToBytes();
 
     public bool IsStateless { get; set; } = false;
 
@@ -110,14 +111,6 @@ public class InternalNode
 
     public FrE UpdateCommitment(LeafUpdateDelta deltaLeafCommitment)
     {
-        // var logg = SimpleConsoleLogger.Instance;
-        // logg.Info($"InternalNode: {Stem.Bytes.ToHexString()}");
-        // logg.Info($"    IC: {InternalCommitment?.Point.ToBytes().ToHexString()}");
-        // logg.Info($"    C1: {C1?.Point.ToBytes().ToHexString()}");
-        // logg.Info($"    C2: {C1?.Point.ToBytes().ToHexString()}");
-        // logg.Info($"    DeltaC1: {deltaLeafCommitment.DeltaC1?.ToBytes().ToHexString()}");
-        // logg.Info($"    DeltaC2: {deltaLeafCommitment.DeltaC2?.ToBytes().ToHexString()}");
-
         Debug.Assert(NodeType == VerkleNodeType.StemNode);
         FrE deltaC1Commit = FrE.Zero;
         FrE deltaC2Commit = FrE.Zero;
