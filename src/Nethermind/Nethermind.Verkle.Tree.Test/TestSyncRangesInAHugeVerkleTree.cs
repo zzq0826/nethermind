@@ -11,6 +11,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
@@ -28,7 +29,7 @@ public class TestSyncRangesInAHugeVerkleTree
         return Path.Combine(tempDir, dbname);
     }
 
-    private static IVerkleStore GetVerkleStoreForTest(DbMode dbMode)
+    private static IVerkleTrieStore GetVerkleStoreForTest(DbMode dbMode)
     {
         IDbProvider provider;
         switch (dbMode)
@@ -83,7 +84,7 @@ public class TestSyncRangesInAHugeVerkleTree
         const int leafPerBlock = 10;
         const int blockToGetIteratorFrom = 180;
 
-        IVerkleStore store = TestItem.GetVerkleStore(dbMode);
+        IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
         Pedersen[] pathPool = new Pedersen[pathPoolCount];
@@ -113,7 +114,7 @@ public class TestSyncRangesInAHugeVerkleTree
         tree.CommitTree(0);
 
 
-        Pedersen stateRoot180 = Pedersen.Zero;
+        VerkleCommitment stateRoot180 = VerkleCommitment.Zero;
         for (int blockNumber = 1; blockNumber <= numBlocks; blockNumber++)
         {
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
@@ -191,10 +192,10 @@ public class TestSyncRangesInAHugeVerkleTree
         const int numBlocks2 = 20;
         const int leafPerBlock = 10;
 
-        IVerkleStore remoteStore = TestItem.GetVerkleStore(dbMode);
+        IVerkleTrieStore remoteStore = TestItem.GetVerkleStore(dbMode);
         VerkleTree remoteTree = new(remoteStore, LimboLogs.Instance);
 
-        IVerkleStore localStore = TestItem.GetVerkleStore(dbMode);
+        IVerkleTrieStore localStore = TestItem.GetVerkleStore(dbMode);
         VerkleTree localTree = new(localStore, LimboLogs.Instance);
 
         Pedersen[] pathPool = new Pedersen[pathPoolCount];
@@ -360,7 +361,7 @@ public class TestSyncRangesInAHugeVerkleTree
         Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
     }
 
-    private static void ProcessSubTreeRange(VerkleTree remoteTree, VerkleTree localTree, int blockNumber, Pedersen stateRoot, PathWithSubTree[] subTrees)
+    private static void ProcessSubTreeRange(VerkleTree remoteTree, VerkleTree localTree, int blockNumber, VerkleCommitment stateRoot, PathWithSubTree[] subTrees)
     {
         Stem startingStem = subTrees[0].Path;
         Stem endStem = subTrees[^1].Path;
@@ -441,7 +442,7 @@ public class TestSyncRangesInAHugeVerkleTree
         const int pathPoolCount = 100_000;
         const int leafPerBlock = 10;
 
-        IVerkleStore store = TestItem.GetVerkleStore(dbMode);
+        IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
         Pedersen[] pathPool = new Pedersen[pathPoolCount];

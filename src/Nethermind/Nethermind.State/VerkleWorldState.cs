@@ -18,6 +18,7 @@ using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 
 namespace Nethermind.State;
 
@@ -50,7 +51,7 @@ public class VerkleWorldState : IWorldState
         _storageProvider = new VerkleStorageProvider(verkleTree, logManager);
     }
 
-    public VerkleWorldState(IVerkleStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
+    public VerkleWorldState(IVerkleTrieStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
@@ -81,7 +82,7 @@ public class VerkleWorldState : IWorldState
     public Keccak StateRoot
     {
         get => new Keccak(_tree.StateRoot.Bytes);
-        set => _tree.StateRoot = new Pedersen(value.Bytes);
+        set => _tree.StateRoot = new VerkleCommitment(value.Bytes);
     }
 
     public ExecutionWitness GenerateExecutionWitness(byte[][] keys, out Banderwagon rootPoint)

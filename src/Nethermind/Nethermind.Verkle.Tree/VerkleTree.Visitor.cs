@@ -4,6 +4,7 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Nodes;
 
 namespace Nethermind.Verkle.Tree;
@@ -28,7 +29,7 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
-            _verkleStateStore.MoveToStateRoot(new Pedersen(rootHash.Bytes));
+            _verkleStateStore.MoveToStateRoot(new VerkleCommitment(rootHash.Bytes));
         }
         else
         {
@@ -46,7 +47,7 @@ public partial class VerkleTree
 
     }
 
-    public void Accept(IVerkleTreeVisitor visitor, Pedersen rootHash, VisitingOptions? visitingOptions = null)
+    public void Accept(IVerkleTreeVisitor visitor, VerkleCommitment rootHash, VisitingOptions? visitingOptions = null)
     {
         if (visitor is null) throw new ArgumentNullException(nameof(visitor));
         if (rootHash is null) throw new ArgumentNullException(nameof(rootHash));
@@ -62,7 +63,7 @@ public partial class VerkleTree
             KeepTrackOfAbsolutePath = true
         };
 
-        if (!rootHash.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes)))
+        if (!rootHash.Equals(new VerkleCommitment(Keccak.EmptyTreeHash.Bytes)))
         {
             _verkleStateStore.MoveToStateRoot(rootHash);
         }

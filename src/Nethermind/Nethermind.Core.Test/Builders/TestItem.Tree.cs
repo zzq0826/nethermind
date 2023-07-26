@@ -18,6 +18,7 @@ using Nethermind.State;
 using Nethermind.State.Snap;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Sync;
 
 namespace Nethermind.Core.Test.Builders
@@ -66,7 +67,7 @@ namespace Nethermind.Core.Test.Builders
                 return stateTree;
             }
 
-            public static VerkleStateTree GetVerkleStateTree(IVerkleStore? store)
+            public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)
             {
                 store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), LimboLogs.Instance);
 

@@ -93,7 +93,7 @@ public class StatelessTreeTest
         for (int i = start; i < end; i++) initTree.Insert(pathPool[i], leaf2[i]);
         initTree.Commit();
         initTree.CommitTree(1);
-        Pedersen initTreeStateRootBlock1 = initTree.StateRoot;
+        VerkleCommitment initTreeStateRootBlock1 = initTree.StateRoot;
         Console.WriteLine($"Full Block1 StateRoot: {initTreeStateRootBlock1}");
 
 
@@ -108,7 +108,7 @@ public class StatelessTreeTest
         for (int i = start; i < end; i++) statelessTree.Insert(pathPool[i], leaf2[i]);
         statelessTree.Commit();
         statelessTree.CommitTree(1);
-        Pedersen statelessTreeStateRootBlock1 = statelessTree.StateRoot;
+        VerkleCommitment statelessTreeStateRootBlock1 = statelessTree.StateRoot;
         Console.WriteLine($"Stateless Block1 StateRoot: {statelessTreeStateRootBlock1}");
 
         statelessTreeStateRootBlock1.Should().BeEquivalentTo(initTreeStateRootBlock1);

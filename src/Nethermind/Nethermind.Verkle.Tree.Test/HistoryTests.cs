@@ -39,7 +39,7 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
         tree.Commit();
         tree.CommitTree(0);
-        Pedersen stateRoot0 = tree.StateRoot;
+        VerkleCommitment stateRoot0 = tree.StateRoot;
         Console.WriteLine(tree.StateRoot.ToString());
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
@@ -55,7 +55,7 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._arrayAll0Last2);
         tree.Commit();
         tree.CommitTree(1);
-        Pedersen stateRoot1 = tree.StateRoot;
+        VerkleCommitment stateRoot1 = tree.StateRoot;
         Console.WriteLine(tree.StateRoot.ToString());
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
@@ -109,7 +109,7 @@ public class HistoryTests
         tree.Insert(VerkleTestUtils._keyCodeSize, VerkleTestUtils._emptyArray);
         tree.Commit();
         tree.CommitTree(0);
-        Pedersen stateRoot0 = tree.StateRoot;
+        VerkleCommitment stateRoot0 = tree.StateRoot;
 
         tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
         tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);

@@ -4,13 +4,14 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
+public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
     private VerkleMemoryDb _keyValueStore;
@@ -21,7 +22,7 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
         _keyValueStore = keyValueStore;
     }
 
-    public Pedersen StateRoot => _verkleStateStore.StateRoot;
+    public VerkleCommitment StateRoot => _verkleStateStore.StateRoot;
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
@@ -47,11 +48,11 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
     public void ApplyDiffLayer(BatchChangeSet changeSet)
     {
     }
-    public Pedersen GetStateRoot()
+    public VerkleCommitment GetStateRoot()
     {
         return _verkleStateStore.GetStateRoot();
     }
-    public bool MoveToStateRoot(Pedersen stateRoot)
+    public bool MoveToStateRoot(VerkleCommitment stateRoot)
     {
         return _verkleStateStore.MoveToStateRoot(stateRoot);
     }
@@ -83,7 +84,7 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, blockNumber);
     }
 
-    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Pedersen stateRoot, long bytes)
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, VerkleCommitment stateRoot, long bytes)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }

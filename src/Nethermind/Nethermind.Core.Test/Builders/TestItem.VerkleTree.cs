@@ -12,6 +12,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
@@ -51,7 +52,7 @@ public static partial class TestItem
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleStore GetVerkleStore(DbMode dbMode, int history = 128)
+    public static IVerkleTrieStore GetVerkleStore(DbMode dbMode, int history = 128)
     {
         IDbProvider provider;
         switch (dbMode)
@@ -70,7 +71,7 @@ public static partial class TestItem
         return new VerkleStateStore(provider, LimboLogs.Instance,maxNumberOfBlocksInCache: history);
     }
 
-    public static VerkleStateTree GetVerkleStateTree(IVerkleStore? store)
+    public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)
     {
         store ??= GetVerkleStore(DbMode.MemDb);
         VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);

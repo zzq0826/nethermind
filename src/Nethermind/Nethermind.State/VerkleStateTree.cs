@@ -15,6 +15,7 @@ using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.State;
@@ -26,7 +27,7 @@ public class VerkleStateTree : VerkleTree
     {
     }
 
-    public VerkleStateTree(IVerkleStore stateStore, ILogManager logManager) : base(stateStore, logManager)
+    public VerkleStateTree(IVerkleTrieStore stateStore, ILogManager logManager) : base(stateStore, logManager)
     {
     }
 

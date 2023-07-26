@@ -25,6 +25,7 @@ using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using NUnit.Framework;
 
 namespace Nethermind.Synchronization.Test.VerkleSync.VerkleSyncFeed;
@@ -48,7 +49,7 @@ public class VerkleSyncFeedTestsBase
         _defaultPeerMaxRandomLatency = defaultPeerMaxRandomLatency;
     }
 
-    public static (string Name, Action<VerkleStateTree, IVerkleStore, IDb> Action)[] Scenarios => VerkleTrieScenarios.Scenarios;
+    public static (string Name, Action<VerkleStateTree, IVerkleTrieStore, IDb> Action)[] Scenarios => VerkleTrieScenarios.Scenarios;
 
     [SetUp]
     public void Setup()
@@ -64,7 +65,7 @@ public class VerkleSyncFeedTestsBase
         (_logger as ConsoleAsyncLogger)?.Flush();
     }
 
-    protected static void SetStorage(IVerkleStore trieStore, Address address, byte i)
+    protected static void SetStorage(IVerkleTrieStore trieStore, Address address, byte i)
     {
         VerkleStateTree tree = new VerkleStateTree(trieStore, LimboLogs.Instance);
         for (int j = 0; j < i; j++)
@@ -127,8 +128,8 @@ public class VerkleSyncFeedTestsBase
 
         public IDb RemoteCodeDb => RemoteDbProvider.CodeDb;
         public IDb LocalCodeDb => LocalDbProvider.CodeDb;
-        public IVerkleStore RemoteTrieStore { get; }
-        public IVerkleStore LocalTrieStore { get; }
+        public IVerkleTrieStore RemoteTrieStore { get; }
+        public IVerkleTrieStore LocalTrieStore { get; }
 
         public IDb RemoteLeafDb => RemoteDbProvider.LeafDb;
         public IDb LocalLeafDb => LocalDbProvider.LeafDb;

@@ -5,13 +5,13 @@ using Nethermind.Core.Verkle;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Interfaces;
 
 public interface IVerkleTreeVisitor
 {
     bool ShouldVisit(byte[] nextNode);
 
-    void VisitTree(Pedersen rootHash, TrieVisitContext trieVisitContext);
+    void VisitTree(VerkleCommitment rootHash, TrieVisitContext trieVisitContext);
 
     void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext);
 

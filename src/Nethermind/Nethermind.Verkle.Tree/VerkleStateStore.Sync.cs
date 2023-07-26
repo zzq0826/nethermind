@@ -15,10 +15,9 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleStateStore
 {
+    public bool IsFullySynced(Keccak stateRoot) => _stateRootToBlocks[new VerkleCommitment(stateRoot.Bytes)] != -2;
 
-    public bool IsFullySynced(Keccak stateRoot) => _stateRootToBlocks[new Pedersen(stateRoot.Bytes)] != -2;
-
-    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Pedersen stateRoot, long bytes)
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, VerkleCommitment stateRoot, long bytes)
     {
         if(bytes == 0)  yield break;
 
@@ -206,7 +205,7 @@ public partial class VerkleStateStore
         }
     }
 
-    public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Pedersen stateRoot, long bytes)
+    public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, VerkleCommitment stateRoot, long bytes)
     {
         long blockNumber = _stateRootToBlocks[stateRoot];
         using IEnumerator<KeyValuePair<byte[], byte[]>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
@@ -269,7 +268,7 @@ public partial class VerkleStateStore
             _stateRootToBlock = stateRootToBlock;
         }
 
-        public long this[Pedersen key]
+        public long this[VerkleCommitment key]
         {
             get
             {

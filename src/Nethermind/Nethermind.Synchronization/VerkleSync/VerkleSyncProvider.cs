@@ -14,6 +14,7 @@ using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
@@ -23,7 +24,7 @@ namespace Nethermind.Synchronization.VerkleSync;
 
 public class VerkleSyncProvider: IVerkleSyncProvider
 {
-    private readonly ObjectPool<IVerkleStore> _trieStorePool;
+    private readonly ObjectPool<IVerkleTrieStore> _trieStorePool;
     private readonly ILogManager _logManager;
     private readonly ILogger _logger;
 
@@ -33,7 +34,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     {
         IDbProvider dbProvider1 = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-        _trieStorePool = new DefaultObjectPool<IVerkleStore>(new TrieStorePoolPolicy(dbProvider1, logManager));
+        _trieStorePool = new DefaultObjectPool<IVerkleTrieStore>(new TrieStorePoolPolicy(dbProvider1, logManager));
 
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _logger = logManager.GetClassLogger();
@@ -71,7 +72,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     {
         limitStem ??= Keccak.MaxValue.Bytes[..31];
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes) ?? throw new Exception("root point invalid");
-        IVerkleStore store = _trieStorePool.Get();
+        IVerkleTrieStore store = _trieStorePool.Get();
         VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         try
         {
@@ -99,7 +100,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     public AddRangeResult AddSubTreeRange(long blockNumber, Banderwagon rootPoint, byte[] startingStem,
         PathWithSubTree[] subTrees, VerkleProof proof, byte[] limitStem)
     {
-        IVerkleStore store = _trieStorePool.Get();
+        IVerkleTrieStore store = _trieStorePool.Get();
         VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         bool correct =
             tree.CreateStatelessTreeFromRange(proof, rootPoint, startingStem, limitStem,
@@ -110,7 +111,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public bool HealTheTreeFromExecutionWitness(ExecutionWitness execWitness, Banderwagon root)
     {
-        IVerkleStore store = _trieStorePool.Get();
+        IVerkleTrieStore store = _trieStorePool.Get();
         VerkleTree tree = new (store, LimboLogs.Instance);
         return tree.InsertIntoStatelessTree(execWitness, root, false);
     }
@@ -146,7 +147,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public (VerkleSyncBatch request, bool finished) GetNextRequest() => _progressTracker.GetNextRequest();
 
-    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleStore>
+    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTrieStore>
     {
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
@@ -157,12 +158,12 @@ public class VerkleSyncProvider: IVerkleSyncProvider
             _logManager = logManager;
         }
 
-        public IVerkleStore Create()
+        public IVerkleTrieStore Create()
         {
             return new VerkleStateStore(_dbProvider, _logManager,0);
         }
 
-        public bool Return(IVerkleStore obj)
+        public bool Return(IVerkleTrieStore obj)
         {
             return true;
         }

@@ -8,6 +8,7 @@ using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
@@ -16,21 +17,21 @@ namespace Nethermind.Synchronization.VerkleSync;
 
 public class VerkleSyncServer
 {
-    private readonly IVerkleStore _store;
+    private readonly IVerkleTrieStore _store;
     private readonly ILogManager _logManager;
     private readonly ILogger _logger;
 
     private const long HardResponseByteLimit = 2000000;
     private const int HardResponseNodeLimit = 10000;
 
-    public VerkleSyncServer(IVerkleStore trieStore, ILogManager logManager)
+    public VerkleSyncServer(IVerkleTrieStore trieStore, ILogManager logManager)
     {
         _store = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _logger = logManager.GetClassLogger();
     }
 
-    public (List<PathWithSubTree>, VerkleProof) GetSubTreeRanges(Pedersen rootHash, Stem startingStem, Stem? limitStem, long byteLimit, out Banderwagon rootPoint)
+    public (List<PathWithSubTree>, VerkleProof) GetSubTreeRanges(VerkleCommitment rootHash, Stem startingStem, Stem? limitStem, long byteLimit, out Banderwagon rootPoint)
     {
         rootPoint = default;
         if(_logger.IsDebug) _logger.Debug($"Getting SubTreeRanges - RH:{rootHash} S:{startingStem} L:{limitStem} Bytes:{byteLimit}");

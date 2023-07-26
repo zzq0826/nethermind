@@ -101,12 +101,12 @@ public partial class VerkleStateStore
         LastPersistedBlockNumber = changeSet.ToBlockNumber;
     }
 
-    public bool MoveToStateRoot(Pedersen stateRoot)
+    public bool MoveToStateRoot(VerkleCommitment stateRoot)
     {
-        Pedersen currentRoot = GetStateRoot();
+        VerkleCommitment currentRoot = GetStateRoot();
         if (_logger.IsDebug) _logger.Debug($"VerkleStateStore - MoveToStateRoot: WantedStateRoot: {stateRoot} CurrentStateRoot: {currentRoot}");
         // TODO: this is actually not possible - not sure if return true is correct here
-        if (stateRoot.Equals(new Pedersen(Keccak.EmptyTreeHash.Bytes))) return true;
+        if (stateRoot.Equals(new VerkleCommitment(Keccak.EmptyTreeHash.Bytes))) return true;
 
         long fromBlock = _stateRootToBlocks[currentRoot];
         if(fromBlock == -1) return false;

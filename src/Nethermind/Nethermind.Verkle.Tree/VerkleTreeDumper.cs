@@ -5,6 +5,7 @@ using System.Text;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Nodes;
 
 namespace Nethermind.Verkle.Tree;
@@ -23,9 +24,9 @@ public class VerkleTreeDumper : IVerkleTreeVisitor
     {
         return true;
     }
-    public void VisitTree(Pedersen rootHash, TrieVisitContext trieVisitContext)
+    public void VisitTree(VerkleCommitment rootHash, TrieVisitContext trieVisitContext)
     {
-        if (rootHash.Equals(Pedersen.Zero))
+        if (rootHash.Equals(VerkleCommitment.Zero))
         {
             _builder.AppendLine("EMPTY TREE");
         }

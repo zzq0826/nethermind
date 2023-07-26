@@ -13,6 +13,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Interfaces;
 
 namespace Nethermind.Synchronization.Test;
 
@@ -50,14 +51,14 @@ public class VerkleTrieScenarios
         }
     }
 
-    private static (string Name, Action<VerkleStateTree, IVerkleStore, IDb> Action)[] _scenarios;
+    private static (string Name, Action<VerkleStateTree, IVerkleTrieStore, IDb> Action)[] _scenarios;
 
-    public static (string Name, Action<VerkleStateTree, IVerkleStore, IDb> Action)[] Scenarios
+    public static (string Name, Action<VerkleStateTree, IVerkleTrieStore, IDb> Action)[] Scenarios
         => LazyInitializer.EnsureInitialized(ref _scenarios, InitScenarios);
 
-    private static (string Name, Action<VerkleStateTree, IVerkleStore, IDb> Action)[] InitScenarios()
+    private static (string Name, Action<VerkleStateTree, IVerkleTrieStore, IDb> Action)[] InitScenarios()
     {
-        return new (string, Action<VerkleStateTree, IVerkleStore, IDb>)[]
+        return new (string, Action<VerkleStateTree, IVerkleTrieStore, IDb>)[]
         {
             ("empty", (tree, stateDb, codeDb) =>
             {

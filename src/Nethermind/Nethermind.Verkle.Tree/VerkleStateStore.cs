@@ -2,34 +2,35 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
+public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
     private static Span<byte> RootNodeKey => Array.Empty<byte>();
-    public Pedersen StateRoot { get; private set; }
+    public VerkleCommitment StateRoot { get; private set; }
 
     private readonly ILogger _logger;
 
-    public Pedersen GetStateRoot()
+    public VerkleCommitment GetStateRoot()
     {
         InternalNode rootNode = RootNode ?? throw new InvalidOperationException("Root node should always be present");
 
         byte[] stateRoot = rootNode.Bytes;
-        return new Pedersen(stateRoot);
+        return new VerkleCommitment(stateRoot);
     }
 
-    private static Pedersen? GetStateRoot(IVerkleDb db)
+    private static VerkleCommitment? GetStateRoot(IVerkleDb db)
     {
-        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.Bytes) : null;
+        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new VerkleCommitment(node!.Bytes) : null;
     }
 
-    private static Pedersen? GetStateRoot(InternalStore db)
+    private static VerkleCommitment? GetStateRoot(InternalStore db)
     {
-        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.Bytes) : null;
+        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new VerkleCommitment(node!.Bytes) : null;
     }
 
     // The underlying key value database
@@ -100,14 +101,14 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
         InternalNode? node = RootNode;
         if (node is not null)
         {
-            StateRoot = new Pedersen(node.InternalCommitment.ToBytes());
+            StateRoot = new VerkleCommitment(node.InternalCommitment.ToBytes());
             LastPersistedBlockNumber = _stateRootToBlocks[StateRoot];
             LatestCommittedBlockNumber = -1;
         }
         else
         {
             Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
-            StateRoot = Pedersen.Zero;
+            StateRoot = VerkleCommitment.Zero;
             LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
         }
 

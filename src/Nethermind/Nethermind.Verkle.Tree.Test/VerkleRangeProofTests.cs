@@ -65,8 +65,8 @@ public class VerkleRangeProofTests
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
 
-        tree.Accept(oldTreeDumper, new Pedersen(root.ToBytes()));
-        newTree.Accept(newTreeDumper, new Pedersen(root.ToBytes()));
+        tree.Accept(oldTreeDumper, new VerkleCommitment(root.ToBytes()));
+        newTree.Accept(newTreeDumper, new VerkleCommitment(root.ToBytes()));
 
         Console.WriteLine("oldTreeDumper");
         Console.WriteLine(oldTreeDumper.ToString());
@@ -126,8 +126,8 @@ public class VerkleRangeProofTests
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
 
-        tree.Accept(oldTreeDumper, new Pedersen(root.ToBytes()));
-        newTree.Accept(newTreeDumper, new Pedersen(root.ToBytes()));
+        tree.Accept(oldTreeDumper, new VerkleCommitment(root.ToBytes()));
+        newTree.Accept(newTreeDumper, new VerkleCommitment(root.ToBytes()));
 
         Console.WriteLine("oldTreeDumper");
         Console.WriteLine(oldTreeDumper.ToString());

@@ -27,7 +27,7 @@ public partial class VerkleStateStore
     }
     private long LatestCommittedBlockNumber { get; set; }
 
-    private Pedersen? PersistedStateRoot { get;  set; }
+    private VerkleCommitment? PersistedStateRoot { get;  set; }
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
@@ -83,7 +83,7 @@ public partial class VerkleStateStore
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
-                Pedersen root = GetStateRoot(changesToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
+                VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
                 VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
                 if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");

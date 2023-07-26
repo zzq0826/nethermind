@@ -8,6 +8,7 @@ using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
+using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
@@ -35,7 +36,7 @@ public partial class VerkleTree: IVerkleTree
     private VerkleMemoryDb _treeCache = new();
 
     // the store that is responsible to store the tree in a key-value store
-    public readonly IVerkleStore _verkleStateStore;
+    public readonly IVerkleTrieStore _verkleStateStore;
 
     public VerkleTree(IDbProvider dbProvider, ILogManager logManager)
     {
@@ -43,25 +44,25 @@ public partial class VerkleTree: IVerkleTree
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
     }
 
-    public VerkleTree(IVerkleStore verkleStateStore, ILogManager logManager)
+    public VerkleTree(IVerkleTrieStore verkleStateStore, ILogManager logManager)
     {
         _verkleStateStore = verkleStateStore;
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
     }
 
-    public Pedersen StateRoot
+    public VerkleCommitment StateRoot
     {
         get => GetStateRoot();
         set => MoveToStateRoot(value);
     }
 
-    private Pedersen GetStateRoot()
+    private VerkleCommitment GetStateRoot()
     {
         bool inTreeCache = _treeCache.GetInternalNode(Array.Empty<byte>(), out InternalNode? value);
-        return inTreeCache ? new Pedersen(value!.Bytes) : _verkleStateStore.StateRoot;
+        return inTreeCache ? new VerkleCommitment(value!.Bytes) : _verkleStateStore.StateRoot;
     }
 
-    public bool MoveToStateRoot(Pedersen stateRoot)
+    public bool MoveToStateRoot(VerkleCommitment stateRoot)
     {
         try
         {
