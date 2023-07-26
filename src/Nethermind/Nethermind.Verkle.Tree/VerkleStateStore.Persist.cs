@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Text;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Tree.Nodes;
@@ -41,11 +42,12 @@ public partial class VerkleStateStore
 
         if (blockNumber == 0)
         {
+            if (_logger.IsDebug)
+                _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             StateRoot = PersistedStateRoot = RootHash;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             _stateRootToBlocks[StateRoot] = blockNumber;
-            if (_logger.IsDebug) _logger.Debug($"VSS: Special case for block 0, StateRoot:{StateRoot}");
         }
         else
         {
@@ -78,13 +80,13 @@ public partial class VerkleStateStore
             if (shouldPersistBlock)
             {
                 if (_logger.IsDebug)
-                    _logger.Debug($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+                    _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 Pedersen root = GetStateRoot(changesToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
                 if (_logger.IsDebug)
-                    _logger.Debug($"StateRoot after persisting forwardDiff: {root}");
+                    _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
                 VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
                 if (_logger.IsDebug)
-                    _logger.Debug($"reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
+                    _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
                 History?.InsertDiff(blockNumberPersist, changesToPersist, reverseDiff);
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberPersist;
@@ -95,16 +97,15 @@ public partial class VerkleStateStore
             LatestCommittedBlockNumber = blockNumber;
             StateRoot = GetStateRoot();
             _stateRootToBlocks[StateRoot] = blockNumber;
-            _logger.Info(
-                $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
+            if (_logger.IsDebug)
+                _logger.Debug(
+                $"VSS: Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
         }
         AnnounceReorgBoundaries();
     }
 
     private VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
     {
-        if(_logger.IsDebug) _logger.Debug($"Persisting Changes - InternalStore:{internalStore.Count} LeafStore:{leafStore.Count}");
-
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         VerkleMemoryDb reverseDiff = new();

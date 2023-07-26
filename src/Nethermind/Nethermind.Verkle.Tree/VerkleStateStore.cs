@@ -1,4 +1,3 @@
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
@@ -141,7 +140,7 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
             using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
             while (diffs.MoveNext())
             {
-                if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node;
+                if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node.Clone();
             }
         }
 
