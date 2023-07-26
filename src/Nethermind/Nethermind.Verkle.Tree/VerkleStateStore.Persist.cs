@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Text;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
@@ -45,7 +45,7 @@ public partial class VerkleStateStore
             if (_logger.IsDebug)
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-            StateRoot = PersistedStateRoot = RootHash;
+            StateRoot = PersistedStateRoot = GetStateRoot();
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             _stateRootToBlocks[StateRoot] = blockNumber;
         }
@@ -81,7 +81,10 @@ public partial class VerkleStateStore
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
-                Pedersen root = GetStateRoot(changesToPersist.InternalTable) ?? (new Pedersen(Storage.GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ?? throw new ArgumentException()));
+                Pedersen root = GetStateRoot(changesToPersist.InternalTable)
+                                ?? (new Pedersen(
+                                    Storage.GetInternalNode(RootNodeKey)?.InternalCommitment.Point.ToBytes()
+                                        .ToArray() ?? throw new ArgumentException()));
                 if (_logger.IsDebug)
                     _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
                 VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
@@ -135,5 +138,45 @@ public partial class VerkleStateStore
                 $"PersistBlockChanges: ReverseDiff InternalStore:{reverseDiff.InternalTable.Count} LeafStore:{reverseDiff.LeafTable.Count}");
 
         return reverseDiff;
+    }
+
+    private int _isFirst;
+    private void AnnounceReorgBoundaries()
+    {
+        if (LatestCommittedBlockNumber < 1)
+        {
+            return;
+        }
+
+        bool shouldAnnounceReorgBoundary = false;
+        bool isFirstCommit = Interlocked.Exchange(ref _isFirst, 1) == 0;
+        if (isFirstCommit)
+        {
+            if (_logger.IsDebug) _logger.Debug($"Reached first commit - newest {LatestCommittedBlockNumber}, last persisted {LastPersistedBlockNumber}");
+            // this is important when transitioning from fast sync
+            // imagine that we transition at block 1200000
+            // and then we close the app at 1200010
+            // in such case we would try to continue at Head - 1200010
+            // because head is loaded if there is no persistence checkpoint
+            // so we need to force the persistence checkpoint
+            long baseBlock = Math.Max(0, LatestCommittedBlockNumber - 1);
+            LastPersistedBlockNumber = baseBlock;
+            shouldAnnounceReorgBoundary = true;
+        }
+        else if (!_lastPersistedReachedReorgBoundary)
+        {
+            // even after we persist a block we do not really remember it as a safe checkpoint
+            // until max reorgs blocks after
+            if (LatestCommittedBlockNumber >= LastPersistedBlockNumber + MaxNumberOfBlocksInCache)
+            {
+                shouldAnnounceReorgBoundary = true;
+            }
+        }
+
+        if (shouldAnnounceReorgBoundary)
+        {
+            ReorgBoundaryReached?.Invoke(this, new ReorgBoundaryReached(LastPersistedBlockNumber));
+            _lastPersistedReachedReorgBoundary = true;
+        }
     }
 }

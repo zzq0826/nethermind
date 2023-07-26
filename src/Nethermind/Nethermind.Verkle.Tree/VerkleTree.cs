@@ -48,7 +48,7 @@ public partial class VerkleTree: IVerkleTree
         _treeCache = new VerkleMemoryDb();
         _verkleStateStore = new VerkleStateStore(dbProvider, logManager);
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
-        _stateRoot = _verkleStateStore.RootHash;
+        _stateRoot = _verkleStateStore.StateRoot;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
         ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
@@ -59,7 +59,7 @@ public partial class VerkleTree: IVerkleTree
         _treeCache = new VerkleMemoryDb();
         _verkleStateStore = verkleStateStore;
         _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
-        _stateRoot = _verkleStateStore.RootHash;
+        _stateRoot = _verkleStateStore.StateRoot;
         ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
         ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
     }
@@ -249,7 +249,7 @@ public partial class VerkleTree: IVerkleTree
         _isDirty = false;
         _verkleStateStore.Flush(blockNumber, _treeCache);
         _treeCache = new VerkleMemoryDb();
-        _stateRoot = _verkleStateStore.RootHash;
+        _stateRoot = _verkleStateStore.StateRoot;
     }
 
     private void UpdateRootNode(Banderwagon rootDelta)

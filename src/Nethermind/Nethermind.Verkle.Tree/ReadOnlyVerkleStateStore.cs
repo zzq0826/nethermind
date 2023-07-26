@@ -23,11 +23,8 @@ public class ReadOnlyVerkleStateStore : IVerkleStore, ISyncTrieStore
         _keyValueStore = keyValueStore;
     }
 
-    public Pedersen RootHash
-    {
-        get => _verkleStateStore.RootHash;
-        set => throw new ArgumentException();
-    }
+    public Pedersen StateRoot => _verkleStateStore.StateRoot;
+
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
         if (_keyValueStore.GetLeaf(key, out byte[]? value)) return value;

@@ -10,30 +10,27 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
 {
+    private static Span<byte> RootNodeKey => Array.Empty<byte>();
+    public Pedersen StateRoot { get; private set; }
+
     private readonly ILogger _logger;
 
-    public Pedersen RootHash
-    {
-        get => GetStateRoot();
-        set => MoveToStateRoot(value);
-    }
-
-    public Pedersen StateRoot { get; private set; }
     public Pedersen GetStateRoot()
     {
-        byte[] stateRoot = GetInternalNode(Array.Empty<byte>())?.InternalCommitment.Point.ToBytes().ToArray() ??
-                           throw new InvalidOperationException();
+        InternalNode rootNode = RootNode ?? throw new InvalidOperationException("Root node should always be present");
+
+        byte[] stateRoot = rootNode.InternalCommitment.Point.ToBytes().ToArray();
         return new Pedersen(stateRoot);
     }
 
     private static Pedersen? GetStateRoot(IVerkleDb db)
     {
-        return db.GetInternalNode(Array.Empty<byte>(), out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
+        return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
     }
 
     private static Pedersen? GetStateRoot(InternalStore db)
     {
-        return db.TryGetValue(Array.Empty<byte>(), out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
+        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? new Pedersen(node!.InternalCommitment.Point.ToBytes().ToArray()) : null;
     }
 
     // The underlying key value database
@@ -95,12 +92,13 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
     }
 
     public void Reset() => BlockCache?.Clear();
+    private InternalNode? RootNode => GetInternalNode(RootNodeKey);
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
     private void InitRootHash()
     {
-        InternalNode? node = GetInternalNode(Array.Empty<byte>());
+        InternalNode? node = RootNode;
         if (node is not null)
         {
             StateRoot = new Pedersen(node.InternalCommitment.Point.ToBytes());
@@ -109,7 +107,7 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
         else
         {
-            Storage.SetInternalNode(Array.Empty<byte>(), new InternalNode(VerkleNodeType.BranchNode));
+            Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
             StateRoot = Pedersen.Zero;
             LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
         }
@@ -147,43 +145,5 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
         return Storage.GetInternalNode(key, out InternalNode? value) ? value : null;
     }
 
-    private int _isFirst;
-    private void AnnounceReorgBoundaries()
-    {
-        if (LatestCommittedBlockNumber < 1)
-        {
-            return;
-        }
 
-        bool shouldAnnounceReorgBoundary = false;
-        bool isFirstCommit = Interlocked.Exchange(ref _isFirst, 1) == 0;
-        if (isFirstCommit)
-        {
-            if (_logger.IsDebug) _logger.Debug($"Reached first commit - newest {LatestCommittedBlockNumber}, last persisted {LastPersistedBlockNumber}");
-            // this is important when transitioning from fast sync
-            // imagine that we transition at block 1200000
-            // and then we close the app at 1200010
-            // in such case we would try to continue at Head - 1200010
-            // because head is loaded if there is no persistence checkpoint
-            // so we need to force the persistence checkpoint
-            long baseBlock = Math.Max(0, LatestCommittedBlockNumber - 1);
-            LastPersistedBlockNumber = baseBlock;
-            shouldAnnounceReorgBoundary = true;
-        }
-        else if (!_lastPersistedReachedReorgBoundary)
-        {
-            // even after we persist a block we do not really remember it as a safe checkpoint
-            // until max reorgs blocks after
-            if (LatestCommittedBlockNumber >= LastPersistedBlockNumber + MaxNumberOfBlocksInCache)
-            {
-                shouldAnnounceReorgBoundary = true;
-            }
-        }
-
-        if (shouldAnnounceReorgBoundary)
-        {
-            ReorgBoundaryReached?.Invoke(this, new ReorgBoundaryReached(LastPersistedBlockNumber));
-            _lastPersistedReachedReorgBoundary = true;
-        }
-    }
 }

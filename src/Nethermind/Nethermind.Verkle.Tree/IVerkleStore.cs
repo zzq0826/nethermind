@@ -14,7 +14,7 @@ namespace Nethermind.Verkle.Tree;
 
 public interface IVerkleStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
-    public Pedersen RootHash { get; set; }
+    public Pedersen StateRoot { get; }
     byte[]? GetLeaf(ReadOnlySpan<byte> key);
     InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
     void Flush(long blockNumber, VerkleMemoryDb memDb);
