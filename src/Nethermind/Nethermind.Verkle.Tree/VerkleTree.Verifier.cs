@@ -4,15 +4,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
 using Nethermind.Verkle.Proofs;
 using Nethermind.Verkle.Tree.Proofs;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 

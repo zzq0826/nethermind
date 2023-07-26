@@ -5,7 +5,6 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Nodes;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 

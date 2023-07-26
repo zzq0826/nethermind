@@ -62,16 +62,9 @@ public class VerkleWorldState : IWorldState
     public VerkleWorldState(ExecutionWitness? executionWitness, Banderwagon root, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
-        _tree = new VerkleStateTree(
-            new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), new MemDb(), new MemDb(), logManager),
-            logManager);
+        _tree = VerkleStateTree.CreateStatelessTreeFromExecutionWitness(executionWitness, root, logManager);
         _codeDb = new MemDb();
         _storageProvider = new VerkleStorageProvider(_tree, logManager);
-
-        if (!_tree.InsertIntoStatelessTree(executionWitness, root))
-        {
-            throw new ArgumentException("invalid proof");
-        }
     }
 
     public void Accept(ITreeVisitor? visitor, Keccak? stateRoot, VisitingOptions? visitingOptions = null)

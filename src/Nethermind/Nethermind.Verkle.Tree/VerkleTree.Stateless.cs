@@ -1,11 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Runtime.InteropServices;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
@@ -17,6 +15,23 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
+
+    private void InsertStemBatchStateless(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        InsertStemBatchStateless(stem.BytesAsSpan, leafIndexValueMap);
+    }
+
+    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    {
+        Span<byte> key = new byte[32];
+        stem.CopyTo(key);
+        foreach (LeafInSubTree leaf in leafIndexValueMap)
+        {
+            key[31] = leaf.SuffixByte;
+            SetLeafCache(key.ToArray(), leaf.Leaf);
+        }
+    }
+
     private void InsertBranchNodeForSync(byte[] path, Commitment commitment)
     {
         InternalNode node = VerkleNodes.CreateStatelessBranchNode(commitment);
@@ -137,7 +152,6 @@ public partial class VerkleTree
 
     private void AddStatelessInternalNodes(UpdateHint hint)
     {
-        var logg = SimpleConsoleLogger.Instance;
         List<byte> pathList = new();
         foreach ((Stem stem, (ExtPresent extStatus, byte depth)) in hint.DepthAndExtByStem)
         {
@@ -161,7 +175,6 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.DifferentStem:
                     Stem otherStem = hint.DifferentStemNoProof[pathList];
-                    logg.Info($"DIFFERENT STEM INSERTING: {stem} {otherStem}");
                     Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
                     stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
@@ -184,10 +197,6 @@ public partial class VerkleTree
                     throw new ArgumentOutOfRangeException();
             }
 
-            // logg.Info($"InternalNode: {stemNode.Stem.Bytes.ToHexString()}");
-            // logg.Info($"    IC: {stemNode.InternalCommitment?.Point.ToBytes().ToHexString()}");
-            // logg.Info($"    C1: {stemNode.C1?.Point.ToBytes().ToHexString()}");
-            // logg.Info($"    C2: {stemNode.C1?.Point.ToBytes().ToHexString()}");
             SetInternalNode(pathOfStem, stemNode, extStatus != ExtPresent.DifferentStem);
         }
     }

@@ -10,77 +10,67 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
-
-using Committer = Nethermind.Core.Verkle.Committer;
-using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
 
 namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree: IVerkleTree
 {
-    private static readonly byte[] _rootKey = Array.Empty<byte>();
+    private static byte[] RootKey => Array.Empty<byte>();
     private readonly ILogger _logger;
 
-    // get and update the state root of the tree
-    // _isDirty - to check if tree is in between insertion and commitment
-    private bool _isDirty;
-    private Pedersen _stateRoot;
+    /// <summary>
+    /// _leafUpdateCache, _treeCache, _verkleStateStore - these are use while inserting and commiting data to the tree
+    ///
+    /// Insertion - _leafUpdateCache is used to keep track of keys inserted accumulated by the stem
+    /// Commit - calculate and update the commitment of internal nodes from bottom up and insert into _treeCache
+    /// CommitTree - flush all the changes stored in _treeCache to _verkleStateStore indexed by the blockNumber
+    /// </summary>
+
+    // aggregate the stem commitments here and then update the entire tree when Commit() is called
+    private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache = new(Bytes.SpanEqualityComparer);
+
+    // cache to maintain recently used or inserted nodes of the tree - should be consistent
+    private VerkleMemoryDb _treeCache = new();
+
+    // the store that is responsible to store the tree in a key-value store
+    public readonly IVerkleStore _verkleStateStore;
+
+    public VerkleTree(IDbProvider dbProvider, ILogManager logManager)
+    {
+        _verkleStateStore = new VerkleStateStore(dbProvider, logManager);
+        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
+    }
+
+    public VerkleTree(IVerkleStore verkleStateStore, ILogManager logManager)
+    {
+        _verkleStateStore = verkleStateStore;
+        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
+    }
+
     public Pedersen StateRoot
     {
         get => GetStateRoot();
         set => MoveToStateRoot(value);
     }
 
-    // the store that is responsible to store the tree in a key-value store
-    public readonly IVerkleStore _verkleStateStore;
-
-    // cache to maintain recently used or inserted nodes of the tree - should be consistent
-    private VerkleMemoryDb _treeCache;
-
-    // aggregate the stem commitments here and then update the entire tree when Commit() is called
-    private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache;
-
-    public VerkleTree(IDbProvider dbProvider, ILogManager? logManager)
-    {
-        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
-        _treeCache = new VerkleMemoryDb();
-        _verkleStateStore = new VerkleStateStore(dbProvider, logManager);
-        _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
-        _stateRoot = _verkleStateStore.StateRoot;
-        ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
-        ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
-    }
-
-    public VerkleTree(IVerkleStore verkleStateStore, ILogManager? logManager)
-    {
-        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
-        _treeCache = new VerkleMemoryDb();
-        _verkleStateStore = verkleStateStore;
-        _leafUpdateCache = new SpanDictionary<byte, LeafUpdateDelta>(Bytes.SpanEqualityComparer);
-        _stateRoot = _verkleStateStore.StateRoot;
-        ProofBranchPolynomialCache = new Dictionary<byte[], FrE[]>(Bytes.EqualityComparer);
-        ProofStemPolynomialCache = new Dictionary<Stem, SuffixPoly>();
-    }
-
     private Pedersen GetStateRoot()
     {
-        InternalNode rootNode = GetInternalNode(Array.Empty<byte>()) ?? throw new InvalidOperationException();
-        return new Pedersen(rootNode.InternalCommitment.Point.ToBytes().ToArray());
+        bool inTreeCache = _treeCache.GetInternalNode(Array.Empty<byte>(), out InternalNode? value);
+        return inTreeCache ? new Pedersen(value!.Bytes) : _verkleStateStore.StateRoot;
     }
 
     public bool MoveToStateRoot(Pedersen stateRoot)
     {
         try
         {
-            if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: isDirty: {_isDirty} from: {_stateRoot} to: {stateRoot}");
-            _verkleStateStore.MoveToStateRoot(stateRoot);
-            return true;
+            if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: from: {StateRoot} to: {stateRoot}");
+            return _verkleStateStore.MoveToStateRoot(stateRoot);
         }
         catch (Exception e)
         {
-            if (_logger.IsDebug)
-                _logger.Error($"MoveToStateRoot: failed isDirty: {_isDirty} from: {_stateRoot} to: {stateRoot}", e);
+            _logger.Error($"MoveToStateRoot: failed | from: {StateRoot} to: {stateRoot}", e);
             return false;
         }
     }
@@ -99,11 +89,6 @@ public partial class VerkleTree: IVerkleTree
 
     public void Insert(Pedersen key, ReadOnlySpan<byte> value)
     {
-        _isDirty = true;
-#if DEBUG
-        if (value.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(value));
-        SimpleConsoleLogger.Instance.Info($"K:{key.Bytes.ToHexString()} V:{value.ToHexString()}");
-#endif
         ReadOnlySpan<byte> stem = key.StemAsSpan;
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if (!present) leafUpdateDelta = new LeafUpdateDelta();
@@ -113,10 +98,6 @@ public partial class VerkleTree: IVerkleTree
 
     public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<(byte, byte[])> leafIndexValueMap)
     {
-        _isDirty = true;
-#if DEBUG
-        if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
-#endif
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
 
@@ -125,9 +106,6 @@ public partial class VerkleTree: IVerkleTree
         foreach ((byte index, byte[] value) in leafIndexValueMap)
         {
             key[31] = index;
-#if DEBUG
-             SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{value.ToHexString()}");
-#endif
             leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), value), key[31]);
         }
 
@@ -136,10 +114,6 @@ public partial class VerkleTree: IVerkleTree
 
     public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
     {
-        _isDirty = true;
-#if DEBUG
-        if (stem.Length != 31) throw new ArgumentException("stem must be 31 bytes", nameof(stem));
-#endif
         bool present = _leafUpdateCache.TryGetValue(stem, out LeafUpdateDelta leafUpdateDelta);
         if(!present) leafUpdateDelta = new LeafUpdateDelta();
 
@@ -148,9 +122,6 @@ public partial class VerkleTree: IVerkleTree
         foreach (LeafInSubTree leaf in leafIndexValueMap)
         {
             key[31] = leaf.SuffixByte;
-#if DEBUG
-            SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{leaf.Leaf?.ToHexString()}");
-#endif
             leafUpdateDelta.UpdateDelta(UpdateLeafAndGetDelta(new Pedersen(key.ToArray()), leaf.Leaf), key[31]);
         }
 
@@ -160,25 +131,6 @@ public partial class VerkleTree: IVerkleTree
     public void InsertStemBatch(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
     {
         InsertStemBatch(stem.BytesAsSpan, leafIndexValueMap);
-    }
-
-    private void InsertStemBatchStateless(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
-    {
-        InsertStemBatchStateless(stem.BytesAsSpan, leafIndexValueMap);
-    }
-
-    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
-    {
-        Span<byte> key = new byte[32];
-        stem.CopyTo(key);
-        foreach (LeafInSubTree leaf in leafIndexValueMap)
-        {
-            key[31] = leaf.SuffixByte;
-#if DEBUG
-            SimpleConsoleLogger.Instance.Info($"K:{key.ToHexString()} V:{leaf.Leaf?.ToHexString()}");
-#endif
-            SetLeafCache(key.ToArray(), leaf.Leaf);
-        }
     }
 
     private Banderwagon UpdateLeafAndGetDelta(Pedersen key, byte[] value)
@@ -191,12 +143,6 @@ public partial class VerkleTree: IVerkleTree
 
     private static Banderwagon GetLeafDelta(byte[]? oldValue, byte[] newValue, byte index)
     {
-
-#if DEBUG
-        if (oldValue is not null && oldValue.Length != 32) throw new ArgumentException("oldValue must be null or 32 bytes", nameof(oldValue));
-        if (newValue.Length != 32) throw new ArgumentException("newValue must be 32 bytes", nameof(newValue));
-#endif
-
         // break the values to calculate the commitments for the leaf
         (FrE newValLow, FrE newValHigh) = VerkleUtils.BreakValueInLowHigh(newValue);
         (FrE oldValLow, FrE oldValHigh) = VerkleUtils.BreakValueInLowHigh(oldValue);
@@ -212,11 +158,6 @@ public partial class VerkleTree: IVerkleTree
 
     private static Banderwagon GetLeafDelta(byte[] newValue, byte index)
     {
-
-#if DEBUG
-        if (newValue.Length != 32) throw new ArgumentException("newValue must be 32 bytes", nameof(newValue));
-#endif
-
         (FrE newValLow, FrE newValHigh) = VerkleUtils.BreakValueInLowHigh(newValue);
 
         int posMod128 = index % 128;
@@ -230,33 +171,29 @@ public partial class VerkleTree: IVerkleTree
 
     public void Commit(bool forSync = false)
     {
-        if (_logger.IsDebug) _logger.Debug($"Commiting: number of subTrees {_leafUpdateCache.Count}");
+        if (_logger.IsDebug) _logger.Debug($"VT Commit: SubTree Count:{_leafUpdateCache.Count}");
         foreach (KeyValuePair<byte[], LeafUpdateDelta> leafDelta in _leafUpdateCache)
         {
             if (_logger.IsTrace)
                 _logger.Trace(
-                    $"Commit: stem:{leafDelta.Key.ToHexString()} deltaCommitment:C1:{leafDelta.Value.DeltaC1?.ToBytes().ToHexString()} C2{leafDelta.Value.DeltaC2?.ToBytes().ToHexString()}");
+                    $"VT Commit: Stem:{leafDelta.Key.ToHexString()} DeltaCommitment C1:{leafDelta.Value.DeltaC1?.ToBytes().ToHexString()} C2{leafDelta.Value.DeltaC2?.ToBytes().ToHexString()}");
             UpdateTreeCommitments(leafDelta.Key, leafDelta.Value, forSync);
         }
         _leafUpdateCache.Clear();
-        _isDirty = false;
-        _stateRoot = GetStateRoot();
     }
 
     public void CommitTree(long blockNumber)
     {
-        _isDirty = false;
         _verkleStateStore.Flush(blockNumber, _treeCache);
         _treeCache = new VerkleMemoryDb();
-        _stateRoot = _verkleStateStore.StateRoot;
     }
 
     private void UpdateRootNode(Banderwagon rootDelta)
     {
-        InternalNode root = GetInternalNode(_rootKey) ?? throw new InvalidOperationException("root should be present");
+        InternalNode root = GetInternalNode(RootKey) ?? throw new InvalidOperationException("root should be present");
         InternalNode newRoot = root.Clone();
         newRoot.InternalCommitment.AddPoint(rootDelta);
-        SetInternalNode(_rootKey, newRoot);
+        SetInternalNode(RootKey, newRoot);
     }
 
     private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey)
@@ -274,7 +211,7 @@ public partial class VerkleTree: IVerkleTree
         }
         else
         {
-            prevNode.C1 ??= node.C1;
+            prevNode!.C1 ??= node.C1;
             prevNode.C2 ??= node.C2;
             _treeCache.SetInternalNode(nodeKey, prevNode);
         }

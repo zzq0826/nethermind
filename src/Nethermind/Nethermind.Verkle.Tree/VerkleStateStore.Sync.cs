@@ -12,8 +12,6 @@ using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
-using LeafEnumerator = IEnumerator<KeyValuePair<byte[],byte[]>>;
-
 
 public partial class VerkleStateStore
 {

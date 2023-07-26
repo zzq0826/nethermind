@@ -11,15 +11,13 @@ using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
 using Nethermind.Verkle.Proofs;
 using Nethermind.Verkle.Tree.Nodes;
-using Nethermind.Verkle.Tree.Proofs;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    private Dictionary<byte[], FrE[]> ProofBranchPolynomialCache { get; }
-    private Dictionary<Stem, SuffixPoly> ProofStemPolynomialCache { get; }
+    private Dictionary<byte[], FrE[]> ProofBranchPolynomialCache { get; } = new(Bytes.EqualityComparer);
+    private Dictionary<Stem, SuffixPoly> ProofStemPolynomialCache { get; } = new();
 
     public ExecutionWitness GenerateExecutionWitnessFromStore(byte[][] keys, out Banderwagon rootPoint)
     {

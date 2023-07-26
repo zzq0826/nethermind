@@ -6,8 +6,8 @@ using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Nodes;
-using Committer = Nethermind.Core.Verkle.Committer;
-using LeafUpdateDelta = Nethermind.Verkle.Tree.Utils.LeafUpdateDelta;
+using Nethermind.Verkle.Tree.Utils;
+
 
 namespace Nethermind.Verkle.Tree;
 

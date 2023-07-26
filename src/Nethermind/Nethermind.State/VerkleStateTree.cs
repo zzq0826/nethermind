@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -12,6 +13,7 @@ using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Utils;
 
@@ -91,4 +93,17 @@ public class VerkleStateTree : VerkleTree
 #endif
         Insert(key, value);
     }
+
+    public static VerkleStateTree CreateStatelessTreeFromExecutionWitness(ExecutionWitness? execWitness, Banderwagon root, ILogManager logManager)
+    {
+        VerkleStateStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), logManager);
+        VerkleStateTree? tree = new (stateStore, logManager);
+        if (!tree.InsertIntoStatelessTree(execWitness, root))
+        {
+            throw new InvalidDataException("stateless tree cannot be created: invalid proof");
+        }
+
+        return tree;
+    }
+
 }

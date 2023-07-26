@@ -4,7 +4,6 @@ using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.VerkleDb;
-using LeafEnumerator = System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<byte[],byte[]>>;
 
 namespace Nethermind.Verkle.Tree;
 

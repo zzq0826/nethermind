@@ -8,4 +8,5 @@ global using VerkleUtils = Nethermind.Verkle.Tree.Utils.VerkleUtils;
 global using VerkleNodeType = Nethermind.Verkle.Tree.Nodes.VerkleNodeType;
 global using InternalStoreInterface = System.Collections.Generic.IDictionary<byte[], Nethermind.Verkle.Tree.Nodes.InternalNode?>;
 global using LeafStoreInterface = System.Collections.Generic.IDictionary<byte[], byte[]?>;
-
+global using LeafEnumerator = System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<byte[],byte[]>>;
+global using Committer = Nethermind.Core.Verkle.Committer;

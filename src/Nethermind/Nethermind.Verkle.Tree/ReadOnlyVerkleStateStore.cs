@@ -3,11 +3,9 @@
 
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
-using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
