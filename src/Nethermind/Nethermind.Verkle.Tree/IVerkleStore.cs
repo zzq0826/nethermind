@@ -17,8 +17,6 @@ public interface IVerkleStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
     public Pedersen RootHash { get; set; }
     byte[]? GetLeaf(ReadOnlySpan<byte> key);
     InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
-    void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue);
-    void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue);
     void Flush(long blockNumber, VerkleMemoryDb memDb);
     void ReverseState();
     void ApplyDiffLayer(BatchChangeSet changeSet);

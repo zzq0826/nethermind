@@ -122,9 +122,6 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
-#if DEBUG
-        if (key.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(key));
-#endif
         if (BlockCache is not null)
         {
             using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
@@ -149,20 +146,6 @@ public partial class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
 
         return Storage.GetInternalNode(key, out InternalNode? value) ? value : null;
-    }
-
-    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
-    {
-#if DEBUG
-        if (leafKey.Length != 32) throw new ArgumentException("key must be 32 bytes", nameof(leafKey));
-        if (leafValue.Length != 32) throw new ArgumentException("value must be 32 bytes", nameof(leafValue));
-#endif
-        Storage.SetLeaf(leafKey, leafValue);
-    }
-
-    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
-    {
-        Storage.SetInternalNode(internalNodeKey, internalNodeValue);
     }
 
     private int _isFirst;

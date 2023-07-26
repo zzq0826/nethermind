@@ -141,10 +141,11 @@ public partial class VerkleStateStore
         }
         else if (fromBlock == toBlock)
         {
-
+            return true;
         }
         else
         {
+            return false;
             throw new NotImplementedException("Should be implemented in future (probably)");
         }
 
