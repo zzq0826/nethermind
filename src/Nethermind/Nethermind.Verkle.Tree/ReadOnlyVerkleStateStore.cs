@@ -45,9 +45,17 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public void Flush(long blockNumber, VerkleMemoryDb batch) { }
 
     public void ReverseState() { }
-    public void ApplyDiffLayer(BatchChangeSet changeSet)
+    public void ApplyDiffLayer(BatchChangeSet changeSet) { }
+
+    public bool GetForwardMergedDiff(long fromBlock, long toBlock, out VerkleMemoryDb diff)
     {
+        return _verkleStateStore.GetForwardMergedDiff(fromBlock, toBlock, out diff);
     }
+    public bool GetReverseMergedDiff(long fromBlock, long toBlock, out VerkleMemoryDb diff)
+    {
+        return _verkleStateStore.GetReverseMergedDiff(fromBlock, toBlock, out diff);
+    }
+
     public VerkleCommitment GetStateRoot()
     {
         return _verkleStateStore.GetStateRoot();
@@ -55,15 +63,6 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public bool MoveToStateRoot(VerkleCommitment stateRoot)
     {
         return _verkleStateStore.MoveToStateRoot(stateRoot);
-    }
-
-    public VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock)
-    {
-        throw new NotImplementedException();
-    }
-    public VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock)
-    {
-        throw new NotImplementedException();
     }
 
     public void Reset() => _verkleStateStore.Reset();

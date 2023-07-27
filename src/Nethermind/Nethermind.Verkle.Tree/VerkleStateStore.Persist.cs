@@ -47,7 +47,7 @@ public partial class VerkleStateStore
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             StateRoot = PersistedStateRoot = GetStateRoot();
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
-            _stateRootToBlocks[StateRoot] = blockNumber;
+            StateRootToBlocks[StateRoot] = blockNumber;
         }
         else
         {
@@ -96,7 +96,7 @@ public partial class VerkleStateStore
 
             LatestCommittedBlockNumber = blockNumber;
             StateRoot = GetStateRoot();
-            _stateRootToBlocks[StateRoot] = blockNumber;
+            StateRootToBlocks[StateRoot] = blockNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
                 $"VSS: Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Nodes;
@@ -22,8 +23,8 @@ public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 
     void ReverseState();
     void ApplyDiffLayer(BatchChangeSet changeSet);
-    VerkleMemoryDb GetForwardMergedDiff(long fromBlock, long toBlock);
-    VerkleMemoryDb GetReverseMergedDiff(long fromBlock, long toBlock);
+    bool GetForwardMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);
+    bool GetReverseMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);
 
     ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore);
 }

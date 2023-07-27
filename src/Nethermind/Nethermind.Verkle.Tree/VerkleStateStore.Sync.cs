@@ -15,13 +15,13 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleStateStore
 {
-    public bool IsFullySynced(Keccak stateRoot) => _stateRootToBlocks[new VerkleCommitment(stateRoot.Bytes)] != -2;
+    public bool IsFullySynced(Keccak stateRoot) => StateRootToBlocks[new VerkleCommitment(stateRoot.Bytes)] != -2;
 
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, VerkleCommitment stateRoot, long bytes)
     {
         if(bytes == 0)  yield break;
 
-        long blockNumber = _stateRootToBlocks[stateRoot];
+        long blockNumber = StateRootToBlocks[stateRoot];
         byte[] fromRangeBytes = new byte[32];
         byte[] toRangeBytes = new byte[32];
         fromRange.BytesAsSpan.CopyTo(fromRangeBytes);
@@ -207,7 +207,7 @@ public partial class VerkleStateStore
 
     public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, VerkleCommitment stateRoot, long bytes)
     {
-        long blockNumber = _stateRootToBlocks[stateRoot];
+        long blockNumber = StateRootToBlocks[stateRoot];
         using IEnumerator<KeyValuePair<byte[], byte[]>> ranges = GetLeafRangeIterator(fromRange, toRange, blockNumber).GetEnumerator();
 
         long currentBytes = 0;
@@ -259,30 +259,5 @@ public partial class VerkleStateStore
         return pathWithSubTrees;
     }
 
-    private readonly struct StateRootToBlockMap
-    {
-        private readonly IDb _stateRootToBlock;
 
-        public StateRootToBlockMap(IDb stateRootToBlock)
-        {
-            _stateRootToBlock = stateRootToBlock;
-        }
-
-        public long this[VerkleCommitment key]
-        {
-            get
-            {
-                // if (Pedersen.Zero.Equals(key)) return -1;
-                byte[]? encodedBlock = _stateRootToBlock[key.Bytes];
-                return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
-            }
-            set
-            {
-                Span<byte> encodedBlock = stackalloc byte[8];
-                BinaryPrimitives.WriteInt64LittleEndian(encodedBlock, value);
-                if(!_stateRootToBlock.KeyExists(key.Bytes))
-                    _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
-            }
-        }
-    }
 }

@@ -41,8 +41,8 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
-        History = new VerkleHistoryStore(dbProvider);
-        _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
+        History = new VerkleHistoryStore(dbProvider, logManager);
+        StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
@@ -61,8 +61,8 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
-        History = new VerkleHistoryStore(forwardDiff, reverseDiff);
-        _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
+        History = new VerkleHistoryStore(forwardDiff, reverseDiff, logManager);
+        StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
@@ -79,7 +79,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
-        _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
+        StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
             : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
@@ -102,7 +102,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         if (node is not null)
         {
             StateRoot = new VerkleCommitment(node.InternalCommitment.ToBytes());
-            LastPersistedBlockNumber = _stateRootToBlocks[StateRoot];
+            LastPersistedBlockNumber = StateRootToBlocks[StateRoot];
             LatestCommittedBlockNumber = -1;
         }
         else
