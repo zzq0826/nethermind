@@ -452,10 +452,10 @@ namespace Nethermind.Trie
                 if (Random.Shared.Next(100) == 0)
                 {
                     Throw = false;
-                    ThrowMissingTrieNodeException(in traverseContext, new TrieException());
+                    node.ResolveNode(TrieStore);
+                    ThrowMissingTrieNodeException(in traverseContext, new TrieNodeException("blah", node.Keccak ?? Keccak.Compute(node.FullRlp)));
                 }
             }
-
 
             try
             {
