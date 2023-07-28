@@ -16,6 +16,18 @@ public class HealingWorldState : WorldState
     {
     }
 
+    public bool Throw
+    {
+        get
+        {
+            return StateProviderTree.Throw;
+        }
+        set
+        {
+            StateProviderTree.Throw = StorageTreeFactory.Throw = value;
+        }
+    }
+
     public void InitializeNetwork(ITrieNodeRecovery<GetTrieNodesRequest> recovery)
     {
         StateProviderTree.InitializeNetwork(recovery);

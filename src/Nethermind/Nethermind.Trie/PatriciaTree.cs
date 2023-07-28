@@ -33,6 +33,8 @@ namespace Nethermind.Trie
         /// </summary>
         public static readonly Keccak EmptyTreeHash = Keccak.EmptyTreeHash;
 
+        public bool Throw { get; set; }
+
         public TrieType TrieType { get; init; }
 
         /// <summary>
@@ -445,6 +447,16 @@ namespace Nethermind.Trie
 
         private void ResolveNode(TrieNode node, in TraverseContext traverseContext)
         {
+            if (Throw)
+            {
+                if (Random.Shared.Next(100) == 0)
+                {
+                    Throw = false;
+                    ThrowMissingTrieNodeException(in traverseContext, new TrieException());
+                }
+            }
+
+
             try
             {
                 node.ResolveNode(TrieStore);
