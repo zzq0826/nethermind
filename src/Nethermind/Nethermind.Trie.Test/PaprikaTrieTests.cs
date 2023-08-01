@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Security.Cryptography.Xml;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -9,15 +10,19 @@ using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
+using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.Trie.Test.Pruning;
 using NUnit.Framework;
 
 namespace Nethermind.Trie.Test;
 
+/// <summary>
+///
+/// </summary>
 public class PaprikaTrieTests
 {
-    private ILogManager _logManager = LimboLogs.Instance;
+    private static readonly ILogManager _logManager = LimboLogs.Instance;
 
     [Test]
     public void Empty_tree()
@@ -29,7 +34,7 @@ public class PaprikaTrieTests
         patriciaTree.Commit(blockNumber: 1);
         patriciaTree.UpdateRootHash();
 
-        var rootHash = patriciaTree.RootHash;
+        Keccak? rootHash = patriciaTree.RootHash;
         Assert.That(rootHash, Is.EqualTo(Keccak.EmptyTreeHash));
     }
 
@@ -68,11 +73,11 @@ public class PaprikaTrieTests
     {
         MemDb memDb = new();
         using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
-        PatriciaTree patriciaTree = new(trieStore, _logManager);
+        StateTree patriciaTree = new(trieStore, _logManager);
 
         Account account = new(nonce, balance);
 
-        patriciaTree.Set(key.Bytes, new AccountDecoder().Encode(account).Bytes);
+        patriciaTree.Set(key, account);
         patriciaTree.Commit(0);
         patriciaTree.UpdateRootHash();
 
@@ -81,6 +86,102 @@ public class PaprikaTrieTests
         var leaf = patriciaTree.Root;
         Assert.That(leaf.IsLeaf, Is.True);
         Assert.That(leaf.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
+    [Test]
+    public void Branch_two_leafs()
+    {
+        const int shift = 4;
+        const byte nibbleA = 0x10;
+        UInt256 balanceA = Values.Balance0;
+        UInt256 nonceA = Values.Nonce0;
+
+        const byte nibbleB = 0x20;
+        UInt256 balanceB = Values.Balance1;
+        UInt256 nonceB = Values.Nonce1;
+
+        Span<byte> span = stackalloc byte[32];
+        span.Fill(0);
+
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+
+        span[0] = nibbleA;
+        state.Set(new Keccak(span), new Account(nonceA, balanceA));
+
+        span[0] = nibbleB;
+        state.Set(new Keccak(span), new Account(nonceB, balanceB));
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root, Is.Not.Null);
+
+        var root = state.Root;
+        Assert.That(root.IsBranch, Is.True);
+
+        Assert.That(root.GetChild(trieStore, nibbleA >> shift)!.IsLeaf, Is.True);
+        Assert.That(root.GetChild(trieStore, nibbleB >> shift)!.IsLeaf, Is.True);
+
+        const string hexString = "73130daa1ae507554a72811c06e28d4fee671bfe2e1d0cef828a7fade54384f9";
+        Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
+    [Test]
+    public void Extension()
+    {
+        UInt256 balanceA = Values.Balance0;
+        UInt256 nonceA = Values.Nonce0;
+
+        UInt256 balanceB = Values.Balance1;
+        UInt256 nonceB = Values.Nonce1;
+
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+
+        state.Set(new Keccak(Values.Key0), new Account(nonceA, balanceA));
+        state.Set(new Keccak(Values.Key1), new Account(nonceB, balanceB));
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root, Is.Not.Null);
+
+        var root = state.Root;
+        Assert.That(root.IsExtension, Is.True);
+
+        const string hexString = "a624947d9693a5cba0701897b3a48cb9954c2f4fd54de36151800eb2c7f6bf50";
+        Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
+    [TestCase(1000, "b255eb6261dc19f0639d13624e384b265759d2e4171c0eb9487e82d2897729f0")]
+    [TestCase(10_000, "48864c880bd7610f9bad9aff765844db83c17cab764f5444b43c0076f6cf6c03")]
+    public void Big_random(int count, string hexString)
+    {
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+
+        Random random = new(13);
+        Span<byte> key = stackalloc byte[32];
+
+        for (int i = 0; i < count; i++)
+        {
+            random.NextBytes(key);
+            uint value = (uint)random.Next();
+            state.Set(new Keccak(key), new Account(value, value));
+        }
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root, Is.Not.Null);
+
+        TrieNode root = state.Root;
+
+        Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
     }
 
     private static class Values
