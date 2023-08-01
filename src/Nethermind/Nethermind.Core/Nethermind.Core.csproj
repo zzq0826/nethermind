@@ -23,4 +23,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Nethermind.Logging\Nethermind.Logging.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.EntityFrameworkCore.Design">
+      <HintPath>..\..\..\..\..\..\.nuget\packages\microsoft.entityframeworkcore.design\6.0.7\lib\net6.0\Microsoft.EntityFrameworkCore.Design.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
