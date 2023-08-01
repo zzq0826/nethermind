@@ -22,5 +22,6 @@ namespace Nethermind.Db
         public const string ReverseDiff = "reverseDiff";
         public const string Preimages = "preimages";
         public const string StateRootToBlock = "stateRoots";
+        public const string HistoryOfAccounts = "historyOfAccounts";
     }
 }
