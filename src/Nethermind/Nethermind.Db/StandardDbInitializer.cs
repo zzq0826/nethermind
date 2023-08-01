@@ -74,6 +74,7 @@ namespace Nethermind.Db
             RegisterDb(BuildRocksDbSettings(DbNames.ReverseDiff, () => Metrics.ReverseDiffDbReads++, () => Metrics.ReverseDiffDbWrites++));
             RegisterDb(BuildRocksDbSettings(DbNames.StateRootToBlock, () => Metrics.StateRootToBlockDbReads++, () => Metrics.StateRootToBlockDbWrites++));
             RegisterDb(BuildRocksDbSettings(DbNames.Preimages, () => Metrics.PreimagesDbReads++, () => Metrics.PreimagesDbWrites++));
+            RegisterDb(BuildRocksDbSettings(DbNames.HistoryOfAccounts, () => Metrics.HistoryOfAccountsDbReads++, () => Metrics.HistoryOfAccountsDbWrites++));
         }
 
         private RocksDbSettings BuildRocksDbSettings(string dbName, Action updateReadsMetrics, Action updateWriteMetrics, bool deleteOnStart = false)

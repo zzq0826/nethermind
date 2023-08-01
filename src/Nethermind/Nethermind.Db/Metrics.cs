@@ -174,6 +174,14 @@ namespace Nethermind.Db
         [Description("Number of Preimages DB writes.")]
         public static long PreimagesDbWrites { get; set; }
 
+        [CounterMetric]
+        [Description("Number of HistoryOfAccounts DB reads.")]
+        public static long HistoryOfAccountsDbReads { get; set; }
+
+        [CounterMetric]
+        [Description("Number of HistoryOfAccounts DB writes.")]
+        public static long HistoryOfAccountsDbWrites { get; set; }
+
         [GaugeMetric]
         [Description("Indicator if StadeDb is being pruned.")]
         public static int StateDbPruning { get; set; }
