@@ -5,6 +5,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.IdentityModel.Tokens;
@@ -38,9 +39,15 @@ public partial class JwtAuthentication : IRpcAuthentication
         return new(Bytes.FromHexString(secret), timestamper, logger);
     }
 
-    public static JwtAuthentication FromFile(string filePath, ITimestamper timestamper, ILogger logger)
+    public static JwtAuthentication FromFile(string? filePath, ITimestamper timestamper, ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(filePath);
+        if (string.IsNullOrEmpty(filePath))
+        {
+            filePath = GetDefaultJwtSecretPath();
+
+            if (string.IsNullOrEmpty(filePath))
+                throw new Exception("The default path to the JWT secret cannot be found.");
+        }
 
         FileInfo fileInfo = new(filePath);
         if (!fileInfo.Exists || fileInfo.Length == 0) // Generate secret
@@ -64,7 +71,7 @@ public partial class JwtAuthentication : IRpcAuthentication
                 throw;
             }
 
-            if (logger.IsWarn) logger.Warn($"The authentication secret hasn't been found in '{fileInfo.FullName}'so it has been automatically created.");
+            if (logger.IsWarn) logger.Warn($"The authentication secret hasn't been found in '{fileInfo.FullName}' and has been created automatically.");
 
             return new(secret, timestamper, logger);
         }
@@ -162,6 +169,43 @@ public partial class JwtAuthentication : IRpcAuthentication
             if (_logger.IsWarn) _logger.Warn($"Message authentication error: {ex.Message}");
             return false;
         }
+    }
+
+    private static string? GetDefaultJwtSecretPath()
+    {
+        string? dir = null;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            dir = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
+
+            if (string.IsNullOrEmpty(dir))
+            {
+                dir = Environment.GetEnvironmentVariable("HOME");
+
+                if (!string.IsNullOrEmpty(dir))
+                    dir = Path.Combine(dir, ".cache");
+            }
+
+            if (!string.IsNullOrEmpty(dir))
+                dir = Path.Combine(dir, "ethereum/engine/jwt.hex");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            dir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+            if (!string.IsNullOrEmpty(dir))
+                dir = Path.Combine(dir, "Ethereum/Engine/jwt.hex");
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            dir = Environment.GetEnvironmentVariable("HOME");
+
+            if (!string.IsNullOrEmpty(dir))
+                dir = Path.Combine(dir, "Library/Caches/Ethereum/Engine/jwt.hex");
+        }
+
+        return dir;
     }
 
     private bool LifetimeValidator(
