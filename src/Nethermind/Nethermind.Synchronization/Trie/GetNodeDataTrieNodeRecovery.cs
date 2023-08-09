@@ -20,7 +20,12 @@ public class GetNodeDataTrieNodeRecovery : TrieNodeRecovery<IReadOnlyList<Keccak
 
     protected override string GetMissingNodes(IReadOnlyList<Keccak> request) => string.Join(", ", request);
 
-    protected override bool CanAllocatePeer(ISyncPeer peer) => peer.CanGetNodeData();
+    protected override bool CanAllocatePeer(ISyncPeer peer)
+    {
+        bool canGetNodeData = peer.CanGetNodeData();
+        if (_logger.IsInfo) _logger.Trace($"Peer {peer} allocation {(canGetNodeData ? "succeeded" : "fail")} for GetNodeData");
+        return canGetNodeData;
+    }
 
     protected override async Task<byte[]?> RecoverRlpFromPeerBase(ValueKeccak rlpHash, ISyncPeer peer, IReadOnlyList<Keccak> request, CancellationTokenSource cts)
     {
@@ -33,7 +38,7 @@ public class GetNodeDataTrieNodeRecovery : TrieNodeRecovery<IReadOnlyList<Keccak
                 return recoveredRlp;
             }
 
-            if (_logger.IsDebug) _logger.Debug($"Recovered RLP from peer {peer} but the hash does not match");
+            if (_logger.IsInfo) _logger.Info($"Recovered RLP from peer {peer} but the hash does not match");
         }
 
         return null;

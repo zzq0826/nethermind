@@ -32,16 +32,26 @@ public class SnapTrieNodeRecovery : TrieNodeRecovery<GetTrieNodesRequest>
             _ => "",
         };
 
-    protected override bool CanAllocatePeer(ISyncPeer peer) => peer.CanGetSnapData();
+    protected override bool CanAllocatePeer(ISyncPeer peer)
+    {
+        bool canGetSnapData = peer.CanGetSnapData();
+        if (_logger.IsInfo) _logger.Trace($"Peer {peer} allocation {(canGetSnapData ? "succeeded" : "fail")} for GetTrieNodes");
+        return canGetSnapData;
+    }
 
     protected override async Task<byte[]?> RecoverRlpFromPeerBase(ValueKeccak rlpHash, ISyncPeer peer, GetTrieNodesRequest request, CancellationTokenSource cts)
     {
         if (peer.TryGetSatelliteProtocol(Protocol.Snap, out ISnapSyncPeer? snapPeer))
         {
             byte[][] rlp = await snapPeer.GetTrieNodes(request, cts.Token);
-            if (rlp.Length == 1 && rlp[0]?.Length > 0 && ValueKeccak.Compute(rlp[0]) == rlpHash)
+            if (rlp.Length == 1 && rlp[0]?.Length > 0)
             {
-                return rlp[0];
+                if (ValueKeccak.Compute(rlp[0]) == rlpHash)
+                {
+                    return rlp[0];
+                }
+
+                if (_logger.IsInfo) _logger.Info($"Recovered RLP from peer {peer} but the hash does not match");
             }
         }
 

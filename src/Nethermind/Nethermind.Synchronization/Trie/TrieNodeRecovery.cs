@@ -51,7 +51,7 @@ public abstract class TrieNodeRecovery<TRequest> : ITrieNodeRecovery<TRequest>
             (Recovery Recovery, byte[]? Data) result = await task;
             if (result.Data is null)
             {
-                if (_logger.IsDebug) _logger.Debug($"Got empty response from peer {result.Recovery.Peer}");
+                if (_logger.IsInfo) _logger.Info($"Got empty response from peer {result.Recovery.Peer}");
                 keyRecoveries.Remove(result.Recovery);
             }
             else
@@ -70,7 +70,7 @@ public abstract class TrieNodeRecovery<TRequest> : ITrieNodeRecovery<TRequest>
     protected ArrayPoolList<Recovery> GenerateKeyRecoveries(in ValueKeccak rlpHash, TRequest request, CancellationTokenSource cts)
     {
         ArrayPoolList<Recovery> keyRecoveries = AllocatePeers();
-        if (_logger.IsDebug) _logger.Debug($"Allocated {keyRecoveries.Count} peers (out of {_syncPeerPool!.InitializedPeers.Count()} initialized peers)");
+        if (_logger.IsInfo) _logger.Info($"Allocated {keyRecoveries.Count} peers for {nameof(TRequest)} (out of {_syncPeerPool!.InitializedPeers.Count()} initialized peers)");
         foreach (Recovery keyRecovery in keyRecoveries)
         {
             keyRecovery.Task = RecoverRlpFromPeer(rlpHash, keyRecovery, request, cts);
@@ -101,7 +101,7 @@ public abstract class TrieNodeRecovery<TRequest> : ITrieNodeRecovery<TRequest>
         }
         catch (OperationCanceledException)
         {
-            if (_logger.IsTrace) _logger.Trace($"Cancelled recovering RLP from peer {peer}");
+            if (_logger.IsInfo) _logger.Info($"Cancelled recovering RLP from peer {peer}");
         }
         catch (Exception e)
         {
