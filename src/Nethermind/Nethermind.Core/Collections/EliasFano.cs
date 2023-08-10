@@ -42,6 +42,11 @@ public readonly struct EliasFanoS
 
         return rank;
     }
+
+    public byte[] Serialize()
+    {
+
+    }
 }
 
 public struct EliasFano

@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Nethermind.Core.Collections;
 
@@ -35,6 +37,35 @@ public class DArray
     public int? Select1(int k)
     {
         return IndexS1.Select(Data, k);
+    }
+
+    public byte[] Serialize()
+    {
+        byte[] data = new byte[GetLength()];
+        Span<byte> dataSpan = data;
+
+        {
+            Span<byte> bitData = MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Data.Words));
+            bitData.CopyTo(dataSpan);
+            dataSpan = dataSpan[bitData.Length..];
+        }
+
+        {
+            Span<byte> bitData = IndexS1.Serialize();
+            bitData.CopyTo(dataSpan);
+            dataSpan = dataSpan[bitData.Length..];
+        }
+
+        {
+            Span<byte> bitData = IndexS0.Serialize();
+            bitData.CopyTo(dataSpan);
+        }
+        return data;
+    }
+
+    public int GetLength()
+    {
+        return Data.SerializedBytesLength + IndexS1.GetLength() + IndexS0.GetLength();
     }
 }
 
@@ -86,6 +117,60 @@ public class DArrayIndex
 
         if (CurBlockPositions.Count > 0)
             FlushCurBlock(CurBlockPositions, BlockInventory, SubBlockInventory, OverflowPositions);
+    }
+    public byte[] Serialize()
+    {
+        byte[] dataToReturn = new byte[GetLength()];
+        Span<byte> dataSpan = dataToReturn;
+
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, CurBlockPositions.Count);
+            dataSpan = dataSpan[8..];
+            Span<byte> crbSpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(CurBlockPositions));
+            crbSpan.CopyTo(dataSpan);
+            dataSpan = dataSpan[crbSpan.Length..];
+        }
+
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, BlockInventory.Count);
+            dataSpan = dataSpan[8..];
+            Span<byte> inventorySpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(BlockInventory));
+            inventorySpan.CopyTo(dataSpan);
+            dataSpan = dataSpan[inventorySpan.Length..];
+        }
+
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, SubBlockInventory.Count);
+            dataSpan = dataSpan[8..];
+            Span<byte> subBlockInventory = MemoryMarshal.Cast<ushort, byte>(CollectionsMarshal.AsSpan(SubBlockInventory));
+            subBlockInventory.CopyTo(dataSpan);
+            dataSpan = dataSpan[subBlockInventory.Length..];
+        }
+
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, OverflowPositions.Count);
+            dataSpan = dataSpan[8..];
+            Span<byte> overflowSpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(OverflowPositions));
+            overflowSpan.CopyTo(dataSpan);
+            dataSpan = dataSpan[overflowSpan.Length..];
+        }
+
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, NumPositions);
+            dataSpan = dataSpan[8..];
+            dataSpan[-1] = OverOne ? (byte)1 : (byte)0;
+        }
+
+        return dataToReturn;
+    }
+
+    public int GetLength()
+    {
+        return 8 + CurBlockPositions.Count * 4
+                 + 8 + BlockInventory.Count * 4
+                 + 8 + SubBlockInventory.Count * 2
+                 + 8 + OverflowPositions.Count * 8
+                 + 8 + 1;
     }
 
     public int? Select(BitVector bv, int k)

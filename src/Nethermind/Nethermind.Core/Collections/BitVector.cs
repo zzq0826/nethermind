@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Nethermind.Core.Collections;
 
@@ -11,6 +12,11 @@ public unsafe struct BitVector
     private static readonly int WordLen = sizeof(UIntPtr) * 8;
     public List<UIntPtr> Words;
     public int Length { get; private set; }
+
+    public int SerializedBytesLength
+    {
+        get => MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Words)).Length;
+    }
 
     public BitVector()
     {
