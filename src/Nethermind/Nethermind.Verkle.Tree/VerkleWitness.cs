@@ -11,7 +11,7 @@ namespace Nethermind.Verkle.Tree;
 
 // TODO: this can be definitely optimized by caching the keys from StateProvider - because for every access we
 //       already calculate keys in StateProvider - or we maintain pre images?
-public struct VerkleWitness : IVerkleWitness
+public class VerkleWitness : IVerkleWitness
 {
     [Flags]
     private enum AccountHeaderAccess
