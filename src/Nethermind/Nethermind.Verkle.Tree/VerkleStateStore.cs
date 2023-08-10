@@ -401,7 +401,7 @@ public class VerkleStateStore : IVerkleStore, ISyncTrieStore
         }
         else
         {
-            throw new NotImplementedException("Should be implemented in future (probably)");
+            return false;
         }
 
         Debug.Assert(GetStateRoot().Equals(stateRoot));

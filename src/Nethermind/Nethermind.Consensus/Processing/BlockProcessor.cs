@@ -36,6 +36,7 @@ public partial class BlockProcessor : IBlockProcessor
     private readonly IBlockValidator _blockValidator;
     private readonly IRewardCalculator _rewardCalculator;
     protected readonly IBlockProcessor.IBlockTransactionsExecutor _blockTransactionsExecutor;
+    public IBlockProcessor.IBlockTransactionsExecutor StatelessBlockTransactionsExecutor;
 
     private const int MaxUncommittedBlocks = 64;
 
