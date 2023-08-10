@@ -129,6 +129,30 @@ public class PaprikaTrieTests
     }
 
     [Test]
+    public void Storage_branch_with_short_leaves()
+    {
+        byte[] value = new UInt256(1).ToBigEndian().WithoutLeadingZeros().ToArray();
+
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StorageTree state = new(trieStore, _logManager);
+
+        ValueKeccak key0 = new();
+        key0.BytesAsSpan[31] = 0x0A;
+
+        ValueKeccak key1 = new();
+        key1.BytesAsSpan[31] = 0x0B;
+
+        state.Set(key0, value);
+        state.Set(key1, value);
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root, Is.Not.Null);
+    }
+
+    [Test]
     public void Extension()
     {
         UInt256 balanceA = Values.Balance0;
