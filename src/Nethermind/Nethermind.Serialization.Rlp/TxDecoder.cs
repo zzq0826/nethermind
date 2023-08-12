@@ -126,7 +126,7 @@ namespace Nethermind.Serialization.Rlp
             else if (transactionSequence.Length <= TxDecoder.MaxDelayedHashTxnSize && _lazyHash)
             {
                 // Delay hash generation, as may be filtered as having too low gas etc
-                transaction.SetPreHash(transactionSequence);
+                transaction.SetPreHashNoLock(transactionSequence);
             }
             else
             {
@@ -421,7 +421,7 @@ namespace Nethermind.Serialization.Rlp
             else if (transactionSequence.Length <= TxDecoder.MaxDelayedHashTxnSize && _lazyHash)
             {
                 // Delay hash generation, as may be filtered as having too low gas etc
-                transaction.SetPreHash(transactionSequence);
+                transaction.SetPreHashNoLock(transactionSequence);
             }
             else
             {

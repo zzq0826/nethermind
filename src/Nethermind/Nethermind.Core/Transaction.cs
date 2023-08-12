@@ -76,14 +76,24 @@ namespace Nethermind.Core
         {
             lock (this)
             {
-                // Used to delay hash generation, as may be filtered as having too low gas etc
-                _hash = null;
-
-                int size = transactionSequence.Length;
-                byte[] preHash = ArrayPool<byte>.Shared.Rent(size);
-                transactionSequence.CopyTo(preHash);
-                _preHash = new ArraySegment<byte>(preHash, 0, size);
+                SetPreHashNoLock(transactionSequence);
             }
+        }
+
+        /// <summary>
+        /// SetPreHash but without lock. Used for when you are sure lock is not necessary such as when creating
+        /// a new transaction.
+        /// </summary>
+        /// <param name="transactionSequence"></param>
+        public void SetPreHashNoLock(ReadOnlySpan<byte> transactionSequence)
+        {
+            // Used to delay hash generation, as may be filtered as having too low gas etc
+            _hash = null;
+
+            int size = transactionSequence.Length;
+            byte[] preHash = ArrayPool<byte>.Shared.Rent(size);
+            transactionSequence.CopyTo(preHash);
+            _preHash = new ArraySegment<byte>(preHash, 0, size);
         }
 
         public void ClearPreHash()
