@@ -20,7 +20,7 @@ public static class IProcessExitSourceExtensions
 
         // Usually there are time where the mode changed to WaitingForBlock temporarily. So there need to be a small
         // wait to make sure the sync really is completed.
-        exitConditionDuration ??= TimeSpan.FromSeconds(5);
+        exitConditionDuration ??= TimeSpan.FromSeconds(30);
 
         DateTime lastExitConditionTime = DateTime.MaxValue;
         syncMode.Changed += ((sender, args) =>
