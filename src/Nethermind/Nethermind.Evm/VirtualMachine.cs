@@ -31,7 +31,6 @@ using Nethermind.Evm.Tracing.Debugger;
 
 namespace Nethermind.Evm;
 
-using Nethermind.Evm.Precompiles.Stateful;
 using System.Linq;
 using Int256;
 
@@ -542,7 +541,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             [MapToG2Precompile.Address] = new(MapToG2Precompile.Instance),
 
             [PointEvaluationPrecompile.Address] = new(PointEvaluationPrecompile.Instance),
-            [BeaconBlockRootPrecompile.Address] = new(BeaconBlockRootPrecompile.Instance),
         };
     }
 

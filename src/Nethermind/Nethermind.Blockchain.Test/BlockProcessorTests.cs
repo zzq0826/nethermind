@@ -124,7 +124,7 @@ namespace Nethermind.Blockchain.Test
                 .WithParentBeaconBlockRoot(Keccak.Zero)
                 .TestObject;
 
-            Assert.IsFalse(stateProvider.AccountExists(Evm.Precompiles.Stateful.BeaconBlockRootPrecompile.Address));
+            Assert.IsFalse(stateProvider.AccountExists(BeaconBlockRootHandler.Address));
 
             _ = processor.Process(
                 Keccak.EmptyTreeHash,
@@ -132,7 +132,7 @@ namespace Nethermind.Blockchain.Test
                 ProcessingOptions.None,
                 NullBlockTracer.Instance);
 
-            Assert.IsTrue(stateProvider.AccountExists(Evm.Precompiles.Stateful.BeaconBlockRootPrecompile.Address));
+            Assert.IsTrue(stateProvider.AccountExists(BeaconBlockRootHandler.Address));
         }
 
         [Test, Timeout(Timeout.MaxTestTime)]

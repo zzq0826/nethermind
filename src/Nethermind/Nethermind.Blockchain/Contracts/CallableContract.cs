@@ -60,9 +60,9 @@ namespace Nethermind.Blockchain.Contracts
             return objects;
         }
 
-        protected byte[] Call(BlockHeader header, Address sender, long gasLimit)
+        protected byte[] Call(BlockHeader header, Address sender, long gasLimit, byte[] arguments)
         {
-            var transaction = GenerateTransaction<SystemTransaction>(ContractAddress, Array.Empty<byte>(), sender, gasLimit, header);
+            var transaction = GenerateTransaction<SystemTransaction>(ContractAddress, arguments, sender, gasLimit, header);
             var result = CallCore(_transactionProcessor, header, string.Empty, transaction);
             return result;
         }

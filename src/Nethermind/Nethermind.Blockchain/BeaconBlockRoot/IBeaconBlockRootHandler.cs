@@ -15,5 +15,6 @@ using Nethermind.Evm.Tracing;
 namespace Nethermind.Consensus.BeaconBlockRoot;
 public interface IBeaconBlockRootHandler
 {
+    static Address Address { get; }
     void ScheduleSystemCall(Block block);
 }

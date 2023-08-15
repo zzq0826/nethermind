@@ -44,4 +44,8 @@
     <EmbeddedResource Include="Contracts\TransactionPermissionContractV4.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="BeaconBlockRoot\" />
+  </ItemGroup>
+
 </Project>

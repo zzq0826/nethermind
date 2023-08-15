@@ -26,7 +26,7 @@ public sealed class BeaconRootContract : CallableContract, IBeaconRootContract
 
     public byte[] Invoke(BlockHeader blockHeader)
     {
-        var result = Call(blockHeader, Address.SystemUser, UnlimitedGas);
+        var result = Call(blockHeader, Address.SystemUser, UnlimitedGas, blockHeader.ParentBeaconBlockRoot.Bytes.ToArray());
         return result;
     }
 }
