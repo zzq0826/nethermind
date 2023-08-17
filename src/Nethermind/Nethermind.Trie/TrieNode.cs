@@ -630,11 +630,28 @@ namespace Nethermind.Trie
             return trieNode;
         }
 
+        public TrieNode CloneWithChangedKeccak(Keccak? changedKeccak)
+        {
+            TrieNode trieNode = Clone();
+            trieNode.Value = null;
+            trieNode.Keccak = changedKeccak;
+            return trieNode;
+        }
+
         public TrieNode CloneWithChangedKeyAndValue(byte[] key, byte[]? changedValue)
         {
             TrieNode trieNode = Clone();
             trieNode.Key = key;
             trieNode.Value = changedValue;
+            return trieNode;
+        }
+
+        public TrieNode CloneWithChangedKeyAndKeccak(byte[] key, Keccak? changedKeccak)
+        {
+            TrieNode trieNode = Clone();
+            trieNode.Key = key;
+            trieNode.Value = null;
+            trieNode.Keccak = changedKeccak;
             return trieNode;
         }
 

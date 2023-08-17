@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Xml.XPath;
+using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie
 {
@@ -19,6 +20,14 @@ namespace Nethermind.Trie
             TrieNode node = new(NodeType.Leaf);
             node.Key = path;
             node.Value = value;
+            return node;
+        }
+
+        public static TrieNode CreateHashLeaf(byte[] path, Keccak? value)
+        {
+            TrieNode node = new(NodeType.Leaf);
+            node.Key = path;
+            node.Keccak = value;
             return node;
         }
 
