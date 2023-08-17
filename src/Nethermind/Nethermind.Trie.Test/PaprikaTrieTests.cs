@@ -208,16 +208,62 @@ public class PaprikaTrieTests
         Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
     }
 
+    [TestCase(1, "0c64fd8640de0ce2d0a928932ead5597214d5a3adc9c4c29056fef761791e374")]
+    [TestCase(100, "6328bc0a47e3e9b6c3c0fd5b08693be48102f38a1d69dd0da0ef33679882d6ea")]
+    [TestCase(1000, "ff60253c014966b6239710607f70363f52e6437777719c8320d567ab8a213055")]
+    public void Big_random_storage(int count, string hexString)
+    {
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+
+        Random random = new(13);
+        Span<byte> key = stackalloc byte[32];
+
+        for (int i = 0; i < count; i++)
+        {
+            random.NextBytes(key);
+            Keccak keccak = new(key);
+
+            int storageValue = random.Next();
+
+            uint value = (uint)random.Next();
+
+            StorageTree storage = new(trieStore, LimboLogs.Instance);
+
+            storage.Set(keccak, storageValue.ToByteArray());
+            storage.Commit(0);
+            storage.UpdateRootHash();
+
+            state.Set(keccak, new Account(value, value, storage.RootHash, Keccak.OfAnEmptyString));
+        }
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root, Is.Not.Null);
+
+        TrieNode root = state.Root;
+
+        Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
     private static class Values
     {
         public static readonly Keccak Key0 = new(new byte[]
-            { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, });
+        {
+            0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+        });
 
         public static readonly Keccak Key1 = new(new byte[]
-            { 1, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, });
+        {
+            1, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+        });
 
         public static readonly Keccak Key2 = new(new byte[]
-            { 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 });
+        {
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6
+        });
 
         public static readonly UInt256 Balance0 = 13;
         public static readonly UInt256 Balance1 = 17;
