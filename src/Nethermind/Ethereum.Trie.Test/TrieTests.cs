@@ -148,10 +148,11 @@ namespace Ethereum.Trie.Test
 
                 TestContext.WriteLine();
                 TestContext.WriteLine($"Setting {keyString} -> {valueString}");
-                patriciaTree.Set(key.ToPackedByteArray(), value);
+                patriciaTree.SetKeccakLeafOnly(key.ToPackedByteArray(), value);
             }
 
             patriciaTree.UpdateRootHash();
+            TestContext.WriteLine($"Expected root {test.ExpectedRoot} -> {patriciaTree.RootHash}");
             Assert.That(patriciaTree.RootHash.ToString(), Is.EqualTo(test.ExpectedRoot));
         }
 

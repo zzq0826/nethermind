@@ -398,7 +398,9 @@ namespace Nethermind.Trie
                     nibbles, value);
 
                 Keccak keccak = Keccak.Compute(leafRlp.AsSpan());
-                Run(nibbles, nibblesCount, null, keccak, true);
+                Console.Out.WriteLine($"KeccakL for {nibbles.ToHexString() ?? "null"} is {keccak}");
+                // Run(nibbles, nibblesCount, null, keccak, true);
+                Run(nibbles, nibblesCount, value.ToArray(), null, true);
             }
             finally
             {

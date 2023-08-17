@@ -326,6 +326,7 @@ namespace Nethermind.Trie
             Keccak? keccak = Keccak;
             if (keccak is not null)
             {
+                Console.Out.WriteLine($"KeccakP for {Key?.ToHexString() ?? "null"} {NodeType} is {keccak} precalc");
                 return keccak;
             }
 
@@ -341,7 +342,9 @@ namespace Nethermind.Trie
             if (FullRlp.Length >= 32 || isRoot)
             {
                 Metrics.TreeNodeHashCalculations++;
-                return Keccak.Compute(FullRlp);
+                Keccak? nk = Keccak.Compute(FullRlp);
+                Console.Out.WriteLine($"KeccakN for {Key?.ToHexString() ?? "null"} {NodeType} is {nk}");
+                return nk;
             }
 
             return null;
