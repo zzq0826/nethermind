@@ -208,30 +208,38 @@ public class PaprikaTrieTests
         Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
     }
 
-    [TestCase(1, "0c64fd8640de0ce2d0a928932ead5597214d5a3adc9c4c29056fef761791e374")]
-    [TestCase(100, "6328bc0a47e3e9b6c3c0fd5b08693be48102f38a1d69dd0da0ef33679882d6ea")]
-    [TestCase(1000, "ff60253c014966b6239710607f70363f52e6437777719c8320d567ab8a213055")]
-    public void Big_random_storage(int count, string hexString)
+    [TestCase(1, 1, "954f21233681f1b941ef67b30c85b64bfb009452b7f01b28de28eb4c1d2ca258")]
+    [TestCase(1, 100, "c8cf5e6b84e39beeac713a42546cc977581d9b31307efa2b1b288ccd828f278e")]
+    [TestCase(100, 1, "68965a86aec45d3863d2c6de07fcdf75ac420dca0c0f45776704bfc9295593ac")]
+    [TestCase(1000, 1, "b8bdf00f1f389a1445867e5c14ccf17fd21d915c01492bed3e70f74de7f42248")]
+    public void Big_random_storage(int count, int storageCount, string hexString)
     {
         MemDb memDb = new();
         using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
         StateTree state = new(trieStore, _logManager);
 
         Random random = new(13);
-        Span<byte> key = stackalloc byte[32];
 
         for (int i = 0; i < count; i++)
         {
-            random.NextBytes(key);
-            Keccak keccak = new(key);
-
-            int storageValue = random.Next();
+            // account data first
+            ValueKeccak keccak = default;
+            random.NextBytes(keccak.BytesAsSpan);
 
             uint value = (uint)random.Next();
 
+            // storage data second
             StorageTree storage = new(trieStore, LimboLogs.Instance);
 
-            storage.Set(keccak, storageValue.ToByteArray());
+            for (int j = 0; j < storageCount; j++)
+            {
+                ValueKeccak storageKey = default;
+                random.NextBytes(storageKey.BytesAsSpan);
+                int storageValue = random.Next();
+
+                storage.Set(storageKey, storageValue.ToByteArray());
+            }
+
             storage.Commit(0);
             storage.UpdateRootHash();
 
