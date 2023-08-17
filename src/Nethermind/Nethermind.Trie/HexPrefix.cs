@@ -7,9 +7,9 @@ namespace Nethermind.Trie
 {
     public static class HexPrefix
     {
-        public static int ByteLength(byte[] path) => path.Length / 2 + 1;
+        public static int ByteLength(ReadOnlySpan<byte> path) => path.Length / 2 + 1;
 
-        public static void CopyToSpan(byte[] path, bool isLeaf, Span<byte> output)
+        public static void CopyToSpan(ReadOnlySpan<byte> path, bool isLeaf, Span<byte> output)
         {
             if (output.Length != ByteLength(path)) throw new ArgumentOutOfRangeException(nameof(output));
 

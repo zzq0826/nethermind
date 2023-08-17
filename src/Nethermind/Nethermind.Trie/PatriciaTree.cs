@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using DotNetty.Buffers;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -376,10 +377,10 @@ namespace Nethermind.Trie
 
         [SkipLocalsInit]
         [DebuggerStepThrough]
-        public virtual void SetKeccak(ReadOnlySpan<byte> rawKey, Keccak value)
+        public virtual void SetKeccakLeafOnly(ReadOnlySpan<byte> rawKey, Span<byte> value)
         {
             if (_logger.IsTrace)
-                _logger.Trace($"Setting keccak {rawKey.ToHexString()} = {value}");
+                _logger.Trace($"{(value.Length == 0 ? $"Deleting {rawKey.ToHexString()}" : $"Setting {rawKey.ToHexString()} = {value.ToHexString()}")}");
 
             int nibblesCount = 2 * rawKey.Length;
             byte[] array = null;
@@ -391,7 +392,13 @@ namespace Nethermind.Trie
             try
             {
                 Nibbles.BytesToNibbleBytes(rawKey, nibbles);
-                Run(nibbles, nibblesCount, null, value,  true);
+
+                using NettyRlpStream leafRlp = TrieNode.TrieNodeDecoder.EncodeLeaf(
+                    (length) => new NettyRlpStream(PooledByteBufferAllocator.Default.Buffer(length)),
+                    nibbles, value);
+
+                Keccak keccak = Keccak.Compute(leafRlp.AsSpan());
+                Run(nibbles, nibblesCount, null, keccak, true);
             }
             finally
             {

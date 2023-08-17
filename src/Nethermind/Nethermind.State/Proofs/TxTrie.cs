@@ -25,6 +25,16 @@ public class TxTrie : PatriciaTrie<Transaction>
     {
         int key = 0;
 
+        if (!CanBuildProof)
+        {
+            foreach (Transaction? transaction in list)
+            {
+                PutTxLight(key++, transaction);
+            }
+
+            return;
+        }
+
         // 3% allocations (2GB) on a Goerli 3M blocks fast sync due to calling transaction encoder here
         // Avoiding it would require pooling byte arrays and passing them as Spans to temporary trees
         // a temporary trie would be a trie that exists to create a state root only and then be disposed of
@@ -33,5 +43,17 @@ public class TxTrie : PatriciaTrie<Transaction>
             Rlp transactionRlp = _txDecoder.Encode(transaction, RlpBehaviors.SkipTypedWrapping);
             Set(Rlp.Encode(key++).Bytes, transactionRlp.Bytes);
         }
+    }
+
+    private void PutTxLight(int key, Transaction? transaction)
+    {
+        // Rlp transactionRlp = _txDecoder.Encode(transaction, RlpBehaviors.SkipTypedWrapping);
+        // Set(Rlp.Encode(key++).Bytes, transactionRlp.Bytes);
+        // string expectedRlp = "e4822080a0df80018252089400000000000000000000000000000000000000000180808080";
+        // string thekey = "0800";
+        using NettyRlpStream transactionRlp =
+            _txDecoder.EncodeToNewNettyStream(transaction, RlpBehaviors.SkipTypedWrapping);
+
+        SetKeccakLeafOnly(Rlp.Encode(key).Bytes, transactionRlp.AsSpan());
     }
 }

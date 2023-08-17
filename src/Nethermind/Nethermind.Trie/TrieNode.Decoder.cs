@@ -19,7 +19,7 @@ namespace Nethermind.Trie
     {
         private const int StackallocByteThreshold = 256;
 
-        private class TrieNodeDecoder
+        public class TrieNodeDecoder
         {
             public byte[] Encode(ITrieNodeResolver tree, TrieNode? item)
             {
@@ -100,7 +100,13 @@ namespace Nethermind.Trie
                     throw new TrieException($"Hex prefix of a leaf node is null at node {node.Keccak}");
                 }
 
-                byte[] hexPrefix = node.Key;
+                return EncodeLeaf((length) => new RlpStream(length),node.Key, node.Value).Data;
+            }
+
+            [SkipLocalsInit]
+            public static T EncodeLeaf<T>(Func<int, T> rlpFactory, Span<byte> hexPrefix, Span<byte> value)
+            where T: RlpStream
+            {
                 int hexLength = HexPrefix.ByteLength(hexPrefix);
                 byte[]? rentedBuffer = hexLength > StackallocByteThreshold
                     ? ArrayPool<byte>.Shared.Rent(hexLength)
@@ -111,17 +117,17 @@ namespace Nethermind.Trie
                     : rentedBuffer)[..hexLength];
 
                 HexPrefix.CopyToSpan(hexPrefix, isLeaf: true, keyBytes);
-                int contentLength = Rlp.LengthOf(keyBytes) + Rlp.LengthOf(node.Value);
+                int contentLength = Rlp.LengthOf(keyBytes) + Rlp.LengthOf(value);
                 int totalLength = Rlp.LengthOfSequence(contentLength);
-                RlpStream rlpStream = new(totalLength);
+                T rlpStream = rlpFactory(totalLength);
                 rlpStream.StartSequence(contentLength);
                 rlpStream.Encode(keyBytes);
                 if (rentedBuffer is not null)
                 {
                     ArrayPool<byte>.Shared.Return(rentedBuffer);
                 }
-                rlpStream.Encode(node.Value);
-                return rlpStream.Data;
+                rlpStream.Encode(value);
+                return rlpStream;
             }
 
             private static byte[] RlpEncodeBranch(ITrieNodeResolver tree, TrieNode item)
