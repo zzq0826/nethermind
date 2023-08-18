@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Nethermind.Core;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -18,20 +19,29 @@ namespace Nethermind.TxPool.Filters
         private readonly IChainHeadSpecProvider _specProvider;
         private readonly IChainHeadInfoProvider _headInfo;
         private readonly TxDistinctSortedPool _txs;
+        private readonly TxDistinctSortedPool _blobTxs;
         private readonly bool _thereIsPriorityContract;
         private readonly ILogger _logger;
 
-        public FeeTooLowFilter(IChainHeadInfoProvider headInfo, TxDistinctSortedPool txs, bool thereIsPriorityContract, ILogger logger)
+        public FeeTooLowFilter(IChainHeadInfoProvider headInfo, TxDistinctSortedPool txs, TxDistinctSortedPool blobTxs, bool thereIsPriorityContract, ILogger logger)
         {
             _specProvider = headInfo.SpecProvider;
             _headInfo = headInfo;
             _txs = txs;
+            _blobTxs = blobTxs;
             _thereIsPriorityContract = thereIsPriorityContract;
             _logger = logger;
         }
 
         public AcceptTxResult Accept(Transaction tx, TxFilteringState state, TxHandlingOptions handlingOptions)
         {
+            if (tx.SupportsBlobs && tx.MaxPriorityFeePerGas < 1.GWei())
+            {
+                Metrics.PendingTransactionsTooLowFee++;
+                if (_logger.IsTrace) _logger.Trace($"Skipped adding transaction {tx.ToString("  ")}, too low payable gas price with options {handlingOptions} from {new StackTrace()}");
+                return AcceptTxResult.FeeTooLow.WithMessage($"MaxPriorityFeePerGas for blob transaction needs to be at least {1.GWei()} (1 GWei), is {tx.MaxPriorityFeePerGas}.");
+            }
+
             bool isLocal = (handlingOptions & TxHandlingOptions.PersistentBroadcast) != 0;
             if (isLocal)
             {
@@ -51,7 +61,8 @@ namespace Nethermind.TxPool.Filters
                     AcceptTxResult.FeeTooLow.WithMessage("Affordable gas price is 0");
             }
 
-            if (_txs.IsFull() && _txs.TryGetLast(out Transaction? lastTx)
+            TxDistinctSortedPool relevantPool = (tx.SupportsBlobs ? _blobTxs : _txs);
+            if (relevantPool.IsFull() && relevantPool.TryGetLast(out Transaction? lastTx)
                 && affordableGasPrice <= lastTx?.GasBottleneck)
             {
                 Metrics.PendingTransactionsTooLowFee++;
