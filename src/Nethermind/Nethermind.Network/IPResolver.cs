@@ -98,6 +98,7 @@ namespace Nethermind.Network
                     (bool success, IPAddress ip) = await s.TryGetIP();
                     if (success)
                     {
+                        ThisNodeInfo.AddInfo("Local IP  :", $"{ip}");
                         return ip;
                     }
                 }
