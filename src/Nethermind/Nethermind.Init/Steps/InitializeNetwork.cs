@@ -502,7 +502,6 @@ public class InitializeNetwork : IStep
             _api.NodeKey.PublicKey,
             _networkConfig.ProcessingThreadCount,
             _networkConfig.P2PPort,
-            _networkConfig.LocalIp,
             _networkConfig.ConnectTimeoutMs,
             encryptionHandshakeServiceA,
             _api.SessionMonitor,
