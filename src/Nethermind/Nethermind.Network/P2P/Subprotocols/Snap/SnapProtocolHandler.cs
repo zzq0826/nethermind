@@ -26,7 +26,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public static TimeSpan UpperLatencyThreshold = TimeSpan.FromMilliseconds(3000);
 
         private readonly LatencyBasedRequestSizer _requestSizer = new(
-            minRequestLimit: 50000,
+            minRequestLimit: 5000,
             maxRequestLimit: 3_000_000,
             lowerWatermark: LowerLatencyThreshold,
             upperWatermark: UpperLatencyThreshold
