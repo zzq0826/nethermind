@@ -6,7 +6,6 @@ using System.IO;
 using System.Net;
 using System.Text.Json;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
@@ -15,7 +14,7 @@ namespace Nethermind.Core.Test.Builders
 {
     public static partial class TestItem
     {
-        public static Random Random { get; } = new();
+        public static Random Random { get; } = new(1337); // 1337 - to make tests predictable, reproducible
         private static readonly AccountDecoder _accountDecoder = new();
 
         static TestItem()

@@ -4,8 +4,8 @@
 using System.Buffers;
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.ObjectPool;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Eip2930;
 using Nethermind.Core.Extensions;
@@ -37,7 +37,7 @@ namespace Nethermind.Core
         public long GasLimit { get; set; }
         public Address? To { get; set; }
         public UInt256 Value { get; set; }
-        public byte[]? Data { get; set; }
+        public Memory<byte>? Data { get; set; }
         public Address? SenderAddress { get; set; }
         public Signature? Signature { get; set; }
         public bool IsSigned => Signature is not null;
@@ -55,9 +55,9 @@ namespace Nethermind.Core
                 {
                     if (_hash is not null) return _hash;
 
-                    if (_preHash.Count > 0)
+                    if (_preHash.Length > 0)
                     {
-                        _hash = Keccak.Compute(_preHash.AsSpan());
+                        _hash = Keccak.Compute(_preHash.Span);
                         ClearPreHashInternal();
                     }
                 }
@@ -66,32 +66,43 @@ namespace Nethermind.Core
             }
             set
             {
-                lock (this)
-                {
-                    ClearPreHashInternal();
-                    _hash = value;
-                }
+                ClearPreHash();
+                _hash = value;
             }
         }
 
-        private ArraySegment<byte> _preHash;
+        private Memory<byte> _preHash;
+        private IMemoryOwner<byte>? _preHashMemoryOwner;
         public void SetPreHash(ReadOnlySpan<byte> transactionSequence)
         {
             lock (this)
             {
-                // Used to delay hash generation, as may be filtered as having too low gas etc
-                _hash = null;
-
-                int size = transactionSequence.Length;
-                byte[] preHash = ArrayPool<byte>.Shared.Rent(size);
-                transactionSequence.CopyTo(preHash);
-                _preHash = new ArraySegment<byte>(preHash, 0, size);
+                SetPreHashNoLock(transactionSequence);
             }
+        }
+
+        public void SetPreHashNoLock(ReadOnlySpan<byte> transactionSequence)
+        {
+            // Used to delay hash generation, as may be filtered as having too low gas etc
+            _hash = null;
+
+            int size = transactionSequence.Length;
+            _preHashMemoryOwner = MemoryPool<byte>.Shared.Rent(size);
+            _preHash = _preHashMemoryOwner.Memory[..size];
+            transactionSequence.CopyTo(_preHash.Span);
+        }
+
+        public void SetPreHashMemoryNoLock(Memory<byte> transactionSequence, IMemoryOwner<byte>? preHashMemoryOwner = null)
+        {
+            // Used to delay hash generation, as may be filtered as having too low gas etc
+            _hash = null;
+            _preHash = transactionSequence;
+            _preHashMemoryOwner = preHashMemoryOwner;
         }
 
         public void ClearPreHash()
         {
-            if (_preHash.Count > 0)
+            if (_preHash.Length > 0)
             {
                 lock (this)
                 {
@@ -102,9 +113,10 @@ namespace Nethermind.Core
 
         private void ClearPreHashInternal()
         {
-            if (_preHash.Count > 0)
+            if (_preHash.Length > 0)
             {
-                ArrayPool<byte>.Shared.Return(_preHash.Array!);
+                _preHashMemoryOwner?.Dispose();
+                _preHashMemoryOwner = null;
                 _preHash = default;
             }
         }
@@ -114,13 +126,12 @@ namespace Nethermind.Core
         public int DataLength => Data?.Length ?? 0;
 
         public AccessList? AccessList { get; set; } // eip2930
-        public UInt256? MaxFeePerDataGas { get; set; } // eip4844
+
+        public UInt256? MaxFeePerBlobGas { get; set; } // eip4844
+
         public byte[]?[]? BlobVersionedHashes { get; set; } // eip4844
 
-        // Network form of blob transaction fields
-        public byte[]? BlobKzgs { get; set; }
-        public byte[]? Blobs { get; set; }
-        public byte[]? BlobProofs { get; set; }
+        public object? NetworkWrapper { get; set; }
 
         /// <summary>
         /// Service transactions are free. The field added to handle baseFee validation after 1559
@@ -147,7 +158,7 @@ namespace Nethermind.Core
         {
             string gasPriceString =
                 Supports1559 ? $"maxPriorityFeePerGas: {MaxPriorityFeePerGas}, MaxFeePerGas: {MaxFeePerGas}" : $"gas price {GasPrice}";
-            return $"[TX: hash {Hash} from {SenderAddress} to {To} with data {Data?.ToHexString()}, {gasPriceString} and limit {GasLimit}, nonce {Nonce}]";
+            return $"[TX: hash {Hash} from {SenderAddress} to {To} with data {Data.AsArray()?.ToHexString()}, {gasPriceString} and limit {GasLimit}, nonce {Nonce}]";
         }
 
         public string ToString(string indent)
@@ -169,7 +180,7 @@ namespace Nethermind.Core
             builder.AppendLine($"{indent}Gas Limit: {GasLimit}");
             builder.AppendLine($"{indent}Nonce:     {Nonce}");
             builder.AppendLine($"{indent}Value:     {Value}");
-            builder.AppendLine($"{indent}Data:      {(Data ?? Array.Empty<byte>()).ToHexString()}");
+            builder.AppendLine($"{indent}Data:      {(Data.AsArray() ?? Array.Empty<byte>()).ToHexString()}");
             builder.AppendLine($"{indent}Signature: {(Signature?.Bytes ?? Array.Empty<byte>()).ToHexString()}");
             builder.AppendLine($"{indent}V:         {Signature?.V}");
             builder.AppendLine($"{indent}ChainId:   {Signature?.ChainId}");
@@ -177,13 +188,52 @@ namespace Nethermind.Core
 
             if (SupportsBlobs)
             {
-                builder.AppendLine($"{indent}BlobVersionedHashes: {BlobVersionedHashes?.Length}");
+                builder.AppendLine($"{indent}{nameof(MaxFeePerBlobGas)}: {MaxFeePerBlobGas}");
+                builder.AppendLine($"{indent}{nameof(BlobVersionedHashes)}: {BlobVersionedHashes?.Length}");
             }
 
             return builder.ToString();
         }
 
         public override string ToString() => ToString(string.Empty);
+
+        public bool MayHaveNetworkForm => Type is TxType.Blob;
+
+        public class PoolPolicy : IPooledObjectPolicy<Transaction>
+        {
+            public Transaction Create()
+            {
+                return new Transaction();
+            }
+
+            public bool Return(Transaction obj)
+            {
+                obj.ClearPreHash();
+                obj.Hash = default;
+                obj.ChainId = default;
+                obj.Type = default;
+                obj.Nonce = default;
+                obj.GasPrice = default;
+                obj.GasBottleneck = default;
+                obj.DecodedMaxFeePerGas = default;
+                obj.GasLimit = default;
+                obj.To = default;
+                obj.Value = default;
+                obj.Data = default;
+                obj.SenderAddress = default;
+                obj.Signature = default;
+                obj.Timestamp = default;
+                obj.AccessList = default;
+                obj.MaxFeePerBlobGas = default;
+                obj.BlobVersionedHashes = default;
+                obj.NetworkWrapper = default;
+                obj.IsServiceTransaction = default;
+                obj.PoolIndex = default;
+                obj._size = default;
+
+                return true;
+            }
+        }
     }
 
     /// <summary>
@@ -203,5 +253,22 @@ namespace Nethermind.Core
     public interface ITransactionSizeCalculator
     {
         int GetLength(Transaction tx);
+    }
+
+    /// <summary>
+    /// Holds network form fields for <see cref="TxType.Blob" /> transactions
+    /// </summary>
+    public class ShardBlobNetworkWrapper
+    {
+        public ShardBlobNetworkWrapper(byte[][] blobs, byte[][] commitments, byte[][] proofs)
+        {
+            Blobs = blobs;
+            Commitments = commitments;
+            Proofs = proofs;
+        }
+
+        public byte[][] Commitments { get; set; }
+        public byte[][] Blobs { get; set; }
+        public byte[][] Proofs { get; set; }
     }
 }

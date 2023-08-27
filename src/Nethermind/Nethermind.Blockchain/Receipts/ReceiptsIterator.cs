@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using Nethermind.Blockchain.Find;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
@@ -111,6 +110,7 @@ namespace Nethermind.Blockchain.Receipts
             {
                 _blocksDb?.DangerousReleaseMemory(_decoderContext.Data);
             }
+            _recoveryContext?.Dispose();
         }
 
         public LogEntriesIterator IterateLogs(TxReceiptStructRef receipt)

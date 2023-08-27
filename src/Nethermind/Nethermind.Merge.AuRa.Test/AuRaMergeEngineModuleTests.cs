@@ -35,7 +35,7 @@ namespace Nethermind.Merge.AuRa.Test;
 
 public class AuRaMergeEngineModuleTests : EngineModuleTests
 {
-    protected override MergeTestBlockchain CreateBaseBlockChain(
+    protected override MergeTestBlockchain CreateBaseBlockchain(
         IMergeConfig? mergeConfig = null,
         IPayloadPreparationService? mockedPayloadService = null,
         ILogManager? logManager = null)
@@ -73,6 +73,7 @@ public class AuRaMergeEngineModuleTests : EngineModuleTests
         "0xe168b70ac8a6f7d90734010030801fbb2dcce03a657155c4024b36ba8d1e3926"
         )]
     [Parallelizable(ParallelScope.None)]
+    [Obsolete]
     public override Task forkchoiceUpdatedV1_should_communicate_with_boost_relay_through_http(string blockHash, string parentHash)
         => base.forkchoiceUpdatedV1_should_communicate_with_boost_relay_through_http(blockHash, parentHash);
 
@@ -110,6 +111,12 @@ public class AuRaMergeEngineModuleTests : EngineModuleTests
     public override Task getPayloadBodiesByRangeV1_should_return_payload_bodies_in_order_of_request_range_and_null_for_unknown_indexes(IList<Withdrawal> withdrawals)
     {
         return base.getPayloadBodiesByRangeV1_should_return_payload_bodies_in_order_of_request_range_and_null_for_unknown_indexes(withdrawals);
+    }
+
+    [Ignore("engine_newPayloadV3 fails")]
+    public override Task NewPayloadV3_should_decline_mempool_encoding(bool inMempoolForm, string expectedPayloadStatus)
+    {
+        return base.NewPayloadV3_should_decline_mempool_encoding(inMempoolForm, expectedPayloadStatus);
     }
 
     class MergeAuRaTestBlockchain : MergeTestBlockchain

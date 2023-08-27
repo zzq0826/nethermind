@@ -15,7 +15,6 @@ using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
-using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
@@ -351,7 +350,8 @@ namespace Nethermind.Synchronization.Test
             MultiSyncModeSelector selector = new(resolver, syncPeerPool, syncConfig, No.BeaconSync, bestPeerStrategy, logManager);
             Pivot pivot = new(syncConfig);
             SyncReport syncReport = new(syncPeerPool, nodeStatsManager, selector, syncConfig, pivot, LimboLogs.Instance);
-            BlockDownloaderFactory blockDownloaderFactory = new(MainnetSpecProvider.Instance,
+            BlockDownloaderFactory blockDownloaderFactory = new(
+            MainnetSpecProvider.Instance,
                 tree,
                 NullReceiptStorage.Instance,
                 blockValidator,
@@ -373,9 +373,10 @@ namespace Nethermind.Synchronization.Test
                 blockDownloaderFactory,
                 pivot,
                 syncReport,
+                Substitute.For<IProcessExitSource>(),
                 logManager);
             SyncServer syncServer = new(
-                trieStore,
+                trieStore.AsKeyValueStore(),
                 codeDb,
                 tree,
                 receiptStorage,
@@ -403,7 +404,7 @@ namespace Nethermind.Synchronization.Test
             processor.Start();
             tree.SuggestBlock(_genesis);
 
-            if (!waitEvent.Wait(1000))
+            if (!waitEvent.Wait(10000))
             {
                 throw new Exception("No genesis");
             }

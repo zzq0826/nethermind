@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nethermind.Trie
 {
@@ -28,11 +29,22 @@ namespace Nethermind.Trie
 
         public static void BytesToNibbleBytes(ReadOnlySpan<byte> bytes, Span<byte> nibbles)
         {
-            Debug.Assert(nibbles.Length == 2 * bytes.Length);
+            if (nibbles.Length != 2 * bytes.Length)
+            {
+                ThrowArgumentException();
+            }
+
             for (int i = 0; i < bytes.Length; i++)
             {
                 nibbles[i * 2] = (byte)((bytes[i] & 240) >> 4);
                 nibbles[i * 2 + 1] = (byte)(bytes[i] & 15);
+            }
+
+            [DoesNotReturn]
+            [StackTraceHidden]
+            static void ThrowArgumentException()
+            {
+                throw new ArgumentException("Nibbles length must be twice the bytes length");
             }
         }
 
@@ -77,7 +89,7 @@ namespace Nethermind.Trie
             return (byte)(((byte)highNibble << 4) | (byte)lowNibble);
         }
 
-        public static byte[] ToBytes(byte[] nibbles)
+        public static byte[] ToBytes(ReadOnlySpan<byte> nibbles)
         {
             byte[] bytes = new byte[nibbles.Length / 2];
             for (int i = 0; i < bytes.Length; i++)
@@ -88,7 +100,7 @@ namespace Nethermind.Trie
             return bytes;
         }
 
-        public static byte[] ToCompactHexEncoding(byte[] nibbles)
+        public static byte[] ToCompactHexEncoding(ReadOnlySpan<byte> nibbles)
         {
             int oddity = nibbles.Length % 2;
             byte[] bytes = new byte[nibbles.Length / 2 + 1];
@@ -104,5 +116,7 @@ namespace Nethermind.Trie
 
             return bytes;
         }
+
+        public static byte[] EncodePath(ReadOnlySpan<byte> input) => input.Length == 64 ? ToBytes(input) : ToCompactHexEncoding(input);
     }
 }

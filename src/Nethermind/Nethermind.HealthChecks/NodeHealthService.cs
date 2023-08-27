@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.IO.Abstractions;
 using Nethermind.Api;
 using Nethermind.Blockchain.Services;
@@ -175,7 +174,7 @@ namespace Nethermind.HealthChecks
             bool result = false;
             foreach (var capability in capabilities)
             {
-                if (capability.Value)
+                if (capability.Value.Enabled)
                 {
                     result |= UpdateStatsAndCheckInvoked(capability.Key, now);
                 }
