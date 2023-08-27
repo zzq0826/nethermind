@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
+
 namespace Nethermind.Core.Buffers;
 
 public interface ICappedArrayPool
@@ -21,5 +23,12 @@ public static class BufferPoolExtensions
     public static void SafeReturnBuffer(this ICappedArrayPool? pool, CappedArray<byte> buffer)
     {
         pool?.Return(buffer);
+    }
+
+    public static CappedArray<byte> RentAndCopy(this ICappedArrayPool? pool, Span<byte> data)
+    {
+        CappedArray<byte> buffer = pool.SafeRentBuffer(data.Length);
+        data.CopyTo(buffer.AsSpan());
+        return buffer;
     }
 }

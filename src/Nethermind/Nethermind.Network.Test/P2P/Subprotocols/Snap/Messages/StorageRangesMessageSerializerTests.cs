@@ -27,7 +27,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
             };
             StorageRangesMessageSerializer serializer = new();
 
-            SerializerTester.TestZero(serializer, msg);
+            SerializerTester.TestZero(serializer, msg, additionallyExcluding: (op) => op.Excluding(it => it.MemoryOwner));
         }
 
         [Test]
@@ -45,7 +45,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
             var serialized = serializer.Serialize(msg);
             var deserialized = serializer.Deserialize(serialized);
 
-            SerializerTester.TestZero(serializer, msg);
+            SerializerTester.TestZero(serializer, msg, additionallyExcluding: (op) => op.Excluding(it => it.MemoryOwner));
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
 
             StorageRangesMessageSerializer serializer = new();
 
-            SerializerTester.TestZero(serializer, msg);
+            SerializerTester.TestZero(serializer, msg, additionallyExcluding: (op) => op.Excluding(it => it.MemoryOwner));
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Snap.Messages
 
             StorageRangesMessageSerializer serializer = new();
 
-            SerializerTester.TestZero(serializer, msg);
+            SerializerTester.TestZero(serializer, msg, additionallyExcluding: (op) => op.Excluding(it => it.MemoryOwner));
         }
     }
 }

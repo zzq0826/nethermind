@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using DotNetty.Buffers;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Serialization.Rlp;
 using Nethermind.State.Snap;
@@ -66,26 +68,68 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         public StorageRangeMessage Deserialize(IByteBuffer byteBuffer)
         {
             StorageRangeMessage message = new();
-            NettyRlpStream stream = new(byteBuffer);
+            NettyBufferMemoryOwner memoryOwner = new(byteBuffer);
+            Rlp.ValueDecoderContext ctx = new Rlp.ValueDecoderContext(memoryOwner.Memory, true);
 
-            stream.ReadSequenceLength();
+            ctx.ReadSequenceLength();
 
-            message.RequestId = stream.DecodeLong();
-            message.Slots = stream.DecodeArray(s => s.DecodeArray(DecodeSlot));
-            message.Proofs = stream.DecodeArray(s => s.DecodeByteArray());
+            message.RequestId = ctx.DecodeLong();
+            message.MemoryOwner = memoryOwner;
+
+            message.Slots = ctx.DecodeArray(SlotsDecoder.Instance);
+            message.Proofs = ctx.DecodeArray(ByteArrayDecoder.Instance);
+
+            byteBuffer.SetReaderIndex(byteBuffer.ReaderIndex + ctx.Position);
 
             return message;
         }
 
-        private PathWithStorageSlot DecodeSlot(RlpStream stream)
+        public class SlotsDecoder: IRlpValueDecoder<PathWithStorageSlot[]>
         {
-            stream.ReadSequenceLength();
-            Keccak path = stream.DecodeKeccak();
-            byte[] value = stream.DecodeByteArray();
+            public static SlotsDecoder Instance = new();
+            public int GetLength(PathWithStorageSlot[] item, RlpBehaviors rlpBehaviors)
+            {
+                throw new System.NotImplementedException("used for deserialize only");
+            }
 
-            PathWithStorageSlot data = new(path, value);
+            public PathWithStorageSlot[] Decode(ref Rlp.ValueDecoderContext decoderContext, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+            {
+                return decoderContext.DecodeArray(SlotDecoder.Instance);
+            }
+        }
 
-            return data;
+        public class SlotDecoder: IRlpValueDecoder<PathWithStorageSlot>
+        {
+            public static SlotDecoder Instance = new();
+            public int GetLength(PathWithStorageSlot item, RlpBehaviors rlpBehaviors)
+            {
+                throw new System.NotImplementedException("used for deserialize only");
+            }
+
+            public PathWithStorageSlot Decode(ref Rlp.ValueDecoderContext decoderContext, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+            {
+                decoderContext.ReadSequenceLength();
+                Keccak path = decoderContext.DecodeKeccak();
+                Memory<byte> value = decoderContext.DecodeByteArrayMemory().Value;
+
+                PathWithStorageSlot data = new(path, value);
+
+                return data;
+            }
+        }
+
+        public class ByteArrayDecoder: IRlpValueDecoder<byte[]>
+        {
+            public static ByteArrayDecoder Instance = new();
+            public int GetLength(byte[] item, RlpBehaviors rlpBehaviors)
+            {
+                throw new System.NotImplementedException("used for deserialize only");
+            }
+
+            public byte[] Decode(ref Rlp.ValueDecoderContext decoderContext, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+            {
+                return decoderContext.DecodeByteArray();
+            }
         }
 
         private (int contentLength, int allSlotsLength, int[] accountSlotsLengths, int proofsLength) CalculateLengths(StorageRangeMessage message)

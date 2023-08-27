@@ -155,16 +155,19 @@ namespace Nethermind.Synchronization.SnapSync
                 }
             }
 
+            response.Dispose();
+
             return result;
         }
 
         public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, PathWithStorageSlot[] slots, byte[][]? proofs = null)
         {
             ITrieStore store = _trieStorePool.Get();
-            StorageTree tree = new(store, _logManager);
+            TrackingCappedArrayPool bufferPool = new(slots.Length * 2);
+            StorageTree tree = new(store, _logManager, bufferPool: bufferPool);
             try
             {
-                (AddRangeResult result, bool moreChildrenToRight) = SnapProviderHelper.AddStorageRange(tree, blockNumber, startingHash, slots, expectedRootHash, proofs);
+                (AddRangeResult result, bool moreChildrenToRight) = SnapProviderHelper.AddStorageRange(tree, blockNumber, startingHash, slots, expectedRootHash, proofs, bufferPool: bufferPool);
 
                 if (result == AddRangeResult.OK)
                 {
@@ -197,6 +200,7 @@ namespace Nethermind.Synchronization.SnapSync
             finally
             {
                 _trieStorePool.Return(store);
+                bufferPool.ReturnAll();
             }
         }
 

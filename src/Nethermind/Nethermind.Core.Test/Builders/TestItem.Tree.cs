@@ -74,12 +74,12 @@ namespace Nethermind.Core.Test.Builders
 
                 var storageTree = new StorageTree(store, LimboLogs.Instance);
 
-                storageTree.Set(SlotsWithPaths[0].Path, SlotsWithPaths[0].SlotRlpValue, false);
-                storageTree.Set(SlotsWithPaths[1].Path, SlotsWithPaths[1].SlotRlpValue, false);
-                storageTree.Set(SlotsWithPaths[2].Path, SlotsWithPaths[2].SlotRlpValue, false);
-                storageTree.Set(SlotsWithPaths[3].Path, SlotsWithPaths[3].SlotRlpValue, false);
-                storageTree.Set(SlotsWithPaths[4].Path, SlotsWithPaths[4].SlotRlpValue, false);
-                storageTree.Set(SlotsWithPaths[5].Path, SlotsWithPaths[5].SlotRlpValue, false);
+                storageTree.Set(SlotsWithPaths[0].Path, SlotsWithPaths[0].SlotRlpValue.ToArray(), false);
+                storageTree.Set(SlotsWithPaths[1].Path, SlotsWithPaths[1].SlotRlpValue.ToArray(), false);
+                storageTree.Set(SlotsWithPaths[2].Path, SlotsWithPaths[2].SlotRlpValue.ToArray(), false);
+                storageTree.Set(SlotsWithPaths[3].Path, SlotsWithPaths[3].SlotRlpValue.ToArray(), false);
+                storageTree.Set(SlotsWithPaths[4].Path, SlotsWithPaths[4].SlotRlpValue.ToArray(), false);
+                storageTree.Set(SlotsWithPaths[5].Path, SlotsWithPaths[5].SlotRlpValue.ToArray(), false);
 
                 storageTree.Commit(0);
 

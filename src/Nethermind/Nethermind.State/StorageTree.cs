@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
@@ -33,8 +34,8 @@ namespace Nethermind.State
             }
         }
 
-        public StorageTree(ITrieStore? trieStore, ILogManager? logManager)
-            : base(trieStore, Keccak.EmptyTreeHash, false, true, logManager)
+        public StorageTree(ITrieStore? trieStore, ILogManager? logManager, ICappedArrayPool? bufferPool = null)
+            : base(trieStore, Keccak.EmptyTreeHash, false, true, logManager, bufferPool: bufferPool)
         {
             TrieType = TrieType.Storage;
         }
@@ -84,21 +85,27 @@ namespace Nethermind.State
             SetInternal(key, value);
         }
 
-        public void Set(in ValueKeccak key, byte[] value, bool rlpEncode = true)
+        public void Set(in ValueKeccak key, CappedArray<byte> value, bool rlpEncode = true)
         {
             SetInternal(key.Bytes, value, rlpEncode);
         }
 
-        private void SetInternal(ReadOnlySpan<byte> rawKey, byte[] value, bool rlpEncode = true)
+        private void SetInternal(ReadOnlySpan<byte> rawKey, CappedArray<byte> value, bool rlpEncode = true)
         {
-            if (value.IsZero())
+            if (value.AsSpan().IsZero())
             {
                 Set(rawKey, Array.Empty<byte>());
             }
             else
             {
-                Rlp rlpEncoded = rlpEncode ? Rlp.Encode(value) : new Rlp(value);
-                Set(rawKey, rlpEncoded);
+                if (rlpEncode)
+                {
+                    Set(rawKey, Rlp.Encode(value.ToArray()));
+                }
+                else
+                {
+                    Set(rawKey, value);
+                }
             }
         }
     }

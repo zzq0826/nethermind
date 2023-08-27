@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
@@ -84,7 +85,8 @@ namespace Nethermind.Synchronization.SnapSync
             in ValueKeccak? startingHash,
             PathWithStorageSlot[] slots,
             in ValueKeccak expectedRootHash,
-            byte[][]? proofs = null
+            byte[][]? proofs = null,
+            ICappedArrayPool? bufferPool = null
         )
         {
             // TODO: Check the slots boundaries and sorting
@@ -103,7 +105,7 @@ namespace Nethermind.Synchronization.SnapSync
             {
                 PathWithStorageSlot slot = slots[index];
                 Interlocked.Add(ref Metrics.SnapStateSynced, slot.SlotRlpValue.Length);
-                tree.Set(slot.Path, slot.SlotRlpValue, false);
+                tree.Set(slot.Path.Bytes, bufferPool.RentAndCopy(slot.SlotRlpValue.Span));
             }
 
             tree.UpdateRootHash();

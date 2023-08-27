@@ -206,7 +206,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
             Metrics.SnapGetStorageRangesSent++;
 
-            return new SlotsAndProofs() { PathsAndSlots = response.Slots, Proofs = response.Proofs };
+            return new SlotsAndProofs() { PathsAndSlots = response.Slots, Proofs = response.Proofs, Disposable = response };
         }
 
         public async Task<byte[][]> GetByteCodes(IReadOnlyList<ValueKeccak> codeHashes, CancellationToken token)
