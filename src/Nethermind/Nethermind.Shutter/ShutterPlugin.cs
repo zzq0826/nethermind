@@ -3,11 +3,14 @@
 
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
+using Nethermind.Consensus;
+using Nethermind.Consensus.Transactions;
+using Nethermind.Core;
 using Nethermind.Logging;
 
 namespace Nethermind.Shutter;
 
-public sealed class ShutterPlugin : INethermindPlugin
+public sealed class ShutterPlugin : IShutterPlugin
 {
     private IShutterConfig _config = null!;
     private ILogger _logger = default!;
@@ -35,11 +38,31 @@ public sealed class ShutterPlugin : INethermindPlugin
 
     public Task InitRpcModules() => Task.CompletedTask;
 
+    //public Task<IBlockProducer> InitBlockProducer(IConsensusWrapperPlugin consensusPlugin, ITxSource? additionalTxSource = null)
+    //{
+    //    return consensusPlugin.InitBlockProducer(consensusPlugin, additionalTxSource);
+    //}
+
+    public Task<IBlockProducer> InitBlockProducer(IConsensusWrapperPlugin consensusPlugin, IConsensusPlugin consensusP)
+    {
+        return consensusPlugin.InitBlockProducer(consensusP, new BlkProd());
+    }
+
     public string Author { get; } = "Nethermind";
 
     public string Description { get; } = "TODO";
 
-    private bool Enabled => _config?.Enabled ?? false;
+    private bool Enabled => true;
 
     public string Name { get; } = "Shutter";
+
+    //bool IConsensusWrapperPlugin.Enabled => Enabled;
+
+    public class BlkProd : ITxSource
+    {
+        public IEnumerable<Transaction> GetTransactions(BlockHeader parent, long gasLimit)
+        {
+            return Enumerable.Empty<Transaction>();
+        }
+    }
 }

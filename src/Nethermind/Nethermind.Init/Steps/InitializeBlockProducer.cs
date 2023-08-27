@@ -47,12 +47,16 @@ namespace Nethermind.Init.Steps
 
             if (_api.ChainSpec is null) throw new StepDependencyException(nameof(_api.ChainSpec));
             IConsensusPlugin? consensusPlugin = _api.GetConsensusPlugin();
-
+            
             if (consensusPlugin is not null)
             {
-                foreach (IConsensusWrapperPlugin wrapperPlugin in _api.GetConsensusWrapperPlugins())
+                var cw = _api.GetConsensusWrapperPlugins();
+                var shutter = _api.GetShutterPlugin();
+                foreach (IConsensusWrapperPlugin wrapperPlugin in cw)
                 {
-                    return await wrapperPlugin.InitBlockProducer(consensusPlugin);
+                    return shutter is null
+                        ? await wrapperPlugin.InitBlockProducer(consensusPlugin)
+                        : await shutter.InitBlockProducer(wrapperPlugin, consensusPlugin);
                 }
 
                 return await consensusPlugin.InitBlockProducer();

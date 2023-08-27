@@ -56,6 +56,8 @@ namespace Nethermind.Api
         public IEnumerable<IConsensusWrapperPlugin> GetConsensusWrapperPlugins() =>
             Plugins.OfType<IConsensusWrapperPlugin>().Where(p => p.Enabled);
 
+        public IShutterPlugin? GetShutterPlugin() => Plugins.OfType<IShutterPlugin>().SingleOrDefault();
+
         public IEnumerable<ISynchronizationPlugin> GetSynchronizationPlugins() =>
             Plugins.OfType<ISynchronizationPlugin>();
     }

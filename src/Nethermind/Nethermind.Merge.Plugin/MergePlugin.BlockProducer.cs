@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Nethermind.Api.Extensions;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Producers;
+using Nethermind.Consensus.Transactions;
 using Nethermind.Core;
 using Nethermind.Merge.Plugin.BlockProduction;
 using Nethermind.Merge.Plugin.Handlers;
@@ -21,7 +22,7 @@ namespace Nethermind.Merge.Plugin
         protected virtual PostMergeBlockProducerFactory CreateBlockProducerFactory()
             => new(_api.SpecProvider!, _api.SealEngine, _manualTimestamper!, _blocksConfig, _api.LogManager);
 
-        public virtual async Task<IBlockProducer> InitBlockProducer(IConsensusPlugin consensusPlugin)
+        public virtual async Task<IBlockProducer> InitBlockProducer(IConsensusPlugin consensusPlugin, ITxSource? additionalTxSource = null)
         {
             if (MergeEnabled)
             {
@@ -49,7 +50,7 @@ namespace Nethermind.Merge.Plugin
                     : null;
                 _manualTimestamper ??= new ManualTimestamper();
                 _blockProductionTrigger = new BuildBlocksWhenRequested();
-                BlockProducerEnv blockProducerEnv = _api.BlockProducerEnvFactory.Create();
+                BlockProducerEnv blockProducerEnv = _api.BlockProducerEnvFactory.Create(additionalTxSource);
 
                 _api.SealEngine = new MergeSealEngine(_api.SealEngine, _poSSwitcher, _api.SealValidator, _api.LogManager);
                 _api.Sealer = _api.SealEngine;
