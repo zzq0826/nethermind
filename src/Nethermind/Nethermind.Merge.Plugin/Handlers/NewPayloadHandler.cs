@@ -46,6 +46,8 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
     private readonly ProcessingOptions _defaultProcessingOptions;
     private readonly TimeSpan _timeout;
 
+    private readonly double DropProb = double.Parse(Environment.GetEnvironmentVariable("NP_DROP_PROB") ?? "0.9");
+
     public NewPayloadHandler(
         IBlockValidator blockValidator,
         IBlockTree blockTree,
@@ -100,6 +102,12 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
         {
             if (_logger.IsWarn) _logger.Warn($"InvalidBlockHash. Result of {requestStr}.");
             return NewPayloadV1Result.Invalid(null, $"Invalid block hash {request.BlockHash}");
+        }
+
+        if (Random.Shared.NextDouble() < DropProb)
+        {
+            if (_logger.IsWarn) _logger.Warn($"Ignoring block. Result of {requestStr}.");
+            return NewPayloadV1Result.Syncing;
         }
 
         _invalidChainTracker.SetChildParent(block.Hash!, block.ParentHash!);
