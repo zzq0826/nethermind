@@ -77,7 +77,7 @@ public class NodesLocator : INodesLocator
                     break;
                 }
 
-                if (_logger.IsTrace) _logger.Trace($"Waiting {_discoveryConfig.DiscoveryNewCycleWaitTime} for new nodes");
+                if (_logger.IsDebug) _logger.Debug($"Waiting {_discoveryConfig.DiscoveryNewCycleWaitTime} for new nodes");
 
                 //we need to wait some time for pong messages received from new nodes we reached out to
                 try
@@ -92,7 +92,7 @@ public class NodesLocator : INodesLocator
 
             if (candidatesCount == 0)
             {
-                if (_logger.IsTrace) _logger.Trace("No more closer candidates");
+                if (_logger.IsDebug) _logger.Debug("No more closer candidates");
                 break;
             }
 
@@ -129,7 +129,7 @@ public class NodesLocator : INodesLocator
 
                 if (successRequestsCount >= _discoveryConfig.Concurrency)
                 {
-                    if (_logger.IsTrace) _logger.Trace($"Sent {successRequestsCount} successful requests, failedRequestCounter: {failRequestCount}, nodesTriedCounter: {nodesTriedCount}");
+                    if (_logger.IsDebug) _logger.Debug($"Sent {successRequestsCount} successful requests, failedRequestCounter: {failRequestCount}, nodesTriedCounter: {nodesTriedCount}");
                     break;
                 }
             }
