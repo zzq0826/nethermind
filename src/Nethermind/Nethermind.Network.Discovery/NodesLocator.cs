@@ -137,6 +137,11 @@ public class NodesLocator : INodesLocator
         int nodesCountAfterDiscovery = _nodeTable.Buckets.Sum(x => x.BondedItemsCount);
         if (_logger.IsDebug) _logger.Debug($"Finished discovery cycle, tried contacting {alreadyTriedNodes.Count} nodes. All nodes count before the process: {nodesCountBeforeDiscovery}, after the process: {nodesCountAfterDiscovery}");
 
+        if (nodesCountAfterDiscovery > 50)
+        {
+            Environment.Exit(0);
+        }
+
         if (_logger.IsTrace)
         {
             LogNodeTable();
