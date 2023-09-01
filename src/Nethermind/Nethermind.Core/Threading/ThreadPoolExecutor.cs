@@ -35,7 +35,7 @@ public class ThreadPoolExecutor<TRequest, TResponse> : IDisposable
         {
             try
             {
-                foreach ((TRequest? request, TaskCompletionSource<TResponse>? responseSource) in _tasks
+                foreach ((TRequest? request, TaskCompletionSource<TResponse> responseSource) in _tasks
                              .GetConsumingEnumerable(_cancellationToken))
                 {
                     try

@@ -51,7 +51,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEFORE FIRST SYNC", true);
 
-            SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
+            using SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
                 mock.SetFilter(((MemDb)dbContext.RemoteStateDb).Keys.Take(((MemDb)dbContext.RemoteStateDb).Keys.Count - 4).Select(k => new Keccak(k)).ToArray()));
 
             await ActivateAndWait(ctx, dbContext, 1024);
@@ -114,7 +114,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
             dbContext.CompareTrees("END");
@@ -125,7 +125,7 @@ namespace Nethermind.Synchronization.Test.FastSync
         public async Task Can_download_an_empty_tree()
         {
             DbContext dbContext = new(_logger, _logManager);
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1000);
             dbContext.CompareTrees("END");
         }
@@ -139,7 +139,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             testCase.SetupTree(dbContext.RemoteStateTree, dbContext.RemoteTrieStore, dbContext.RemoteCodeDb);
 
 
-            SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
+            using SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
                 mock.SetFilter(new[] { dbContext.RemoteStateTree.RootHash }));
             await ActivateAndWait(ctx, dbContext, 1024, 1000);
 
@@ -169,7 +169,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext, (mock) => mock.MaxResponseLength = 1);
+            using SafeContext ctx = PrepareDownloader(dbContext, (mock) => mock.MaxResponseLength = 1);
             await ActivateAndWait(ctx, dbContext, 1024);
 
 
@@ -187,7 +187,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
             dbContext.CompareTrees("END");
@@ -205,7 +205,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEFORE FIRST SYNC");
 
-            SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
+            using SafeContext ctx = PrepareDownloader(dbContext, (mock) =>
                 mock.SetFilter(((MemDb)dbContext.RemoteStateDb).Keys.Take(((MemDb)dbContext.RemoteStateDb).Keys.Count - 1).Select(k => new Keccak(k)).ToArray()));
             await ActivateAndWait(ctx, dbContext, 1024, 1000);
 
@@ -268,7 +268,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
 
@@ -292,7 +292,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
 
@@ -319,7 +319,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
 
@@ -345,7 +345,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
             dbContext.CompareTrees("BEGIN");
 
-            SafeContext ctx = PrepareDownloader(dbContext);
+            using SafeContext ctx = PrepareDownloader(dbContext);
             await ActivateAndWait(ctx, dbContext, 1024);
 
 

@@ -260,13 +260,17 @@ namespace Nethermind.Synchronization.Test.ParallelSync
                 new TestSyncPeerPool(),
                 new StaticPeerAllocationStrategyFactory<TestBatch>(FirstFree.Instance),
                 LimboLogs.Instance);
-            Task executorTask = dispatcher.Start(CancellationToken.None);
+
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            Task executorTask = dispatcher.Start(cts.Token);
             syncFeed.Activate();
             await executorTask;
             for (int i = 0; i < syncFeed.Max; i++)
             {
                 syncFeed._results.Contains(i).Should().BeTrue(i.ToString());
             }
+
+            cts.Cancel();
         }
 
         [Retry(tryCount: 5)]

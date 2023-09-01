@@ -117,7 +117,8 @@ namespace Nethermind.Synchronization.Test.FastSync
             ctx.Feed = new StateSyncFeed(ctx.SyncModeSelector, ctx.TreeFeed, _logManager);
             ctx.Downloader = new StateSyncDownloader(_logManager);
             ctx.StateSyncDispatcher = new SyncDispatcher<StateSyncBatch>(0, ctx.Feed, ctx.Downloader, ctx.Pool, new StateSyncAllocationStrategyFactory(), _logManager);
-            ctx.StateSyncDispatcher.Start(CancellationToken.None);
+            ctx.CancellationTokenSource = new();
+            ctx.StateSyncDispatcher.Start(ctx.CancellationTokenSource.Token);
             return ctx;
         }
 
@@ -140,7 +141,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 Task.Delay(timeout));
         }
 
-        protected class SafeContext
+        protected class SafeContext: IDisposable
         {
             public ISyncModeSelector SyncModeSelector;
             public SyncPeerMock[] SyncPeerMocks;
@@ -149,6 +150,13 @@ namespace Nethermind.Synchronization.Test.FastSync
             public StateSyncFeed Feed;
             public StateSyncDownloader Downloader;
             public SyncDispatcher<StateSyncBatch> StateSyncDispatcher;
+            public CancellationTokenSource CancellationTokenSource { get; set; }
+
+            public void Dispose()
+            {
+                CancellationTokenSource.Cancel();
+                CancellationTokenSource.Dispose();
+            }
         }
 
         protected class DbContext

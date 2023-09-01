@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core.Exceptions;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Threading;
 using Nethermind.Logging;
 using Nethermind.Synchronization.Peers;
 
@@ -22,6 +23,8 @@ namespace Nethermind.Synchronization.ParallelSync
         private ISyncFeed<T> Feed { get; }
         private ISyncDownloader<T> Downloader { get; }
         private ISyncPeerPool SyncPeerPool { get; }
+
+        private ThreadPoolExecutor<(T request, PeerInfo? allocatedPeer), SyncResponseHandlingResult> _responseExecutor = null!;
 
         private readonly SemaphoreSlim _concurrentProcessingSemaphore;
 
@@ -41,20 +44,26 @@ namespace Nethermind.Synchronization.ParallelSync
 
             if (maxNumberOfProcessingThread == 0)
             {
-                _concurrentProcessingSemaphore = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
+                maxNumberOfProcessingThread = Environment.ProcessorCount;
             }
-            else
-            {
-                _concurrentProcessingSemaphore = new SemaphoreSlim(maxNumberOfProcessingThread, maxNumberOfProcessingThread);
-            }
+
+            _concurrentProcessingSemaphore = new SemaphoreSlim(maxNumberOfProcessingThread);
+            _maxNumberOfProcessingThread = maxNumberOfProcessingThread;
 
             syncFeed.StateChanged += SyncFeedOnStateChanged;
         }
 
         private TaskCompletionSource<object?>? _dormantStateTask = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly int _maxNumberOfProcessingThread;
 
         public async Task Start(CancellationToken cancellationToken)
         {
+            using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using ThreadPoolExecutor<(T request, PeerInfo? allocatedPeer), SyncResponseHandlingResult>? responseExecutor =
+                new(ExecuteResponse, _maxNumberOfProcessingThread, cts.Token);
+
+            _responseExecutor = responseExecutor;
+
             UpdateState(Feed.CurrentState);
             while (true)
             {
@@ -115,7 +124,7 @@ namespace Nethermind.Synchronization.ParallelSync
                         else
                         {
                             Logger.Debug($"DISPATCHER - {GetType().NameWithGenerics()}: peer NOT allocated");
-                            DoHandleResponse(request);
+                            await DoHandleResponse(request);
                         }
                     }
                     else if (currentStateLocal == SyncFeedState.Finished)
@@ -129,6 +138,8 @@ namespace Nethermind.Synchronization.ParallelSync
                     Feed.Finish();
                 }
             }
+
+            cts.Cancel();
         }
 
         private async Task DoDispatch(CancellationToken cancellationToken, PeerInfo? allocatedPeer, T request,
@@ -168,7 +179,7 @@ namespace Nethermind.Synchronization.ParallelSync
                     return;
                 }
 
-                DoHandleResponse(request, allocatedPeer);
+                await DoHandleResponse(request, allocatedPeer);
             }
             finally
             {
@@ -179,11 +190,11 @@ namespace Nethermind.Synchronization.ParallelSync
             }
         }
 
-        private void DoHandleResponse(T request, PeerInfo? allocatedPeer = null)
+        private async Task DoHandleResponse(T request, PeerInfo? allocatedPeer = null)
         {
             try
             {
-                SyncResponseHandlingResult result = Feed.HandleResponse(request, allocatedPeer);
+                SyncResponseHandlingResult result = await _responseExecutor.Execute((request, allocatedPeer));
                 ReactToHandlingResult(request, result, allocatedPeer);
             }
             catch (ObjectDisposedException)
@@ -196,6 +207,11 @@ namespace Nethermind.Synchronization.ParallelSync
                 // this practically corrupts sync
                 if (Logger.IsError) Logger.Error("Error when handling response", e);
             }
+        }
+
+        private SyncResponseHandlingResult ExecuteResponse((T request, PeerInfo? allocatedPeer) job)
+        {
+            return Feed.HandleResponse(job.request, job.allocatedPeer);
         }
 
         private void Free(SyncPeerAllocation allocation)
