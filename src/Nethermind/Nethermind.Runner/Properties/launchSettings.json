@@ -93,7 +93,7 @@
     },
     "Sepolia": {
       "commandName": "Project",
-      "commandLineArgs": "-c sepolia -dd %NETHERMIND_DATA_DIR%",
+      "commandLineArgs": "-c sepolia -dd %NETHERMIND_DATA_DIR% --Init.DiagnosticMode MemDb",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
