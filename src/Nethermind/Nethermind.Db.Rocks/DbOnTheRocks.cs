@@ -69,15 +69,15 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
 
     private ManagedIterators _readaheadIterators = new();
 
-    public DbOnTheRocks(
-        string basePath,
+    public DbOnTheRocks(string basePath,
         RocksDbSettings rocksDbSettings,
         IDbConfig dbConfig,
         ILogManager logManager,
         IList<string>? columnFamilies = null,
-        RocksDbSharp.Native? rocksDbNative = null,
+        Native? rocksDbNative = null,
         IFileSystem? fileSystem = null,
-        IntPtr? sharedCache = null)
+        IntPtr? sharedCache = null,
+        IntPtr? allocator = null)
     {
         _logger = logManager.GetClassLogger();
         _settings = rocksDbSettings;
@@ -85,7 +85,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         _fileSystem = fileSystem ?? new FileSystem();
         _rocksDbNative = rocksDbNative ?? RocksDbSharp.Native.Instance;
         _perTableDbConfig = new PerTableDbConfig(dbConfig, _settings);
-        _db = Init(basePath, rocksDbSettings.DbPath, dbConfig, logManager, columnFamilies, rocksDbSettings.DeleteOnStart, sharedCache);
+        _db = Init(basePath, rocksDbSettings.DbPath, dbConfig, logManager, columnFamilies, rocksDbSettings.DeleteOnStart, sharedCache, allocator);
 
         if (_perTableDbConfig.AdditionalRocksDbOptions != null)
         {
@@ -107,7 +107,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
     }
 
     private RocksDb Init(string basePath, string dbPath, IDbConfig dbConfig, ILogManager? logManager,
-        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null)
+        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null, IntPtr? allocator = null)
     {
         _fullPath = GetFullDbPath(dbPath, basePath);
         _logger = logManager?.GetClassLogger() ?? NullLogger.Instance;
@@ -125,7 +125,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
             // ReSharper disable once VirtualMemberCallInConstructor
             if (_logger.IsDebug) _logger.Debug($"Building options for {Name} DB");
             DbOptions = new DbOptions();
-            BuildOptions(_perTableDbConfig, DbOptions, sharedCache);
+            BuildOptions(_perTableDbConfig, DbOptions, sharedCache, allocator);
 
             ColumnFamilies? columnFamilies = null;
             if (columnNames != null)
@@ -134,7 +134,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
                 foreach (string columnFamily in columnNames)
                 {
                     ColumnFamilyOptions options = new();
-                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache);
+                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache, allocator);
                     columnFamilies.Add(columnFamily, options);
                 }
             }
@@ -286,7 +286,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         return 0;
     }
 
-    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache) where T : Options<T>
+    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache, IntPtr? allocator) where T : Options<T>
     {
         _maxThisDbSize = 0;
         BlockBasedTableOptions tableOptions = new();
@@ -298,23 +298,6 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         _rocksDbNative.rocksdb_block_based_options_set_metadata_block_size(tableOptions.Handle, 4096);
         _rocksDbNative.rocksdb_block_based_options_set_cache_index_and_filter_blocks_with_high_priority(tableOptions.Handle, true);
         tableOptions.SetFormatVersion(5);
-
-        /*
-        ColumnFamilyOptions* ColumnFamilyOptions::OptimizeForPointLookup(
-            uint64_t block_cache_size_mb) {
-          BlockBasedTableOptions block_based_options;
-          block_based_options.data_block_index_type =
-              BlockBasedTableOptions::kDataBlockBinaryAndHash;
-          block_based_options.data_block_hash_table_util_ratio = 0.75;
-          block_based_options.filter_policy.reset(NewBloomFilterPolicy(10));
-          block_based_options.block_cache =
-              NewLRUCache(static_cast<size_t>(block_cache_size_mb * 1024 * 1024));
-          table_factory.reset(new BlockBasedTableFactory(block_based_options));
-          memtable_prefix_bloom_size_ratio = 0.02;
-          memtable_whole_key_filtering = true;
-          return this;
-        }
-         */
 
         // Rewrote OptimizeForPointLookup to be able to use shared block cache.
         tableOptions.SetFilterPolicy(BloomFilterPolicy.Create(10, false));
@@ -336,7 +319,16 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         }
         else
         {
-            _cache = RocksDbSharp.Native.Instance.rocksdb_cache_create_lru(new UIntPtr(blockCacheSize));
+            IntPtr lruOpts = Native.Instance.rocksdb_lru_cache_options_create();
+            Native.Instance.rocksdb_lru_cache_options_set_capacity(lruOpts, new(blockCacheSize));
+
+            if (allocator != null)
+            {
+                Native.Instance.rocksdb_lru_cache_options_set_memory_allocator(lruOpts, allocator.Value);
+            }
+
+            _cache = Native.Instance.rocksdb_cache_create_lru_opts(lruOpts);
+
             tableOptions.SetBlockCache(_cache.Value);
         }
 
