@@ -8,7 +8,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nethermind.Core;
-using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Resettables;
 using Nethermind.Core.Timers;
@@ -228,31 +227,6 @@ namespace Nethermind.TxPool
                 {
                     if (_logger.IsTrace) _logger.Trace(
                         $"Transaction {txHash} removed from broadcaster");
-                }
-            }
-        }
-
-        public void AnnounceBestBlobTxs(EnhancedSortedSet<Transaction> bestBlobTxs)
-        {
-            if (bestBlobTxs.Count > 0)
-            {
-                _logger.Info($"current blob price: {_headInfo.CurrentPricePerBlobGas}");
-
-                foreach (Transaction tx in bestBlobTxs)
-                {
-                    _logger.Info($"tx blob price: {tx.MaxFeePerBlobGas}, hash: {tx.Hash}");
-
-                    if (!tx.CanPayBaseFee(_headInfo.CurrentBaseFee) || !tx.CanPayForBlobGas(_headInfo.CurrentPricePerBlobGas))
-                    {
-                        bestBlobTxs.Remove(tx);
-                    }
-                }
-                if (_logger.IsDebug) _logger.Debug($"Announcing {bestBlobTxs.Count} hashes of persistent blob transactions to all peers.");
-                _logger.Warn($"Announcing {bestBlobTxs.Count} hashes of persistent blob transactions to all peers.");
-
-                foreach ((_, ITxPoolPeer peer) in _peers)
-                {
-                    Notify(peer, bestBlobTxs, false);
                 }
             }
         }

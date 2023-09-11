@@ -48,7 +48,7 @@ public class PersistentBlobTxDistinctSortedPool : BlobTxDistinctSortedPool
         if (_logger.IsInfo && numberOfTxsInDb != 0)
         {
             long loadingTime = stopwatch.ElapsedMilliseconds;
-            _logger.Error($"Loaded {numberOfTxsInDb} blob txs from persistent db, containing {numberOfBlobsInDb} blobs, in {loadingTime}ms");
+            _logger.Info($"Loaded {numberOfTxsInDb} blob txs from persistent db, containing {numberOfBlobsInDb} blobs, in {loadingTime}ms");
         }
         stopwatch.Stop();
     }
