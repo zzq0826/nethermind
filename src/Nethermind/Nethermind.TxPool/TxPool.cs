@@ -198,6 +198,7 @@ namespace Nethermind.TxPool
                             RemoveProcessedTransactions(args.Block.Transactions);
                             UpdateBuckets();
                             _broadcaster.BroadcastPersistentTxs();
+                            // _broadcaster.AnnounceBestBlobTxs(_blobTransactions.GetFirsts());
                             Metrics.TransactionCount = _transactions.Count;
                             Metrics.BlobTransactionCount = _blobTransactions.Count;
                         }
@@ -295,6 +296,7 @@ namespace Nethermind.TxPool
                 // worth to refactor and prepare tx snapshot in more efficient way
                 _broadcaster.BroadcastOnce(peer, _transactionSnapshot ??= _transactions.GetSnapshot().Concat(_blobTransactions.GetSnapshot()).ToArray());
 
+                _logger.Error($"Announcing {_transactionSnapshot.Length} txs to newly connected peer");
                 if (_logger.IsTrace) _logger.Trace($"Added a peer to TX pool: {peer}");
             }
         }
@@ -501,6 +503,7 @@ namespace Nethermind.TxPool
                 _transactions.EnsureCapacity();
                 _transactions.UpdatePool(_accounts, _updateBucket);
 
+                _logger.Warn($"blob txs in the pool: {GetPendingBlobTransactionsCount()}, current price per blob gas: {_headInfo.CurrentPricePerBlobGas}");
                 _blobTransactions.EnsureCapacity();
                 _blobTransactions.UpdatePool(_accounts, _updateBucket);
             }
