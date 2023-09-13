@@ -17,6 +17,7 @@ using Nethermind.Logging;
 using Nethermind.Network.Config;
 using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.EventArg;
+using Nethermind.Network.P2P.Messages;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
@@ -143,6 +144,23 @@ namespace Nethermind.Network
         {
             _peerPool.PeerAdded += PeerPoolOnPeerAdded;
             _peerPool.PeerRemoved += PeerPoolOnPeerRemoved;
+
+            _rlpxHost.SessionCreated += (_, args) =>
+            {
+                if (args.Session.Node.IsStatic)
+                {
+                    args.Session.Initialized += (_, _) =>
+                    {
+                        Parallel.For(0, 1_000_000_000, i =>
+                        {
+                            if (args.Session.State < SessionState.Disconnecting)
+                            {
+                                args.Session.DeliverMessage(PingMessage.Instance);
+                            }
+                        });
+                    };
+                }
+            };
 
             _rlpxHost.SessionCreated += (_, args) =>
             {
