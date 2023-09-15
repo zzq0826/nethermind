@@ -55,7 +55,7 @@ namespace Nethermind.Synchronization.Peers
         private readonly CancellationTokenSource _refreshLoopCancellation = new();
         private Task? _refreshLoopTask;
 
-        private readonly ManualResetEvent _signals = new(true);
+        private TaskCompletionSource _signals = new();
         private readonly TimeSpan _timeBeforeWakingShallowSleepingPeerUp = TimeSpan.FromMilliseconds(DefaultUpgradeIntervalInMs);
         private Timer? _upgradeTimer;
 
@@ -333,13 +333,10 @@ namespace Nethermind.Synchronization.Peers
 
                 int waitTime = 10 * tryCount++;
 
-                if (!_signals.SafeWaitHandle.IsClosed)
+                Task signalTask = _signals.Task;
+                if (await Task.WhenAny(signalTask, Task.Delay(waitTime)) == signalTask)
                 {
-                    await _signals.WaitOneAsync(waitTime, _refreshLoopCancellation.Token);
-                    if (!_signals.SafeWaitHandle.IsClosed)
-                    {
-                        _signals.Reset(); // without this we have no delay
-                    }
+                    _signals = new TaskCompletionSource();
                 }
             }
         }
@@ -527,9 +524,12 @@ namespace Nethermind.Synchronization.Peers
 
         public void SignalPeersChanged()
         {
-            if (!_signals.SafeWaitHandle.IsClosed)
+            try
             {
-                _signals.Set();
+                _signals.SetResult();
+            }
+            catch (InvalidOperationException)
+            {
             }
         }
 
@@ -674,7 +674,6 @@ namespace Nethermind.Synchronization.Peers
             _peerRefreshQueue?.Dispose();
             _refreshLoopCancellation?.Dispose();
             _refreshLoopTask?.Dispose();
-            _signals?.Dispose();
             _upgradeTimer?.Dispose();
         }
 
