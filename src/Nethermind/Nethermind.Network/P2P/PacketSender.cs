@@ -46,7 +46,7 @@ namespace Nethermind.Network.P2P
             channel.Writer.WriteAsync(buffer);
 
             // Running in background
-            _ = SendBuffer(buffer);
+            // _ = SendBuffer(buffer);
 
             return length;
         }
