@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using DotNetty.Buffers;
 using DotNetty.Transport.Channels;
@@ -17,12 +18,19 @@ namespace Nethermind.Network.P2P
         private IChannelHandlerContext _context;
         private TimeSpan _sendLatency;
 
+        private Channel<IByteBuffer> channel;
+
+
+
         public PacketSender(IMessageSerializationService messageSerializationService, ILogManager logManager,
             TimeSpan sendLatency)
         {
             _messageSerializationService = messageSerializationService ?? throw new ArgumentNullException(nameof(messageSerializationService));
             _logger = logManager.GetClassLogger<PacketSender>() ?? throw new ArgumentNullException(nameof(logManager));
             _sendLatency = sendLatency;
+
+            channel = Channel.CreateBounded<IByteBuffer>(1);
+
         }
 
         public int Enqueue<T>(T message) where T : P2PMessage
@@ -34,6 +42,8 @@ namespace Nethermind.Network.P2P
 
             IByteBuffer buffer = _messageSerializationService.ZeroSerialize(message);
             int length = buffer.ReadableBytes;
+
+            channel.Writer.WriteAsync(buffer);
 
             // Running in background
             _ = SendBuffer(buffer);
@@ -51,7 +61,8 @@ namespace Nethermind.Network.P2P
                     await Task.Delay(_sendLatency);
                 }
 
-                await _context.WriteAndFlushAsync(buffer);
+                // await _context.WriteAndFlushAsync(buffer);
+                await _context.Executor.SubmitAsync(() => _context.WriteAndFlushAsync(buffer));
             }
             catch (Exception exception)
             {
@@ -66,6 +77,15 @@ namespace Nethermind.Network.P2P
         public override void HandlerAdded(IChannelHandlerContext context)
         {
             _context = context;
+
+            _ = Task.Run(async () =>
+            {
+                while (await channel.Reader.WaitToReadAsync())
+                {
+                    var buffer = await channel.Reader.ReadAsync();
+                    await SendBuffer(buffer);
+                }
+            });
         }
     }
 }

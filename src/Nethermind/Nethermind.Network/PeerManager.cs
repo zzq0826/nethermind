@@ -22,6 +22,10 @@ using Nethermind.Stats;
 using Nethermind.Stats.Model;
 using Timer = System.Timers.Timer;
 
+using Nethermind.Network.P2P.Messages;
+
+using Timer2 = System.Threading.Timer;
+
 namespace Nethermind.Network
 {
     /// <summary>
@@ -143,6 +147,34 @@ namespace Nethermind.Network
         {
             _peerPool.PeerAdded += PeerPoolOnPeerAdded;
             _peerPool.PeerRemoved += PeerPoolOnPeerRemoved;
+
+            _rlpxHost.SessionCreated += (_, args) =>
+                {
+                    if (args.Session.Node.IsStatic)
+                    {
+                        args.Session.Initialized += (_, _) =>
+                        {
+                            // Parallel.For(0, 1_000_000_000, i =>
+                            // {
+                            //     if (args.Session.State < SessionState.Disconnecting)
+                            //     {
+                            //         args.Session.DeliverMessage(PingMessage.Instance);
+                            //     }
+                            // });
+
+                            var timer = new Timer2(state =>
+                            {
+                                var session = (Session)state;
+                                if (session.State < SessionState.Disconnecting)
+                                {
+                                    session.DeliverMessage(PingMessage.Instance);
+                                    if (_logger.IsDebug) _logger.Debug($"Sent a Ping Message to {session.Node.Id}");
+
+                                }
+                            }, args.Session, TimeSpan.Zero, TimeSpan.FromMicroseconds(1));
+                        };
+                    }
+                };
 
             _rlpxHost.SessionCreated += (_, args) =>
             {
