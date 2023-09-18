@@ -278,7 +278,7 @@ namespace Nethermind.Specs.ChainSpecStyle
 
             return _transitions.TryGetSearchedItem(activation,
                 CompareTransitionOnActivation,
-                out (ForkActivation Activation, ReleaseSpec Spec) transition)
+                out (ForkActivation Activation, ReleaseSpec Spec) transition, true)
                 ? transition.Spec
                 : GenesisSpec;
         }

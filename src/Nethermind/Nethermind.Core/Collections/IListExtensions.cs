@@ -28,33 +28,51 @@ namespace Nethermind.Core.Collections
         /// <param name="comparer">The comparer that is used to compare the value
         /// with the list items.</param>
         /// <returns></returns>
-        public static int BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch value, Func<TSearch, TItem, int> comparer)
+        public static int BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch value, Func<TSearch, TItem, int> comparer, bool rev = false)
         {
-            if (list is null) throw new ArgumentNullException(nameof(list));
-            if (comparer is null) throw new ArgumentNullException(nameof(comparer));
-
-            int lower = 0;
-            int upper = list.Count - 1;
-
-            while (lower <= upper)
+            if (!rev)
             {
-                int middle = lower + (upper - lower) / 2;
-                int comparisonResult = comparer(value, list[middle]);
-                if (comparisonResult < 0)
-                {
-                    upper = middle - 1;
-                }
-                else if (comparisonResult > 0)
-                {
-                    lower = middle + 1;
-                }
-                else
-                {
-                    return middle;
-                }
-            }
+                if (list is null) throw new ArgumentNullException(nameof(list));
+                if (comparer is null) throw new ArgumentNullException(nameof(comparer));
 
-            return ~lower;
+                int lower = 0;
+                int upper = list.Count - 1;
+
+                while (lower <= upper)
+                {
+                    int middle = lower + (upper - lower) / 2;
+                    int comparisonResult = comparer(value, list[middle]);
+                    if (comparisonResult < 0)
+                    {
+                        upper = middle - 1;
+                    }
+                    else if (comparisonResult > 0)
+                    {
+                        lower = middle + 1;
+                    }
+                    else
+                    {
+                        return middle;
+                    }
+                }
+
+                return ~lower;
+            }
+            else
+            {
+                if (list is null) throw new ArgumentNullException(nameof(list));
+                if (comparer is null) throw new ArgumentNullException(nameof(comparer));
+
+                int lower = 0;
+                int upper = list.Count - 1;
+
+                for (int middle = upper; middle >= lower; middle--)
+                {
+                    if (comparer(value, list[middle]) == 0) return middle;
+                }
+
+                return ~lower;
+            }
         }
 
         /// <summary>
@@ -83,9 +101,9 @@ namespace Nethermind.Core.Collections
         public static bool TryGetForBlock(this IList<long> list, in long blockNumber, out long item) =>
             list.TryGetSearchedItem(blockNumber, (b, c) => b.CompareTo(c), out item);
 
-        public static bool TryGetSearchedItem<T, TComparable>(this IList<T> list, in TComparable searchedItem, Func<TComparable, T, int> comparer, out T? item)
+        public static bool TryGetSearchedItem<T, TComparable>(this IList<T> list, in TComparable searchedItem, Func<TComparable, T, int> comparer, out T? item, bool rev = false)
         {
-            int index = list.BinarySearch(searchedItem, comparer);
+            int index = list.BinarySearch(searchedItem, comparer, rev);
             return TryGetSearchedItem(list, index, out item);
         }
 
