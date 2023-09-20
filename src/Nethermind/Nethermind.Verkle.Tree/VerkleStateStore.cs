@@ -45,7 +45,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
-            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+            : new (maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
     }
@@ -65,7 +65,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
-            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+            : new (maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
     }
@@ -82,7 +82,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
-            : new StackQueue<(long, ReadOnlyVerkleMemoryDb)>(maxNumberOfBlocksInCache);
+            : new (maxNumberOfBlocksInCache);
         MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
         InitRootHash();
     }
@@ -119,31 +119,15 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {
-        if (BlockCache is not null)
-        {
-            using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
-            while (diffs.MoveNext())
-            {
-                if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
-            }
-        }
-
-        return Storage.GetLeaf(key, out byte[]? value) ? value : null;
+        byte[]? value = BlockCache?.GetLeaf(key.ToArray());
+        if (value is not null) return value;
+        return Storage.GetLeaf(key, out value) ? value : null;
     }
 
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
     {
-        if (BlockCache is not null)
-        {
-            using StackQueue<(long, ReadOnlyVerkleMemoryDb)>.StackEnumerator diffs = BlockCache.GetStackEnumerator();
-            while (diffs.MoveNext())
-            {
-                if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node.Clone();
-            }
-        }
-
-        return Storage.GetInternalNode(key, out InternalNode? value) ? value : null;
+        InternalNode? value = BlockCache?.GetInternalNode(key.ToArray());
+        if (value is not null) return value;
+        return Storage.GetInternalNode(key, out value) ? value : null;
     }
-
-
 }

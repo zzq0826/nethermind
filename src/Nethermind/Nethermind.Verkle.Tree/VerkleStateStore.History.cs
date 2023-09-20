@@ -19,7 +19,7 @@ public partial class VerkleStateStore
     ///  maximum number of blocks that should be stored in cache (not persisted in db)
     /// </summary>
     private int MaxNumberOfBlocksInCache { get; }
-    private StackQueue<(long, ReadOnlyVerkleMemoryDb)>? BlockCache { get; }
+    private BlockDiffCache? BlockCache { get; }
 
     private VerkleHistoryStore? History { get; }
 
@@ -30,7 +30,7 @@ public partial class VerkleStateStore
 
         if (BlockCache is not null && BlockCache.Count != 0)
         {
-            BlockCache.Pop(out _);
+            BlockCache.RemoveDiffs(1);
             return;
         }
 
@@ -171,10 +171,7 @@ public partial class VerkleStateStore
                         $"Number of blocks to move:{noOfBlockToMove}. Removing all the diffs from BlockCache ({noOfBlockToMove} > {BlockCache?.Count})");
                 if (BlockCache is not null)
                 {
-                    for (int i = 0; i < noOfBlockToMove; i++)
-                    {
-                        BlockCache.Pop(out _);
-                    }
+                    BlockCache.RemoveDiffs(noOfBlockToMove);
                 }
                 else
                 {
