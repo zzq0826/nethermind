@@ -18,6 +18,11 @@ public unsafe struct BitVector
         get => MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Words)).Length;
     }
 
+    public byte[] Serialize()
+    {
+        return MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Words)).ToArray();
+    }
+
 
     public BitVector()
     {

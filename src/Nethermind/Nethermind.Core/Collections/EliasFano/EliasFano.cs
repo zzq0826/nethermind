@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Buffers.Binary;
+using System.Linq;
+using Nethermind.Core.Extensions;
 
 namespace Nethermind.Core.Collections.EliasFano;
 
@@ -40,6 +43,16 @@ public readonly struct EliasFanoS
         }
 
         return rank;
+    }
+
+    public byte[] Serialize()
+    {
+        byte[] byteHighBits = HighBits.Serialize();
+        byte[] byteLowBits = LowBits.Serialize();
+        byte[] byteLowLen = LowLen.ToByteArray();
+        byte[] byteUniverse = BitConverter.GetBytes(Universe);
+
+        return byteHighBits.Concat(byteLowBits).Concat(byteLowLen).Concat(byteUniverse).ToArray();
     }
 }
 
