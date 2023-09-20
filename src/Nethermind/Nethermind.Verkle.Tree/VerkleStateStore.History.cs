@@ -14,6 +14,7 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleStateStore
 {
+    public event EventHandler<InsertBatchCompleted>? InsertBatchCompleted;
     /// <summary>
     ///  maximum number of blocks that should be stored in cache (not persisted in db)
     /// </summary>

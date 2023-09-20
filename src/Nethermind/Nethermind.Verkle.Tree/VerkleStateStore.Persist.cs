@@ -92,6 +92,7 @@ public partial class VerkleStateStore
                     PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
                     if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
                     History?.InsertDiff(blockNumberToPersist, changesToPersist, reverseDiff);
+                    InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(blockNumberToPersist, reverseDiff));
                 }
                 else
                 {
@@ -100,8 +101,6 @@ public partial class VerkleStateStore
 
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
-                Storage.LeafDb.Flush();
-                Storage.InternalNodeDb.Flush();
             }
             UpdateStateRoot();
             StateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
