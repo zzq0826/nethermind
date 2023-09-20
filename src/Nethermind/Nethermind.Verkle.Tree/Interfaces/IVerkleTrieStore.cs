@@ -18,10 +18,8 @@ public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
     byte[]? GetLeaf(ReadOnlySpan<byte> key);
     InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
 
-    void Flush(long blockNumber, VerkleMemoryDb memDb);
-    void Reset();
+    void InsertBatch(long blockNumber, VerkleMemoryDb memDb);
 
-    void ReverseState();
     void ApplyDiffLayer(BatchChangeSet changeSet);
     bool GetForwardMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);
     bool GetReverseMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);

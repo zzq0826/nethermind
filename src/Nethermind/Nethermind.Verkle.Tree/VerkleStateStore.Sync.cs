@@ -258,6 +258,4 @@ public partial class VerkleStateStore
 
         return pathWithSubTrees;
     }
-
-
 }

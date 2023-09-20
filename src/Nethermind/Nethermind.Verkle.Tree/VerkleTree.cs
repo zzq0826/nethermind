@@ -185,7 +185,7 @@ public partial class VerkleTree: IVerkleTree
 
     public void CommitTree(long blockNumber)
     {
-        _verkleStateStore.Flush(blockNumber, _treeCache);
+        _verkleStateStore.InsertBatch(blockNumber, _treeCache);
         _treeCache = new VerkleMemoryDb();
     }
 
@@ -224,6 +224,5 @@ public partial class VerkleTree: IVerkleTree
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
         _treeCache = new VerkleMemoryDb();
-        _verkleStateStore.Reset();
     }
 }

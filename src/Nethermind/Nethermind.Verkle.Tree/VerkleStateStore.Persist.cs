@@ -34,7 +34,7 @@ public partial class VerkleStateStore
     // if called multiple times, the full state would be fine - but it would corrupt the diffs and historical state will be lost
     // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber)
     //   is called multiple times for the same block number, but do we even need this?
-    public void Flush(long blockNumber, VerkleMemoryDb batch)
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
     {
         if (_logger.IsDebug)
             _logger.Debug(
@@ -45,7 +45,8 @@ public partial class VerkleStateStore
             if (_logger.IsDebug)
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-            StateRoot = PersistedStateRoot = GetStateRoot();
+            UpdateStateRoot();
+            PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             StateRootToBlocks[StateRoot] = blockNumber;
         }
@@ -64,39 +65,37 @@ public partial class VerkleStateStore
 
             bool shouldPersistBlock;
             ReadOnlyVerkleMemoryDb changesToPersist;
-            long blockNumberPersist;
+            long blockNumberToPersist;
             if (BlockCache is null)
             {
                 shouldPersistBlock = true;
                 changesToPersist = cacheBatch;
-                blockNumberPersist = blockNumber;
+                blockNumberToPersist = blockNumber;
             }
             else
             {
                 shouldPersistBlock = !BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch),
                     out (long, ReadOnlyVerkleMemoryDb) element);
                 changesToPersist = element.Item2;
-                blockNumberPersist = element.Item1;
+                blockNumberToPersist = element.Item1;
             }
 
             if (shouldPersistBlock)
             {
                 if (_logger.IsDebug)
-                    _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+                    _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
                 VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
                 if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
-                History?.InsertDiff(blockNumberPersist, changesToPersist, reverseDiff);
+                History?.InsertDiff(blockNumberToPersist, changesToPersist, reverseDiff);
                 PersistedStateRoot = root;
-                LastPersistedBlockNumber = blockNumberPersist;
+                LastPersistedBlockNumber = blockNumberToPersist;
                 Storage.LeafDb.Flush();
                 Storage.InternalNodeDb.Flush();
             }
-
-            LatestCommittedBlockNumber = blockNumber;
-            StateRoot = GetStateRoot();
-            StateRootToBlocks[StateRoot] = blockNumber;
+            UpdateStateRoot();
+            StateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
                 $"VSS: Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");

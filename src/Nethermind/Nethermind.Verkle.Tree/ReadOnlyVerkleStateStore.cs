@@ -42,9 +42,8 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _keyValueStore.SetInternalNode(InternalNodeKey, internalNodeValue);
     }
-    public void Flush(long blockNumber, VerkleMemoryDb batch) { }
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch) { }
 
-    public void ReverseState() { }
     public void ApplyDiffLayer(BatchChangeSet changeSet) { }
 
     public bool GetForwardMergedDiff(long fromBlock, long toBlock, out VerkleMemoryDb diff)
@@ -64,8 +63,6 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         return _verkleStateStore.MoveToStateRoot(stateRoot);
     }
-
-    public void Reset() => _verkleStateStore.Reset();
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
