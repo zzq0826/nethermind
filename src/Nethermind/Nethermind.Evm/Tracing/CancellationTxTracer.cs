@@ -115,9 +115,9 @@ public class CancellationTxTracer : ITxTracer, ITxTracerWrapper
         init => _isTracingFees = value;
     }
 
-    public bool IsTracingVerkleWitness
+    public bool IsTracingAccessWitness
     {
-        get => _isTracingVerkleWitness || _innerTracer.IsTracingVerkleWitness;
+        get => _isTracingVerkleWitness || _innerTracer.IsTracingAccessWitness;
         init => _isTracingVerkleWitness = value;
     }
 
@@ -445,12 +445,12 @@ public class CancellationTxTracer : ITxTracer, ITxTracerWrapper
         }
     }
 
-    public void SetVerkleWitnessKeys(IReadOnlyList<byte[]> verkleWitnessKeys)
+    public void ReportAccessWitness(IReadOnlyList<byte[]> verkleWitnessKeys)
     {
         _token.ThrowIfCancellationRequested();
-        if (_innerTracer.IsTracingVerkleWitness)
+        if (_innerTracer.IsTracingAccessWitness)
         {
-            _innerTracer.SetVerkleWitnessKeys(verkleWitnessKeys);
+            _innerTracer.ReportAccessWitness(verkleWitnessKeys);
         }
     }
 }

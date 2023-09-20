@@ -130,9 +130,9 @@ public interface ITxTracer : IWorldStateTracer
     /// </summary>
     /// <remarks>
     /// Controls
-    /// - <see cref="SetVerkleWitnessKeys"/>
+    /// - <see cref="ReportAccessWitness"/>
     /// </remarks>
-    bool IsTracingVerkleWitness { get; }
+    bool IsTracingAccessWitness { get; }
 
     bool IsTracing => IsTracingReceipt
                       || IsTracingActions
@@ -145,7 +145,7 @@ public interface ITxTracer : IWorldStateTracer
                       || IsTracingBlockHash
                       || IsTracingAccess
                       || IsTracingFees
-                      || IsTracingVerkleWitness;
+                      || IsTracingAccessWitness;
 
     /// <summary>
     /// Transaction completed successfully
@@ -431,9 +431,9 @@ public interface ITxTracer : IWorldStateTracer
     void ReportFees(UInt256 fees, UInt256 burntFees);
 
     /// <summary>
-    ///
+    /// Report witness for keys access during transaction execution
     /// </summary>
     /// <param name="verkleWitnessKeys"></param>
-    /// <remarks>Depends on <see cref="IsTracingVerkleWitness"/></remarks>
-    void SetVerkleWitnessKeys(IReadOnlyList<byte[]> verkleWitnessKeys);
+    /// <remarks>Depends on <see cref="IsTracingAccessWitness"/></remarks>
+    void ReportAccessWitness(IReadOnlyList<byte[]> verkleWitnessKeys);
 }

@@ -212,7 +212,7 @@ namespace Nethermind.Evm.TransactionProcessing
                 }
             }
 
-            if(tracer.IsTracingVerkleWitness) tracer.SetVerkleWitnessKeys(env.Witness.GetAccessedKeys());
+            if(tracer.IsTracingAccessWitness) tracer.ReportAccessWitness(env.Witness.GetAccessedKeys());
         }
 
         private void QuickFail(Transaction tx, BlockHeader block, IReleaseSpec spec, ITxTracer txTracer, string? reason)

@@ -13,12 +13,12 @@ namespace Nethermind.Evm.Tracing
     {
         private readonly List<IBlockTracer> _childTracers = new();
         public bool IsTracingRewards { get; private set; }
-        public bool IsTracingVerkleWitness { get; private set; }
+        public bool IsTracingAccessWitness { get; private set; }
 
         public CompositeBlockTracer()
         {
             IsTracingRewards = _childTracers.Any(childTracer => childTracer.IsTracingRewards);
-            IsTracingVerkleWitness = _childTracers.Any(childTracer => childTracer.IsTracingVerkleWitness);
+            IsTracingAccessWitness = _childTracers.Any(childTracer => childTracer.IsTracingAccessWitness);
         }
 
         public void EndTxTrace()

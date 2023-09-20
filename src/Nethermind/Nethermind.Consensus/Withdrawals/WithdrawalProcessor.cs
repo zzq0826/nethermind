@@ -33,7 +33,7 @@ public class WithdrawalProcessor : IWithdrawalProcessor
 
         if (_logger.IsTrace) _logger.Trace($"Applying withdrawals for block {block}");
         VerkleWitness? witness = null;
-        if (blockTracer.IsTracingVerkleWitness) witness = new VerkleWitness();
+        if (blockTracer.IsTracingAccessWitness) witness = new VerkleWitness();
 
         if (block.Withdrawals != null)
         {
@@ -53,7 +53,7 @@ public class WithdrawalProcessor : IWithdrawalProcessor
             }
         }
 
-        if (blockTracer.IsTracingVerkleWitness) blockTracer.ReportWithdrawalWitness(witness);
+        if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(witness);
 
         if (_logger.IsTrace) _logger.Trace($"Withdrawals applied for block {block}");
     }

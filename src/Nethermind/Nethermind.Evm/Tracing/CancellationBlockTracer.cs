@@ -27,9 +27,9 @@ namespace Nethermind.Evm.Tracing
             set => _isTracingRewards = value;
         }
 
-        public bool IsTracingVerkleWitness
+        public bool IsTracingAccessWitness
         {
-            get => _isTracingVerkleWitness || _innerTracer.IsTracingVerkleWitness;
+            get => _isTracingVerkleWitness || _innerTracer.IsTracingAccessWitness;
             set => _isTracingVerkleWitness = value;
         }
 

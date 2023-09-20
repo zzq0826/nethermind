@@ -31,7 +31,7 @@ public abstract class BlockTracerBase<TTrace, TTracer> : IBlockTracer where TTra
     protected abstract TTrace OnEnd(TTracer txTracer);
 
     public virtual bool IsTracingRewards => false;
-    public bool IsTracingVerkleWitness => false;
+    public bool IsTracingAccessWitness => false;
 
     public virtual void ReportReward(Address author, string rewardType, UInt256 rewardValue)
     {

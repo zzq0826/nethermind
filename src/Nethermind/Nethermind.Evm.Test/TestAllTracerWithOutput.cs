@@ -31,7 +31,7 @@ namespace Nethermind.Evm.Test
         public override bool IsTracingBlockHash => true;
         public new bool IsTracingAccess { get { return base.IsTracingAccess; } set { base.IsTracingAccess = value; } }
         public override bool IsTracingFees => true;
-        public override bool IsTracingVerkleWitness => true;
+        public override bool IsTracingAccessWitness => true;
 
         public byte[]? ReturnValue { get; private set; }
 
@@ -70,7 +70,7 @@ namespace Nethermind.Evm.Test
             Refund += refund;
         }
 
-        public override void SetVerkleWitnessKeys(IReadOnlyList<byte[]> verkleWitnessKeys)
+        public override void ReportAccessWitness(IReadOnlyList<byte[]> verkleWitnessKeys)
         {
         }
     }

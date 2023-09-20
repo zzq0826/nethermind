@@ -10,7 +10,7 @@ namespace Nethermind.Evm.Tracing;
 public abstract class BlockTracer : IBlockTracer
 {
     public virtual bool IsTracingRewards => false;
-    public bool IsTracingVerkleWitness => false;
+    public bool IsTracingAccessWitness => false;
     public virtual void ReportReward(Address author, string rewardType, UInt256 rewardValue) { }
     public virtual void ReportWithdrawalWitness(VerkleWitness witness) { }
     public virtual void StartNewBlockTrace(Block block) { }

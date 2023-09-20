@@ -31,16 +31,16 @@ public class BlockExecutionTracer : IBlockTracer, ITxTracer, IJournal<int>, ITxT
     public bool IsTracingAccess => _currentTxTracer.IsTracingAccess;
     public bool IsTracingFees => _currentTxTracer.IsTracingFees;
     private readonly bool _isTracingReceipt;
-    private readonly bool _isTracingVerkleWitness;
+    private readonly bool _isTracingAccessWitness;
     public bool IsTracingReceipt => _isTracingReceipt | _currentTxTracer.IsTracingReceipt;
-    public bool IsTracingVerkleWitness => _isTracingVerkleWitness | _currentTxTracer.IsTracingVerkleWitness;
+    public bool IsTracingAccessWitness => _isTracingAccessWitness | _currentTxTracer.IsTracingAccessWitness;
 
     private IBlockTracer _otherTracer = NullBlockTracer.Instance;
 
     public BlockExecutionTracer(bool traceReceipts, bool traceWitness)
     {
         _isTracingReceipt = traceReceipts;
-        _isTracingVerkleWitness = traceWitness;
+        _isTracingAccessWitness = traceWitness;
     }
 
     public void MarkAsSuccess(Address recipient, long gasSpent, byte[] output, LogEntry[] logs, Keccak? stateRoot = null)
@@ -298,20 +298,20 @@ public class BlockExecutionTracer : IBlockTracer, ITxTracer, IJournal<int>, ITxT
     public SortedSet<byte[]> WitnessKeys => _aggregatedWitnessKeys;
     public IReadOnlyList<byte[]> LastWitness => _witnessKeys[^1];
 
-    public void SetVerkleWitnessKeys(IReadOnlyList<byte[]> verkleWitnessKeys)
+    public void ReportAccessWitness(IReadOnlyList<byte[]> verkleWitnessKeys)
     {
-        if(_isTracingVerkleWitness)
+        if(_isTracingAccessWitness)
             _witnessKeys.Add(verkleWitnessKeys);
 
         // hacky way to support nested witness tracers
         if (_otherTracer is ITxTracer otherTxTracer)
         {
-            otherTxTracer.SetVerkleWitnessKeys(verkleWitnessKeys);
+            otherTxTracer.ReportAccessWitness(verkleWitnessKeys);
         }
 
         if (_currentTxTracer.IsTracingReceipt)
         {
-            _currentTxTracer.SetVerkleWitnessKeys(verkleWitnessKeys);
+            _currentTxTracer.ReportAccessWitness(verkleWitnessKeys);
         }
     }
 }
