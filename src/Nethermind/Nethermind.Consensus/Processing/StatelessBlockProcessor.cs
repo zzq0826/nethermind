@@ -90,7 +90,7 @@ public class StatelessBlockProcessor: BlockProcessor
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
         ApplyMinerRewards(block, blockTracer, spec);
-        _withdrawalProcessor.ProcessWithdrawals(block, spec);
+        _withdrawalProcessor.ProcessWithdrawals(block, _executionTracer, spec);
         _executionTracer.EndBlockTrace();
 
         // if we are producing blocks - then calculate and add the witness to the block

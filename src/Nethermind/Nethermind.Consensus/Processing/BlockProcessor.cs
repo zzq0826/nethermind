@@ -282,7 +282,7 @@ public partial class BlockProcessor : IBlockProcessor
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
         ApplyMinerRewards(block, blockTracer, spec);
-        _withdrawalProcessor.ProcessWithdrawals(block, spec);
+        _withdrawalProcessor.ProcessWithdrawals(block, _executionTracer, spec);
         _executionTracer.EndBlockTrace();
 
         ExecutionWitness? witness = null;
@@ -314,7 +314,7 @@ public partial class BlockProcessor : IBlockProcessor
 
                 block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
                 ApplyMinerRewards(block, blockTracer, spec);
-                _withdrawalProcessor.ProcessWithdrawals(block, spec);
+                _withdrawalProcessor.ProcessWithdrawals(block, _executionTracer, spec);
                 _executionTracer.EndBlockTrace();
 
                 worldState.Commit(spec);

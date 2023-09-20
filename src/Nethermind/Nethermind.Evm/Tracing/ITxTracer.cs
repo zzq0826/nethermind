@@ -144,7 +144,8 @@ public interface ITxTracer : IWorldStateTracer
                       || IsTracingStack
                       || IsTracingBlockHash
                       || IsTracingAccess
-                      || IsTracingFees;
+                      || IsTracingFees
+                      || IsTracingVerkleWitness;
 
     /// <summary>
     /// Transaction completed successfully

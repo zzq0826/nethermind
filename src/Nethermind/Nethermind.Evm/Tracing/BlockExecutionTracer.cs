@@ -10,6 +10,7 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
+using Nethermind.Verkle.Tree;
 
 namespace Nethermind.Evm.Tracing;
 
@@ -233,6 +234,8 @@ public class BlockExecutionTracer : IBlockTracer, ITxTracer, IJournal<int>, ITxT
     public void ReportReward(Address author, string rewardType, UInt256 rewardValue) =>
         _otherTracer.ReportReward(author, rewardType, rewardValue);
 
+    public void ReportWithdrawalWitness(VerkleWitness witness) =>
+        _aggregatedWitnessKeys.AddRange(witness.GetAccessedKeys());
     public void StartNewBlockTrace(Block block)
     {
         if (_otherTracer is null)

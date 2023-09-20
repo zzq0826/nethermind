@@ -176,7 +176,6 @@ public class VerkleWitness : IVerkleWitness
     /// <returns></returns>
     public long AccessForTransaction(Address originAddress, Address? destinationAddress, bool isValueTransfer)
     {
-
         // TODO: does not seem right - not upto spec
         long gasCost = AccessAccount(originAddress, AccountHeaderAccess.Version | AccountHeaderAccess.Balance | AccountHeaderAccess.Nonce | AccountHeaderAccess.CodeHash | AccountHeaderAccess.CodeSize)
                        + (destinationAddress == null ? 0 : AccessCompleteAccount(destinationAddress));
