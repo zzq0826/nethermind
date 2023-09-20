@@ -86,9 +86,18 @@ public partial class VerkleStateStore
                     _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
-                VerkleMemoryDb reverseDiff = PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
-                if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
-                History?.InsertDiff(blockNumberToPersist, changesToPersist, reverseDiff);
+
+                if (History is not null)
+                {
+                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
+                    if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
+                    History?.InsertDiff(blockNumberToPersist, changesToPersist, reverseDiff);
+                }
+                else
+                {
+                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
+                }
+
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
                 Storage.LeafDb.Flush();
@@ -103,11 +112,11 @@ public partial class VerkleStateStore
         AnnounceReorgBoundaries();
     }
 
-    private VerkleMemoryDb PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
+    private static void PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage, out VerkleMemoryDb reverseDiff)
     {
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
-        VerkleMemoryDb reverseDiff = new();
+        reverseDiff = new();
 
         foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
         {
@@ -128,12 +137,20 @@ public partial class VerkleStateStore
 
             storage.SetInternalNode(entry.Key, entry.Value);
         }
+        storage.LeafDb.Flush();
+        storage.InternalNodeDb.Flush();
+    }
 
-        if (_logger.IsDebug)
-            _logger.Debug(
-                $"PersistBlockChanges: ReverseDiff InternalStore:{reverseDiff.InternalTable.Count} LeafStore:{reverseDiff.LeafTable.Count}");
+    private static void PersistBlockChanges(IDictionary<byte[], InternalNode?> internalStore, IDictionary<byte[], byte[]?> leafStore, VerkleKeyValueDb storage)
+    {
+        foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
+            storage.SetLeaf(entry.Key, entry.Value);
 
-        return reverseDiff;
+        foreach (KeyValuePair<byte[], InternalNode?> entry in internalStore)
+            storage.SetInternalNode(entry.Key, entry.Value);
+
+        storage.LeafDb.Flush();
+        storage.InternalNodeDb.Flush();
     }
 
     private int _isFirst;
