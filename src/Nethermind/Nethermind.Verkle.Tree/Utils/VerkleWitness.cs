@@ -7,7 +7,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Int256;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Utils;
 
 // TODO: this can be definitely optimized by caching the keys from StateProvider - because for every access we
 //       already calculate keys in StateProvider - or we maintain pre images?

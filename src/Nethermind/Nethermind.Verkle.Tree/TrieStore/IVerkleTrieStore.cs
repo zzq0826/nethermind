@@ -4,10 +4,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.Interfaces;
+namespace Nethermind.Verkle.Tree.TrieStore;
 
 public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 {

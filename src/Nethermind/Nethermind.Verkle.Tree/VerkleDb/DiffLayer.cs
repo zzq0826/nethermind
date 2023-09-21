@@ -4,8 +4,8 @@
 using System.Diagnostics;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
-using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Serializers;
+using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 

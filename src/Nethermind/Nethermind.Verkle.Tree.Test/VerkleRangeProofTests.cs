@@ -5,7 +5,6 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.Utils;
 

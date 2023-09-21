@@ -20,6 +20,7 @@ using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Consensus.Producers
 {

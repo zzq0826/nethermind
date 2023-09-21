@@ -6,9 +6,8 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
-using Nethermind.Verkle.Tree.Nodes;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;

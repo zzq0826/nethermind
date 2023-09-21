@@ -11,8 +11,9 @@ using Nethermind.State;
 using Nethermind.State.Snap;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Interfaces;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Core.Test.Builders
 {

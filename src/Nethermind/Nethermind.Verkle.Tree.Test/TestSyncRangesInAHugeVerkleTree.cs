@@ -11,9 +11,8 @@ using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Tree.Interfaces;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;

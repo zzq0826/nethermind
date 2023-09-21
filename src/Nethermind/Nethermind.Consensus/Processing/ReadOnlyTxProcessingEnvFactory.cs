@@ -9,6 +9,7 @@ using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Consensus.Processing;
 

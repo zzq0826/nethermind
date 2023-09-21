@@ -9,7 +9,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Interfaces;
+using Nethermind.Verkle.Tree.TrieStore;
 using Metrics = Nethermind.Db.Metrics;
 
 namespace Nethermind.State;

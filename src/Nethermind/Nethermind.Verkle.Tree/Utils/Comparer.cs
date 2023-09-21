@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 using Nethermind.Core.Extensions;
 
-namespace Nethermind.Verkle.Tree.Proofs;
+namespace Nethermind.Verkle.Tree.Utils;
 
 public class ListComparer : Comparer<List<byte>>
 {

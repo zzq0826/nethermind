@@ -8,9 +8,9 @@ using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
-using Nethermind.Verkle.Tree.Interfaces;
-using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 

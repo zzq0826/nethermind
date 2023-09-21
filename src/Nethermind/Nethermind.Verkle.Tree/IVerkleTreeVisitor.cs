@@ -3,9 +3,9 @@
 
 using Nethermind.Core.Verkle;
 using Nethermind.Trie;
-using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.TrieNodes;
 
-namespace Nethermind.Verkle.Tree.Interfaces;
+namespace Nethermind.Verkle.Tree;
 
 public interface IVerkleTreeVisitor
 {

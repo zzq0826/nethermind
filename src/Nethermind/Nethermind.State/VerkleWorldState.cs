@@ -18,7 +18,8 @@ using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Interfaces;
+using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.State;
 

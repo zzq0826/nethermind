@@ -5,8 +5,8 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 
 public class ChangeSet
 {
-    public long BlockNumber;
-    public VerkleMemoryDb DiffLayer;
+    public long BlockNumber { get; }
+    public VerkleMemoryDb DiffLayer { get; }
 
     public ChangeSet(long blockNumber, VerkleMemoryDb diffLayer)
     {
@@ -17,9 +17,9 @@ public class ChangeSet
 
 public class BatchChangeSet
 {
-    public long FromBlockNumber;
-    public long ToBlockNumber;
-    public VerkleMemoryDb DiffLayer;
+    public long FromBlockNumber { get; }
+    public long ToBlockNumber { get; }
+    public VerkleMemoryDb DiffLayer { get; }
 
     public BatchChangeSet(long fromBlockNumber, long toBlockNumber, VerkleMemoryDb diffLayer)
     {

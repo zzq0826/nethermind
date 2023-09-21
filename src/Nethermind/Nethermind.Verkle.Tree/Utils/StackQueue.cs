@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Utils;
 
 /// <summary>
 /// A simple of generic objects.

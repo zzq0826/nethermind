@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using Nethermind.Core.Collections;
-using Nethermind.Verkle.Tree.Nodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 

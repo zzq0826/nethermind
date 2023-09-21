@@ -13,6 +13,7 @@ using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global

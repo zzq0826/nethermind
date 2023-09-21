@@ -6,9 +6,8 @@ using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
-using Nethermind.Verkle.Tree.Interfaces;
-using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Serializers;
+using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Verkle.Tree;
 

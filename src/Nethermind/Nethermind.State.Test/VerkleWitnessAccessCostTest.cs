@@ -4,6 +4,7 @@
 using System;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Store.Test;

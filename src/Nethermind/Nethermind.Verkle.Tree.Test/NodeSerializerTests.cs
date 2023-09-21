@@ -3,8 +3,8 @@
 
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Tree.Nodes;
 using Nethermind.Verkle.Tree.Serializers;
+using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Verkle.Tree.Test;
 

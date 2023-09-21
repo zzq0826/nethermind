@@ -42,6 +42,7 @@ using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 using Nethermind.Wallet;
 

@@ -5,7 +5,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Verkle.Tree.Sync;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Utils;
 
 public static class AccountExtension
 {

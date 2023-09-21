@@ -11,6 +11,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Evm.Tracing;
 

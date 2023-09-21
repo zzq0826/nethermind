@@ -4,11 +4,10 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.Interfaces;
-using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {

@@ -23,6 +23,7 @@ using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
 {

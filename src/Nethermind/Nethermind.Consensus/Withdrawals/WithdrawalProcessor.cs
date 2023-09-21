@@ -10,6 +10,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Consensus.Withdrawals;
 

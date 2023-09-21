@@ -3,7 +3,7 @@
 
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Utils;
 
 public class InsertBatchCompleted : EventArgs
 {

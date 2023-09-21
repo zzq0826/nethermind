@@ -5,6 +5,7 @@ using FluentAssertions;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 

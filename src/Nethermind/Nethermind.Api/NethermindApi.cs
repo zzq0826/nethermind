@@ -58,6 +58,7 @@ using Nethermind.Synchronization.Blocks;
 using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
 {

@@ -5,7 +5,7 @@ using System.Diagnostics;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
-using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 
 

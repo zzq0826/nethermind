@@ -18,7 +18,6 @@ using Nethermind.State;
 using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Curve;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
 using NUnit.Framework;
 

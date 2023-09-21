@@ -3,7 +3,7 @@
 
 using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
-using Nethermind.Verkle.Tree.Nodes;
+using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Verkle.Tree.Serializers;
 

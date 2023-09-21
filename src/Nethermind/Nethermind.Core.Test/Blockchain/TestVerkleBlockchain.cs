@@ -36,6 +36,7 @@ using Nethermind.State;
 using Nethermind.State.Repositories;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 

@@ -9,6 +9,7 @@ using Nethermind.Core.Eip2930;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Evm;
 

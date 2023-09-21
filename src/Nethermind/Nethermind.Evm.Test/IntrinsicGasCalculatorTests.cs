@@ -12,6 +12,7 @@ using Nethermind.Core.Test.Builders;
 using Nethermind.Int256;
 using Nethermind.Specs.Forks;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Evm.Test

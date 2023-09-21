@@ -8,9 +8,8 @@ using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Interfaces;
-using Nethermind.Verkle.Tree.Proofs;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;

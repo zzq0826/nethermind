@@ -5,6 +5,7 @@ using System.Threading;
 using Nethermind.Core;
 using Nethermind.Int256;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Evm.Tracing
 {
