@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace Nethermind.Core.Collections.EliasFano;
+namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
 public unsafe struct BitVector
 {
-    private static readonly int WordLen = sizeof(UIntPtr) * 8;
+    private static int WordLen { get; } = sizeof(UIntPtr) * 8;
     public List<UIntPtr> Words;
     public int Length { get; private set; }
 
@@ -42,7 +40,7 @@ public unsafe struct BitVector
         Length = bv.Length;
     }
 
-    private BitVector(List<UIntPtr> words, int length)
+    public BitVector(List<UIntPtr> words, int length)
     {
         Words = words;
         Length = length;

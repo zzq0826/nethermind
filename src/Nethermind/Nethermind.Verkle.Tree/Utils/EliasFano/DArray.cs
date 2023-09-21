@@ -1,13 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace Nethermind.Core.Collections.EliasFano;
+namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
 public class DArray
 {
@@ -20,6 +18,13 @@ public class DArray
         Data = new BitVector(bv);
         IndexS1 = new DArrayIndex(bv, true);
         IndexS0 = new DArrayIndex(bv, false);
+    }
+
+    public DArray(BitVector bv, DArrayIndex indexS0, DArrayIndex indexS1)
+    {
+        Data = bv;
+        IndexS1 = indexS1;
+        IndexS0 = indexS0;
     }
 
     public static DArray FromBits(IEnumerable<bool> bits)
@@ -81,6 +86,16 @@ public class DArrayIndex
     public readonly List<int> OverflowPositions;
     public int NumPositions;
     public bool OverOne;
+
+    public DArrayIndex(int[] curBlockPositions, int[] blockInventory, ushort[] subBlockInventory, int[] overflowPositions, int numPositions, bool overOne)
+    {
+        CurBlockPositions = curBlockPositions.ToList();
+        BlockInventory = blockInventory.ToList();
+        SubBlockInventory = subBlockInventory.ToList();
+        OverflowPositions = overflowPositions.ToList();
+        NumPositions = numPositions;
+        OverOne = overOne;
+    }
 
     public DArrayIndex(BitVector bv, bool overOne)
     {

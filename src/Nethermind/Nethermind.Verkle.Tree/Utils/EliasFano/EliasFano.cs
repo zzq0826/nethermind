@@ -1,12 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
-using System.Buffers.Binary;
-using System.Linq;
 using Nethermind.Core.Extensions;
 
-namespace Nethermind.Core.Collections.EliasFano;
+namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
 public readonly struct EliasFanoS
 {
