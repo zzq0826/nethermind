@@ -16,10 +16,9 @@ public class DArrayIndexDecoder: IRlpStreamDecoder<DArrayIndex>
     public int GetContentLength(DArrayIndex item, RlpBehaviors rlpBehaviors)
     {
         int length = 0;
-        length += Rlp.LengthOf(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.CurBlockPositions)));
-        length += Rlp.LengthOf(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.BlockInventory)));
-        length += Rlp.LengthOf(MemoryMarshal.Cast<ushort, byte>(CollectionsMarshal.AsSpan(item.SubBlockInventory)));
-        length += Rlp.LengthOf(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.OverflowPositions)));
+        length += Rlp.LengthOf(MemoryMarshal.Cast<int, byte>(item._blockInventory));
+        length += Rlp.LengthOf(MemoryMarshal.Cast<ushort, byte>(item._subBlockInventory));
+        length += Rlp.LengthOf(MemoryMarshal.Cast<int, byte>(item._overflowPositions));
         length += Rlp.LengthOf(item.NumPositions);
         length += Rlp.LengthOf(item.OverOne);
         return length;
@@ -29,7 +28,6 @@ public class DArrayIndexDecoder: IRlpStreamDecoder<DArrayIndex>
     {
         rlpStream.ReadSequenceLength();
         return new DArrayIndex(
-            MemoryMarshal.Cast<byte, int>(rlpStream.DecodeByteArraySpan()).ToArray(),
             MemoryMarshal.Cast<byte, int>(rlpStream.DecodeByteArraySpan()).ToArray(),
             MemoryMarshal.Cast<byte, ushort>(rlpStream.DecodeByteArraySpan()).ToArray(),
             MemoryMarshal.Cast<byte, int>(rlpStream.DecodeByteArraySpan()).ToArray(),
@@ -42,10 +40,9 @@ public class DArrayIndexDecoder: IRlpStreamDecoder<DArrayIndex>
     {
         int contentLength = GetContentLength(item, rlpBehaviors);
         stream.StartSequence(contentLength);
-        stream.Encode(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.CurBlockPositions)));
-        stream.Encode(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.BlockInventory)));
-        stream.Encode(MemoryMarshal.Cast<ushort, byte>(CollectionsMarshal.AsSpan(item.SubBlockInventory)));
-        stream.Encode(MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(item.OverflowPositions)));
+        stream.Encode(MemoryMarshal.Cast<int, byte>(item._blockInventory));
+        stream.Encode(MemoryMarshal.Cast<ushort, byte>(item._subBlockInventory));
+        stream.Encode(MemoryMarshal.Cast<int, byte>(item._overflowPositions));
         stream.Encode(item.NumPositions);
         stream.Encode(item.OverOne);
     }

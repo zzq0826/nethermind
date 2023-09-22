@@ -7,33 +7,33 @@ namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
 public readonly struct EliasFanoS
 {
-    public readonly DArray HighBits;
-    public readonly BitVector LowBits;
-    public readonly int LowLen;
-    public readonly UIntPtr Universe;
+    public readonly DArray _highBits;
+    public readonly BitVector _lowBits;
+    public readonly int _lowLen;
+    public readonly UIntPtr _universe;
 
     public EliasFanoS(DArray highBits, BitVector lowBits, int lowLen, UIntPtr universe)
     {
-        HighBits = highBits;
-        LowBits = lowBits;
-        LowLen = lowLen;
-        Universe = universe;
+        _highBits = highBits;
+        _lowBits = lowBits;
+        _lowLen = lowLen;
+        _universe = universe;
     }
 
     public int Rank(UIntPtr pos)
     {
-        if (Universe < pos) throw new ArgumentException();
-        if (Universe == pos) return HighBits.IndexS1.NumPositions;
+        if (_universe < pos) throw new ArgumentException();
+        if (_universe == pos) return _highBits._indexS1.NumPositions;
 
-        int hRank = (int)(pos >> LowLen);
-        int hPos = HighBits.Select0(hRank)!.Value;
+        int hRank = (int)(pos >> _lowLen);
+        int hPos = _highBits.Select0(hRank)!.Value;
         int rank = hPos - hRank;
 
-        UIntPtr lPos = pos & (((UIntPtr)1 << LowLen) - 1);
+        UIntPtr lPos = pos & (((UIntPtr)1 << _lowLen) - 1);
 
         while ((hPos > 0)
-               && HighBits.Data.GetBit(hPos-1)!.Value
-               && (LowBits.GetBits((rank-1)*LowLen, LowLen) >= lPos))
+               && _highBits._data.GetBit(hPos-1)!.Value
+               && (_lowBits.GetBits((rank-1)*_lowLen, _lowLen) >= lPos))
         {
             rank -= 1;
             hPos -= 1;
@@ -41,60 +41,50 @@ public readonly struct EliasFanoS
 
         return rank;
     }
-
-    public byte[] Serialize()
-    {
-        byte[] byteHighBits = HighBits.Serialize();
-        byte[] byteLowBits = LowBits.Serialize();
-        byte[] byteLowLen = LowLen.ToByteArray();
-        byte[] byteUniverse = BitConverter.GetBytes(Universe);
-
-        return byteHighBits.Concat(byteLowBits).Concat(byteLowLen).Concat(byteUniverse).ToArray();
-    }
 }
 
 public struct EliasFano
 {
-    public BitVector HighBits;
-    public BitVector LowBits;
-    public UIntPtr Universe;
-    public int _numValues;
-    public int Pos;
-    public UIntPtr Last;
-    public int LowLen;
+    private BitVector _highBits;
+    private BitVector _lowBits;
+    private readonly UIntPtr _universe;
+    private readonly int _numValues;
+    private int _pos;
+    private UIntPtr _last;
+    private readonly int _lowLen;
 
     public EliasFano(UIntPtr universe, int numValues)
     {
         int lowLen = (int)Math.Ceiling(Math.Log2(universe / (UIntPtr)numValues));
-        HighBits = new BitVector((numValues + 1) + (int)(universe >> lowLen) + 1);
-        LowBits = new BitVector();
-        Universe = universe;
+        _highBits = new BitVector((numValues + 1) + (int)(universe >> lowLen) + 1);
+        _lowBits = new BitVector();
+        _universe = universe;
         _numValues = numValues;
-        Pos = 0;
-        Last = 0;
-        LowLen = lowLen;
+        _pos = 0;
+        _last = 0;
+        _lowLen = lowLen;
     }
 
 
     public void Push(UIntPtr val)
     {
-        if (val < Last) throw new ArgumentException("not allowed");
-        if (Universe < Last) throw new ArgumentException("not allowed");
-        if (_numValues <= Pos) throw new ArgumentException("not allowed");
+        if (val < _last) throw new ArgumentException("not allowed");
+        if (_universe < _last) throw new ArgumentException("not allowed");
+        if (_numValues <= _pos) throw new ArgumentException("not allowed");
 
-        Last = val;
-        UIntPtr lowMask = (((UIntPtr)1) << LowLen) - 1;
+        _last = val;
+        UIntPtr lowMask = (((UIntPtr)1) << _lowLen) - 1;
 
-        if (LowLen != 0)
+        if (_lowLen != 0)
         {
-            LowBits.PushBits(val & lowMask, LowLen);
+            _lowBits.PushBits(val & lowMask, _lowLen);
         }
-        HighBits.SetBit((int)(val >> LowLen) + Pos, true);
-        Pos += 1;
+        _highBits.SetBit((int)(val >> _lowLen) + _pos, true);
+        _pos += 1;
     }
 
     public EliasFanoS Build()
     {
-        return new EliasFanoS(new DArray(HighBits), LowBits, LowLen, Universe);
+        return new EliasFanoS(new DArray(_highBits), _lowBits, _lowLen, _universe);
     }
 }

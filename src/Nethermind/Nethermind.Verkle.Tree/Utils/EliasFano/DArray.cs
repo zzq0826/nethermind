@@ -9,22 +9,22 @@ namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
 public class DArray
 {
-    public BitVector Data { get; }
-    public DArrayIndex IndexS1 { get; }
-    public DArrayIndex IndexS0 { get; }
+    public readonly BitVector _data;
+    public readonly DArrayIndex _indexS1;
+    public readonly DArrayIndex _indexS0;
 
     public DArray(BitVector bv)
     {
-        Data = new BitVector(bv);
-        IndexS1 = new DArrayIndex(bv, true);
-        IndexS0 = new DArrayIndex(bv, false);
+        _data = new BitVector(bv);
+        _indexS1 = new DArrayIndex(bv, true);
+        _indexS0 = new DArrayIndex(bv, false);
     }
 
     public DArray(BitVector bv, DArrayIndex indexS0, DArrayIndex indexS1)
     {
-        Data = bv;
-        IndexS1 = indexS1;
-        IndexS0 = indexS0;
+        _data = bv;
+        _indexS1 = indexS1;
+        _indexS0 = indexS0;
     }
 
     public static DArray FromBits(IEnumerable<bool> bits)
@@ -36,41 +36,12 @@ public class DArray
 
     public int? Select0(int k)
     {
-        return IndexS0.Select(Data, k);
+        return _indexS0.Select(_data, k);
     }
 
     public int? Select1(int k)
     {
-        return IndexS1.Select(Data, k);
-    }
-
-    public byte[] Serialize()
-    {
-        byte[] data = new byte[GetLength()];
-        Span<byte> dataSpan = data;
-
-        {
-            Span<byte> bitData = MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Data.Words));
-            bitData.CopyTo(dataSpan);
-            dataSpan = dataSpan[bitData.Length..];
-        }
-
-        {
-            Span<byte> bitData = IndexS1.Serialize();
-            bitData.CopyTo(dataSpan);
-            dataSpan = dataSpan[bitData.Length..];
-        }
-
-        {
-            Span<byte> bitData = IndexS0.Serialize();
-            bitData.CopyTo(dataSpan);
-        }
-        return data;
-    }
-
-    public int GetLength()
-    {
-        return Data.SerializedBytesLength + IndexS1.GetLength() + IndexS0.GetLength();
+        return _indexS1.Select(_data, k);
     }
 }
 
@@ -80,19 +51,17 @@ public class DArrayIndex
     const int MaxInBlockDistance = 1 << 16;
     const int SubBlockLen = 32;
 
-    public readonly List<int> CurBlockPositions;
-    public readonly List<int> BlockInventory;
-    public readonly List<ushort> SubBlockInventory;
-    public readonly List<int> OverflowPositions;
-    public int NumPositions;
-    public bool OverOne;
+    public readonly int[] _blockInventory;
+    public readonly ushort[] _subBlockInventory;
+    public readonly int[] _overflowPositions;
+    public int NumPositions { get; }
+    public bool OverOne { get; }
 
-    public DArrayIndex(int[] curBlockPositions, int[] blockInventory, ushort[] subBlockInventory, int[] overflowPositions, int numPositions, bool overOne)
+    public DArrayIndex(int[] blockInventory, ushort[] subBlockInventory, int[] overflowPositions, int numPositions, bool overOne)
     {
-        CurBlockPositions = curBlockPositions.ToList();
-        BlockInventory = blockInventory.ToList();
-        SubBlockInventory = subBlockInventory.ToList();
-        OverflowPositions = overflowPositions.ToList();
+        _blockInventory = blockInventory;
+        _subBlockInventory = subBlockInventory;
+        _overflowPositions = overflowPositions;
         NumPositions = numPositions;
         OverOne = overOne;
     }
@@ -100,11 +69,11 @@ public class DArrayIndex
     public DArrayIndex(BitVector bv, bool overOne)
     {
         OverOne = overOne;
-        CurBlockPositions = new List<int>();
-        BlockInventory = new List<int>();
-        SubBlockInventory = new List<ushort>();
-        OverflowPositions = new List<int>();
-        NumPositions = 0;
+        List<int> curBlockPositions = new();
+        List<int> blockInventory = new();
+        List<ushort> subBlockInventory = new();
+        List<int> overflowPositions = new();
+        int numPositions = 0;
 
         for (int wordIndex = 0; wordIndex < bv.Words.Count; wordIndex++)
         {
@@ -118,20 +87,25 @@ public class DArrayIndex
                 currWord >>= l;
                 if (currPos >= bv.Length) break;
 
-                CurBlockPositions.Add(currPos);
-                if (CurBlockPositions.Count == BlockLen)
+                curBlockPositions.Add(currPos);
+                if (curBlockPositions.Count == BlockLen)
                 {
-                    FlushCurBlock(CurBlockPositions, BlockInventory, SubBlockInventory, OverflowPositions);
+                    FlushCurBlock(curBlockPositions, blockInventory, subBlockInventory, overflowPositions);
                 }
 
                 currWord >>= 1;
                 currPos += 1;
-                NumPositions += 1;
+                numPositions += 1;
             }
         }
 
-        if (CurBlockPositions.Count > 0)
-            FlushCurBlock(CurBlockPositions, BlockInventory, SubBlockInventory, OverflowPositions);
+        if (curBlockPositions.Count > 0)
+            FlushCurBlock(curBlockPositions, blockInventory, subBlockInventory, overflowPositions);
+
+        _blockInventory = blockInventory.ToArray();
+        _subBlockInventory = subBlockInventory.ToArray();
+        _overflowPositions = overflowPositions.ToArray();
+        NumPositions = numPositions;
     }
 
     public int? Select(BitVector bv, int k)
@@ -139,18 +113,18 @@ public class DArrayIndex
         if (NumPositions <= k) return null;
 
         int block = k / BlockLen;
-        int blockPos = BlockInventory[block];
+        int blockPos = _blockInventory[block];
 
         if (blockPos < 0)
         {
             int overflowPos = -blockPos - 1;
-            return OverflowPositions[overflowPos + (k % BlockLen)];
+            return _overflowPositions[overflowPos + (k % BlockLen)];
         }
 
         int subBlock = k / SubBlockLen;
         int remainder = k % SubBlockLen;
 
-        int startPos = blockPos + SubBlockInventory[subBlock];
+        int startPos = blockPos + _subBlockInventory[subBlock];
 
         int sel;
         if (remainder == 0)
@@ -227,60 +201,5 @@ public class DArrayIndex
             x >>= 1;
         }
         return -1;
-    }
-
-     public byte[] Serialize()
-    {
-        byte[] dataToReturn = new byte[GetLength()];
-        Span<byte> dataSpan = dataToReturn;
-
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, CurBlockPositions.Count);
-            dataSpan = dataSpan[8..];
-            Span<byte> crbSpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(CurBlockPositions));
-            crbSpan.CopyTo(dataSpan);
-            dataSpan = dataSpan[crbSpan.Length..];
-        }
-
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, BlockInventory.Count);
-            dataSpan = dataSpan[8..];
-            Span<byte> inventorySpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(BlockInventory));
-            inventorySpan.CopyTo(dataSpan);
-            dataSpan = dataSpan[inventorySpan.Length..];
-        }
-
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, SubBlockInventory.Count);
-            dataSpan = dataSpan[8..];
-            Span<byte> subBlockInventory = MemoryMarshal.Cast<ushort, byte>(CollectionsMarshal.AsSpan(SubBlockInventory));
-            subBlockInventory.CopyTo(dataSpan);
-            dataSpan = dataSpan[subBlockInventory.Length..];
-        }
-
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, OverflowPositions.Count);
-            dataSpan = dataSpan[8..];
-            Span<byte> overflowSpan = MemoryMarshal.Cast<int, byte>(CollectionsMarshal.AsSpan(OverflowPositions));
-            overflowSpan.CopyTo(dataSpan);
-            dataSpan = dataSpan[overflowSpan.Length..];
-        }
-
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(dataSpan, NumPositions);
-            dataSpan = dataSpan[8..];
-            dataSpan[-1] = OverOne ? (byte)1 : (byte)0;
-        }
-
-        return dataToReturn;
-    }
-
-    public int GetLength()
-    {
-        return 8 + CurBlockPositions.Count * 4
-                 + 8 + BlockInventory.Count * 4
-                 + 8 + SubBlockInventory.Count * 2
-                 + 8 + OverflowPositions.Count * 8
-                 + 8 + 1;
     }
 }
