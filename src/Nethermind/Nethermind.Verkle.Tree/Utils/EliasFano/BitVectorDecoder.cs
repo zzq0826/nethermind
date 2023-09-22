@@ -16,7 +16,7 @@ public class BitVectorDecoder: IRlpStreamDecoder<BitVector>
     {
         int length = 0;
         length += Rlp.LengthOf(item.Length);
-        length += Rlp.LengthOf(MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(item.Words)));
+        length += Rlp.LengthOf(MemoryMarshal.Cast<ulong, byte>(CollectionsMarshal.AsSpan(item.Words)));
         return length;
     }
 
@@ -24,8 +24,8 @@ public class BitVectorDecoder: IRlpStreamDecoder<BitVector>
     {
         rlpStream.ReadSequenceLength();
         int bitVecLength = rlpStream.DecodeInt();
-        List<UIntPtr> bitVecWords =
-            MemoryMarshal.Cast<byte, UIntPtr>(rlpStream.DecodeByteArraySpan()).ToArray().ToList();
+        List<ulong> bitVecWords =
+            MemoryMarshal.Cast<byte, ulong>(rlpStream.DecodeByteArraySpan()).ToArray().ToList();
         return new BitVector(bitVecWords, bitVecLength);
     }
 
@@ -33,6 +33,6 @@ public class BitVectorDecoder: IRlpStreamDecoder<BitVector>
     {
         stream.StartSequence(GetContentLength(item, rlpBehaviors));
         stream.Encode(item.Length);
-        stream.Encode(MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(item.Words)));
+        stream.Encode(MemoryMarshal.Cast<ulong, byte>(CollectionsMarshal.AsSpan(item.Words)));
     }
 }

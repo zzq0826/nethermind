@@ -30,7 +30,7 @@ public class EliasFanoDecoder: IRlpStreamDecoder<EliasFanoS>
         DArray hghBits = _dArrayDecoder.Decode(rlpStream);
         BitVector lowBits = _vecDecoder.Decode(rlpStream);
         int lowLen = rlpStream.DecodeInt();
-        UIntPtr universe = (UIntPtr)rlpStream.DecodeUInt256();
+        ulong universe = rlpStream.DecodeUlong();
         return new EliasFanoS(hghBits, lowBits, lowLen, universe);
     }
 

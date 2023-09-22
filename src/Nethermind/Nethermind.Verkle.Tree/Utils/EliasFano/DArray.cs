@@ -78,7 +78,7 @@ public class DArrayIndex
         for (int wordIndex = 0; wordIndex < bv.Words.Count; wordIndex++)
         {
             int currPos = wordIndex * 64;
-            UIntPtr currWord = overOne ? GetWordOverOne(bv, wordIndex) : GetWordOverZero(bv, wordIndex);
+            ulong currWord = overOne ? GetWordOverOne(bv, wordIndex) : GetWordOverZero(bv, wordIndex);
 
             while (true)
             {
@@ -135,8 +135,8 @@ public class DArrayIndex
         {
             int wordIdx = startPos / 64;
             int wordShift = startPos % 64;
-            UIntPtr wordE = OverOne ? GetWordOverOne(bv, wordIdx) : GetWordOverZero(bv, wordIdx);
-            UIntPtr word = wordE & (UIntPtr.MaxValue << wordShift);
+            ulong wordE = OverOne ? GetWordOverOne(bv, wordIdx) : GetWordOverZero(bv, wordIdx);
+            ulong word = wordE & (ulong.MaxValue << wordShift);
 
             while (true)
             {
@@ -184,13 +184,13 @@ public class DArrayIndex
         curBlockPositions.Clear();
     }
 
-    private static UIntPtr GetWordOverZero(BitVector bv, int wordIdx) => ~bv.Words[wordIdx];
+    private static ulong GetWordOverZero(BitVector bv, int wordIdx) => ~bv.Words[wordIdx];
 
-    private static UIntPtr GetWordOverOne(BitVector bv, int wordIdx) => bv.Words[wordIdx];
+    private static ulong GetWordOverOne(BitVector bv, int wordIdx) => bv.Words[wordIdx];
 
-    private static int NumberOfTrailingZeros(UIntPtr i) => BitOperations.TrailingZeroCount(i);
+    private static int NumberOfTrailingZeros(ulong i) => BitOperations.TrailingZeroCount(i);
 
-    private static int? SelectInWord(UIntPtr x, int k)
+    private static int? SelectInWord(ulong x, int k)
     {
         int index = 0;
         while (x != 0)

@@ -5,42 +5,32 @@ using System.Runtime.InteropServices;
 
 namespace Nethermind.Verkle.Tree.Utils.EliasFano;
 
-public unsafe struct BitVector
+public struct BitVector
 {
-    private static int WordLen { get; } = sizeof(UIntPtr) * 8;
-    public List<UIntPtr> Words;
+    private const int WordLen = sizeof(ulong) * 8;
+
+    public List<ulong> Words;
     public int Length { get; private set; }
-
-    public int SerializedBytesLength
-    {
-        get => MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Words)).Length;
-    }
-
-    public byte[] Serialize()
-    {
-        return MemoryMarshal.Cast<UIntPtr, byte>(CollectionsMarshal.AsSpan(Words)).ToArray();
-    }
-
 
     public BitVector()
     {
-        Words = new List<UIntPtr>();
+        Words = new List<ulong>();
         Length = 0;
     }
 
     public BitVector(int capacity)
     {
-        Words = new List<UIntPtr>(new UIntPtr[WordsFor(capacity)]);
+        Words = new List<ulong>(new ulong[WordsFor(capacity)]);
         Length = capacity;
     }
 
     public BitVector(BitVector bv)
     {
-        Words = new List<UIntPtr>(bv.Words);
+        Words = new List<ulong>(bv.Words);
         Length = bv.Length;
     }
 
-    public BitVector(List<UIntPtr> words, int length)
+    public BitVector(List<ulong> words, int length)
     {
         Words = words;
         Length = length;
@@ -48,13 +38,13 @@ public unsafe struct BitVector
 
     public static BitVector WithCapacity(int length)
     {
-        return new BitVector(new List<UIntPtr>(WordsFor(length)), 0);
+        return new BitVector(new List<ulong>(WordsFor(length)), 0);
     }
 
     public static BitVector FromBit(bool bit, int length)
     {
-        UIntPtr word = bit ? UIntPtr.MaxValue : 0;
-        List<UIntPtr> words = new List<UIntPtr>(new UIntPtr[WordsFor(length)]);
+        ulong word = bit ? ulong.MaxValue : 0;
+        List<ulong> words = new(new ulong[WordsFor(length)]);
         for (int i = 0; i < words.Count; i++)
         {
             words[i] = word;
@@ -63,7 +53,7 @@ public unsafe struct BitVector
         int shift = length % WordLen;
         if (shift != 0)
         {
-            UIntPtr mask = ((UIntPtr)1 << shift) - 1;
+            ulong mask = ((ulong)1 << shift) - 1;
             words[^1] &= mask;
         }
 
@@ -103,11 +93,11 @@ public unsafe struct BitVector
 
         int word = pos / WordLen;
         int posInWord = pos % WordLen;
-        Words[word] &= ~((UIntPtr)1 << posInWord);
-        Words[word] |= (UIntPtr)Convert.ToUInt32(bit) << posInWord;
+        Words[word] &= ~((ulong)1 << posInWord);
+        Words[word] |= (ulong)Convert.ToUInt32(bit) << posInWord;
     }
 
-    public readonly UIntPtr? GetBits(int pos, int len)
+    public readonly ulong? GetBits(int pos, int len)
     {
         if (WordLen < len || Length < pos + len) return null;
 
@@ -115,21 +105,21 @@ public unsafe struct BitVector
 
         (int block, int shift) = (pos / WordLen, pos % WordLen);
 
-        UIntPtr mask = len < WordLen ? ((UIntPtr)1 << len) - 1 : UIntPtr.MaxValue;
+        ulong mask = len < WordLen ? ((ulong)1 << len) - 1 : ulong.MaxValue;
 
-        UIntPtr bits = shift + len <= WordLen
+        ulong bits = shift + len <= WordLen
             ? Words[block] >> shift & mask
             : (Words[block] >> shift) | (Words[block + 1] << (WordLen - shift) & mask);
         return bits;
     }
 
-    public void SetBits(int pos, UIntPtr bits, int len)
+    public void SetBits(int pos, ulong bits, int len)
     {
         if (WordLen < len || Length < pos + len) throw new ArgumentException();
 
         if (len == 0) return;
 
-        UIntPtr mask = len < WordLen ? ((UIntPtr)1 << len) - 1 : UIntPtr.MaxValue;
+        ulong mask = len < WordLen ? ((ulong)1 << len) - 1 : ulong.MaxValue;
 
         bits &= mask;
 
@@ -148,12 +138,12 @@ public unsafe struct BitVector
         }
     }
 
-    public void PushBits(UIntPtr bits, int len)
+    public void PushBits(ulong bits, int len)
     {
         if (WordLen < len) throw new ArgumentException();
         if (len == 0) return;
 
-        UIntPtr mask = len < WordLen ? ((UIntPtr)1 << len) - 1 : UIntPtr.MaxValue;
+        ulong mask = len < WordLen ? ((ulong)1 << len) - 1 : ulong.MaxValue;
 
         bits &= mask;
 

@@ -10,9 +10,9 @@ public readonly struct EliasFanoS
     public readonly DArray _highBits;
     public readonly BitVector _lowBits;
     public readonly int _lowLen;
-    public readonly UIntPtr _universe;
+    public readonly ulong _universe;
 
-    public EliasFanoS(DArray highBits, BitVector lowBits, int lowLen, UIntPtr universe)
+    public EliasFanoS(DArray highBits, BitVector lowBits, int lowLen, ulong universe)
     {
         _highBits = highBits;
         _lowBits = lowBits;
@@ -20,7 +20,7 @@ public readonly struct EliasFanoS
         _universe = universe;
     }
 
-    public int Rank(UIntPtr pos)
+    public int Rank(ulong pos)
     {
         if (_universe < pos) throw new ArgumentException();
         if (_universe == pos) return _highBits._indexS1.NumPositions;
@@ -29,7 +29,7 @@ public readonly struct EliasFanoS
         int hPos = _highBits.Select0(hRank)!.Value;
         int rank = hPos - hRank;
 
-        UIntPtr lPos = pos & (((UIntPtr)1 << _lowLen) - 1);
+        ulong lPos = pos & (((ulong)1 << _lowLen) - 1);
 
         while ((hPos > 0)
                && _highBits._data.GetBit(hPos-1)!.Value
@@ -47,15 +47,15 @@ public struct EliasFano
 {
     private BitVector _highBits;
     private BitVector _lowBits;
-    private readonly UIntPtr _universe;
+    private readonly ulong _universe;
     private readonly int _numValues;
     private int _pos;
-    private UIntPtr _last;
+    private ulong _last;
     private readonly int _lowLen;
 
-    public EliasFano(UIntPtr universe, int numValues)
+    public EliasFano(ulong universe, int numValues)
     {
-        int lowLen = (int)Math.Ceiling(Math.Log2(universe / (UIntPtr)numValues));
+        int lowLen = (int)Math.Ceiling(Math.Log2(universe / (ulong)numValues));
         _highBits = new BitVector((numValues + 1) + (int)(universe >> lowLen) + 1);
         _lowBits = new BitVector();
         _universe = universe;
@@ -66,14 +66,14 @@ public struct EliasFano
     }
 
 
-    public void Push(UIntPtr val)
+    public void Push(ulong val)
     {
         if (val < _last) throw new ArgumentException("not allowed");
         if (_universe < _last) throw new ArgumentException("not allowed");
         if (_numValues <= _pos) throw new ArgumentException("not allowed");
 
         _last = val;
-        UIntPtr lowMask = (((UIntPtr)1) << _lowLen) - 1;
+        ulong lowMask = (((ulong)1) << _lowLen) - 1;
 
         if (_lowLen != 0)
         {
