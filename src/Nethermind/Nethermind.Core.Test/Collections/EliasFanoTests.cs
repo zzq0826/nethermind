@@ -21,7 +21,7 @@ public class EliasFanoTests
         foreach (UIntPtr val in data) efb.Push(val);
         EliasFanoS ef = efb.Build();
         Console.WriteLine(string.Join(", ", data));
-        Console.WriteLine(ef.Rank(300000));
+        ef.Rank(300000).Should().Be(15);
     }
 
     [Test]
@@ -85,48 +85,5 @@ public class EliasFanoTests
         ef.Rank(905).Should().Be(13);
         ef.Rank(1000).Should().Be(14);
         Assert.Throws<ArgumentException>(() => ef.Rank(1001));
-    }
-
-    [Test]
-    public void TestDArrayIndexOverOne()
-    {
-        BitVector bv = BitVector.FromBit(false, 3);
-        DArrayIndex da = new DArrayIndex(bv, true);
-        Console.WriteLine(da.Select(bv, 0));
-        Console.WriteLine(da.Select(bv, 1));
-        Console.WriteLine(da.Select(bv, 2));
-        Console.WriteLine(da.Select(bv, 3));
-    }
-
-    [Test]
-    public void TestDArrayIndexOverZero()
-    {
-        BitVector bv = BitVector.FromBit(false, 3);
-        DArrayIndex da = new DArrayIndex(bv, false);
-        Console.WriteLine(da.Select(bv, 0));
-        Console.WriteLine(da.Select(bv, 1));
-        Console.WriteLine(da.Select(bv, 2));
-        Console.WriteLine(da.Select(bv, 3));
-    }
-
-    [Test]
-    public void TestDArrayAllZero()
-    {
-        DArray da = DArray.FromBits(new bool[] { false, false, false });
-        Console.WriteLine(da.Select1(0));
-    }
-
-    [Test]
-    public void TestDArrayRank0()
-    {
-        DArray da = DArray.FromBits(new bool[] { false, true, false });
-        Console.WriteLine(da.Select1(0));
-    }
-
-    [Test]
-    public void TestDArraySelect1()
-    {
-        DArray da = DArray.FromBits(new bool[] { false, true, false });
-        Console.WriteLine(da.Select1(0));
     }
 }
