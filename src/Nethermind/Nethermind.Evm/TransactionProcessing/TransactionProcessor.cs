@@ -30,6 +30,8 @@ namespace Nethermind.Evm.TransactionProcessing
         private readonly IWorldState _worldState;
         private readonly IVirtualMachine _virtualMachine;
 
+        public IVirtualMachine VirtualMachine => _virtualMachine;
+
         [Flags]
         protected enum ExecutionOptions
         {

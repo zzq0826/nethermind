@@ -230,7 +230,7 @@ public class RegisterRpcModules : IStep
         Web3RpcModule web3RpcModule = new(_api.LogManager);
         rpcModuleProvider.RegisterSingle<IWeb3RpcModule>(web3RpcModule);
 
-        EvmRpcModule evmRpcModule = new(_api.ManualBlockProductionTrigger);
+        EvmRpcModule evmRpcModule = new(_api.ManualBlockProductionTrigger, _api.BlockTree, _api.WorldState, _api.TransactionProcessor!);
         rpcModuleProvider.RegisterSingle<IEvmRpcModule>(evmRpcModule);
 
         foreach (INethermindPlugin plugin in _api.Plugins)
