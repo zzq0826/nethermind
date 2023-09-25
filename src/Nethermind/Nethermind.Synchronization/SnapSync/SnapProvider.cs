@@ -21,7 +21,7 @@ namespace Nethermind.Synchronization.SnapSync
 {
     public class SnapProvider : ISnapProvider
     {
-        private readonly ObjectPool<ITrieStore> _trieStorePool;
+        private readonly ObjectPool<TrieStoreWithBatch> _trieStorePool;
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
         private readonly ILogger _logger;
@@ -32,7 +32,7 @@ namespace Nethermind.Synchronization.SnapSync
         {
             _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-            _trieStorePool = new DefaultObjectPool<ITrieStore>(new TrieStorePoolPolicy(_dbProvider.StateDb, logManager));
+            _trieStorePool = new DefaultObjectPool<TrieStoreWithBatch>(new TrieStorePoolPolicy(_dbProvider.StateDb, logManager));
 
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _logger = logManager.GetClassLogger<SnapProvider>();
@@ -69,7 +69,8 @@ namespace Nethermind.Synchronization.SnapSync
 
         public AddRangeResult AddAccountRange(long blockNumber, in ValueKeccak expectedRootHash, in ValueKeccak startingHash, PathWithAccount[] accounts, byte[][] proofs = null, in ValueKeccak? hashLimit = null!)
         {
-            ITrieStore store = _trieStorePool.Get();
+            TrieStoreWithBatch storeBatch = _trieStorePool.Get();
+            ITrieStore store = storeBatch.TrieStore;
             try
             {
                 StateTree tree = new(store, _logManager);
@@ -102,7 +103,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
             finally
             {
-                _trieStorePool.Return(store);
+                _trieStorePool.Return(storeBatch);
             }
         }
 
@@ -160,7 +161,8 @@ namespace Nethermind.Synchronization.SnapSync
 
         public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, PathWithStorageSlot[] slots, byte[][]? proofs = null)
         {
-            ITrieStore store = _trieStorePool.Get();
+            TrieStoreWithBatch storeBatch = _trieStorePool.Get();
+            ITrieStore store = storeBatch.TrieStore;
             StorageTree tree = new(store, _logManager);
             try
             {
@@ -196,14 +198,15 @@ namespace Nethermind.Synchronization.SnapSync
             }
             finally
             {
-                _trieStorePool.Return(store);
+                _trieStorePool.Return(storeBatch);
             }
         }
 
         public void RefreshAccounts(AccountsToRefreshRequest request, byte[][] response)
         {
             int respLength = response.Length;
-            ITrieStore store = _trieStorePool.Get();
+            TrieStoreWithBatch storeBatch = _trieStorePool.Get();
+            ITrieStore store = storeBatch.TrieStore;
             try
             {
                 for (int reqi = 0; reqi < request.Paths.Length; reqi++)
@@ -260,7 +263,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
             finally
             {
-                _trieStorePool.Return(store);
+                _trieStorePool.Return(storeBatch);
             }
         }
 
@@ -320,7 +323,7 @@ namespace Nethermind.Synchronization.SnapSync
             _progressTracker.UpdatePivot();
         }
 
-        private class TrieStorePoolPolicy : IPooledObjectPolicy<ITrieStore>
+        private class TrieStorePoolPolicy : IPooledObjectPolicy<TrieStoreWithBatch>
         {
             private readonly IKeyValueStoreWithBatching _stateDb;
             private readonly ILogManager _logManager;
@@ -331,19 +334,34 @@ namespace Nethermind.Synchronization.SnapSync
                 _logManager = logManager;
             }
 
-            public ITrieStore Create()
+            public TrieStoreWithBatch Create()
             {
-                return new TrieStore(
-                    _stateDb,
+                DelayedBatchDb batchDb = new DelayedBatchDb(_stateDb);
+                ITrieStore trieStore = new TrieStore(
+                    batchDb,
                     Nethermind.Trie.Pruning.No.Pruning,
                     Persist.EveryBlock,
                     _logManager);
+
+                return new TrieStoreWithBatch()
+                {
+                    DelayedBatch = batchDb,
+                    TrieStore = trieStore,
+                };
             }
 
-            public bool Return(ITrieStore obj)
+            public bool Return(TrieStoreWithBatch obj)
             {
+                obj.DelayedBatch.FlushBatch();
                 return true;
             }
         }
+
+        private class TrieStoreWithBatch
+        {
+            public DelayedBatchDb DelayedBatch;
+            public ITrieStore TrieStore;
+        }
+
     }
 }
