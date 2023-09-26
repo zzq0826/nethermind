@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Runtime.InteropServices;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
 
-namespace Nethermind.Verkle.Tree.Utils.EliasFano;
+namespace Nethermind.Core.Collections.EliasFano;
 
 public struct BitVector
 {
-    private const int WordLen = sizeof(ulong) * 8;
+    public const int WordLen = sizeof(ulong) * 8;
 
     public List<ulong> Words;
     public int Length { get; private set; }
@@ -162,6 +164,77 @@ public struct BitVector
         }
 
         Length += len;
+    }
+
+    public int? Predecessor1(int pos)
+    {
+        if (Length <= pos)
+        {
+            return null;
+        }
+
+        int block = pos / WordLen;
+        int shift = WordLen - pos % WordLen - 1;
+        ulong word = (Words[block] << shift) >> shift;
+        while (true)
+        {
+            if (word == 0)
+            {
+                if (block == 0) return null;
+            }
+            else
+            {
+                int msb = 63 - BitOperations.LeadingZeroCount(word);
+                return (block * WordLen + msb);
+            }
+
+            block -= 1;
+            word = Words[block];
+        }
+    }
+
+    public int? Predecessor0(int pos)
+    {
+        if (Length <= pos)
+        {
+            return null;
+        }
+
+        int block = pos / WordLen;
+        int shift = WordLen - pos % WordLen - 1;
+        ulong word = (~Words[block] << shift) >> shift;
+        while (true)
+        {
+            if (word == 0)
+            {
+                if (block == 0) return null;
+            }
+            else
+            {
+                int msb = 63 - BitOperations.LeadingZeroCount(word);
+                return (block * WordLen + msb);
+            }
+
+            block -= 1;
+            word = ~Words[block];
+        }
+    }
+
+    public ulong? GetWord64(int pos)
+    {
+        if (Length <= pos) return null;
+
+        int block = pos / WordLen;
+        int shift = pos % WordLen;
+
+        ulong word = Words[block] >> shift;
+
+        if (shift != 0 && block + 1 < Words.Count)
+        {
+            word |= Words[block + 1] << (64 - shift);
+        }
+
+        return word;
     }
 
     private static int WordsFor(int n) => (n + (WordLen - 1)) / WordLen;

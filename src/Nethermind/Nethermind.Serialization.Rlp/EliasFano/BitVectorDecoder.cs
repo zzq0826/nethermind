@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
-using Nethermind.Serialization.Rlp;
+using Nethermind.Core.Collections.EliasFano;
 
-namespace Nethermind.Verkle.Tree.Utils.EliasFano;
+namespace Nethermind.Serialization.Rlp.EliasFano;
 
 public class BitVectorDecoder: IRlpStreamDecoder<BitVector>
 {
