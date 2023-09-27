@@ -155,4 +155,32 @@ public class EliasFanoTests
         ef.Rank(1000).Should().Be(14);
         Assert.Throws<ArgumentException>(() => ef.Rank(1001));
     }
+
+    [Test]
+    public void TestIteration()
+    {
+        EliasFanoBuilder efb = new (1000, 14);
+        efb.Push(1);
+        efb.Push(3);
+        efb.Push(3);
+        efb.Push(7);
+        efb.Push(10);
+        efb.Push(25);
+        efb.Push(98);
+        efb.Push(205);
+        efb.Push(206);
+        efb.Push(207);
+        efb.Push(807);
+        efb.Push(850);
+        efb.Push(899);
+        efb.Push(999);
+
+        EliasFano ef = efb.Build();
+
+        EliasFanoIterator itr = new EliasFanoIterator(ef, 0);
+        while (itr.MoveNext())
+        {
+            Console.WriteLine(itr.Current);
+        }
+    }
 }
