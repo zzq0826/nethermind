@@ -14,7 +14,7 @@ public class HistoryOfAccounts
 {
     private const int BlocksChunks = 2000;
     private readonly IDb _historyOfAccounts;
-    private static readonly EliasFanoDecoder _decoder = new EliasFanoDecoder();
+    private static readonly EliasFanoDecoder _decoder = new ();
 
     public HistoryOfAccounts(IDb historyOfAccounts)
     {
@@ -23,40 +23,38 @@ public class HistoryOfAccounts
 
     public void AppendHistoryBlockNumberForKey(Pedersen key, ulong blockNumber)
     {
-        List<List<ulong>> shardsList = new List<List<ulong>>();
         List<ulong> shard = GetLastShardOfBlocks(key);
-        shardsList.Add(shard);
-        if(shard.Count == BlocksChunks) shardsList.Add(new List<ulong>());
-        shardsList[^1].Add(blockNumber);
+        shard.Add(blockNumber);
+        InsertShard(key, shard);
+    }
 
-        InsertShards(key, shardsList);
+    private void InsertShard(Pedersen key, List<ulong> shard)
+    {
+        EliasFanoBuilder efb = new(shard[^1], shard.Count);
+        efb.Extend(shard);
+        EliasFano ef = efb.Build();
+        RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));
+        _decoder.Encode(streamNew, ef);
+        HistoryKey historyKey = shard.Count == BlocksChunks
+            ? new HistoryKey(key, shard[^1])
+            : new HistoryKey(key, ulong.MaxValue);
+        _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
     }
 
     private void InsertShards(Pedersen key, List<List<ulong>> shardsList)
     {
-        foreach (var shard in shardsList)
-        {
-            EliasFanoBuilder efb = new(shard[^1], shard.Count);
-            efb.Extend(shard);
-            EliasFano ef = efb.Build();
-            RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));
-            _decoder.Encode(streamNew, ef);
-            HistoryKey historyKey = shard.Count == BlocksChunks
-                ? new HistoryKey(key, shard[^1])
-                : new HistoryKey(key, ulong.MaxValue);
-            _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
-        }
+        foreach (List<ulong> shard in shardsList) InsertShard(key, shard);
     }
 
     private List<ulong> GetLastShardOfBlocks(Pedersen key)
     {
-        byte[]? ef = _historyOfAccounts[(new HistoryKey(key, ulong.MaxValue)).Encode()];
+        HistoryKey shardKey = new HistoryKey(key, ulong.MaxValue);
+        byte[]? ef = _historyOfAccounts[shardKey.Encode()];
         List<ulong> shard = new();
         if (ef is not null)
         {
-            EliasFano eliasFanoS = _decoder.Decode(new RlpStream(ef));
-            EliasFanoIterator iter = new (eliasFanoS, 0);
-            while (iter.MoveNext()) shard.Add(iter.Current);
+            EliasFano eliasFano = _decoder.Decode(new RlpStream(ef));
+            shard.AddRange(eliasFano.GetEnumerator(0));
         }
         return shard;
     }
