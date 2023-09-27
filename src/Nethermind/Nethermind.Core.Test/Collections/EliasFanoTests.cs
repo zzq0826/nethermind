@@ -4,6 +4,9 @@
 using System;
 using FluentAssertions;
 using Nethermind.Core.Collections.EliasFano;
+using Nethermind.Core.Extensions;
+using Nethermind.Serialization.Rlp;
+using Nethermind.Serialization.Rlp.EliasFano;
 using NUnit.Framework;
 
 namespace Nethermind.Core.Test.Collections;
@@ -22,6 +25,42 @@ public class EliasFanoTests
         EliasFano ef = efb.Build();
         Console.WriteLine(string.Join(", ", data));
         ef.Rank(300000).Should().Be(15);
+    }
+
+    [Test]
+    public void TestEncoding()
+    {
+        EliasFanoBuilder efb = new (1000, 14);
+        efb.Push(1);
+        efb.Push(3);
+        efb.Push(3);
+        efb.Push(7);
+        efb.Push(10);
+        efb.Push(25);
+        efb.Push(98);
+        efb.Push(205);
+        efb.Push(206);
+        efb.Push(207);
+        efb.Push(807);
+        efb.Push(850);
+        efb.Push(899);
+        efb.Push(999);
+
+        EliasFano ef = efb.Build();
+        ef._highBits.EnableSelect0();
+
+        AssertEFForCase1(ef);
+
+        EliasFanoDecoder decoder = new();
+        Console.WriteLine(decoder.GetLength(ef, RlpBehaviors.None));
+
+        RlpStream stream = new(decoder.GetLength(ef, RlpBehaviors.None));
+        decoder.Encode(stream, ef, RlpBehaviors.None);
+
+        Console.WriteLine(stream.Data.ToHexString());
+
+        EliasFano efDecoded = decoder.Decode(new RlpStream(stream.Data));
+        AssertEFForCase1(efDecoded);
     }
 
     [Test]
@@ -60,6 +99,36 @@ public class EliasFanoTests
         efb.Push(999);
 
         EliasFano ef = efb.Build();
+        ef.Rank(0).Should().Be(0);
+        ef.Rank(1).Should().Be(0);
+        ef.Rank(2).Should().Be(1);
+        ef.Rank(3).Should().Be(1);
+        ef.Rank(4).Should().Be(3);
+        ef.Rank(5).Should().Be(3);
+        ef.Rank(6).Should().Be(3);
+        ef.Rank(7).Should().Be(3);
+        ef.Rank(8).Should().Be(4);
+        ef.Rank(9).Should().Be(4);
+        ef.Rank(190).Should().Be(7);
+        ef.Rank(200).Should().Be(7);
+        ef.Rank(500).Should().Be(10);
+        ef.Rank(600).Should().Be(10);
+        ef.Rank(700).Should().Be(10);
+        ef.Rank(750).Should().Be(10);
+        ef.Rank(800).Should().Be(10);
+        ef.Rank(900).Should().Be(13);
+        ef.Rank(901).Should().Be(13);
+        ef.Rank(902).Should().Be(13);
+        ef.Rank(903).Should().Be(13);
+        ef.Rank(904).Should().Be(13);
+        ef.Rank(905).Should().Be(13);
+        ef.Rank(1000).Should().Be(14);
+        Assert.Throws<ArgumentException>(() => ef.Rank(1001));
+    }
+
+
+    public void AssertEFForCase1(EliasFano ef)
+    {
         ef.Rank(0).Should().Be(0);
         ef.Rank(1).Should().Be(0);
         ef.Rank(2).Should().Be(1);
