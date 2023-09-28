@@ -22,11 +22,11 @@ public class CompactList<T>: IList<T>
     private T[]?[] _arrayOfArray;
     private int _count;
 
-    public CompactList(int itemPerInnerNode = 8 * 1028)
+    public CompactList(int itemPerInnerNode = 8 * 1028, ArrayPool<T>? pool = null)
     {
         _itemPerInnerNode = itemPerInnerNode;
         _arrayOfArray = Array.Empty<T[]?>();
-        _pool = ArrayPool<T>.Shared;
+        _pool = pool ?? ArrayPool<T>.Shared;
         _count = 0;
     }
 

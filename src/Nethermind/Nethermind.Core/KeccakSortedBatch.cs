@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,12 +19,14 @@ namespace Nethermind.Core;
 /// </summary>
 public class KeccakSortedBatch: IKeccakBatch
 {
+    private static ArrayPool<(ValueKeccak, int, byte[]?)> _pool = ArrayPool<(ValueKeccak, int, byte[]?)>
+        .Create(64, 2048); // Should be about 8MB in total.
     private readonly IBatch _baseBatch;
     private WriteFlags _writeFlags = WriteFlags.None;
     private bool _isDisposed;
 
     private int _counter = 0;
-    private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(512);
+    private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(512, _pool);
 
     public KeccakSortedBatch(IBatch dbOnTheRocks)
     {
@@ -71,16 +74,6 @@ public class KeccakSortedBatch: IKeccakBatch
     {
         // Not checking _isDisposing here as for some reason, sometimes is is read after dispose
         return _baseBatch.Get(key.BytesAsSpan, flags);
-    }
-
-    public void Delete(ValueKeccak key)
-    {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"Attempted to write a disposed batch");
-        }
-
-        _batchData.Add((key, Interlocked.Increment(ref _counter), null));
     }
 
     public void Set(ValueKeccak key, byte[]? value, WriteFlags flags = WriteFlags.None)
