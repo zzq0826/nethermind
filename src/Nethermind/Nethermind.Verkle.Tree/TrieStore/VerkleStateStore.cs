@@ -55,28 +55,8 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public VerkleStateStore(
         IDb leafDb,
         IDb internalDb,
-        IDb forwardDiff,
-        IDb reverseDiff,
         IDb stateRootToBlocks,
-        ILogManager logManager,
-        int maxNumberOfBlocksInCache = 128)
-    {
-        _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
-        Storage = new VerkleKeyValueDb(internalDb, leafDb);
-        // History = new VerkleHistoryStore(forwardDiff, reverseDiff, logManager);
-        StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
-        BlockCache = maxNumberOfBlocksInCache == 0
-            ? null
-            : new (maxNumberOfBlocksInCache);
-        MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
-        InitRootHash();
-    }
-
-    public VerkleStateStore(
-        IDb leafDb,
-        IDb internalDb,
-        IDb stateRootToBlocks,
-        ILogManager logManager,
+        ILogManager? logManager,
         int maxNumberOfBlocksInCache = 128)
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
@@ -208,6 +188,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
         Debug.Assert(GetStateRoot().Equals(stateRoot));
         LatestCommittedBlockNumber = toBlock;
+        UpdateStateRoot();
         return true;
     }
 
