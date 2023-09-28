@@ -17,12 +17,13 @@ namespace Nethermind.Core.Collections;
 /// <typeparam name="T"></typeparam>
 public class CompactList<T>: IList<T>
 {
+    private ArrayPool<T[]> _poolOfArray = ArrayPool<T[]>.Shared;
     private ArrayPool<T> _pool;
     private readonly int _itemPerInnerNode;
     private T[]?[] _arrayOfArray;
     private int _count;
 
-    public CompactList(int itemPerInnerNode = 8 * 1028, ArrayPool<T>? pool = null)
+    public CompactList(int itemPerInnerNode = 1024, ArrayPool<T>? pool = null)
     {
         _itemPerInnerNode = itemPerInnerNode;
         _arrayOfArray = Array.Empty<T[]?>();
@@ -52,8 +53,10 @@ public class CompactList<T>: IList<T>
 
         if (neededInnerLength <= _arrayOfArray.Length) return;
 
-        T[]?[] newArrayOfArray = new T[Math.Max(_arrayOfArray.Length * 2, 1)][];
+        T[]?[] newArrayOfArray = _poolOfArray.Rent(Math.Max(_arrayOfArray.Length * 2, 1));
         _arrayOfArray.CopyTo(newArrayOfArray.AsSpan());
+        _arrayOfArray.AsSpan().Clear();
+        _poolOfArray.Return(_arrayOfArray!);
         _arrayOfArray = newArrayOfArray;
     }
 
@@ -74,6 +77,8 @@ public class CompactList<T>: IList<T>
             if (innerArray == null) break;
             _pool.Return(innerArray);
         }
+        _arrayOfArray.AsSpan().Clear();
+        _poolOfArray.Return(_arrayOfArray!);
         _arrayOfArray = Array.Empty<T[]>();
         _count = 0;
     }

@@ -23,7 +23,6 @@ public class KeccakSortedBatch: IKeccakBatch
         .Create(64, 2048); // Should be about 8MB in total.
     private readonly IBatch _baseBatch;
     private WriteFlags _writeFlags = WriteFlags.None;
-    private bool _isDisposed;
 
     private int _counter = 0;
     private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(64, _pool);
@@ -35,12 +34,6 @@ public class KeccakSortedBatch: IKeccakBatch
 
     public void Dispose()
     {
-        if (_isDisposed)
-        {
-            return;
-        }
-        _isDisposed = true;
-
         if (_batchData.Count == 0)
         {
             // No data to write, skip empty batches
@@ -78,11 +71,6 @@ public class KeccakSortedBatch: IKeccakBatch
 
     public void Set(ValueKeccak key, byte[]? value, WriteFlags flags = WriteFlags.None)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"Attempted to write a disposed batch");
-        }
-
         _batchData.Add((key, Interlocked.Increment(ref _counter), value));
         _writeFlags = flags;
     }
