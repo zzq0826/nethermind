@@ -31,7 +31,7 @@ public class HistoryOfAccounts
 
     private void InsertShard(Pedersen key, List<ulong> shard)
     {
-        EliasFanoBuilder efb = new(shard[^1], shard.Count);
+        EliasFanoBuilder efb = new(shard[^1] + 1, shard.Count);
         efb.Extend(shard);
         EliasFano ef = efb.Build();
         RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));

@@ -46,6 +46,12 @@ public partial class VerkleStateStore
             if (_logger.IsDebug)
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
+            ReadOnlyVerkleMemoryDb cacheBatch = new()
+            {
+                InternalTable = batch.InternalTable,
+                LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
+            };
+            InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(0, cacheBatch, new VerkleMemoryDb()));
             UpdateStateRoot();
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;

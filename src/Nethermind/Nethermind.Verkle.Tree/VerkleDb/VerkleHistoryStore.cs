@@ -54,4 +54,10 @@ public class VerkleHistoryStore
         return ReverseDiff.FetchDiff(fromBlock);
     }
 
+    public VerkleMemoryDb GetForwardDiff(long fromBlock)
+    {
+        return ForwardDiff.FetchDiff(fromBlock);
+    }
+
+
 }

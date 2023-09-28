@@ -32,7 +32,7 @@ public class VerkleArchiveStore
         ReadOnlyVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
         History.InsertDiff(blockNumber, forwardDiff, revDiff);
 
-        foreach (KeyValuePair<byte[], byte[]?> keyVal in revDiff.LeafTable)
+        foreach (KeyValuePair<byte[], byte[]?> keyVal in forwardDiff.LeafTable)
             _historyOfAccounts.AppendHistoryBlockNumberForKey(new Pedersen(keyVal.Key), (ulong)blockNumber);
     }
 
@@ -44,7 +44,7 @@ public class VerkleArchiveStore
 
         ulong? requiredBlock = requiredShard.Value.Predecessor(blockNumber);
 
-        VerkleMemoryDb diff = History.GetReverseDiff((long)requiredBlock!.Value);
+        VerkleMemoryDb diff = History.GetForwardDiff((long)requiredBlock!.Value);
 
         diff.GetLeaf(key, out byte[]? value);
         return value;
