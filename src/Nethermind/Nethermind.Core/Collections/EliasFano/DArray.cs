@@ -22,6 +22,7 @@ public class DArray
     {
         _data = new BitVector(bv);
         _indexS1 = new DArrayIndex(_data, true);
+        EnableSelect0();
     }
 
     public DArray(BitVector bv, DArrayIndex indexS0, DArrayIndex indexS1)
@@ -29,6 +30,7 @@ public class DArray
         _data = bv;
         _indexS1 = indexS1;
         _indexS0 = indexS0;
+        EnableSelect0();
     }
 
     public static DArray FromBits(IEnumerable<bool> bits)

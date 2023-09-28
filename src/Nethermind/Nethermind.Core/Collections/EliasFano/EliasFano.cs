@@ -91,7 +91,7 @@ public struct EliasFano
     /// <returns></returns>
     public int? BinSearchRange(int start, int end, ulong val)
     {
-        if (start < end) return null;
+        if (start >= end) return null;
 
         int hi = end;
         int lo = start;

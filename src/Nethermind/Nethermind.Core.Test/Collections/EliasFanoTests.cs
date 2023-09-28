@@ -14,7 +14,9 @@ namespace Nethermind.Core.Test.Collections;
 
 public class EliasFanoTests
 {
+    private readonly ulong[] _efCase0 = new ulong[] { 1, 3, 3, 7 };
     private readonly ulong[] _efCase1 = new ulong[] { 1, 3, 3, 7, 10, 25, 98, 205, 206, 207, 807, 850, 899, 999 };
+    private readonly ulong[] _efCase2 = new ulong[] { 1, 3, 3, 6, 7, 10 };
 
     [Test]
     public void TestBuilder()
@@ -116,5 +118,85 @@ public class EliasFanoTests
         ef.Rank(905).Should().Be(13);
         ef.Rank(1000).Should().Be(14);
         Assert.Throws<ArgumentException>(() => ef.Rank(1001));
+    }
+
+    [Test]
+    public void TestDelta()
+    {
+        EliasFanoBuilder efb = new (8, 4);
+        efb.Extend(_efCase0);
+
+        EliasFano ef = efb.Build();
+        ef.Delta(0).Should().Be(1);
+        ef.Delta(1).Should().Be(2);
+        ef.Delta(2).Should().Be(0);
+        ef.Delta(3).Should().Be(4);
+        ef.Delta(4).Should().BeNull();
+    }
+
+    [Test]
+    public void TestBinSearch()
+    {
+        EliasFanoBuilder efb = new (11, 6);
+        efb.Extend(_efCase2);
+
+        EliasFano ef = efb.Build();
+
+        ef.BinSearchRange(0, ef.Length, 6).Should().Be(3);
+        ef.BinSearchRange(0, ef.Length, 10).Should().Be(5);
+        ef.BinSearchRange(0, ef.Length, 9).Should().BeNull();
+    }
+
+    [Test]
+    public void TestBinSearchRange()
+    {
+        EliasFanoBuilder efb = new (11, 6);
+        efb.Extend(_efCase2);
+
+        EliasFano ef = efb.Build();
+
+        ef.BinSearchRange(1, 4, 6).Should().Be(3);
+        ef.BinSearchRange(5, 6, 10).Should().Be(5);
+        ef.BinSearchRange(1, 3, 9).Should().BeNull();
+    }
+
+    [Test]
+    public void TestSelect()
+    {
+        EliasFanoBuilder efb = new (8, 4);
+        efb.Extend(_efCase0);
+
+        EliasFano ef = efb.Build();
+        ef.Select(0).Should().Be(1);
+        ef.Select(1).Should().Be(3);
+        ef.Select(2).Should().Be(3);
+        ef.Select(3).Should().Be(7);
+        ef.Select(4).Should().BeNull();
+    }
+
+    [Test]
+    public void TestPredecessor()
+    {
+        EliasFanoBuilder efb = new (8, 4);
+        efb.Extend(_efCase0);
+
+        EliasFano ef = efb.Build();
+        ef.Predecessor(4).Should().Be(3);
+        ef.Predecessor(3).Should().Be(3);
+        ef.Predecessor(2).Should().Be(1);
+        ef.Predecessor(0).Should().BeNull();
+    }
+
+    [Test]
+    public void TestSuccessor()
+    {
+        EliasFanoBuilder efb = new (8, 4);
+        efb.Extend(_efCase0);
+
+        EliasFano ef = efb.Build();
+        ef.Successor(0).Should().Be(1);
+        ef.Successor(2).Should().Be(3);
+        ef.Successor(3).Should().Be(3);
+        ef.Successor(8).Should().BeNull();
     }
 }

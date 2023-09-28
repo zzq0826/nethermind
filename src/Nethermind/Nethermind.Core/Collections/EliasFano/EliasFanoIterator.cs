@@ -34,11 +34,11 @@ public class EliasFanoIterator: IEnumerator<ulong>
         else
         {
             _chunksInWord = 0;
-            _chunksAvail = ef._lowLen;
+            _chunksAvail = ef.Length;
         }
 
         _highIter = null;
-        if (k < _ef._lowLen)
+        if (k < _ef.Length)
         {
             int pos = _ef._highBits.Select1(k)!.Value;
             _highIter = new UnaryIter(ef._highBits._data, pos);
