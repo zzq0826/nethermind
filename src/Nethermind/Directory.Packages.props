@@ -26,6 +26,7 @@
     <PackageVersion Include="Grpc.Tools" Version="2.56.2" />
     <PackageVersion Include="HexMate" Version="0.0.3" />
     <PackageVersion Include="Jint" Version="2.11.58" />
+    <PackageVersion Include="ListSortHelper" Version="1.0.4" />
     <PackageVersion Include="MathNet.Numerics.FSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="7.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="7.0.9" />
