@@ -21,8 +21,6 @@ public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
     void InsertBatch(long blockNumber, VerkleMemoryDb memDb);
 
     void ApplyDiffLayer(BatchChangeSet changeSet);
-    bool GetForwardMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);
-    bool GetReverseMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff);
 
     ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore);
 }

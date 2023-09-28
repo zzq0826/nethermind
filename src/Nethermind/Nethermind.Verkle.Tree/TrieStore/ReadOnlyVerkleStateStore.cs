@@ -45,15 +45,6 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public void ApplyDiffLayer(BatchChangeSet changeSet) { }
 
-    public bool GetForwardMergedDiff(long fromBlock, long toBlock, out VerkleMemoryDb diff)
-    {
-        return _verkleStateStore.GetForwardMergedDiff(fromBlock, toBlock, out diff);
-    }
-    public bool GetReverseMergedDiff(long fromBlock, long toBlock, out VerkleMemoryDb diff)
-    {
-        return _verkleStateStore.GetReverseMergedDiff(fromBlock, toBlock, out diff);
-    }
-
     public VerkleCommitment GetStateRoot()
     {
         return _verkleStateStore.GetStateRoot();

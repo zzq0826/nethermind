@@ -44,7 +44,6 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
-        History = new VerkleHistoryStore(dbProvider, logManager);
         StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
@@ -64,7 +63,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
-        History = new VerkleHistoryStore(forwardDiff, reverseDiff, logManager);
+        // History = new VerkleHistoryStore(forwardDiff, reverseDiff, logManager);
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         BlockCache = maxNumberOfBlocksInCache == 0
             ? null
@@ -172,18 +171,21 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
                     _logger.Debug(
                         $"Number of blocks to move:{noOfBlockToMove}. Removing all the diffs from BlockCache ({noOfBlockToMove} > {BlockCache.Count})");
 
-                if (History is null)
-                {
-                    if (_logger.IsDebug) _logger.Debug($"History is null and in this case - state cannot be reverted to wanted state root");
-                    return false;
-                }
-                BlockCache.Clear();
-                fromBlock -= BlockCache.Count;
+                _logger.Error(
+                    $"Cannot more state root back for {noOfBlockToMove} - only {BlockCache.Count} diff to remove");
 
-                if (_logger.IsDebug)
-                    _logger.Debug($"now using fromBlock:{fromBlock} toBlock:{toBlock}");
-                BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
-                ApplyDiffLayer(batchDiff);
+                // if (History is null)
+                // {
+                //     if (_logger.IsDebug) _logger.Debug($"History is null and in this case - state cannot be reverted to wanted state root");
+                //     return false;
+                // }
+                // BlockCache.Clear();
+                // fromBlock -= BlockCache.Count;
+                //
+                // if (_logger.IsDebug)
+                //     _logger.Debug($"now using fromBlock:{fromBlock} toBlock:{toBlock}");
+                // BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
+                // ApplyDiffLayer(batchDiff);
             }
             else if (BlockCache is not null)
             {

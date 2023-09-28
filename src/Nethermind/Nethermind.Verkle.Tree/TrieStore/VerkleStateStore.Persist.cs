@@ -88,17 +88,9 @@ public partial class VerkleStateStore
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
 
-                if (History is not null)
-                {
-                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
-                    if (_logger.IsDebug) _logger.Debug($"VSS: reverseDiff: IN:{reverseDiff.InternalTable.Count} LN:{reverseDiff.LeafTable.Count}");
-                    History?.InsertDiff(blockNumberToPersist, changesToPersist, reverseDiff);
-                    InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(blockNumberToPersist, reverseDiff));
-                }
-                else
-                {
-                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
-                }
+                // TODO: add a flag to check if we even need history here and then get reverseDiff accordingly
+                PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
+                InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(blockNumberToPersist, changesToPersist, reverseDiff));
 
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
@@ -57,6 +58,14 @@ public class HistoryOfAccounts
             shard.AddRange(eliasFano.GetEnumerator(0));
         }
         return shard;
+    }
+
+    public EliasFano? GetAppropriateShard(Pedersen key, ulong blockNumber)
+    {
+        HistoryKey historyKey = new HistoryKey(key, blockNumber);
+        IEnumerable<KeyValuePair<byte[], byte[]?>> itr = _historyOfAccounts.GetIterator(historyKey.Encode());
+        KeyValuePair<byte[], byte[]?> keyVal = itr.FirstOrDefault();
+        return keyVal.Key is not null ? _decoder.Decode(new RlpStream(keyVal.Value!)) : null;
     }
 }
 

@@ -48,4 +48,10 @@ public class VerkleHistoryStore
 
         return new BatchChangeSet(fromBlock, toBlock, diff);
     }
+
+    public VerkleMemoryDb GetReverseDiff(long fromBlock)
+    {
+        return ReverseDiff.FetchDiff(fromBlock);
+    }
+
 }
