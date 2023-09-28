@@ -18,15 +18,12 @@ namespace Nethermind.Core;
 /// </summary>
 public class KeccakSortedBatch: IKeccakBatch
 {
-    private const int InitialBatchSize = 300;
-    private static readonly int MaxCached = Environment.ProcessorCount;
-
     private readonly IBatch _baseBatch;
     private WriteFlags _writeFlags = WriteFlags.None;
     private bool _isDisposed;
 
     private int _counter = 0;
-    private readonly ArrayPoolList<(ValueKeccak, int, byte[]?)> _batchData = new(InitialBatchSize);
+    private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(512);
 
     public KeccakSortedBatch(IBatch dbOnTheRocks)
     {
@@ -44,12 +41,12 @@ public class KeccakSortedBatch: IKeccakBatch
         if (_batchData.Count == 0)
         {
             // No data to write, skip empty batches
-            _batchData.Dispose();
+            _batchData.Clear();
             _baseBatch.Dispose();
             return;
         }
 
-        _batchData.AsSpan().Sort((item1, item2) =>
+        _batchData.Sort((item1, item2) =>
         {
             int keyCompare = item1.Item1.CompareTo(item2.Item1);
             if (keyCompare == 0)
@@ -66,7 +63,7 @@ public class KeccakSortedBatch: IKeccakBatch
         {
             _baseBatch.Set(key.BytesAsSpan, value, _writeFlags);
         }
-        _batchData.Dispose();
+        _batchData.Clear();
         _baseBatch.Dispose();
     }
 

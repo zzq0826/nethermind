@@ -186,8 +186,13 @@ public class CompactList<T>: IList<T>
         }
     }
 
-    public void Sort()
+    public void Sort(Comparison<T> comparer)
     {
-        ListSortHelper<T>.Default.Sort(this, 0, _count, null);
+        Sort(Comparer<T>.Create(comparer));
+    }
+
+    public void Sort(IComparer<T>? comparer = null)
+    {
+        ListSortHelper<T>.Default.Sort(this, 0, _count, comparer);
     }
 }
