@@ -26,7 +26,7 @@ public class KeccakSortedBatch: IKeccakBatch
     private bool _isDisposed;
 
     private int _counter = 0;
-    private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(512, _pool);
+    private readonly CompactList<(ValueKeccak, int, byte[]?)> _batchData = new(64, _pool);
 
     public KeccakSortedBatch(IBatch dbOnTheRocks)
     {
