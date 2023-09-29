@@ -1418,13 +1418,6 @@ namespace Nethermind.Blockchain
                 }
             }
 
-            if (ownedBlock is not null && ShouldCache(block.Number))
-            {
-                ownedBlock.Disown();
-                _blockStore.Cache(block);
-                _headerCache.Set(blockHash, block.Header);
-            }
-
             return ownedBlock;
         }
 
@@ -1433,7 +1426,16 @@ namespace Nethermind.Blockchain
             OwnedBlock? ownedBlock = FindOwnedBlock(blockHash, options);
             if (ownedBlock == null) return null;
             ownedBlock.Disown();
-            return ownedBlock.Block;
+
+            Block block = ownedBlock.Block;
+
+            if (block is not null && ShouldCache(block.Number))
+            {
+                _blockStore.Cache(block);
+                _headerCache.Set(blockHash, block.Header);
+            }
+
+            return block;
         }
 
         private bool IsTotalDifficultyAlwaysZero()
