@@ -62,8 +62,23 @@ public class BlockStore : IBlockStore
 
     public Block? Get(Keccak blockHash, bool shouldCache)
     {
-
         return _blockDb.Get(blockHash, _blockDecoder, _blockCache, shouldCache);
+    }
+
+    public OwnedBlock? GetOwned(Keccak blockHash, bool shouldCache)
+    {
+        if (!shouldCache && !_blockCache.Contains(blockHash) && _blockDb is IDbWithSpan dbWithSpan)
+        {
+            MemoryManager<byte>? memoryOwner = dbWithSpan.GetOwnedMemory(blockHash.Bytes);
+            if (memoryOwner == null) return null;
+            Rlp.ValueDecoderContext ctx = new Rlp.ValueDecoderContext(memoryOwner.Memory, sliceMemory: true);
+            Block lightBlock = _blockDecoder.Decode(ref ctx);
+            return new OwnedBlock(lightBlock, memoryOwner);
+        }
+
+        Block block = Get(blockHash, shouldCache);
+        if (block == null) return null;
+        return new OwnedBlock(block);
     }
 
     public ReceiptRecoveryBlock? GetReceiptRecoveryBlock(Keccak blockHash)

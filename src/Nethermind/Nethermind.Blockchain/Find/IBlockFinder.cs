@@ -23,6 +23,12 @@ namespace Nethermind.Blockchain.Find
 
         Block? FindBlock(Keccak blockHash, BlockTreeLookupOptions options);
 
+        OwnedBlock? FindOwnedBlock(Keccak blockHash, BlockTreeLookupOptions options)
+        {
+            Block? block = FindBlock(blockHash, options);
+            return block == null ? null : new OwnedBlock(block);
+        }
+
         Block? FindBlock(long blockNumber, BlockTreeLookupOptions options);
 
         BlockHeader? FindHeader(Keccak blockHash, BlockTreeLookupOptions options);

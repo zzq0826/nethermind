@@ -1352,23 +1352,26 @@ namespace Nethermind.Blockchain
         public Keccak? FinalizedHash { get; private set; }
         public Keccak? SafeHash { get; private set; }
 
-        public Block? FindBlock(Keccak? blockHash, BlockTreeLookupOptions options)
+        public OwnedBlock? FindOwnedBlock(Keccak? blockHash, BlockTreeLookupOptions options)
         {
             if (blockHash is null || blockHash == Keccak.Zero)
             {
                 return null;
             }
 
-            Block block = _blockStore.Get(blockHash, shouldCache: false);
+            OwnedBlock? ownedBlock = _blockStore.GetOwned(blockHash, shouldCache: false);
+            Block? block = ownedBlock?.Block;
             if (block is null)
             {
                 bool allowInvalid = (options & BlockTreeLookupOptions.AllowInvalid) == BlockTreeLookupOptions.AllowInvalid;
                 if (allowInvalid)
                 {
-                    _invalidBlocks.TryGet(blockHash, out block);
+                    if (_invalidBlocks.TryGet(blockHash, out block)) {
+                        return new OwnedBlock(block);
+                    }
                 }
 
-                return block;
+                return null;
             }
 
             bool totalDifficultyNeeded = (options & BlockTreeLookupOptions.TotalDifficultyNotNeeded) ==
@@ -1407,17 +1410,30 @@ namespace Nethermind.Blockchain
                 if (requiresCanonical)
                 {
                     bool isMain = level.MainChainBlock?.BlockHash.Equals(blockHash) == true;
-                    block = isMain ? block : null;
+                    if (!isMain)
+                    {
+                        ownedBlock.Dispose();
+                        ownedBlock = null;
+                    }
                 }
             }
 
-            if (block is not null && ShouldCache(block.Number))
+            if (ownedBlock is not null && ShouldCache(block.Number))
             {
+                ownedBlock.Disown();
                 _blockStore.Cache(block);
                 _headerCache.Set(blockHash, block.Header);
             }
 
-            return block;
+            return ownedBlock;
+        }
+
+        public Block? FindBlock(Keccak? blockHash, BlockTreeLookupOptions options)
+        {
+            OwnedBlock? ownedBlock = FindOwnedBlock(blockHash, options);
+            if (ownedBlock == null) return null;
+            ownedBlock.Disown();
+            return ownedBlock.Block;
         }
 
         private bool IsTotalDifficultyAlwaysZero()
