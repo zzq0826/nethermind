@@ -229,7 +229,9 @@ namespace Nethermind.Synchronization.FastBlocks
                     if (isValid)
                     {
                         using OwnedBlock ownedBlock = _blockTree.FindOwnedBlock(blockInfo.BlockHash, BlockTreeLookupOptions.None);
-                        if (ownedBlock is null)
+                        Block block = ownedBlock?.Block;
+
+                        if (block is null)
                         {
                             if (blockInfo.BlockNumber >= _barrier)
                             {
@@ -242,8 +244,8 @@ namespace Nethermind.Synchronization.FastBlocks
                         {
                             try
                             {
-                                _receiptStorage.Insert(ownedBlock.Block, prepared, ensureCanonical: true);
-                                _syncStatusList.MarkInserted(ownedBlock.Block.Number);
+                                _receiptStorage.Insert(block, prepared, ensureCanonical: true);
+                                _syncStatusList.MarkInserted(block.Number);
                                 validResponsesCount++;
                             }
                             catch (InvalidDataException)
