@@ -11,11 +11,11 @@ namespace Nethermind.Core.Collections.EliasFano;
 
 public struct EliasFano
 {
-    public const int LinearScanThreshold= 64;
-    public DArray _highBits;
+    private const int LinearScanThreshold = 64;
+    public readonly DArray _highBits;
     public BitVector _lowBits;
-    public int _lowLen;
-    public ulong _universe;
+    public readonly int _lowLen;
+    public readonly ulong _universe;
 
     public int Length => _highBits.NumOnes;
 
@@ -28,22 +28,21 @@ public struct EliasFano
     }
 
     /// <summary>
-    ///
-    ///
+    /// Returns the number of integers less than `num`
+    /// null is `num` > Universe
     /// </summary>
-    /// <param name="pos"></param>
-    /// <returns></returns>
+    /// <param name="num"></param>
     /// <exception cref="ArgumentException"></exception>
-    public int Rank(ulong pos)
+    public int Rank(ulong num)
     {
-        if (_universe < pos) throw new ArgumentException();
-        if (_universe == pos) return _highBits._indexS1.NumPositions;
+        if (_universe < num) throw new ArgumentException();
+        if (_universe == num) return _highBits._indexS1.NumPositions;
 
-        int hRank = (int)(pos >> _lowLen);
+        int hRank = (int)(num >> _lowLen);
         int hPos = _highBits.Select0(hRank)!.Value;
         int rank = hPos - hRank;
 
-        ulong lPos = pos & (((ulong)1 << _lowLen) - 1);
+        ulong lPos = num & (((ulong)1 << _lowLen) - 1);
 
         while ((hPos > 0)
                && _highBits._data.GetBit(hPos-1)!.Value
@@ -57,7 +56,7 @@ public struct EliasFano
     }
 
     /// <summary>
-    ///
+    /// Gets the difference between the `k-1`-th and `k`-th integers
     /// </summary>
     /// <param name="k"></param>
     /// <returns></returns>
@@ -83,11 +82,12 @@ public struct EliasFano
     }
 
     /// <summary>
-    ///
+    /// Finds the position `k` such that `select(k) == val` and `k` in start..end.
+    /// Note that, if there are multiple values of `val`, one of them is returned
     /// </summary>
-    /// <param name="start"></param>
-    /// <param name="end"></param>
-    /// <param name="val"></param>
+    /// <param name="start">start of the range (included)</param>
+    /// <param name="end">end of the range (not included)</param>
+    /// <param name="val">number to search for</param>
     /// <returns></returns>
     public int? BinSearchRange(int start, int end, ulong val)
     {
@@ -123,7 +123,7 @@ public struct EliasFano
     }
 
     /// <summary>
-    ///
+    /// Returns the position of the `k`-th smallest integer
     /// </summary>
     /// <param name="k"></param>
     /// <returns></returns>
@@ -137,31 +137,36 @@ public struct EliasFano
     }
 
     /// <summary>
-    ///
+    /// Gets the largest element `pred` such that `pred is less than equal to pos`
     /// </summary>
-    /// <param name="pos"></param>
+    /// <param name="num"></param>
     /// <returns></returns>
-    public ulong? Predecessor(ulong pos)
+    public ulong? Predecessor(ulong num)
     {
-        if (_universe <= pos) return null;
+        if (_universe <= num) return null;
 
-        int rank = Rank(pos + 1);
+        int rank = Rank(num + 1);
         return rank > 0 ? Select(rank - 1) : null;
     }
 
     /// <summary>
-    ///
+    /// Gets the smallest element such that element is greater than or equal to pos
     /// </summary>
-    /// <param name="pos"></param>
+    /// <param name="num"></param>
     /// <returns></returns>
-    public ulong? Successor(ulong pos)
+    public ulong? Successor(ulong num)
     {
-        if (_universe <= pos) return null;
+        if (_universe <= num) return null;
 
-        int rank = Rank(pos);
+        int rank = Rank(num);
         return rank < Length ? Select(rank) : null;
     }
 
+    /// <summary>
+    /// Enumerate over integers in the list starting from kth integer
+    /// </summary>
+    /// <param name="k"></param>
+    /// <returns></returns>
     public IEnumerable<ulong> GetEnumerator(int k)
     {
         EliasFanoIterator itr = new EliasFanoIterator(this, k);
