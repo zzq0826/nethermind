@@ -13,7 +13,7 @@ namespace Nethermind.Verkle.Tree;
 
 public class HistoryOfAccounts
 {
-    private const int BlocksChunks = 2000;
+    public int BlocksChunks { get; set; } = 2000;
     private readonly IDb _historyOfAccounts;
     private static readonly EliasFanoDecoder _decoder = new ();
 
@@ -25,6 +25,7 @@ public class HistoryOfAccounts
     public void AppendHistoryBlockNumberForKey(Pedersen key, ulong blockNumber)
     {
         List<ulong> shard = GetLastShardOfBlocks(key);
+        Console.WriteLine($"AppendHistoryBlockNumberForKey: {key} {blockNumber} LastShard:{string.Join(",", shard)}");
         shard.Add(blockNumber);
         InsertShard(key, shard);
     }
@@ -36,10 +37,18 @@ public class HistoryOfAccounts
         EliasFano ef = efb.Build();
         RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));
         _decoder.Encode(streamNew, ef);
-        HistoryKey historyKey = shard.Count == BlocksChunks
-            ? new HistoryKey(key, shard[^1])
-            : new HistoryKey(key, ulong.MaxValue);
-        _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
+        if (shard.Count == BlocksChunks)
+        {
+            HistoryKey historyKey = new HistoryKey(key, shard[^1]);
+            _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
+            historyKey = new HistoryKey(key, ulong.MaxValue);
+            _historyOfAccounts.Remove(historyKey.Encode());
+        }
+        else
+        {
+            HistoryKey historyKey = new HistoryKey(key, ulong.MaxValue);
+            _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
+        }
     }
 
     private void InsertShards(Pedersen key, List<List<ulong>> shardsList)
@@ -85,7 +94,7 @@ public readonly struct HistoryKey
         byte[] data = new byte[40];
         Span<byte> dataSpan = data;
         Key.Bytes.CopyTo(dataSpan);
-        BinaryPrimitives.WriteUInt64LittleEndian(dataSpan.Slice(32), MaxBlock);
+        BinaryPrimitives.WriteUInt64BigEndian(dataSpan.Slice(32), MaxBlock);
         return data;
     }
 }

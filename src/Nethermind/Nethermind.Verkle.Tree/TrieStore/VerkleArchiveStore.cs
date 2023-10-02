@@ -13,6 +13,12 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public class VerkleArchiveStore
 {
+    public int BlockChunks
+    {
+        get => _historyOfAccounts.BlocksChunks;
+        set => _historyOfAccounts.BlocksChunks = value;
+    }
+
     private readonly VerkleStateStore _stateStore;
     private readonly HistoryOfAccounts _historyOfAccounts;
     private VerkleHistoryStore History { get; }
@@ -27,6 +33,8 @@ public class VerkleArchiveStore
 
     private void OnPersistNewBlock(object? sender, InsertBatchCompleted insertBatchCompleted)
     {
+        Console.WriteLine(
+            $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.ForwardDiff.LeafTable.Count} RD:{insertBatchCompleted.ReverseDiff.LeafTable.Count}");
         long blockNumber = insertBatchCompleted.BlockNumber;
         VerkleMemoryDb revDiff = insertBatchCompleted.ReverseDiff;
         ReadOnlyVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
