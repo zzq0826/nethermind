@@ -22,23 +22,6 @@ public class StatelessTreeTest
         return Path.Combine(tempDir, dbname);
     }
 
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode)
-    {
-        IDbProvider provider;
-        switch (dbMode)
-        {
-            case DbMode.MemDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, SimpleConsoleLogManager.Instance);
-            case DbMode.PersistantDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, SimpleConsoleLogManager.Instance);
-            case DbMode.ReadOnlyDb:
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
-        }
-    }
-
     [TearDown]
     public void CleanTestData()
     {
@@ -54,7 +37,7 @@ public class StatelessTreeTest
     [TestCase(DbMode.MemDb, 1000, 2000, 3000)]
     public void InsertAndCreateStatelessTree(DbMode dbMode, int start, int end, int pathCount)
     {
-        VerkleTree initTree = GetVerkleTreeForTest(dbMode);
+        VerkleTree initTree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
         Pedersen[] pathPool = new Pedersen[pathCount];
         byte[][] leaf1 = new  byte[pathCount][];
@@ -98,7 +81,7 @@ public class StatelessTreeTest
 
 
 
-        VerkleTree statelessTree = GetVerkleTreeForTest(dbMode);
+        VerkleTree statelessTree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         Console.WriteLine($"init stateless tree");
         statelessTree.InsertIntoStatelessTree(execWitness, rootPoint).Should().BeTrue();
         Console.WriteLine($"create stateless tree and now insert block 1");

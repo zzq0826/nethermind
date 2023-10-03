@@ -91,26 +91,9 @@ public class VerkleTreeTests
         return Path.Combine(tempDir, dbname);
     }
 
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode)
-    {
-        IDbProvider provider;
-        switch (dbMode)
-        {
-            case DbMode.MemDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, LimboLogs.Instance);
-            case DbMode.PersistantDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, LimboLogs.Instance);
-            case DbMode.ReadOnlyDb:
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
-        }
-    }
-
     private VerkleTree GetFilledVerkleTreeForTest(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Insert(_keyBalance, _emptyArray);
@@ -186,7 +169,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey0Value0(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] key = _emptyArray;
 
         tree.Insert(key, key);
@@ -201,7 +184,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey1Value1(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] key = _array1To32;
 
         tree.Insert(key, key);
@@ -216,7 +199,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertSameStemTwoLeaves(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] keyA = _array1To32;
 
         byte[] keyB = _array1To32Last128;
@@ -238,7 +221,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey1Val1Key2Val2(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] keyA = _emptyArray;
         byte[] keyB = _arrayAll1;
 
@@ -259,7 +242,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertLongestPath(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] keyA = _emptyArray;
         byte[] keyB = (byte[])_emptyArray.Clone();
         keyB[30] = 1;
@@ -281,7 +264,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertAndTraverseLongestPath(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] keyA = _emptyArray;
         tree.Insert(keyA, keyA);
         tree.Commit();
@@ -311,7 +294,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestEmptyTrie(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         tree.Commit();
         tree.StateRoot.Bytes.Should().BeEquivalentTo(FrE.Zero.ToBytes().ToArray());
     }
@@ -320,7 +303,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestSimpleUpdate(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[] key = _array1To32;
         byte[] value = _emptyArray;
         tree.Insert(key, value);
@@ -340,7 +323,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGet(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Commit();
@@ -378,7 +361,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestValueSameBeforeAndAfterFlush(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
 
         tree.Insert(_keyVersion, _emptyArray);
@@ -407,7 +390,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGetMultiBlock(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Insert(_keyBalance, _emptyArray);
@@ -444,7 +427,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestBeverlyHillGenesis(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         byte[][] keys =
         {
             new byte[]

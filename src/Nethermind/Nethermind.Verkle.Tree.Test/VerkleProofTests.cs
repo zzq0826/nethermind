@@ -184,7 +184,7 @@ public class VerkleProofTest
     public void BenchmarkProofCalculation(int iteration, int warmup)
     {
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new VerkleTree(db, LimboLogs.Instance);
+        VerkleTree tree = new VerkleTree(db, 128, LimboLogs.Instance);
         byte[][] keys = new byte[1000][];
         for (int i = 0; i < 1000; i++)
         {
@@ -218,7 +218,7 @@ public class VerkleProofTest
     {
         Random rand = new(0);
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new(db, LimboLogs.Instance);
+        VerkleTree tree = new(db, 128, LimboLogs.Instance);
         byte[][] values = new byte[1000][];
         for (int i = 0; i < 1000; i++) values[i] = Keccak.EmptyTreeHash.Bytes.ToArray();
 

@@ -68,7 +68,7 @@ public static partial class TestItem
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleStateStore(provider, LimboLogs.Instance,maxNumberOfBlocksInCache: history);
+        return new VerkleStateStore(provider, history, LimboLogs.Instance);
     }
 
     public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)

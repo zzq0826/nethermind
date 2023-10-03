@@ -76,7 +76,7 @@ public class VirtualMachineTestsBase
             case StateType.Verkle:
                 IDbProvider provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
                 _stateDb = provider.StateDb;
-                VerkleStateTree vTree = new VerkleStateTree(provider, LimboLogs.Instance);
+                VerkleStateTree vTree = new VerkleStateTree(provider, 128, LimboLogs.Instance);
                 TestState = new VerkleWorldState(vTree, new MemDb(), logManager);
                 break;
             default:

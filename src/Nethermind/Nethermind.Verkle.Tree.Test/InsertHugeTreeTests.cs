@@ -23,17 +23,17 @@ public class InsertHugeTreeTests
         return Path.Combine(tempDir, dbname);
     }
 
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode)
+    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int blockCacheSize = 128)
     {
         IDbProvider provider;
         switch (dbMode)
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, LimboLogs.Instance);
+                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, LimboLogs.Instance);
+                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);

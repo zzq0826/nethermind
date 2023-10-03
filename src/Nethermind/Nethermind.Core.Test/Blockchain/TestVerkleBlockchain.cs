@@ -151,7 +151,7 @@ public class TestVerkleBlockchain
         EthereumEcdsa = new EthereumEcdsa(SpecProvider.ChainId, LogManager);
 
         DbProvider = CreateDbProvider();
-        TrieStore = new VerkleStateStore(DbProvider, LogManager);
+        TrieStore = new VerkleStateStore(DbProvider, 128, LogManager);
         byte[] code = Bytes.FromHexString("0xabcd");
         State = new VerkleWorldState(TrieStore, DbProvider.CodeDb, LogManager);
         State.CreateAccount(TestItem.AddressA, (initialValues ?? InitialValue));

@@ -168,7 +168,7 @@ namespace Nethermind.Init.Steps
             }
             else
             {
-                VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, getApi.LogManager);
+                VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, 128, getApi.LogManager);
                 TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(verkleStateStore, _api.BlockTree!, _api.LogManager);
                 getApi.DisposeStack.Push(trieStoreBoundaryWatcher);
                 ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
@@ -191,7 +191,7 @@ namespace Nethermind.Init.Steps
                         IWorldState diagStateProvider;
                         if (getApi.SpecProvider.GenesisSpec.IsVerkleTreeEipEnabled)
                         {
-                            VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider,  getApi.LogManager);
+                            VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider,  128, getApi.LogManager);
                             diagStateProvider = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
                         }
                         else

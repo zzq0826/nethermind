@@ -63,7 +63,7 @@ namespace Nethermind.Core.Test.Builders
 
             public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)
             {
-                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), LimboLogs.Instance);
+                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
 
                 var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 
@@ -74,7 +74,7 @@ namespace Nethermind.Core.Test.Builders
 
             public static VerkleStateTree GetVerkleStateTreeForSync(IVerkleTrieStore? store)
             {
-                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), LimboLogs.Instance);
+                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
 
                 var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 

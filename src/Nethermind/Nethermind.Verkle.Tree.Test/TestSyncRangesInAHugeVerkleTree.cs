@@ -21,53 +21,11 @@ public class TestSyncRangesInAHugeVerkleTree
 {
     public static Random Random { get; } = new(0);
     public static int numKeys = 2000;
-    private static string GetDbPathForTest()
-    {
-        string tempDir = Path.GetTempPath();
-        string dbname = "VerkleTrie_TestID_" + TestContext.CurrentContext.Test.ID;
-        return Path.Combine(tempDir, dbname);
-    }
-
-    private static IVerkleTrieStore GetVerkleStoreForTest(DbMode dbMode)
-    {
-        IDbProvider provider;
-        switch (dbMode)
-        {
-            case DbMode.MemDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                break;
-            case DbMode.PersistantDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                break;
-            case DbMode.ReadOnlyDb:
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
-        }
-
-        return new VerkleStateStore(provider, LimboLogs.Instance);
-    }
-
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode)
-    {
-        IDbProvider provider;
-        switch (dbMode)
-        {
-            case DbMode.MemDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, LimboLogs.Instance);
-            case DbMode.PersistantDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, LimboLogs.Instance);
-            case DbMode.ReadOnlyDb:
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
-        }
-    }
 
     [TearDown]
     public void CleanTestData()
     {
-        string dbPath = GetDbPathForTest();
+        string dbPath = VerkleTestUtils.GetDbPathForTest();
         if (Directory.Exists(dbPath))
         {
             Directory.Delete(dbPath, true);
@@ -378,7 +336,7 @@ public class TestSyncRangesInAHugeVerkleTree
     public void CreateHugeTree(DbMode dbMode)
     {
         long block = 0;
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
         Dictionary<byte[], byte[]?> kvMap = new(Bytes.EqualityComparer);
         byte[] key = new byte[32];
         byte[] value = new byte[32];

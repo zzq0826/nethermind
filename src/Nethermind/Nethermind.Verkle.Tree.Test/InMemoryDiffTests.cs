@@ -39,11 +39,11 @@ public class InMemoryDiffTests
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                store = new VerkleStateStore(provider, LimboLogs.Instance, maxBlockInHistory);
+                store = new VerkleStateStore(provider, maxBlockInHistory, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest() + maxBlockInHistory);
-                store = new VerkleStateStore(provider, LimboLogs.Instance, maxBlockInHistory);
+                store = new VerkleStateStore(provider, maxBlockInHistory, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
