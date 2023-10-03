@@ -4,12 +4,15 @@
 #nullable disable
 
 using System.Linq;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
+using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.State.Proofs;
+using Nethermind.State.Snap;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Trie.Pruning;
 using NUnit.Framework;
@@ -152,6 +155,45 @@ namespace Nethermind.Store.Test
             Assert.That(result1, Is.EqualTo(AddRangeResult.OK));
             Assert.That(result2, Is.EqualTo(AddRangeResult.DifferentRootHash));
             Assert.That(result3, Is.EqualTo(AddRangeResult.OK));
+        }
+    }
+
+    public static class SnapProviderExtensions
+    {
+        public static AddRangeResult AddStorageRange(
+            this SnapProvider snapProvider,
+            int blockNumber,
+            PathWithAccount account,
+            Keccak storageRoot,
+            ValueKeccak startingHash,
+            PathWithStorageSlot[] response,
+            byte[][] proof = null)
+        {
+            if (account == null)
+            {
+                account = new PathWithAccount(
+                    ValueKeccak.Zero,
+                    new Account(UInt256.One, UInt256.One, storageRoot, Keccak.Zero)
+                );
+            }
+
+            StorageRange request = new StorageRange()
+            {
+                BlockNumber = blockNumber,
+                StartingHash = startingHash,
+                Accounts = new PathWithAccount[]
+                {
+                    account
+                }
+            };
+
+            SlotsAndProofs wrappedResponse = new SlotsAndProofs()
+            {
+                PathsAndSlots = new[] {response},
+                Proofs = proof,
+            };
+
+            return snapProvider.AddStorageRange(request, wrappedResponse);
         }
     }
 }

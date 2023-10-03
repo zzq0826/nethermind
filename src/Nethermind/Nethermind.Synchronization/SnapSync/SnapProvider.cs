@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Extensions.ObjectPool;
 using Nethermind.Core;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
@@ -21,7 +22,7 @@ namespace Nethermind.Synchronization.SnapSync
 {
     public class SnapProvider : ISnapProvider
     {
-        private readonly ObjectPool<ITrieStore> _trieStorePool;
+        private readonly ObjectPool<TrieStoreAndLazyBatch> _trieStorePool;
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
         private readonly ILogger _logger;
@@ -32,7 +33,9 @@ namespace Nethermind.Synchronization.SnapSync
         {
             _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-            _trieStorePool = new DefaultObjectPool<ITrieStore>(new TrieStorePoolPolicy(_dbProvider.StateDb, logManager));
+            _trieStorePool = new DefaultObjectPool<TrieStoreAndLazyBatch>(
+                new TrieStorePoolPolicy(_dbProvider.StateDb, logManager)
+            );
 
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _logger = logManager.GetClassLogger<SnapProvider>();
@@ -69,15 +72,15 @@ namespace Nethermind.Synchronization.SnapSync
 
         public AddRangeResult AddAccountRange(long blockNumber, in ValueKeccak expectedRootHash, in ValueKeccak startingHash, PathWithAccount[] accounts, byte[][] proofs = null, in ValueKeccak? hashLimit = null!)
         {
-            ITrieStore store = _trieStorePool.Get();
+            ValueKeccak effectiveHashLimit = hashLimit.HasValue ? hashLimit.Value : ValueKeccak.MaxValue;
+
+            TrieStoreAndLazyBatch storeAndLazyBatch = _trieStorePool.Get();
             try
             {
-                StateTree tree = new(store, _logManager);
-
-                ValueKeccak effectiveHashLimit = hashLimit.HasValue ? hashLimit.Value : ValueKeccak.MaxValue;
-
+                StateTree tree = new(storeAndLazyBatch.TrieStore, _logManager);
                 (AddRangeResult result, bool moreChildrenToRight, List<PathWithAccount> accountsWithStorage, List<ValueKeccak> codeHashes) =
                     SnapProviderHelper.AddAccountRange(tree, blockNumber, expectedRootHash, startingHash, effectiveHashLimit, accounts, proofs);
+                storeAndLazyBatch.LazyWriteBatchStore.Flush();
 
                 if (result == AddRangeResult.OK)
                 {
@@ -102,7 +105,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
             finally
             {
-                _trieStorePool.Return(store);
+                _trieStorePool.Return(storeAndLazyBatch);
             }
         }
 
@@ -119,12 +122,13 @@ namespace Nethermind.Synchronization.SnapSync
 
                 return AddRangeResult.ExpiredRootHash;
             }
-            else
+
+            int slotCount = 0;
+
+            ArrayPoolList<(AddRangeResult Result, bool MoreChildrenToRight)> storageRangeResults = new(1);
+            TrieStoreAndLazyBatch trieStoreAndLazyBatch = _trieStorePool.Get();
+            try
             {
-                int slotCount = 0;
-
-                int requestLength = request.Accounts.Length;
-
                 for (int i = 0; i < responses.Length; i++)
                 {
                     // only the last can have proofs
@@ -135,75 +139,94 @@ namespace Nethermind.Synchronization.SnapSync
                     }
 
                     PathWithAccount account = request.Accounts[i];
-                    result = AddStorageRange(request.BlockNumber.Value, account, account.Account.StorageRoot, request.StartingHash, responses[i], proofs);
+
+                    StorageTree tree = new(trieStoreAndLazyBatch.TrieStore, _logManager);
+                    (AddRangeResult Result, bool MoreChildrenToRight) addStorageRangeResult = SnapProviderHelper.AddStorageRange(
+                        tree,
+                        request.BlockNumber.Value,
+                        request.StartingHash,
+                        responses[i],
+                        account.Account.StorageRoot,
+                        proofs);
+
+                    storageRangeResults.Add(addStorageRangeResult);
+
+                    if (addStorageRangeResult.Result == AddRangeResult.MissingRootHashInProofs)
+                    {
+                        _logger.Trace($"SNAP - AddStorageRange failed, missing root hash {account.Account.StorageRoot} in the proofs, startingHash:{request.StartingHash}");
+                    }
+                    else if (addStorageRangeResult.Result == AddRangeResult.DifferentRootHash)
+                    {
+                        _logger.Trace($"SNAP - AddStorageRange failed, expected storage root hash:{account.Account.StorageRoot} but was {tree.RootHash}, startingHash:{request.StartingHash}");
+                    }
 
                     slotCount += responses[i].Length;
                 }
+            }
+            finally
+            {
+                _trieStorePool.Return(trieStoreAndLazyBatch);
+            }
 
-                if (requestLength > responses.Length)
-                {
-                    _progressTracker.ReportFullStorageRequestFinished(request.Accounts.AsSpan(responses.Length, requestLength - responses.Length));
-                }
-                else
-                {
-                    _progressTracker.ReportFullStorageRequestFinished();
-                }
+            for (int i = 0; i < storageRangeResults.Count; i++)
+            {
+                HandleAddStorageRangeResult(request, request.Accounts[i], responses[i], storageRangeResults[i].Result, storageRangeResults[i].MoreChildrenToRight);
+                result = storageRangeResults[i].Result;
+            }
 
-                if (result == AddRangeResult.OK && slotCount > 0)
-                {
-                    Interlocked.Add(ref Metrics.SnapSyncedStorageSlots, slotCount);
-                }
+            int requestLength = request.Accounts.Length;
+            if (requestLength > responses.Length)
+            {
+                _progressTracker.ReportFullStorageRequestFinished(request.Accounts.AsSpan(responses.Length, requestLength - responses.Length));
+            }
+            else
+            {
+                _progressTracker.ReportFullStorageRequestFinished();
+            }
+
+            if (result == AddRangeResult.OK && slotCount > 0)
+            {
+                Interlocked.Add(ref Metrics.SnapSyncedStorageSlots, slotCount);
             }
 
             return result;
         }
 
-        public AddRangeResult AddStorageRange(long blockNumber, PathWithAccount pathWithAccount, in ValueKeccak expectedRootHash, in ValueKeccak? startingHash, PathWithStorageSlot[] slots, byte[][]? proofs = null)
-        {
-            ITrieStore store = _trieStorePool.Get();
-            StorageTree tree = new(store, _logManager);
-            try
+        private void HandleAddStorageRangeResult(
+            StorageRange request,
+            PathWithAccount pathWithAccount,
+            PathWithStorageSlot[] slots,
+            AddRangeResult result,
+            bool moreChildrenToRight
+        ) {
+            if (result == AddRangeResult.OK)
             {
-                (AddRangeResult result, bool moreChildrenToRight) = SnapProviderHelper.AddStorageRange(tree, blockNumber, startingHash, slots, expectedRootHash, proofs);
-
-                if (result == AddRangeResult.OK)
+                if (moreChildrenToRight)
                 {
-                    if (moreChildrenToRight)
+                    StorageRange range = new()
                     {
-                        StorageRange range = new()
-                        {
-                            Accounts = new[] { pathWithAccount },
-                            StartingHash = slots[^1].Path
-                        };
+                        Accounts = new[] { pathWithAccount },
+                        StartingHash = slots[^1].Path
+                    };
 
-                        _progressTracker.EnqueueStorageRange(range);
-                    }
+                    _progressTracker.EnqueueStorageRange(range);
                 }
-                else if (result == AddRangeResult.MissingRootHashInProofs)
-                {
-                    _logger.Trace($"SNAP - AddStorageRange failed, missing root hash {expectedRootHash} in the proofs, startingHash:{startingHash}");
-
-                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash);
-                }
-                else if (result == AddRangeResult.DifferentRootHash)
-                {
-                    _logger.Trace($"SNAP - AddStorageRange failed, expected storage root hash:{expectedRootHash} but was {tree.RootHash}, startingHash:{startingHash}");
-
-                    _progressTracker.EnqueueAccountRefresh(pathWithAccount, startingHash);
-                }
-
-                return result;
             }
-            finally
+            else if (result == AddRangeResult.MissingRootHashInProofs)
             {
-                _trieStorePool.Return(store);
+                _progressTracker.EnqueueAccountRefresh(pathWithAccount, request.StartingHash);
+            }
+            else if (result == AddRangeResult.DifferentRootHash)
+            {
+                _progressTracker.EnqueueAccountRefresh(pathWithAccount, request.StartingHash);
             }
         }
 
         public void RefreshAccounts(AccountsToRefreshRequest request, byte[][] response)
         {
             int respLength = response.Length;
-            ITrieStore store = _trieStorePool.Get();
+            TrieStoreAndLazyBatch trieStoreAndLazyBatch = _trieStorePool.Get();
+            ITrieStore store = trieStoreAndLazyBatch.TrieStore;
             try
             {
                 for (int reqi = 0; reqi < request.Paths.Length; reqi++)
@@ -260,7 +283,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
             finally
             {
-                _trieStorePool.Return(store);
+                _trieStorePool.Return(trieStoreAndLazyBatch);
             }
         }
 
@@ -320,7 +343,13 @@ namespace Nethermind.Synchronization.SnapSync
             _progressTracker.UpdatePivot();
         }
 
-        private class TrieStorePoolPolicy : IPooledObjectPolicy<ITrieStore>
+        class TrieStoreAndLazyBatch
+        {
+            public ITrieStore TrieStore;
+            public LazyWriteBatchStore LazyWriteBatchStore;
+        }
+
+        private class TrieStorePoolPolicy : IPooledObjectPolicy<TrieStoreAndLazyBatch>
         {
             private readonly IKeyValueStoreWithBatching _stateDb;
             private readonly ILogManager _logManager;
@@ -331,17 +360,23 @@ namespace Nethermind.Synchronization.SnapSync
                 _logManager = logManager;
             }
 
-            public ITrieStore Create()
+            public TrieStoreAndLazyBatch Create()
             {
-                return new TrieStore(
-                    _stateDb,
-                    Nethermind.Trie.Pruning.No.Pruning,
-                    Persist.EveryBlock,
-                    _logManager);
+                LazyWriteBatchStore store = new(_stateDb);
+                return new TrieStoreAndLazyBatch()
+                {
+                    TrieStore = new TrieStore(
+                        _stateDb,
+                        Nethermind.Trie.Pruning.No.Pruning,
+                        Persist.EveryBlock,
+                        _logManager),
+                    LazyWriteBatchStore = store,
+                };
             }
 
-            public bool Return(ITrieStore obj)
+            public bool Return(TrieStoreAndLazyBatch obj)
             {
+                obj.LazyWriteBatchStore.Flush();
                 return true;
             }
         }
