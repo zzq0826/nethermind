@@ -41,16 +41,17 @@ public partial class VerkleStateStore
             _logger.Debug(
                 $"VSS: Flushing:{blockNumber} InternalDb:{batch.InternalTable.Count} LeafDb:{batch.LeafTable.Count}");
 
+        ReadOnlyVerkleMemoryDb cacheBatch = new()
+        {
+            InternalTable = batch.InternalTable,
+            LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
+        };
+
         if (blockNumber == 0)
         {
             if (_logger.IsDebug)
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-            ReadOnlyVerkleMemoryDb cacheBatch = new()
-            {
-                InternalTable = batch.InternalTable,
-                LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
-            };
             InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(0, cacheBatch, new VerkleMemoryDb()));
             UpdateStateRoot();
             PersistedStateRoot = StateRoot;
@@ -64,12 +65,6 @@ public partial class VerkleStateStore
 
             // create a sorted set for leaves - for snap sync
             // TODO: create this sorted set while inserting into the batch - will help reducing allocations
-            ReadOnlyVerkleMemoryDb cacheBatch = new()
-            {
-                InternalTable = batch.InternalTable,
-                LeafTable = new SortedDictionary<byte[], byte[]?>(batch.LeafTable, Bytes.Comparer)
-            };
-
             bool shouldPersistBlock;
             ReadOnlyVerkleMemoryDb changesToPersist;
             long blockNumberToPersist;

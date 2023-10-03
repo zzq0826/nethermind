@@ -3,8 +3,9 @@
 
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.VerkleDb;
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public class VerkleHistoryStore
 {
@@ -59,5 +60,15 @@ public class VerkleHistoryStore
         return ForwardDiff.FetchDiff(fromBlock);
     }
 
+
+    public byte[]? GetReverseDiffLeaf(long fromBlock, ReadOnlySpan<byte> key)
+    {
+        return ReverseDiff.GetLeaf(fromBlock, key);
+    }
+
+    public byte[]? GetForwardDiffLeaf(long fromBlock, ReadOnlySpan<byte> key)
+    {
+        return ForwardDiff.GetLeaf(fromBlock, key);
+    }
 
 }

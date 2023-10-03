@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-namespace Nethermind.Verkle.Tree.VerkleDb;
+using Nethermind.Verkle.Tree.VerkleDb;
+
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public class ChangeSet
 {

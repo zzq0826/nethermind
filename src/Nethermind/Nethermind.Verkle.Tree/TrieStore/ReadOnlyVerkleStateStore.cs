@@ -4,6 +4,7 @@
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;

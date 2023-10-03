@@ -8,6 +8,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;

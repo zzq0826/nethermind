@@ -1,49 +1,19 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Buffers.Binary;
 using System.Diagnostics;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.VerkleDb;
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public enum DiffType
 {
     Forward,
     Reverse
-}
-
-public class DiffLayerForLeaves
-{
-    private readonly DiffType _diffType;
-    private IDb DiffDb { get; }
-    public DiffLayerForLeaves(IDb diffDb, DiffType diffType)
-    {
-        DiffDb = diffDb;
-        _diffType = diffType;
-    }
-
-    public void InsertDiff(long blockNumber,  SortedDictionary<byte[],byte[]?> leafTable)
-    {
-        Span<byte> keyFull = stackalloc byte[32 + 8]; // pedersenKey + blockNumber
-        BinaryPrimitives.WriteInt64BigEndian(keyFull.Slice(32), blockNumber);
-        foreach (KeyValuePair<byte[], byte[]?> leafEntry in leafTable)
-        {
-            leafEntry.Key.CopyTo(keyFull.Slice(0, 32));
-            DiffDb.Set(keyFull, leafEntry.Value);
-        }
-    }
-
-    public byte[]? GetLeaf(long blockNumber, byte[] key)
-    {
-        Span<byte> dbKey = stackalloc byte[32 + 8]; // pedersenKey + blockNumber leafEntry.Key.CopyTo(keyFull.Slice(0, 32));
-        key.CopyTo(dbKey.Slice(0, 32));
-        BinaryPrimitives.WriteInt64BigEndian(dbKey.Slice(32), blockNumber);
-        return DiffDb.Get(dbKey);
-    }
 }
 
 
@@ -116,5 +86,12 @@ public class DiffLayer
                 throw new NotSupportedException();
         }
         return mergedDiff;
+    }
+
+    public byte[]? GetLeaf(long blockNumber, ReadOnlySpan<byte> key)
+    {
+        VerkleMemoryDb diff = FetchDiff(blockNumber);
+        diff.GetLeaf(key, out byte[]? value);
+        return value;
     }
 }

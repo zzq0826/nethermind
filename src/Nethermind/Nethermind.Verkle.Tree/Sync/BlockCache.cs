@@ -5,7 +5,7 @@ using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.Sync;
 
 public class BlockDiffCache: StackQueue<(long, ReadOnlyVerkleMemoryDb)>
 {

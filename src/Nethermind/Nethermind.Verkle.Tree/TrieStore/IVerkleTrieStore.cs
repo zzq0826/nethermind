@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 

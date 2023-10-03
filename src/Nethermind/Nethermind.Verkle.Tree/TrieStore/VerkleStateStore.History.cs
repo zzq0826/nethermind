@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
+using Nethermind.Verkle.Tree.History.V1;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;

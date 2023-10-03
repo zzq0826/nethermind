@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Buffers.Binary;
-using System.Diagnostics;
 using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Serialization.Rlp.EliasFano;
 
-namespace Nethermind.Verkle.Tree;
+namespace Nethermind.Verkle.Tree.History.V2;
 
 public class HistoryOfAccounts
 {
