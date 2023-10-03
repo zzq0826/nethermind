@@ -113,6 +113,8 @@ public class ArchiveStoreTests
     [TestCase(DbMode.PersistantDb)]
     public void TestArchiveStoreForMultipleBlocks(DbMode dbMode)
     {
+        ulong numBlocks = 2000;
+        int blockChunks = 10;
         IDbProvider provider;
         switch (dbMode)
         {
@@ -131,7 +133,7 @@ public class ArchiveStoreTests
         VerkleTree tree = new VerkleTree(stateStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore =
-            new VerkleArchiveStore(stateStore, provider, LimboLogs.Instance) { BlockChunks = 10 };
+            new VerkleArchiveStore(stateStore, provider, LimboLogs.Instance) { BlockChunks = blockChunks };
 
         Pedersen[] keys =
         {
@@ -142,7 +144,7 @@ public class ArchiveStoreTests
         List<VerkleCommitment> stateRoots = new List<VerkleCommitment>();
         ulong i = 0;
         long block = 0;
-        while (i < 2000)
+        while (i < numBlocks)
         {
             foreach (Pedersen key in keys)
             {
@@ -155,7 +157,7 @@ public class ArchiveStoreTests
 
         i = 0;
         block = 0;
-        while (i < 2000)
+        while (i < numBlocks)
         {
             foreach (Pedersen key in keys)
             {
@@ -163,6 +165,5 @@ public class ArchiveStoreTests
                 leaf.Should().BeEquivalentTo(new UInt256(i++).ToBigEndian());
             }
         }
-
     }
 }
