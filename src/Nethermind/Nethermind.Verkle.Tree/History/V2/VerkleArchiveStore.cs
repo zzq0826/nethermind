@@ -28,19 +28,17 @@ public class VerkleArchiveStore
     {
         _stateStore = stateStore;
         _historyOfAccounts = new HistoryOfAccounts(dbProvider.HistoryOfAccounts);
-        _stateStore.InsertBatchCompleted += OnPersistNewBlock;
+        _stateStore.InsertBatchCompletedV2 += OnPersistNewBlock;
         ChangeSet = new LeafChangeSet(dbProvider, logManager);
     }
 
-    private void OnPersistNewBlock(object? sender, InsertBatchCompleted insertBatchCompleted)
+    private void OnPersistNewBlock(object? sender, InsertBatchCompletedV2 insertBatchCompleted)
     {
         Console.WriteLine(
-            $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.ForwardDiff.LeafTable.Count}");
+            $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.LeafTable.Count}");
         long blockNumber = insertBatchCompleted.BlockNumber;
-        ReadOnlyVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
-        ChangeSet.InsertDiff(blockNumber, forwardDiff.LeafTable);
-
-        foreach (KeyValuePair<byte[], byte[]?> keyVal in forwardDiff.LeafTable)
+        ChangeSet.InsertDiff(blockNumber, insertBatchCompleted.LeafTable);
+        foreach (KeyValuePair<byte[], byte[]?> keyVal in insertBatchCompleted.LeafTable)
             _historyOfAccounts.AppendHistoryBlockNumberForKey(new Pedersen(keyVal.Key), (ulong)blockNumber);
     }
 

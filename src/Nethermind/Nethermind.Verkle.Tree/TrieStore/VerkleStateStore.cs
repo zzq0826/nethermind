@@ -40,15 +40,15 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     // We try to avoid fetching from this, and we only store at the end of a batch insert
     private VerkleKeyValueDb Storage { get; }
 
-    public VerkleStateStore(IDbProvider dbProvider, ILogManager logManager, int maxNumberOfBlocksInCache = 128)
+    public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
         StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
-        BlockCache = maxNumberOfBlocksInCache == 0
+        BlockCache = blockCacheSize == 0
             ? null
-            : new (maxNumberOfBlocksInCache);
-        MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
+            : new (blockCacheSize);
+        BlockCacheSize = blockCacheSize;
         InitRootHash();
     }
 
@@ -56,16 +56,16 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         IDb leafDb,
         IDb internalDb,
         IDb stateRootToBlocks,
-        ILogManager? logManager,
-        int maxNumberOfBlocksInCache = 128)
+        int blockCacheSize,
+        ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
-        BlockCache = maxNumberOfBlocksInCache == 0
+        BlockCache = blockCacheSize == 0
             ? null
-            : new (maxNumberOfBlocksInCache);
-        MaxNumberOfBlocksInCache = maxNumberOfBlocksInCache;
+            : new (blockCacheSize);
+        BlockCacheSize = blockCacheSize;
         InitRootHash();
     }
     public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore) => new (this, keyValueStore);

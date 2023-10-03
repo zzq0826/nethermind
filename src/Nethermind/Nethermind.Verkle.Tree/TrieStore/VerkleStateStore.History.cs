@@ -15,11 +15,12 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore
 {
-    public event EventHandler<InsertBatchCompleted>? InsertBatchCompleted;
+    public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1;
+    public event EventHandler<InsertBatchCompletedV2>? InsertBatchCompletedV2;
     /// <summary>
     ///  maximum number of blocks that should be stored in cache (not persisted in db)
     /// </summary>
-    private int MaxNumberOfBlocksInCache { get; }
+    private int BlockCacheSize { get; }
     private BlockDiffCache? BlockCache { get; }
 
     [Obsolete("should not be used - can be used in extreme cases to correct state")]

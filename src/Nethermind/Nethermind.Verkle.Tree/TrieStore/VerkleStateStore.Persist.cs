@@ -52,7 +52,8 @@ public partial class VerkleStateStore
             if (_logger.IsDebug)
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-            InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(0, cacheBatch, new VerkleMemoryDb()));
+            InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
+            InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(0, cacheBatch.LeafTable));
             UpdateStateRoot();
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
@@ -89,10 +90,17 @@ public partial class VerkleStateStore
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
 
-                // TODO: add a flag to check if we even need history here and then get reverseDiff accordingly
-                PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
-                InsertBatchCompleted?.Invoke(this, new InsertBatchCompleted(blockNumberToPersist, changesToPersist, reverseDiff));
+                VerkleMemoryDb? reverseDiff = null;
 
+                // TODO: this is here just for testing and keep supporting the old history version - should be removed
+                //   before merging this to master
+                if (InsertBatchCompletedV1 is not null)
+                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage,
+                        out reverseDiff);
+                else PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
+
+                InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(blockNumberToPersist, changesToPersist, reverseDiff));
+                InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, changesToPersist.LeafTable));
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
             }
@@ -173,7 +181,7 @@ public partial class VerkleStateStore
         {
             // even after we persist a block we do not really remember it as a safe checkpoint
             // until max reorgs blocks after
-            if (LatestCommittedBlockNumber >= LastPersistedBlockNumber + MaxNumberOfBlocksInCache)
+            if (LatestCommittedBlockNumber >= LastPersistedBlockNumber + BlockCacheSize)
             {
                 shouldAnnounceReorgBoundary = true;
             }

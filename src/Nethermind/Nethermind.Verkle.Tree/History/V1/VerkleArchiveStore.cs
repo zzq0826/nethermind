@@ -29,11 +29,11 @@ public class VerkleArchiveStore
     {
         _stateStore = stateStore;
         _historyOfAccounts = new HistoryOfAccounts(dbProvider.HistoryOfAccounts);
-        _stateStore.InsertBatchCompleted += OnPersistNewBlock;
+        _stateStore.InsertBatchCompletedV1 += OnPersistNewBlock;
         History = new VerkleHistoryStore(dbProvider, logManager);
     }
 
-    private void OnPersistNewBlock(object? sender, InsertBatchCompleted insertBatchCompleted)
+    private void OnPersistNewBlock(object? sender, InsertBatchCompletedV1 insertBatchCompleted)
     {
         Console.WriteLine(
             $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.ForwardDiff.LeafTable.Count} RD:{insertBatchCompleted.ReverseDiff.LeafTable.Count}");

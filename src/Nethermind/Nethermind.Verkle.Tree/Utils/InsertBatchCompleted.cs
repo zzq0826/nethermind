@@ -5,9 +5,9 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.Utils;
 
-public class InsertBatchCompleted : EventArgs
+public class InsertBatchCompletedV1 : EventArgs
 {
-    public InsertBatchCompleted(long blockNumber,  ReadOnlyVerkleMemoryDb forwardDiff, VerkleMemoryDb? reverseDiff)
+    public InsertBatchCompletedV1(long blockNumber,  ReadOnlyVerkleMemoryDb forwardDiff, VerkleMemoryDb? reverseDiff)
     {
         BlockNumber = blockNumber;
         ReverseDiff = reverseDiff;
@@ -18,3 +18,16 @@ public class InsertBatchCompleted : EventArgs
     public  ReadOnlyVerkleMemoryDb ForwardDiff { get; }
     public long BlockNumber { get; }
 }
+
+public class InsertBatchCompletedV2 : EventArgs
+{
+    public InsertBatchCompletedV2(long blockNumber,   IDictionary<byte[],byte[]?> leafTable)
+    {
+        BlockNumber = blockNumber;
+        LeafTable = leafTable;
+    }
+
+    public IDictionary<byte[],byte[]?> LeafTable { get; }
+    public long BlockNumber { get; }
+}
+

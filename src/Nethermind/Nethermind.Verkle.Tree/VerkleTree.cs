@@ -38,9 +38,9 @@ public partial class VerkleTree: IVerkleTree
     // the store that is responsible to store the tree in a key-value store
     public readonly IVerkleTrieStore _verkleStateStore;
 
-    public VerkleTree(IDbProvider dbProvider, ILogManager logManager)
+    public VerkleTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
-        _verkleStateStore = new VerkleStateStore(dbProvider, logManager);
+        _verkleStateStore = new VerkleStateStore(dbProvider, blockCacheSize, logManager);
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
     }
 

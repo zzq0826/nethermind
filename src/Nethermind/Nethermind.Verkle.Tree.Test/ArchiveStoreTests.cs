@@ -12,6 +12,7 @@ using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
+[Parallelizable(ParallelScope.All)]
 public class ArchiveStoreTests
 {
     [TearDown]
@@ -43,7 +44,7 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleStateStore stateStore = new VerkleStateStore(provider, LimboLogs.Instance, 0);
+        VerkleStateStore stateStore = new VerkleStateStore(provider, 0, LimboLogs.Instance);
         VerkleTree tree = new VerkleTree(stateStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore = new VerkleArchiveStore(stateStore, provider, LimboLogs.Instance);
@@ -126,7 +127,7 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleStateStore stateStore = new VerkleStateStore(provider, LimboLogs.Instance, 0);
+        VerkleStateStore stateStore = new VerkleStateStore(provider, 0, LimboLogs.Instance);
         VerkleTree tree = new VerkleTree(stateStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore =
