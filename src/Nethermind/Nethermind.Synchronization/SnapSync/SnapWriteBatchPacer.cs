@@ -24,7 +24,8 @@ public class SnapWriteBatchPacer: IKeyValueStoreWithBatching
     private const int MaxKeyBeforeFlush = 128;
 
     private IKeyValueStoreWithBatching _implementation;
-    private ArrayPoolList<(byte[] key, byte[]? value)> _buffer = new(MaxKeyBeforeFlush);
+    private IBatch? _currentBatch = null;
+    private long _writeCount = 0;
     private WriteFlags _writeFlags = WriteFlags.None;
 
     public SnapWriteBatchPacer(IKeyValueStoreWithBatching implementation)
@@ -49,29 +50,34 @@ public class SnapWriteBatchPacer: IKeyValueStoreWithBatching
 
     private void LazySet(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags)
     {
-        _buffer.Add((key.ToArray(), value));
+        if (_currentBatch == null)
+        {
+            IBatch newBatch = _implementation.StartBatch();
+            if (Interlocked.CompareExchange(ref _currentBatch, newBatch, null) != null)
+            {
+                newBatch.Dispose();
+            }
+        }
+
+        _currentBatch!.Set(key, value, flags);
         _writeFlags = flags;
 
-        if (_buffer.Count >= MaxKeyBeforeFlush)
+        if (Interlocked.Increment(ref _writeCount) % MaxKeyBeforeFlush == 0)
         {
-            Flush();
+            Write();
         }
+    }
+
+    private void Write()
+    {
+        IBatch oldBatch = Interlocked.Exchange(ref _currentBatch, _implementation.StartBatch());
+        oldBatch?.Dispose();
     }
 
     public void Flush()
     {
-        if (_buffer.Count == 0) return;
-        using ArrayPoolList<(byte[] key, byte[]? value)> prevBuffer = Interlocked.Exchange(ref _buffer,
-            new ArrayPoolList<(byte[] key, byte[]? value)>(MaxKeyBeforeFlush));
-        if (prevBuffer.Count == 0) return;
-
-        IBatch baseBatch = _implementation.StartBatch();
-        foreach ((byte[] key, byte[]? value) in prevBuffer)
-        {
-            baseBatch.Set(key, value, _writeFlags);
-        }
-
-        baseBatch.Dispose();
+        IBatch oldBatch = Interlocked.Exchange(ref _currentBatch, null);
+        oldBatch?.Dispose();
     }
 
     private class LazyWriteBatch: IBatch
