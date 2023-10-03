@@ -15,9 +15,9 @@ COPY . .
 
 RUN if [ "$TARGETARCH" = "amd64" ]; \
     then dotnet publish src/Nethermind/Nethermind.Runner -c $BUILD_CONFIG -r $TARGETOS-x64 -o out --sc false \
-      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH -p:Deterministic=true ; \
+      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH ; \
     else dotnet publish src/Nethermind/Nethermind.Runner -c $BUILD_CONFIG -r $TARGETOS-$TARGETARCH -o out --sc false \
-      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH -p:Deterministic=true ; \
+      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH ; \
     fi
 
 # A temporary symlink to support the old executable name

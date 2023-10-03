@@ -13,6 +13,8 @@
     <TieredPGO>true</TieredPGO>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <PropertyGroup>

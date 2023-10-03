@@ -18,7 +18,6 @@ do
     -p:BuildTimestamp=$2 \
     -p:Commit=$1 \
     -p:DebugType=none \
-    -p:Deterministic=true \
     -p:IncludeAllContentForSelfExtract=true \
     -p:PublishSingleFile=true
 
