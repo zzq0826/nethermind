@@ -792,14 +792,6 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
         [ThreadStatic]
         private static WriteBatch? _reusableWriteBatch;
 
-        /// <summary>
-        /// Because of how rocksdb parallelize writes, a large write batch can stall other new concurrent writes, so
-        /// we writes the batch in smaller batches. This removes atomicity so its only turned on when NoWAL flag is on.
-        /// It does not work as well as just turning on unordered_write, but Snapshot and Iterator can still works.
-        /// </summary>
-        private const int MaxWritesOnNoWal = 128;
-        private int _writeCount;
-
         public RocksDbBatch(DbOnTheRocks dbOnTheRocks)
         {
             _dbOnTheRocks = dbOnTheRocks;
@@ -886,8 +878,6 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
 
             _rocksBatch.Put(key, value, cf);
             _writeFlags = flags;
-
-            if ((flags & WriteFlags.DisableWAL) != 0) FlushOnTooManyWrites();
         }
 
         public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
@@ -899,26 +889,6 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
 
             _rocksBatch.Put(key, value);
             _writeFlags = flags;
-
-            if ((flags & WriteFlags.DisableWAL) != 0) FlushOnTooManyWrites();
-        }
-
-        private void FlushOnTooManyWrites()
-        {
-            if (Interlocked.Increment(ref _writeCount) % MaxWritesOnNoWal != 0) return;
-
-            WriteBatch currentBatch = Interlocked.Exchange(ref _rocksBatch, CreateWriteBatch());
-
-            try
-            {
-                _dbOnTheRocks._db.Write(currentBatch, _dbOnTheRocks.WriteFlagsToWriteOptions(_writeFlags));
-                ReturnWriteBatch(currentBatch);
-            }
-            catch (RocksDbSharpException e)
-            {
-                _dbOnTheRocks.CreateMarkerIfCorrupt(e);
-                throw;
-            }
         }
     }
 
