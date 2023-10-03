@@ -7,7 +7,12 @@ using Nethermind.Core.Collections;
 
 namespace Nethermind.Core;
 
-public class LazyWriteBatchStore: IKeyValueStoreWithBatching
+/// <summary>
+/// Implement some optimization for snap sync related to write batch writes.
+/// 1. Combine multiple writes batch from contract store request as most contract have very little node to add.
+/// 2. Split very large batch into smaller batch as large batch will stall rocksdb's concurrent writes.
+/// </summary>
+public class SnapWriteBatchPacer: IKeyValueStoreWithBatching
 {
     /// <summary>
     /// Because of how rocksdb parallelize writes, a large write batch can stall other new concurrent writes, so
@@ -20,7 +25,7 @@ public class LazyWriteBatchStore: IKeyValueStoreWithBatching
     private ArrayPoolList<(byte[] key, byte[]? value)> _buffer = new(MaxKeyBeforeFlush);
     private WriteFlags _writeFlags = WriteFlags.None;
 
-    public LazyWriteBatchStore(IKeyValueStoreWithBatching implementation)
+    public SnapWriteBatchPacer(IKeyValueStoreWithBatching implementation)
     {
         _implementation = implementation;
     }
@@ -51,7 +56,7 @@ public class LazyWriteBatchStore: IKeyValueStoreWithBatching
         }
     }
 
-    private void Flush()
+    public void Flush()
     {
         if (_buffer.Count == 0) return;
         using ArrayPoolList<(byte[] key, byte[]? value)> prevBuffer = Interlocked.Exchange(ref _buffer,
@@ -69,9 +74,9 @@ public class LazyWriteBatchStore: IKeyValueStoreWithBatching
 
     private class LazyWriteBatch: IBatch
     {
-        private readonly LazyWriteBatchStore _store;
+        private readonly SnapWriteBatchPacer _store;
 
-        public LazyWriteBatch(LazyWriteBatchStore store)
+        public LazyWriteBatch(SnapWriteBatchPacer store)
         {
             _store = store;
         }

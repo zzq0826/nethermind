@@ -80,7 +80,7 @@ namespace Nethermind.Synchronization.SnapSync
                 StateTree tree = new(storeAndLazyBatch.TrieStore, _logManager);
                 (AddRangeResult result, bool moreChildrenToRight, List<PathWithAccount> accountsWithStorage, List<ValueKeccak> codeHashes) =
                     SnapProviderHelper.AddAccountRange(tree, blockNumber, expectedRootHash, startingHash, effectiveHashLimit, accounts, proofs);
-                storeAndLazyBatch.LazyWriteBatchStore.Flush();
+                storeAndLazyBatch._snapWriteBatchPacer.Flush();
 
                 if (result == AddRangeResult.OK)
                 {
@@ -346,7 +346,7 @@ namespace Nethermind.Synchronization.SnapSync
         class TrieStoreAndLazyBatch
         {
             public ITrieStore TrieStore;
-            public LazyWriteBatchStore LazyWriteBatchStore;
+            public SnapWriteBatchPacer _snapWriteBatchPacer;
         }
 
         private class TrieStorePoolPolicy : IPooledObjectPolicy<TrieStoreAndLazyBatch>
@@ -362,7 +362,7 @@ namespace Nethermind.Synchronization.SnapSync
 
             public TrieStoreAndLazyBatch Create()
             {
-                LazyWriteBatchStore store = new(_stateDb);
+                SnapWriteBatchPacer store = new(_stateDb);
                 return new TrieStoreAndLazyBatch()
                 {
                     TrieStore = new TrieStore(
@@ -370,13 +370,13 @@ namespace Nethermind.Synchronization.SnapSync
                         Nethermind.Trie.Pruning.No.Pruning,
                         Persist.EveryBlock,
                         _logManager),
-                    LazyWriteBatchStore = store,
+                    _snapWriteBatchPacer = store,
                 };
             }
 
             public bool Return(TrieStoreAndLazyBatch obj)
             {
-                obj.LazyWriteBatchStore.Flush();
+                obj._snapWriteBatchPacer.Flush();
                 return true;
             }
         }
