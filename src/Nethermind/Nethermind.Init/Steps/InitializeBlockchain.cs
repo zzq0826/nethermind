@@ -42,6 +42,7 @@ using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.History.V2;
 using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 using Nethermind.Wallet;
@@ -170,6 +171,7 @@ namespace Nethermind.Init.Steps
             {
                 VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, 128, getApi.LogManager);
                 TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(verkleStateStore, _api.BlockTree!, _api.LogManager);
+                setApi.VerkleArchiveStore = new (verkleStateStore, getApi.DbProvider, getApi.LogManager);
                 getApi.DisposeStack.Push(trieStoreBoundaryWatcher);
                 ReadOnlyVerkleStateStore readOnlyVerkleStateStore = setApi.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
                 worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);

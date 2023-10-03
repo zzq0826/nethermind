@@ -58,6 +58,7 @@ using Nethermind.Synchronization.Blocks;
 using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.History.V2;
 using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
@@ -142,6 +143,7 @@ namespace Nethermind.Api
 
         public VerkleStateStore? VerkleTrieStore { get; set; }
         public ReadOnlyVerkleStateStore? ReadOnlyVerkleTrieStore { get; set; }
+        public VerkleArchiveStore? VerkleArchiveStore { get; set; }
 
         public IIPResolver? IpResolver { get; set; }
         public IJsonSerializer EthereumJsonSerializer { get; set; }

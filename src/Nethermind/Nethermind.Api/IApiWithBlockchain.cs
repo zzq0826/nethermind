@@ -23,6 +23,7 @@ using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.History.V2;
 using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
@@ -47,6 +48,7 @@ namespace Nethermind.Api
         IManualBlockProductionTrigger ManualBlockProductionTrigger { get; }
         VerkleStateStore? VerkleTrieStore { get; set; }
         ReadOnlyVerkleStateStore? ReadOnlyVerkleTrieStore { get; set; }
+        VerkleArchiveStore? VerkleArchiveStore { get; set; }
         IReadOnlyTrieStore? ReadOnlyTrieStore { get; set; }
         IRewardCalculatorSource? RewardCalculatorSource { get; set; }
         /// <summary>
