@@ -10,11 +10,13 @@ cd $GITHUB_WORKSPACE/nethermind/src/Nethermind/Nethermind.Runner
 
 echo "Building Nethermind"
 
+dotnet restore
+
 for rid in "linux-x64" "linux-arm64" "win-x64" "osx-x64" "osx-arm64"
 do
   echo "  Publishing for $rid"
 
-  dotnet publish -c release -r $rid -o $output_path/$rid --sc true \
+  dotnet publish -c release -r $rid -o $output_path/$rid --no-restore --sc true \
     -p:BuildTimestamp=$2 \
     -p:Commit=$1 \
     -p:DebugType=none \
