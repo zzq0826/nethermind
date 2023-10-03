@@ -9,7 +9,8 @@ namespace Nethermind.Core;
 
 /// <summary>
 /// Implement some optimization for snap sync related to write batch writes.
-/// 1. Combine multiple writes batch from contract store request as most contract have very little node to add.
+/// 1. Combine multiple writes batch from contract store request as most contract have very little node to add, so it
+///    have fairly small write batches.
 /// 2. Split very large batch into smaller batch as large batch will stall rocksdb's concurrent writes.
 /// </summary>
 public class SnapWriteBatchPacer: IKeyValueStoreWithBatching
@@ -18,6 +19,7 @@ public class SnapWriteBatchPacer: IKeyValueStoreWithBatching
     /// Because of how rocksdb parallelize writes, a large write batch can stall other new concurrent writes, so
     /// we writes the batch in smaller batches. This removes atomicity so its only turned on when NoWAL flag is on.
     /// It does not work as well as just turning on unordered_write, but Snapshot and Iterator can still works.
+    /// Also, limit the amount of memory this will use.
     /// </summary>
     private const int MaxKeyBeforeFlush = 128;
 

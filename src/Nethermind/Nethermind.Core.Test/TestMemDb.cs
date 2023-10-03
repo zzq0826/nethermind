@@ -25,6 +25,7 @@ public class TestMemDb : MemDb, ITunableDb
     public Action<byte[]>? RemoveFunc { get; set; }
 
     public bool WasFlushed { get; set; }
+    public int TotalWriteBatch { get; set; } = 0;
 
     [MethodImpl(MethodImplOptions.Synchronized)]
     public override byte[]? Get(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
@@ -102,6 +103,7 @@ public class TestMemDb : MemDb, ITunableDb
 
     public override IBatch StartBatch()
     {
+        TotalWriteBatch++;
         return new InMemoryBatch(this);
     }
 
