@@ -366,7 +366,7 @@ namespace Nethermind.Synchronization.SnapSync
                 return new TrieStoreAndLazyBatch()
                 {
                     TrieStore = new TrieStore(
-                        _stateDb,
+                        store,
                         Nethermind.Trie.Pruning.No.Pruning,
                         Persist.EveryBlock,
                         _logManager),
