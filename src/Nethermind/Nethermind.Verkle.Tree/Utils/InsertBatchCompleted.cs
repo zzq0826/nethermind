@@ -21,7 +21,7 @@ public class InsertBatchCompletedV1 : EventArgs
 
 public class InsertBatchCompletedV2 : EventArgs
 {
-    public InsertBatchCompletedV2(long blockNumber,   IDictionary<byte[],byte[]?> leafTable)
+    public InsertBatchCompletedV2(long blockNumber, IDictionary<byte[],byte[]?> leafTable)
     {
         BlockNumber = blockNumber;
         LeafTable = leafTable;

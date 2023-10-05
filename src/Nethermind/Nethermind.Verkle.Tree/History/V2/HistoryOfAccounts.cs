@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using Nethermind.Core.Collections.EliasFano;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
@@ -31,7 +32,8 @@ public class HistoryOfAccounts
 
     private void InsertShard(Pedersen key, List<ulong> shard)
     {
-        EliasFanoBuilder efb = new(shard[^1] + 1, shard.Count);
+        ulong universe = shard[^1] + 1;
+        EliasFanoBuilder efb = new(universe, shard.Count);
         efb.Extend(shard);
         EliasFano ef = efb.Build();
         RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));
@@ -41,7 +43,7 @@ public class HistoryOfAccounts
             HistoryKey historyKey = new HistoryKey(key, shard[^1]);
             _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
             historyKey = new HistoryKey(key, ulong.MaxValue);
-            _historyOfAccounts.Remove(historyKey.Encode());
+            _historyOfAccounts[historyKey.Encode()] = null;
         }
         else
         {
@@ -70,10 +72,10 @@ public class HistoryOfAccounts
 
     public EliasFano? GetAppropriateShard(Pedersen key, ulong blockNumber)
     {
-        HistoryKey historyKey = new HistoryKey(key, blockNumber);
+        HistoryKey historyKey = new (key, blockNumber);
         IEnumerable<KeyValuePair<byte[], byte[]?>> itr = _historyOfAccounts.GetIterator(historyKey.Encode());
         KeyValuePair<byte[], byte[]?> keyVal = itr.FirstOrDefault();
-        return keyVal.Key is not null ? _decoder.Decode(new RlpStream(keyVal.Value!)) : null;
+        return (keyVal.Key is not null && keyVal.Value is not null)? _decoder.Decode(new RlpStream(keyVal.Value!)) : null;
     }
 }
 

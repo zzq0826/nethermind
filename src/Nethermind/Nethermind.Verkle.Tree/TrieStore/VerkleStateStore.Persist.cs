@@ -53,7 +53,6 @@ public partial class VerkleStateStore
                 _logger.Debug($"VSS: Special case for block 0, Persisting");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
-            InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(0, cacheBatch.LeafTable));
             UpdateStateRoot();
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
@@ -90,17 +89,10 @@ public partial class VerkleStateStore
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
 
-                VerkleMemoryDb? reverseDiff = null;
-
-                // TODO: this is here just for testing and keep supporting the old history version - should be removed
-                //   before merging this to master
-                if (InsertBatchCompletedV1 is not null)
-                    PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage,
-                        out reverseDiff);
-                else PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage);
-
+                PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
                 InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(blockNumberToPersist, changesToPersist, reverseDiff));
-                InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, changesToPersist.LeafTable));
+                InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, reverseDiff.LeafTable));
+
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
             }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using FluentAssertions;
+using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
@@ -109,12 +110,16 @@ public class ArchiveStoreTests
         archiveStore.GetLeaf(VerkleTestUtils._keyCodeSize, stateRoot0).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
     }
 
-    [TestCase(DbMode.MemDb)]
-    [TestCase(DbMode.PersistantDb)]
-    public void TestArchiveStoreForMultipleBlocks(DbMode dbMode)
+    [TestCase(DbMode.MemDb, (ulong)10, 10)]
+    [TestCase(DbMode.MemDb, (ulong)20, 10)]
+    [TestCase(DbMode.MemDb, (ulong)60, 10)]
+    [TestCase(DbMode.MemDb, (ulong)500, 10)]
+    [TestCase(DbMode.PersistantDb, (ulong)10, 10)]
+    [TestCase(DbMode.PersistantDb, (ulong)20, 10)]
+    [TestCase(DbMode.PersistantDb, (ulong)60, 10)]
+    [TestCase(DbMode.PersistantDb, (ulong)500, 10)]
+    public void TestArchiveStoreForMultipleBlocks(DbMode dbMode, ulong numBlocks, int blockChunks)
     {
-        ulong numBlocks = 2000;
-        int blockChunks = 10;
         IDbProvider provider;
         switch (dbMode)
         {

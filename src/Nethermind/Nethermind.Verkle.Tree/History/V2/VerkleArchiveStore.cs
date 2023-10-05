@@ -1,14 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree.TrieStore;
 using Nethermind.Verkle.Tree.Utils;
-using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.History.V2;
 
@@ -34,8 +32,6 @@ public class VerkleArchiveStore
 
     private void OnPersistNewBlock(object? sender, InsertBatchCompletedV2 insertBatchCompleted)
     {
-        Console.WriteLine(
-            $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.LeafTable.Count}");
         long blockNumber = insertBatchCompleted.BlockNumber;
         ChangeSet.InsertDiff(blockNumber, insertBatchCompleted.LeafTable);
         foreach (KeyValuePair<byte[], byte[]?> keyVal in insertBatchCompleted.LeafTable)
@@ -45,11 +41,9 @@ public class VerkleArchiveStore
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, VerkleCommitment rootHash)
     {
         ulong blockNumber = (ulong)_stateStore.StateRootToBlocks[rootHash];
-        EliasFano? requiredShard = _historyOfAccounts.GetAppropriateShard(key.ToArray(), blockNumber);
-        if (requiredShard is null) return null;
-
-        ulong? requiredBlock = requiredShard.Value.Predecessor(blockNumber);
-
-        return ChangeSet.GetLeaf((long)requiredBlock!.Value, key);
+        EliasFano? requiredShard = _historyOfAccounts.GetAppropriateShard(key.ToArray(), blockNumber + 1);
+        if (requiredShard is null) return _stateStore.GetLeaf(key);
+        ulong? requiredBlock = requiredShard.Value.Successor(blockNumber + 1);
+        return requiredBlock is null ? _stateStore.GetLeaf(key) : ChangeSet.GetLeaf((long)requiredBlock!.Value, key);
     }
 }
