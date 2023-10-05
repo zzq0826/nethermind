@@ -185,7 +185,7 @@ public class EliasFanoTests
     [Test]
     public void TestSuccessor()
     {
-        EliasFanoBuilder efb = new(8, 4);
+        EliasFanoBuilder efb = new(10, 4);
         efb.Extend(_efCase0);
 
         EliasFano ef = efb.Build();
@@ -193,5 +193,6 @@ public class EliasFanoTests
         ef.Successor(2).Should().Be(3);
         ef.Successor(3).Should().Be(3);
         ef.Successor(8).Should().BeNull();
+        ef.Successor(11).Should().BeNull();
     }
 }
