@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Runtime.InteropServices.ComTypes;
 using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
@@ -43,6 +44,7 @@ public class VerkleArchiveStore
         ulong blockNumber = (ulong)_stateStore.StateRootToBlocks[rootHash];
         EliasFano? requiredShard = _historyOfAccounts.GetAppropriateShard(key.ToArray(), blockNumber + 1);
         if (requiredShard is null) return _stateStore.GetLeaf(key);
+        Console.WriteLine($"RequiredShard:{string.Join(",", requiredShard.Value.GetEnumerator(0).ToArray())}");
         ulong? requiredBlock = requiredShard.Value.Successor(blockNumber + 1);
         return requiredBlock is null ? _stateStore.GetLeaf(key) : ChangeSet.GetLeaf((long)requiredBlock!.Value, key);
     }

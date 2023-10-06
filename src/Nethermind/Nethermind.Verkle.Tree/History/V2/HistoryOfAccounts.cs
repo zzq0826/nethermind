@@ -43,7 +43,7 @@ public class HistoryOfAccounts
             HistoryKey historyKey = new HistoryKey(key, shard[^1]);
             _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
             historyKey = new HistoryKey(key, ulong.MaxValue);
-            _historyOfAccounts[historyKey.Encode()] = null;
+            _historyOfAccounts[historyKey.Encode()] = Array.Empty<byte>();
         }
         else
         {
@@ -62,7 +62,7 @@ public class HistoryOfAccounts
         HistoryKey shardKey = new HistoryKey(key, ulong.MaxValue);
         byte[]? ef = _historyOfAccounts[shardKey.Encode()];
         List<ulong> shard = new();
-        if (ef is not null)
+        if (ef is not null && ef.Length != 0)
         {
             EliasFano eliasFano = _decoder.Decode(new RlpStream(ef));
             shard.AddRange(eliasFano.GetEnumerator(0));
@@ -75,7 +75,8 @@ public class HistoryOfAccounts
         HistoryKey historyKey = new (key, blockNumber);
         IEnumerable<KeyValuePair<byte[], byte[]?>> itr = _historyOfAccounts.GetIterator(historyKey.Encode());
         KeyValuePair<byte[], byte[]?> keyVal = itr.FirstOrDefault();
-        return (keyVal.Key is not null && keyVal.Value is not null)? _decoder.Decode(new RlpStream(keyVal.Value!)) : null;
+        // Console.WriteLine($"BN:{blockNumber} HK:{historyKey.Encode().ToHexString()} GHK:{keyVal.Key.ToHexString()}");
+        return (keyVal.Key is not null && keyVal.Value is not null && keyVal.Value.Length != 0)? _decoder.Decode(new RlpStream(keyVal.Value!)) : null;
     }
 }
 
