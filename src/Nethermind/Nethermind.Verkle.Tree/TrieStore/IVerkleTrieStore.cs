@@ -16,8 +16,8 @@ public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
     VerkleCommitment GetStateRoot();
     bool MoveToStateRoot(VerkleCommitment stateRoot);
 
-    byte[]? GetLeaf(ReadOnlySpan<byte> key);
-    InternalNode? GetInternalNode(ReadOnlySpan<byte> key);
+    byte[]? GetLeaf(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null);
+    InternalNode? GetInternalNode(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null);
 
     void InsertBatch(long blockNumber, VerkleMemoryDb memDb);
 

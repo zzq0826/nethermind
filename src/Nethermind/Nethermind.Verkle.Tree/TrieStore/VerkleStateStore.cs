@@ -11,7 +11,7 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
-    private static Span<byte> RootNodeKey => Array.Empty<byte>();
+    public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private InternalNode? RootNode { get; set; }
     public VerkleCommitment StateRoot { get; private set; } = VerkleCommitment.Zero;
 
@@ -90,16 +90,41 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         }
     }
 
-    public byte[]? GetLeaf(ReadOnlySpan<byte> key)
+    public byte[]? GetLeaf(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null)
     {
-        byte[]? value = BlockCache?.GetLeaf(key.ToArray());
+        byte[]? value;
+        if (stateRoot is not null && stateRoot != StateRoot)
+        {
+            long blockNumber = StateRootToBlocks[StateRoot];
+            if (blockNumber < LastPersistedBlockNumber) throw new StateUnavailableExceptions();
+            if (blockNumber > LastPersistedBlockNumber)
+            {
+                value = BlockCache?.GetLeaf(key.ToArray(), blockNumber);
+                if (value is not null) return value;
+            }
+            return Storage.GetLeaf(key, out value) ? value : null;
+        }
+        value = BlockCache?.GetLeaf(key.ToArray());
         if (value is not null) return value;
         return Storage.GetLeaf(key, out value) ? value : null;
     }
 
-    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
+    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null)
     {
-        InternalNode? value = BlockCache?.GetInternalNode(key.ToArray());
+        InternalNode? value;
+        if (stateRoot is not null && stateRoot != StateRoot)
+        {
+            long blockNumber = StateRootToBlocks[StateRoot];
+            if (blockNumber < LastPersistedBlockNumber) throw new ArgumentException();
+            if (blockNumber > LastPersistedBlockNumber)
+            {
+                value = BlockCache?.GetInternalNode(key.ToArray(), blockNumber);
+                if (value is not null) return value;
+            }
+            return Storage.GetInternalNode(key, out value) ? value : null;
+        }
+
+        value = BlockCache?.GetInternalNode(key.ToArray());
         if (value is not null) return value;
         return Storage.GetInternalNode(key, out value) ? value : null;
     }

@@ -22,25 +22,34 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         _keyValueStore = keyValueStore;
     }
 
-    public VerkleCommitment StateRoot => _verkleStateStore.StateRoot;
-
-    public byte[]? GetLeaf(ReadOnlySpan<byte> key)
+    public VerkleCommitment StateRoot
     {
-        if (_keyValueStore.GetLeaf(key, out byte[]? value)) return value;
-        return _verkleStateStore.GetLeaf(key);
+        get
+        {
+            _keyValueStore.GetInternalNode(VerkleStateStore.RootNodeKey, out InternalNode? value);
+            return value is null ? _verkleStateStore.StateRoot : new VerkleCommitment(value.Bytes);
+        }
     }
-    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key)
+
+    public byte[]? GetLeaf(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null)
     {
-        if (_keyValueStore.GetInternalNode(key, out var value)) return value;
-        return _verkleStateStore.GetInternalNode(key);
+        return _keyValueStore.GetLeaf(key, out byte[]? value)
+            ? value
+            : _verkleStateStore.GetLeaf(key, stateRoot);
+    }
+    public InternalNode? GetInternalNode(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null)
+    {
+        return _keyValueStore.GetInternalNode(key, out InternalNode? value)
+            ? value
+            : _verkleStateStore.GetInternalNode(key, stateRoot);
     }
     public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
     {
         _keyValueStore.SetLeaf(leafKey, leafValue);
     }
-    public void SetInternalNode(ReadOnlySpan<byte> InternalNodeKey, InternalNode internalNodeValue)
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
     {
-        _keyValueStore.SetInternalNode(InternalNodeKey, internalNodeValue);
+        _keyValueStore.SetInternalNode(internalNodeKey, internalNodeValue);
     }
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch) { }
 
@@ -76,3 +85,4 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }
 }
+
