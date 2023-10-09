@@ -34,12 +34,13 @@ public partial class VerkleStateStore
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
     // if called multiple times, the full state would be fine - but it would corrupt the diffs and historical state will be lost
     // TODO: add capability to update the diffs instead of overwriting if Flush(long blockNumber)
-    //   is called multiple times for the same block number, but do we even need this?
+    //   is called multiple times for the same block number, but do we even need this? also how to distinguish if it should be overwritten
+    //   or just merged?
+
+    // TODO: add a functionality where we only persist to rocksDb when we have a epoch finalization.
+    // TODO: do we need to add another approach where we bulk insert into the db - or batching on epochs is fine?
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
     {
-        if (_logger.IsDebug)
-            _logger.Debug(
-                $"VSS: Flushing:{blockNumber} InternalDb:{batch.InternalTable.Count} LeafDb:{batch.LeafTable.Count}");
 
         ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
