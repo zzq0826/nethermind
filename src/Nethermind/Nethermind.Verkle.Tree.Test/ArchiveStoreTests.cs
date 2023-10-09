@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections;
 using FluentAssertions;
-using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
@@ -13,7 +13,6 @@ using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
-[Parallelizable(ParallelScope.All)]
 public class ArchiveStoreTests
 {
     [TearDown]
@@ -23,6 +22,23 @@ public class ArchiveStoreTests
         if (Directory.Exists(dbPath))
         {
             Directory.Delete(dbPath, true);
+        }
+    }
+
+    public static IEnumerable MultiBlockTest
+    {
+        get
+        {
+            ulong maxBlock = 100;
+            int maxChunk = 20;
+            for (ulong i = 10; i < maxBlock; i = i + 10)
+            {
+                for (int j = 1; j < maxChunk; j++)
+                {
+                    yield return new TestCaseData(DbMode.MemDb, i, j);
+                    yield return new TestCaseData(DbMode.PersistantDb, i, j);
+                }
+            }
         }
     }
 
@@ -117,7 +133,15 @@ public class ArchiveStoreTests
     [TestCase(DbMode.PersistantDb, (ulong)10, 10)]
     [TestCase(DbMode.PersistantDb, (ulong)20, 10)]
     [TestCase(DbMode.PersistantDb, (ulong)60, 10)]
-    [TestCase(DbMode.PersistantDb, (ulong)500, 10)]
+    [TestCase(DbMode.PersistantDb, (ulong)10, 2)]
+    [TestCase(DbMode.MemDb, (ulong)10, 2)]
+    [TestCase(DbMode.PersistantDb, (ulong)20, 4)]
+    [TestCase(DbMode.MemDb, (ulong)20, 4)]
+    [TestCase(DbMode.PersistantDb, (ulong)30, 6)]
+    [TestCase(DbMode.MemDb, (ulong)30, 6)]
+    [TestCase(DbMode.PersistantDb, (ulong)40, 8)]
+    [TestCase(DbMode.MemDb, (ulong)40, 8)]
+    // [TestCaseSource(nameof(MultiBlockTest))]
     public void TestArchiveStoreForMultipleBlocks(DbMode dbMode, ulong numBlocks, int blockChunks)
     {
         IDbProvider provider;
