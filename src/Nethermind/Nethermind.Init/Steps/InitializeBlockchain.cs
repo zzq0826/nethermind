@@ -384,20 +384,42 @@ namespace Nethermind.Init.Steps
             if (_api.DbProvider is null) throw new StepDependencyException(nameof(_api.DbProvider));
             if (_api.RewardCalculatorSource is null) throw new StepDependencyException(nameof(_api.RewardCalculatorSource));
             if (_api.TransactionProcessor is null) throw new StepDependencyException(nameof(_api.TransactionProcessor));
-
-            BlockProcessor processor = new BlockProcessor(
-                _api.SpecProvider,
-                _api.BlockValidator,
-                _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
-                new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
-                _api.WorldState,
-                _api.ReceiptStorage,
-                _api.WitnessCollector,
-                _api.LogManager)
+            IInitConfig initConfig = _api.Config<IInitConfig>();
+            BlockProcessor processor;
+            if (initConfig.StatelessProcessingEnabled)
             {
-                StatelessBlockTransactionsExecutor = new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor,
-                _api.WorldState!)
-            };
+                processor = new StatelessBlockProcessor(_api.SpecProvider,
+                    _api.BlockValidator,
+                    _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
+                    new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
+                    _api.WorldState,
+                    _api.ReceiptStorage,
+                    _api.WitnessCollector,
+                    _api.LogManager);
+            }
+            else
+            {
+                processor = new(
+                    _api.SpecProvider,
+                    _api.BlockValidator,
+                    _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
+                    new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
+                    _api.WorldState,
+                    _api.ReceiptStorage,
+                    _api.WitnessCollector,
+                    _api.LogManager);
+
+                if (initConfig.StatelessProcessingEnabled)
+                {
+                    processor.StatelessBlockTransactionsExecutor =
+                        new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor,
+                            _api.WorldState!);
+                    processor.ShouldDoStatelessStuff = true;
+                }
+
+                processor.ShouldGenerateWitness = initConfig.GenerateVerkleProofsForBlock;
+                processor.ShouldVerifyIncomingWitness = initConfig.VerifyProofsInBlock;
+            }
 
             return processor;
         }
