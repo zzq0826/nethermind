@@ -1167,6 +1167,42 @@ namespace Nethermind.Serialization.Rlp
                 : bytes[1];
         }
 
+        public bool IsNextIsLong()
+        {
+            int prefix = PeekByte();
+
+            if (prefix <= 128)
+            {
+                return true;
+            }
+
+            int length = prefix - 128;
+            if (length > 8)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool IsNextIsInt()
+        {
+            int prefix = PeekByte();
+
+            if (prefix <= 128)
+            {
+                return true;
+            }
+
+            int length = prefix - 128;
+            if (length > 4)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public int DecodeInt(bool allowLeadingZeroBytes = true)
         {
             int prefix = ReadByte();

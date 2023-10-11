@@ -14,6 +14,7 @@ using Nethermind.Network.Enr;
 using Nethermind.Network.Test.Builders;
 using Nethermind.Stats.Model;
 using NUnit.Framework;
+using Org.BouncyCastle.Utilities.Encoders;
 
 namespace Nethermind.Network.Discovery.Test
 {
@@ -197,6 +198,15 @@ namespace Nethermind.Network.Discovery.Test
                 Assert.That(deserializedMessage.Nodes[i].IdHash, Is.EqualTo(message.Nodes[i].IdHash));
                 Assert.That(deserializedMessage.Nodes[i], Is.EqualTo(message.Nodes[i]));
             }
+        }
+
+        [TestCase("string version", "06e6ffa70cfe71efb3330dd63e382b9989d7fc530116679b98d4f425d20df75c37b890ec017b37a48930a2edd74eb793a16e0a41637836fc4ce544eddbac9370343086e6c852ed3b2df0a9b1743e49f578fd067807ff9e704a2a78257095044a0101f2912a3a273c3f3a31242322312a3a2b2d2d35c9847f00000182a73f80c9847f000001829d6f8084652665e786018b1dfdc0ce")]
+        [TestCase("wrong to field", "b65416397101386d6c5dd9f2d16c184286fe5a6de8e66b6dd9db18f1632eaf2e1acfebd5f57b611a82985cc1ca2689ba644b1be3a54851798eb0b3b3d3f4fa98284458f166397522c944d8c9484d118654907f84ddab8deaeed68c0655481a1c0001ea04c9847f00000182abfe8092283e403740272436372e303a37293620403c846526664286018b1dff25ba")]
+        [TestCase("wrong from field", "96ba1876d315f40fccd19e7ba3974a9f09809508698795cad6286f37cd442d25cb1e2e8d26864e0eecc3131a09d9e2f448fc1af9de54adb645db666deb64210873de4e0a40d568843c70d7923714b88b5ec2a0d6d2cdecf1f00077759f4d7f030101ed04953d2a32202223382d3d232a3e343d2e363e312e303fc9847f000001829d6f80846526668886018b1e0035fd")]
+        [TestCase("extra data", "3c22d9e018327dc9ca3237f754e720397ed3b918d68776f3f516d366c6b731e670f4a37bbdf63c442deaecad237b6bd4768cb44736e8e3c857d948b5bfc6ddfc22ff886ae83e956ad1663758e8491f5b4db4c27b1c274e6e2c4c1aafea1d835f0101f83904c9847f00000182d46180c9847f000001829d6f8084652666a18b2533252e2a3c373d2135398b2533252e2a3c373d21353986018b1e009a34")]
+        public void TestDecodeFaultyPingPacket(string caseName, string msg)
+        {
+            _messageSerializationService.Deserialize<PingMsg>(Hex.Decode(msg));
         }
     }
 }

@@ -48,7 +48,16 @@ public class PingMsgSerializer : DiscoveryMsgSerializerBase, IZeroInnerMessageSe
         (PublicKey FarPublicKey, Memory<byte> Mdc, IByteBuffer Data) results = PrepareForDeserialization(msgBytes);
         NettyRlpStream rlp = new(results.Data);
         rlp.ReadSequenceLength();
-        int version = rlp.DecodeInt();
+        int version = 0;
+        if (rlp.IsNextIsInt())
+        {
+            version = rlp.DecodeInt();
+        }
+        else
+        {
+            // Could be a string instead of a number
+            rlp.SkipItem();
+        }
 
         rlp.ReadSequenceLength();
         ReadOnlySpan<byte> sourceAddress = rlp.DecodeByteArraySpan();
@@ -59,6 +68,7 @@ public class PingMsgSerializer : DiscoveryMsgSerializerBase, IZeroInnerMessageSe
         int tcpPort = rlp.DecodeInt(); // we assume here that UDP and TCP port are same
 
         IPEndPoint source = GetAddress(sourceAddress, tcpPort);
+
         rlp.ReadSequenceLength();
         ReadOnlySpan<byte> destinationAddress = rlp.DecodeByteArraySpan();
         IPEndPoint destination = GetAddress(destinationAddress, rlp.DecodeInt());
@@ -69,7 +79,7 @@ public class PingMsgSerializer : DiscoveryMsgSerializerBase, IZeroInnerMessageSe
 
         if (version == 4)
         {
-            if (!rlp.HasBeenRead)
+            if (!rlp.HasBeenRead && rlp.IsNextIsLong())
             {
                 long enrSequence = rlp.DecodeLong();
                 msg.EnrSequence = enrSequence;
