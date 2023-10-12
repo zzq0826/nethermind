@@ -27,7 +27,6 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly IBlockTree _blockTree;
         private readonly ISyncConfig _syncConfig;
         private readonly ISyncReport _syncReport;
-        private readonly ISpecProvider _specProvider;
         private readonly ISyncPeerPool _syncPeerPool;
 
         private long _pivotNumber;
@@ -36,20 +35,17 @@ namespace Nethermind.Synchronization.FastBlocks
         private SyncStatusList _syncStatusList;
 
         public BodiesSyncFeed(
-            ISyncModeSelector syncModeSelector,
             IBlockTree blockTree,
             ISyncPeerPool syncPeerPool,
             ISyncConfig syncConfig,
             ISyncReport syncReport,
-            ISpecProvider specProvider,
-            ILogManager logManager) : base(syncModeSelector)
+            ILogManager logManager)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _syncPeerPool = syncPeerPool ?? throw new ArgumentNullException(nameof(syncPeerPool));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
-            _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
 
             if (!_syncConfig.FastBlocks)
             {
