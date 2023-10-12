@@ -31,16 +31,17 @@ public class VerkleStateTree : VerkleTree
         Span<byte> key = new byte[32];
         Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
         headerTreeKey.StemAsSpan.CopyTo(key);
+
         key[31] = AccountHeader.Version;
-        UInt256 version = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
+        UInt256 version = new((Get(key) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Balance;
-        UInt256 balance = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
+        UInt256 balance = new((Get(key) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Nonce;
-        UInt256 nonce = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
+        UInt256 nonce = new((Get(key) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.CodeHash;
-        byte[]? codeHash = (Get(new Pedersen(key.ToArray())) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
+        byte[]? codeHash = (Get(key) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
         key[31] = AccountHeader.CodeSize;
-        UInt256 codeSize = new((Get(new Pedersen(key.ToArray())) ?? Array.Empty<byte>()).ToArray());
+        UInt256 codeSize = new((Get(key) ?? Array.Empty<byte>()).ToArray());
 
         return new Account(balance, nonce, codeSize, version, Keccak.EmptyTreeHash, new Keccak(codeHash));
     }

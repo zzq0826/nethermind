@@ -37,7 +37,7 @@ public partial class VerkleTree
         SpanDictionary<byte, List<SuffixStateDiff>> stemStateDiff = new(Bytes.SpanEqualityComparer);
         foreach (byte[] key in keys)
         {
-            SuffixStateDiff suffixData = new() { Suffix = key[31], CurrentValue = Get(key) };
+            SuffixStateDiff suffixData = new() { Suffix = key[31], CurrentValue = Get(key.AsSpan()) };
             if (!stemStateDiff.TryGetValue(key.Slice(0, 31), out List<SuffixStateDiff>? suffixStateDiffList))
             {
                 suffixStateDiffList = new();
@@ -282,12 +282,14 @@ public partial class VerkleTree
         FrE[] c1Hashes = hashStruct.C1;
         FrE[] c2Hashes = hashStruct.C2;
 
+        Span<byte> key = new byte[32];
+        stemPath.CopyTo(key);
         foreach (byte valueIndex in stemChild)
         {
             int valueLowerIndex = 2 * (valueIndex % 128);
             int valueUpperIndex = valueLowerIndex + 1;
-
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stemPath.Append(valueIndex).ToArray()));
+            key[31] = valueIndex;
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
 
             int offset = valueIndex < 128 ? 0 : 128;
 
@@ -397,16 +399,21 @@ public partial class VerkleTree
 
         List<FrE> c1Hashes = new(256);
         List<FrE> c2Hashes = new(256);
+
+        Span<byte> key = new byte[32];
+        stem.Bytes.CopyTo(key);
         for (int i = 0; i < 128; i++)
         {
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stem.Bytes.Append((byte)i).ToArray()));
+            key[31] = (byte)i;
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
             c1Hashes.Add(valueLow);
             c1Hashes.Add(valueHigh);
         }
 
         for (int i = 128; i < 256; i++)
         {
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(stem.Bytes.Append((byte)i).ToArray()));
+            key[31] = (byte)i;
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
             c2Hashes.Add(valueLow);
             c2Hashes.Add(valueHigh);
         }

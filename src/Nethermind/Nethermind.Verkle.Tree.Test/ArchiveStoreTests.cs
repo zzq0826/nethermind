@@ -76,11 +76,11 @@ public class ArchiveStoreTests
         VerkleCommitment stateRoot0 = tree.StateRoot;
         Console.WriteLine(tree.StateRoot.ToString());
 
-        tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
-        tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
-        tree.Get(VerkleTestUtils._keyNonce).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
-        tree.Get(VerkleTestUtils._keyCodeCommitment).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
-        tree.Get(VerkleTestUtils._keyCodeSize).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
+        tree.Get(VerkleTestUtils._keyVersion.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
+        tree.Get(VerkleTestUtils._keyBalance.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
+        tree.Get(VerkleTestUtils._keyNonce.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
+        tree.Get(VerkleTestUtils._keyCodeCommitment.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
+        tree.Get(VerkleTestUtils._keyCodeSize.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._emptyArray);
 
         tree.Insert(VerkleTestUtils._keyVersion, VerkleTestUtils._arrayAll0Last2);
         tree.Insert(VerkleTestUtils._keyBalance, VerkleTestUtils._arrayAll0Last2);
@@ -92,11 +92,11 @@ public class ArchiveStoreTests
         VerkleCommitment stateRoot1 = tree.StateRoot;
         Console.WriteLine(tree.StateRoot.ToString());
 
-        tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
-        tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
-        tree.Get(VerkleTestUtils._keyNonce).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
-        tree.Get(VerkleTestUtils._keyCodeCommitment).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
-        tree.Get(VerkleTestUtils._keyCodeSize).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
+        tree.Get(VerkleTestUtils._keyVersion.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
+        tree.Get(VerkleTestUtils._keyBalance.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
+        tree.Get(VerkleTestUtils._keyNonce.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
+        tree.Get(VerkleTestUtils._keyCodeCommitment.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
+        tree.Get(VerkleTestUtils._keyCodeSize.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
 
         tree.Insert(VerkleTestUtils._keyVersion, VerkleTestUtils._arrayAll0Last3);
         tree.Insert(VerkleTestUtils._keyBalance, VerkleTestUtils._arrayAll0Last3);
@@ -107,11 +107,11 @@ public class ArchiveStoreTests
         tree.CommitTree(2);
         Console.WriteLine(tree.StateRoot.ToString());
 
-        tree.Get(VerkleTestUtils._keyVersion).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
-        tree.Get(VerkleTestUtils._keyBalance).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
-        tree.Get(VerkleTestUtils._keyNonce).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
-        tree.Get(VerkleTestUtils._keyCodeCommitment).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
-        tree.Get(VerkleTestUtils._keyCodeSize).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
+        tree.Get(VerkleTestUtils._keyVersion.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
+        tree.Get(VerkleTestUtils._keyBalance.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
+        tree.Get(VerkleTestUtils._keyNonce.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
+        tree.Get(VerkleTestUtils._keyCodeCommitment.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._valueEmptyCodeHashValue);
+        tree.Get(VerkleTestUtils._keyCodeSize.AsSpan()).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last3);
 
         archiveStore.GetLeaf(VerkleTestUtils._keyVersion, stateRoot1).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);
         archiveStore.GetLeaf(VerkleTestUtils._keyBalance, stateRoot1).Should().BeEquivalentTo(VerkleTestUtils._arrayAll0Last2);

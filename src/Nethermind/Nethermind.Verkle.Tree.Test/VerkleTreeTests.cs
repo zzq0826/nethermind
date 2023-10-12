@@ -177,7 +177,7 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "6B630905CE275E39F223E175242DF2C1E8395E6F46EC71DCE5557012C1334A5C");
 
-        tree.Get(key).Should().BeEquivalentTo(key);
+        tree.Get(key.AsSpan()).Should().BeEquivalentTo(key);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -192,7 +192,7 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "6F5E7CFC3A158A64E5718B0D2F18F564171342380F5808F3D2A82F7E7F3C2778");
 
-        tree.Get(key).Should().BeEquivalentTo(key);
+        tree.Get(key.AsSpan()).Should().BeEquivalentTo(key);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -213,8 +213,8 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "14EE5E5C5B698E363055B41DD3334F8168C7FCA4F85C5E30AB39CF9CC2FEEF70");
 
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
+        tree.Get(keyA.AsSpan()).Should().BeEquivalentTo(keyA);
+        tree.Get(keyB.AsSpan()).Should().BeEquivalentTo(keyB);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -234,8 +234,8 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "5E208CDBA664A7B8FBDC26A1C1185F153A5F721CBA389625C18157CEF7D4931C");
 
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
+        tree.Get(keyA.AsSpan()).Should().BeEquivalentTo(keyA);
+        tree.Get(keyB.AsSpan()).Should().BeEquivalentTo(keyB);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -256,8 +256,8 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "3258D722AEA34B5AE7CB24A9B0175EDF0533C651FA09592E823B5969C729FB88");
 
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
+        tree.Get(keyA.AsSpan()).Should().BeEquivalentTo(keyA);
+        tree.Get(keyB.AsSpan()).Should().BeEquivalentTo(keyB);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -285,9 +285,9 @@ public class VerkleTreeTests
         AssertRootHash(tree.StateRoot.Bytes,
             "5B82B26A1A7E00A1E997ABD51FE3075D05F54AA4CB1B3A70607E62064FADAA82");
 
-        tree.Get(keyA).Should().BeEquivalentTo(keyA);
-        tree.Get(keyB).Should().BeEquivalentTo(keyB);
-        tree.Get(keyC).Should().BeEquivalentTo(keyC);
+        tree.Get(keyA.AsSpan()).Should().BeEquivalentTo(keyA);
+        tree.Get(keyB.AsSpan()).Should().BeEquivalentTo(keyB);
+        tree.Get(keyC.AsSpan()).Should().BeEquivalentTo(keyC);
     }
 
     [TestCase(DbMode.MemDb)]
@@ -310,13 +310,13 @@ public class VerkleTreeTests
         tree.Commit();
         AssertRootHash(tree.StateRoot.Bytes,
             "140A25B322EAA1ADACD0EE1BB135ECA7B78FCF02B4B19E4A55B26B7A434F42AC");
-        tree.Get(key).Should().BeEquivalentTo(value);
+        tree.Get(key.AsSpan()).Should().BeEquivalentTo(value);
 
         tree.Insert(key, key);
         tree.Commit();
         AssertRootHash(tree.StateRoot.Bytes,
             "6F5E7CFC3A158A64E5718B0D2F18F564171342380F5808F3D2A82F7E7F3C2778");
-        tree.Get(key).Should().BeEquivalentTo(key);
+        tree.Get(key.AsSpan()).Should().BeEquivalentTo(key);
     }
 
     [TestCase(DbMode.MemDb)]

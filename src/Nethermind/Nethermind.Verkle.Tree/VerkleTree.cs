@@ -83,6 +83,13 @@ public partial class VerkleTree: IVerkleTree
         return value;
     }
 
+    public byte[]? Get(ReadOnlySpan<byte> key)
+    {
+        _treeCache.GetLeaf(key, out byte[]? value);
+        value ??= _verkleStateStore.GetLeaf(key);
+        return value;
+    }
+
     private void SetLeafCache(Pedersen key, byte[]? value)
     {
         _treeCache.SetLeaf(key.BytesAsSpan, value);
