@@ -28,7 +28,7 @@ public class VerkleWorldState : IWorldState
     public StateType StateType => StateType.Verkle;
 
     private const int StartCapacity = Resettable.StartCapacity;
-    private readonly ResettableDictionary<Address, Stack<int>> _intraBlockCache = new ResettableDictionary<Address, Stack<int>>();
+    protected readonly ResettableDictionary<Address, Stack<int>> _intraBlockCache = new ResettableDictionary<Address, Stack<int>>();
     private readonly ResettableHashSet<Address> _committedThisRound = new ResettableHashSet<Address>();
 
     private readonly List<Change> _keptInCache = new List<Change>();
@@ -36,7 +36,7 @@ public class VerkleWorldState : IWorldState
     private readonly IKeyValueStore _codeDb;
 
     private int _capacity = StartCapacity;
-    private Change?[] _changes = new Change?[StartCapacity];
+    protected Change?[] _changes = new Change?[StartCapacity];
     private int _currentPosition = Resettable.EmptyPosition;
 
     private readonly VerkleStateTree _tree;
@@ -50,6 +50,14 @@ public class VerkleWorldState : IWorldState
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         _tree = verkleTree;
         _storageProvider = new VerkleStorageProvider(verkleTree, logManager);
+    }
+
+    internal VerkleWorldState(VerklePersistentStorageProvider storageProvider, VerkleStateTree verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
+    {
+        _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
+        _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
+        _tree = verkleTree;
+        _storageProvider = new VerkleStorageProvider(storageProvider, new VerkleTransientStorageProvider(logManager));
     }
 
     public VerkleWorldState(IVerkleTrieStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
@@ -105,9 +113,9 @@ public class VerkleWorldState : IWorldState
 
     public bool AccountExists(Address address)
     {
-        if (_intraBlockCache.ContainsKey(address))
+        if (_intraBlockCache.TryGetValue(address, out Stack<int>? value))
         {
-            return _changes[_intraBlockCache[address].Peek()]!.ChangeType != ChangeType.Delete;
+            return _changes[value.Peek()]!.ChangeType != ChangeType.Delete;
         }
 
         return GetAndAddToCache(address) is not null;
@@ -304,8 +312,10 @@ public class VerkleWorldState : IWorldState
         return code;
     }
 
-    public byte[] GetCodeChunk(Address codeOwner, UInt256 codeChunk)
+    public virtual byte[] GetCodeChunk(Address codeOwner, UInt256 codeChunk)
     {
+        // TODO: add functionality to add and get from cache instead - because there can be case
+        //   where the code was updated while executing
         Pedersen? treeKey = AccountHeader.GetTreeKeyForCodeChunk(codeOwner.Bytes, codeChunk);
         byte[]? chunk = _tree.Get(treeKey);
         if (chunk is null)
@@ -328,12 +338,12 @@ public class VerkleWorldState : IWorldState
 
     public void DeleteAccount(Address address)
     {
-        throw new NotSupportedException("Verkle Trees does not support deletion of data from the tree");
+        throw new StateDeleteNotSupported();
     }
 
     public void ClearStorage(Address address)
     {
-        throw new NotSupportedException("Verkle Trees does not support deletion of data from the tree");
+        throw new StateDeleteNotSupported();
     }
 
     public void CreateAccount(Address address, in UInt256 balance)
@@ -441,7 +451,7 @@ public class VerkleWorldState : IWorldState
         }
     }
 
-    private Account? GetState(Address address)
+    protected Account? GetState(Address address)
     {
         Db.Metrics.StateTreeReads++;
         Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
@@ -471,9 +481,9 @@ public class VerkleWorldState : IWorldState
         _tree.SetCode(address, account.Code);
     }
 
-    private readonly HashSet<Address> _readsForTracing = new HashSet<Address>();
+    protected readonly HashSet<Address> _readsForTracing = new HashSet<Address>();
 
-    private Account? GetAndAddToCache(Address address)
+    protected virtual Account? GetAndAddToCache(Address address)
     {
         Account? account = GetState(address);
         if (account is not null)
@@ -491,16 +501,16 @@ public class VerkleWorldState : IWorldState
 
     private Account? GetThroughCache(Address address)
     {
-        if (_intraBlockCache.ContainsKey(address))
+        if (_intraBlockCache.TryGetValue(address, out Stack<int>? value))
         {
-            return _changes[_intraBlockCache[address].Peek()]!.Account;
+            return _changes[value!.Peek()]!.Account;
         }
 
         Account account = GetAndAddToCache(address);
         return account;
     }
 
-    private void PushJustCache(Address address, Account account)
+    protected void PushJustCache(Address address, Account account)
     {
         Push(ChangeType.JustCache, address, account);
     }
@@ -551,11 +561,11 @@ public class VerkleWorldState : IWorldState
         }
     }
 
-    public byte[] GetOriginal(in StorageCell storageCell)
+    public virtual byte[] GetOriginal(in StorageCell storageCell)
     {
         return _storageProvider.GetOriginal(storageCell);
     }
-    public byte[] Get(in StorageCell storageCell)
+    public virtual byte[] Get(in StorageCell storageCell)
     {
         return _storageProvider.Get(storageCell).WithoutLeadingZeros().ToArray();
     }
@@ -602,7 +612,7 @@ public class VerkleWorldState : IWorldState
         if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
         PushUpdate(address, changedAccount);
     }
-    private enum ChangeType
+    protected enum ChangeType
     {
         JustCache,
         Touch,
@@ -611,7 +621,7 @@ public class VerkleWorldState : IWorldState
         Delete
     }
 
-    private class Change
+    protected class Change
     {
         public Change(ChangeType type, Address address, Account? account)
         {

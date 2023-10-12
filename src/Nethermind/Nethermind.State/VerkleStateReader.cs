@@ -49,6 +49,8 @@ public class VerkleStateReader : IStateReader
         throw new NotImplementedException();
     }
 
+    public byte[]? GetStorage(Keccak stateRoot, in StorageCell cell) => GetStorage(cell.Address, cell.Index);
+
     public UInt256 GetBalance(Keccak stateRoot, Address address)
     {
         return GetState(stateRoot, address)?.Balance ?? UInt256.Zero;

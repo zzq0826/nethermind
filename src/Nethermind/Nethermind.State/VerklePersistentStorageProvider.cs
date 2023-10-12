@@ -18,7 +18,7 @@ namespace Nethermind.State;
 
 internal class VerklePersistentStorageProvider : PartialStorageProviderBase
 {
-    private readonly VerkleStateTree _verkleTree;
+    protected readonly VerkleStateTree _verkleTree;
     private readonly ILogManager? _logManager;
     /// <summary>
     /// EIP-1283
@@ -181,7 +181,7 @@ internal class VerklePersistentStorageProvider : PartialStorageProviderBase
     /// <param name="blockNumber">Current block number</param>
     public void CommitTrees(long blockNumber) { }
 
-    private byte[] LoadFromTree(StorageCell storageCell)
+    protected virtual byte[] LoadFromTree(StorageCell storageCell)
     {
         Db.Metrics.StorageTreeReads++;
         Pedersen key = AccountHeader.GetTreeKeyForStorageSlot(storageCell.Address.Bytes, storageCell.Index);
@@ -190,7 +190,7 @@ internal class VerklePersistentStorageProvider : PartialStorageProviderBase
         return value;
     }
 
-    private void PushToRegistryOnly(StorageCell cell, byte[] value)
+    protected void PushToRegistryOnly(StorageCell cell, byte[] value)
     {
         SetupRegistry(cell);
         IncrementChangePosition();

@@ -20,6 +20,13 @@ public class VerkleStorageProvider
         _transientStorageProvider = new VerkleTransientStorageProvider(logManager);
     }
 
+    internal VerkleStorageProvider(VerklePersistentStorageProvider persistentStorageProvider,
+        VerkleTransientStorageProvider transientStorageProvider)
+    {
+        _persistentStorageProvider = persistentStorageProvider;
+        _transientStorageProvider = transientStorageProvider;
+    }
+
     public void ClearStorage(Address address)
     {
         _persistentStorageProvider.ClearStorage(address);
