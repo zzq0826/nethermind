@@ -67,6 +67,15 @@ public class TransitionWorldState: VerkleWorldState
         return account;
     }
 
+    /// <summary>
+    /// Technically there is not use for doing this because we are anyways calling the base class.
+    /// But, this is just a reminder that we dont try to get anything from merkle tree her because
+    /// GetCodeChunk is only called when you are running the stateless client and that is not supported
+    /// while the transition in ongoing. Stateless clients can only work after the transition in complete.
+    /// </summary>
+    /// <param name="codeOwner"></param>
+    /// <param name="chunkId"></param>
+    /// <returns></returns>
     public override byte[] GetCodeChunk(Address codeOwner, UInt256 chunkId)
     {
         return base.GetCodeChunk(codeOwner, chunkId);

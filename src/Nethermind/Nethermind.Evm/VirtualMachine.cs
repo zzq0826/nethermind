@@ -503,14 +503,12 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             catch (InvalidOperationException)
             {
                 // this means that code is not there
+                // this should only happen when we running the stateless client
+                // TODO: add a check that we are not encountering this while not running a stateless client
                 if (worldState.StateType == StateType.Verkle)
-                {
                     cachedCodeInfo = new CodeInfo(worldState, codeSource);
-                }
                 else
-                {
                     throw new NullReferenceException($"Code {codeHash} missing in the state for address {codeSource}");
-                }
             }
         }
         else
