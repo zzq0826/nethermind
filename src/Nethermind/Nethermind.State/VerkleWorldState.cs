@@ -33,13 +33,13 @@ public class VerkleWorldState : IWorldState
 
     private readonly List<Change> _keptInCache = new List<Change>();
     private readonly ILogger _logger;
-    private readonly IKeyValueStore _codeDb;
+    protected readonly IKeyValueStore _codeDb;
 
     private int _capacity = StartCapacity;
     protected Change?[] _changes = new Change?[StartCapacity];
     private int _currentPosition = Resettable.EmptyPosition;
 
-    private readonly VerkleStateTree _tree;
+    protected readonly VerkleStateTree _tree;
     private readonly VerkleStorageProvider _storageProvider;
 
     // private readonly LruCache<>
@@ -471,7 +471,7 @@ public class VerkleWorldState : IWorldState
         return new Account(nonce, balance, codeSize, version, Keccak.EmptyTreeHash, new Keccak(codeHash));
     }
 
-    private void SetState(Address address, Account? account)
+    protected void SetState(Address address, Account? account)
     {
         Db.Metrics.StateTreeWrites++;
 
