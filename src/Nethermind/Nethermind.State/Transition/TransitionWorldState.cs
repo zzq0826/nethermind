@@ -81,6 +81,10 @@ public class TransitionWorldState: VerkleWorldState
         return base.GetCodeChunk(codeOwner, chunkId);
     }
 
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="blockNumber"></param>
     public void SweepLeaves(long blockNumber)
     {
         // have to figure out how to know the starting point
@@ -105,7 +109,6 @@ public class TransitionWorldState: VerkleWorldState
             {
                 if (accountIterator.MoveNext())
                 {
-                    // TODO: does this also set code - i dont think so
                     Account? accountToBeInserted = accountIterator.Current.Item2;
                     if (accountToBeInserted.CodeHash != Keccak.OfAnEmptyString)
                     {

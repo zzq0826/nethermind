@@ -457,8 +457,10 @@ public class VerkleWorldState : IWorldState
         Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
         headerTreeKey.SuffixByte = AccountHeader.Version;
         IEnumerable<byte>? versionVal = _tree.Get(headerTreeKey);
+        // here we have a assumption that the version value will always be set if the account is not null
+        // so we can just use the version information to decide if the account exists or not
         if (versionVal is null) return null;
-        UInt256 version = new((versionVal ?? Array.Empty<byte>()).ToArray());
+        UInt256 version = new((versionVal).ToArray());
         headerTreeKey.SuffixByte = AccountHeader.Balance;
         UInt256 balance = new((_tree.Get(headerTreeKey) ?? Array.Empty<byte>()).ToArray());
         headerTreeKey.SuffixByte = AccountHeader.Nonce;
@@ -476,9 +478,10 @@ public class VerkleWorldState : IWorldState
         Db.Metrics.StateTreeWrites++;
 
         Pedersen headerTreeKey = AccountHeader.GetTreeKeyPrefixAccount(address.Bytes);
+
+        // TODO: is there a case where account is even null - anyways deleting a account is not supported in verkle trees
         if (account != null) _tree.InsertStemBatch(headerTreeKey.StemAsSpan, account.ToVerkleDict());
-        if (account!.Code is null) return;
-        _tree.SetCode(address, account.Code);
+        if (account!.Code is not null) _tree.SetCode(address, account.Code);
     }
 
     protected readonly HashSet<Address> _readsForTracing = new HashSet<Address>();
