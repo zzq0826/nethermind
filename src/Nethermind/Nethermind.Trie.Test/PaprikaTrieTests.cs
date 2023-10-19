@@ -152,6 +152,58 @@ public class PaprikaTrieTests
         Assert.That(state.Root, Is.Not.Null);
     }
 
+    [Test(Description = "Skewed tree that build extensions of different lengths")]
+    public void Skewed_tree()
+    {
+        using MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+        Random random = new(17);
+
+        // "0000"
+        // "1000"
+        // "1100";
+        // "1110";
+        // "1111";
+        // "2000"
+        // "2100"
+        // "2110"
+        // "2111"
+        // "2200"
+        // ...
+
+        int count = 0;
+
+        Span<byte> key = stackalloc byte[32];
+        for (int nibble0 = 0; nibble0 < 16; nibble0++)
+        {
+            for (int nibble1 = 0; nibble1 <= nibble0; nibble1++)
+            {
+                for (int nibble2 = 0; nibble2 <= nibble1; nibble2++)
+                {
+                    for (int nibble3 = 0; nibble3 <= nibble2; nibble3++)
+                    {
+                        random.NextBytes(key);
+                        byte b0 = (byte)((nibble0 << 8) | nibble1);
+                        key[0] = b0;
+
+                        byte b1 = (byte)((nibble2 << 8) | nibble3);
+                        key[1] = b1;
+
+                        state.Set(new ValueKeccak(key), new Account(b0, b1, Keccak.EmptyTreeHash, new Keccak(key)));
+                        count++;
+                    }
+                }
+            }
+        }
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        const string hexString = "336c4f5942630369aa8ebe35d26b9f596159f6c800e7a4cf538532782adf7caa";
+        Assert.That(state.Root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
     [Test]
     public void Extension()
     {
