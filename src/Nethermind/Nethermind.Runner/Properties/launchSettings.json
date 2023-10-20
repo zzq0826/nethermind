@@ -30,7 +30,7 @@
     },
     "Gnosis": {
       "commandName": "Project",
-      "commandLineArgs": "-c gnosis -dd .data",
+      "commandLineArgs": "-c gnosis -dd /home/marek --JsonRpc.UnsecureDevNoRpcAuthentication true --Init.AutoDump All",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

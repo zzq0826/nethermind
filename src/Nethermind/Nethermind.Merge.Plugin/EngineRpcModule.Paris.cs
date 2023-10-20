@@ -39,14 +39,14 @@ public partial class EngineRpcModule : IEngineRpcModule
 
     private async Task<ResultWrapper<ForkchoiceUpdatedV1Result>> ForkchoiceUpdated(ForkchoiceStateV1 forkchoiceState, PayloadAttributes? payloadAttributes, int version)
     {
-        string? error = null;
-        switch (payloadAttributes?.Validate(_specProvider, version, out error))
-        {
-            case PayloadAttributesValidationResult.InvalidParams:
-                return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error!, ErrorCodes.InvalidParams);
-            case PayloadAttributesValidationResult.UnsupportedFork:
-                return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error!, ErrorCodes.UnsupportedFork);
-        }
+        //string? error = null;
+        // switch (payloadAttributes?.Validate(_specProvider, version, out error))
+        // {
+        //     case PayloadAttributesValidationResult.InvalidParams:
+        //         return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error!, ErrorCodes.InvalidParams);
+        //     case PayloadAttributesValidationResult.UnsupportedFork:
+        //         return ResultWrapper<ForkchoiceUpdatedV1Result>.Fail(error!, ErrorCodes.UnsupportedFork);
+        // }
 
         if (await _locker.WaitAsync(_timeout))
         {
@@ -81,13 +81,13 @@ public partial class EngineRpcModule : IEngineRpcModule
 
         IReleaseSpec releaseSpec = _specProvider.GetSpec(executionPayload.BlockNumber, executionPayload.Timestamp);
         ValidationResult validationResult = executionPayloadParams.ValidateParams(releaseSpec, version, out string? error);
-        if (validationResult != ValidationResult.Success)
-        {
-            if (_logger.IsWarn) _logger.Warn(error);
-            return validationResult == ValidationResult.Fail
-                ? ResultWrapper<PayloadStatusV1>.Fail(error!, ErrorCodes.InvalidParams)
-                : ResultWrapper<PayloadStatusV1>.Success(PayloadStatusV1.Invalid(null, error));
-        }
+        // if (validationResult != ValidationResult.Success)
+        // {
+        //     if (_logger.IsWarn) _logger.Warn(error);
+        //     return validationResult == ValidationResult.Fail
+        //         ? ResultWrapper<PayloadStatusV1>.Fail(error!, ErrorCodes.InvalidParams)
+        //         : ResultWrapper<PayloadStatusV1>.Success(PayloadStatusV1.Invalid(null, error));
+        // }
 
         if (await _locker.WaitAsync(_timeout))
         {

@@ -358,6 +358,11 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
 
     public Block? Process(Block suggestedBlock, ProcessingOptions options, IBlockTracer tracer)
     {
+        // if (options == ProcessingOptions.ProducingBlock)
+        // {
+        //     TraceProducedBlock(suggestedBlock, options);
+        // }
+
         if (!RunSimpleChecksAheadOfProcessing(suggestedBlock, options))
         {
             return null;
@@ -429,6 +434,27 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
         }
 
         return lastProcessed;
+    }
+
+    private void TraceProducedBlock(Block block, ProcessingOptions options)
+    {
+
+            TraceProducedBlock(block, options, new BlockReceiptsTracer());
+
+            TraceProducedBlock(block, options, new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace));
+
+            TraceProducedBlock(block, options, new GethLikeBlockMemoryTracer(GethTraceOptions.Default));
+    }
+
+    private void TraceProducedBlock(Block block, ProcessingOptions options, IBlockTracer blockTracer)
+    {
+        _blockProcessor.Process(
+            block.StateRoot,
+            new List<Block> {block},
+            options,
+            blockTracer);
+
+        BlockTraceDumper.LogDiagnosticTrace(blockTracer, block.Hash, _logger);
     }
 
     public bool IsProcessingBlocks(ulong? maxProcessingInterval)
