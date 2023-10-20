@@ -152,8 +152,10 @@ public class PaprikaTrieTests
         Assert.That(state.Root, Is.Not.Null);
     }
 
-    [Test(Description = "Skewed tree that build extensions of different lengths")]
-    public void Skewed_tree()
+    [TestCase(0, "7f7fd47a28dc4dbfd1b1b33d254da8be74deab55bef81a02c232ca9957e05689", TestName = "From the Root")]
+    [TestCase(Keccak.Size - 16, "6cb4831677e5dc9f8b6aaa9554c8be152ead051c35bdadbc19ae7a0242904836",
+        TestName = "Split in the middle")]
+    public void Skewed_tree(int startFromByte, string hexString)
     {
         using MemDb memDb = new();
         using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
@@ -183,12 +185,13 @@ public class PaprikaTrieTests
                 {
                     for (int nibble3 = 0; nibble3 <= nibble2; nibble3++)
                     {
-                        random.NextBytes(key);
-                        byte b0 = (byte)((nibble0 << 8) | nibble1);
-                        key[0] = b0;
+                        key.Clear();
+                        random.NextBytes(key.Slice(startFromByte));
+                        byte b0 = (byte)((nibble0 << 4) | nibble1);
+                        key[startFromByte] = b0;
 
-                        byte b1 = (byte)((nibble2 << 8) | nibble3);
-                        key[1] = b1;
+                        byte b1 = (byte)((nibble2 << 4) | nibble3);
+                        key[startFromByte + 1] = b1;
 
                         state.Set(new ValueKeccak(key), new Account(b0, b1, Keccak.EmptyTreeHash, new Keccak(key)));
                         count++;
@@ -200,7 +203,45 @@ public class PaprikaTrieTests
         state.Commit(0);
         state.UpdateRootHash();
 
-        const string hexString = "336c4f5942630369aa8ebe35d26b9f596159f6c800e7a4cf538532782adf7caa";
+        Assert.That(state.Root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
+    [TestCase(Keccak.Size - 1, "456af6194513cb6b8fd475087fdac6ab60bb3b3f154d06e19e3b18cd8c7e7092",
+        TestName = "At the bottom")]
+    public void Skewed_tree_short(int startFromByte, string hexString)
+    {
+        using MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+        Random random = new(17);
+
+        const int maxNibble = 3;
+        // "00"
+        // "10"
+        // "11"
+        // "20"
+        // "21"
+        // "22"
+        // ...
+
+        Span<byte> key = stackalloc byte[32];
+
+        for (int nibble0 = 0; nibble0 < maxNibble; nibble0++)
+        {
+            for (int nibble1 = 0; nibble1 <= nibble0; nibble1++)
+            {
+                key.Clear();
+                random.NextBytes(key.Slice(startFromByte));
+                byte b0 = (byte)((nibble0 << 4) | nibble1);
+                key[startFromByte] = b0;
+
+                state.Set(new ValueKeccak(key), new Account(b0, (uint)b0 + 1, Keccak.EmptyTreeHash, new Keccak(key)));
+            }
+        }
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
         Assert.That(state.Root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
     }
 
