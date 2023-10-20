@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Find;
+using Nethermind.Consensus.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -18,6 +19,7 @@ using Nethermind.Evm;
 using Nethermind.Facade;
 using Nethermind.Facade.Eth;
 using Nethermind.Facade.Filters;
+using Nethermind.Facade.Proxy.Models;
 using Nethermind.Facade.Proxy.Models.MultiCall;
 using Nethermind.Int256;
 using Nethermind.JsonRpc.Data;
@@ -329,8 +331,11 @@ public partial class EthRpcModule : IEthRpcModule
         }
     }
 
-    public ResultWrapper<string> eth_call(TransactionForRpc transactionCall, BlockParameter? blockParameter = null) =>
-        new CallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig)
+    public ResultWrapper<string> eth_call(
+        TransactionForRpc transactionCall,
+        BlockParameter? blockParameter = null,
+        Dictionary<Address, AccountOverride>? stateOverrides = null) =>
+        new CallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, stateOverrides)
             .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<IReadOnlyList<MultiCallBlockResult>> eth_multicallV1(MultiCallPayload<TransactionForRpc> payload, BlockParameter? blockParameter = null) =>

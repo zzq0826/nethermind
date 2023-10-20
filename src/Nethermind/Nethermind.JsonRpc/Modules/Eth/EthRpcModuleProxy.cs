@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
+using Nethermind.Consensus.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Facade.Eth;
@@ -152,7 +153,10 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 => ResultWrapper<Keccak>.From(await _proxy.eth_sendRawTransaction(Rlp.Encode(transaction).Bytes));
 
 
-        public ResultWrapper<string> eth_call(TransactionForRpc transactionCall, BlockParameter? blockParameter = null)
+        public ResultWrapper<string> eth_call(
+            TransactionForRpc transactionCall,
+            BlockParameter? blockParameter = null,
+            Dictionary<Address, AccountOverride>? stateOverrides = null)
         {
             throw new NotSupportedException();
         }

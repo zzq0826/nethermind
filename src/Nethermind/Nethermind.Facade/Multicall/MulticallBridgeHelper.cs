@@ -36,13 +36,6 @@ public class MulticallBridgeHelper
         _blocksConfig = blocksConfig;
     }
 
-    private void UpdateStateByModifyingAccounts(BlockHeader blockHeader, BlockStateCall<Transaction> blockStateCall, MultiCallReadOnlyBlocksProcessingEnv env)
-    {
-        IReleaseSpec currentSpec = env.SpecProvider.GetSpec(blockHeader);
-        env.StateProvider.ApplyStateOverrides(_multiCallProcessingEnv.CodeInfoRepository, blockStateCall.StateOverrides, currentSpec, blockHeader.Number);
-        blockHeader.StateRoot = env.StateProvider.StateRoot;
-    }
-
     public (bool Success, string Error) TryMultiCallTrace(BlockHeader parent, MultiCallPayload<Transaction> payload, IBlockTracer tracer)
     {
         using MultiCallReadOnlyBlocksProcessingEnv? env = _multiCallProcessingEnv.Clone(payload.TraceTransfers);
@@ -88,7 +81,11 @@ public class MulticallBridgeHelper
                         IsPostMerge = parent.Difficulty == 0
                     };
 
-                UpdateStateByModifyingAccounts(callHeader, callInputBlock, env);
+                callHeader.StateRoot = env.StateProvider.ApplyStateOverrides(
+                    _multiCallProcessingEnv.CodeInfoRepository,
+                    callInputBlock.StateOverrides,
+                    env.SpecProvider.GetSpec(callHeader),
+                    callHeader.Number);
 
                 Transaction SetTxHashAndMissingDefaults(Transaction transaction)
                 {

@@ -29,6 +29,7 @@ using Nethermind.Facade.Proxy.Models.MultiCall;
 using System.Transactions;
 using Microsoft.CSharp.RuntimeBinder;
 using Nethermind.Facade.Multicall;
+using Nethermind.Facade.Proxy.Models;
 using Transaction = Nethermind.Core.Transaction;
 using Nethermind.Specs;
 
@@ -138,11 +139,19 @@ namespace Nethermind.Facade
             return blockHash is not null ? _receiptFinder.Get(blockHash).ForTransaction(txHash) : null;
         }
 
-        public CallOutput Call(BlockHeader header, Transaction tx, CancellationToken cancellationToken)
+        public CallOutput Call(
+            BlockHeader header,
+            Transaction tx,
+            CancellationToken cancellationToken,
+            Dictionary<Address, AccountOverride>? accountOverrides = null)
         {
             CallOutputTracer callOutputTracer = new();
-            (bool Success, string Error) tryCallResult = TryCallAndRestore(header, tx, false,
-                callOutputTracer.WithCancellation(cancellationToken));
+            (bool Success, string Error) tryCallResult = TryCallAndRestore(
+                header,
+                tx,
+                false,
+                callOutputTracer.WithCancellation(cancellationToken),
+                accountOverrides);
             return new CallOutput
             {
                 Error = tryCallResult.Success ? callOutputTracer.Error : tryCallResult.Error,
@@ -201,8 +210,8 @@ namespace Nethermind.Facade
         {
             CallOutputTracer callOutputTracer = new();
             AccessTxTracer accessTxTracer = optimize
-                ? new(tx.SenderAddress,
-                    tx.GetRecipient(tx.IsContractCreation ? _processingEnv.StateReader.GetNonce(header.StateRoot, tx.SenderAddress) : 0))
+                ? new(tx.SenderAddress!,
+                    tx.GetRecipient(tx.IsContractCreation ? _processingEnv.StateReader.GetNonce(header.StateRoot!, tx.SenderAddress!) : 0))
                 : new();
 
             (bool Success, string Error) tryCallResult = TryCallAndRestore(header, tx, false,
@@ -218,15 +227,15 @@ namespace Nethermind.Facade
             };
         }
 
-        private (bool Success, string Error) TryCallAndRestore(
-            BlockHeader blockHeader,
+        private (bool Success, string Error) TryCallAndRestore(BlockHeader blockHeader,
             Transaction transaction,
             bool treatBlockHeaderAsParentBlock,
-            ITxTracer tracer)
+            ITxTracer tracer,
+            Dictionary<Address, AccountOverride>? accountOverrides = null)
         {
             try
             {
-                CallAndRestore(blockHeader, transaction, treatBlockHeaderAsParentBlock, tracer);
+                CallAndRestore(blockHeader, transaction, treatBlockHeaderAsParentBlock, tracer, accountOverrides);
                 return (true, string.Empty);
             }
             catch (InsufficientBalanceException ex)
@@ -235,16 +244,17 @@ namespace Nethermind.Facade
             }
         }
 
-        private void CallAndRestore(
-            BlockHeader blockHeader,
+        private void CallAndRestore(BlockHeader blockHeader,
             Transaction transaction,
             bool treatBlockHeaderAsParentBlock,
-            ITxTracer tracer)
+            ITxTracer tracer,
+            Dictionary<Address, AccountOverride>? accountOverrides = null)
         {
             transaction.SenderAddress ??= Address.SystemUser;
 
             Keccak stateRoot = blockHeader.StateRoot!;
-            using IReadOnlyTransactionProcessor transactionProcessor = _processingEnv.Build(stateRoot);
+            _processingEnv.
+            using IReadOnlyTransactionProcessor transactionProcessor = _processingEnv.Build(stateRoot, accountOverrides);
 
             if (transaction.Nonce == 0)
             {

@@ -6,20 +6,19 @@ using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
-using Nethermind.Evm;
 using Nethermind.Evm.CodeAnalysis;
 using Nethermind.State;
 
-namespace Nethermind.Facade;
+namespace Nethermind.Evm.TransactionProcessing;
 
 public class OverridableCodeInfoRepository : ICodeInfoRepository
 {
     private readonly ICodeInfoRepository _codeInfoRepository;
     private readonly Dictionary<Address, CodeInfo> _codeOverwrites = new();
 
-    public OverridableCodeInfoRepository(ICodeInfoRepository codeInfoRepository)
+    public OverridableCodeInfoRepository(ICodeInfoRepository? codeInfoRepository = null)
     {
-        _codeInfoRepository = codeInfoRepository;
+        _codeInfoRepository = codeInfoRepository ?? new CodeInfoRepository();
     }
 
     public void SetCodeOverwrite(
@@ -44,4 +43,6 @@ public class OverridableCodeInfoRepository : ICodeInfoRepository
 
     public CodeInfo GetOrAdd(ValueKeccak codeHash, Span<byte> initCode) =>
         _codeInfoRepository.GetOrAdd(codeHash, initCode);
+
+    public void ClearOverrides() => _codeOverwrites.Clear();
 }

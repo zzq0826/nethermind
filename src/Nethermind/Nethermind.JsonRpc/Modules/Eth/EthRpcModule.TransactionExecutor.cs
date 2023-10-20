@@ -7,11 +7,13 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using Nethermind.Blockchain.Find;
+using Nethermind.Consensus.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Eip2930;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm;
 using Nethermind.Facade;
+using Nethermind.Facade.Proxy.Models;
 using Nethermind.Int256;
 using Nethermind.JsonRpc.Data;
 using Nethermind.Specs.Forks;
@@ -46,14 +48,17 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
         private class CallTxExecutor : TxExecutor<string>
         {
-            public CallTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig)
+            private readonly Dictionary<Address, AccountOverride>? _accountOverrides;
+
+            public CallTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, Dictionary<Address, AccountOverride>? accountOverrides = null)
                 : base(blockchainBridge, blockFinder, rpcConfig)
             {
+                _accountOverrides = accountOverrides;
             }
 
             protected override ResultWrapper<string> ExecuteTx(BlockHeader header, Transaction tx, CancellationToken token)
             {
-                CallOutput result = _blockchainBridge.Call(header, tx, token);
+                CallOutput result = _blockchainBridge.Call(header, tx, token, _accountOverrides);
 
                 return result.Error is null
                     ? ResultWrapper<string>.Success(result.OutputData.ToHexString(true))

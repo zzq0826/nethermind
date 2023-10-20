@@ -13,12 +13,14 @@ namespace Nethermind.Evm.TransactionProcessing
     {
         private readonly ITransactionProcessor _transactionProcessor;
         private readonly IWorldState _stateProvider;
+        private readonly OverridableCodeInfoRepository _codeInfoRepository;
         private readonly Keccak _stateBefore;
 
-        public ReadOnlyTransactionProcessor(ITransactionProcessor transactionProcessor, IWorldState stateProvider, Keccak startState)
+        public ReadOnlyTransactionProcessor(ITransactionProcessor transactionProcessor, IWorldState stateProvider, OverridableCodeInfoRepository codeInfoRepository, Keccak startState)
         {
             _transactionProcessor = transactionProcessor ?? throw new ArgumentNullException(nameof(transactionProcessor));
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
+            _codeInfoRepository = codeInfoRepository;
             _stateBefore = _stateProvider.StateRoot;
             _stateProvider.StateRoot = startState ?? throw new ArgumentNullException(nameof(startState));
         }
@@ -40,6 +42,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
         public void Dispose()
         {
+            _codeInfoRepository.ClearOverrides();
             _stateProvider.StateRoot = _stateBefore;
             _stateProvider.Reset();
         }

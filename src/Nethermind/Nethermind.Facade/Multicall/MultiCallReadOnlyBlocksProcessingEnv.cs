@@ -79,8 +79,7 @@ public class MultiCallReadOnlyBlocksProcessingEnv : ReadOnlyTxProcessingEnvBase,
         _logManager = logManager;
         SpecProvider = specProvider;
 
-        CodeInfoRepository = new OverridableCodeInfoRepository(new CodeInfoRepository());
-
+        CodeInfoRepository = new OverridableCodeInfoRepository();
         VirtualMachine = new VirtualMachine(BlockhashProvider, specProvider, CodeInfoRepository, logManager);
 
         HeaderValidator headerValidator = new(

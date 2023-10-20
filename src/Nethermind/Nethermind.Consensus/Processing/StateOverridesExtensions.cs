@@ -1,23 +1,22 @@
 ﻿// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
 using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Evm.CodeAnalysis;
-using Nethermind.Facade.Proxy.Models;
+using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Int256;
 using Nethermind.State;
 using Nethermind.Trie;
 
-namespace Nethermind.Facade;
+namespace Nethermind.Consensus.Processing;
 
 public static class StateOverridesExtensions
 {
-    public static void ApplyStateOverrides(
+    public static Keccak ApplyStateOverrides(
         this IWorldState state,
         OverridableCodeInfoRepository overridableCodeInfoRepository,
         Dictionary<Address, AccountOverride>? overrides,
@@ -49,6 +48,7 @@ public static class StateOverridesExtensions
         state.Commit(spec);
         state.CommitTree(blockNumber);
         state.RecalculateStateRoot();
+        return state.StateRoot;
     }
 
     private static bool TryGetAccount(this IWorldState stateProvider, Address address, out Account account)
