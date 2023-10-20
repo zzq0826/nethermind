@@ -245,6 +245,40 @@ public class PaprikaTrieTests
         Assert.That(state.Root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
     }
 
+    [TestCase(16, "80ad0d5d5f4912fe515d70f62b0c5359ac8fb26dbaf52a78fafb7a820252438c")]
+    [TestCase(128, "45f09d49b6b1ca5f2b0cb82bc7fb3b381ff2ce95bd69a5eda8ce13b48855c2e4")]
+    [TestCase(512, "b71064764d77f2122778e3892b37470854efd4a4acd8a1955bbe7dcfa0bc161c")]
+    public void Scattered_tree(int size, string rootHash)
+    {
+        using MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, LimboLogs.Instance);
+        StateTree state = new(trieStore, _logManager);
+        Random random = new(17);
+        Span<byte> key = stackalloc byte[32];
+
+        for (uint i = 0; i < size; i++)
+        {
+            key.Clear();
+
+            int at = random.Next(64);
+            int nibble = random.Next(16);
+
+            if (at % 2 == 0)
+            {
+                nibble <<= 4;
+            }
+
+            key[at / 2] = (byte)nibble;
+
+            state.Set(new ValueKeccak(key), new Account(i, i, Keccak.EmptyTreeHash, new Keccak(key)));
+        }
+
+        state.Commit(0);
+        state.UpdateRootHash();
+
+        Assert.That(state.Root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(rootHash))));
+    }
+
     [Test]
     public void Extension()
     {
