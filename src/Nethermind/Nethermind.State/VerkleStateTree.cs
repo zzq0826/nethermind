@@ -20,7 +20,6 @@ namespace Nethermind.State;
 
 public class VerkleStateTree : VerkleTree
 {
-
     public VerkleStateTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager) : base(dbProvider, blockCacheSize, logManager) { }
 
     public VerkleStateTree(IVerkleTrieStore stateStore, ILogManager logManager) : base(stateStore, logManager) { }
