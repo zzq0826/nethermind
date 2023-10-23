@@ -44,7 +44,9 @@
     "eip3855TransitionTimestamp": "0x0",
     "eip3860TransitionTimestamp": "0x0",
     "eip4895TransitionTimestamp": "0x0",
-    "verkleTreeTransitionTimestamp": "0x0"
+    "verkleTreeTransitionTimestamp": "0x0",
+    "maxCodeSize": "0x6000",
+    "maxCodeSizeTransition": "0x0"
   },
   "genesis": {
     "seal": {
