@@ -32,15 +32,25 @@ public class HistoryOfAccounts
 
     private void InsertShard(Pedersen key, List<ulong> shard)
     {
-        ulong universe = shard[^1] + 1;
-        EliasFanoBuilder efb = new(universe, shard.Count);
-        efb.Extend(shard);
-        EliasFano ef = efb.Build();
+        EliasFano ef;
+        try
+        {
+            ulong universe = shard[^1] + 1;
+            EliasFanoBuilder efb = new(universe, shard.Count);
+            efb.Extend(shard);
+            ef = efb.Build();
+        }
+        catch (EliasFanoBuilderException e)
+        {
+            throw new EliasFanoBuilderException($"trying to create from shard and failed: [{string.Join(", ", shard)}]",
+                e) { Shard = shard };
+        }
+
         RlpStream streamNew = new (_decoder.GetLength(ef, RlpBehaviors.None));
         _decoder.Encode(streamNew, ef);
         if (shard.Count == BlocksChunks)
         {
-            HistoryKey historyKey = new HistoryKey(key, shard[^1]);
+            HistoryKey historyKey = new (key, shard[^1]);
             _historyOfAccounts[historyKey.Encode()] = streamNew.Data;
             historyKey = new HistoryKey(key, ulong.MaxValue);
             _historyOfAccounts[historyKey.Encode()] = Array.Empty<byte>();
