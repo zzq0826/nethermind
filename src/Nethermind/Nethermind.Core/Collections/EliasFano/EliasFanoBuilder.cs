@@ -65,14 +65,10 @@ public struct EliasFanoBuilder
 
     public void Extend(IEnumerable<ulong> values)
     {
-        Console.Write($"Extending: {_universe} {_numValues} {_pos} {_last}");
-
         foreach (ulong val in values)
         {
-            Console.Write($"{val} ");
             Push(val);
         }
-        Console.WriteLine();
     }
 
     public EliasFano Build()
