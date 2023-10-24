@@ -135,7 +135,8 @@ public partial class BlockProcessor : IBlockProcessor
                 }
             }
 
-            if (options.ContainsFlag(ProcessingOptions.DoNotUpdateHead))
+            // TODO: temporary fix for block processing
+            if (options.ContainsFlag(ProcessingOptions.ReadOnlyChain))
             {
                 RestoreBranch(previousBranchStateRoot);
             }
