@@ -3,8 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
+using System.Numerics;
 
 namespace Nethermind.Core.Collections.EliasFano;
 
@@ -33,8 +32,7 @@ public struct EliasFanoBuilder
         _numValues = numValues;
 
         ulong temp = universe / (ulong)numValues;
-        _lowLen = (int)Math.Ceiling(Math.Log2(temp));
-
+        _lowLen = 63 - BitOperations.LeadingZeroCount(temp);
         _highBits = new BitVector(numValues + 1 + (int)(universe >> _lowLen) + 1);
         _lowBits = new BitVector();
     }
