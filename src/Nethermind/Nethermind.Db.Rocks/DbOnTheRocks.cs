@@ -509,6 +509,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
             throw new ObjectDisposedException($"Attempted to write to a disposed database {Name}");
         }
 
+        if (_logger.IsTrace) _logger.Trace($"Writing {key.ToHexString()}");
         UpdateWriteMetrics();
 
         try
@@ -521,6 +522,7 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
             {
                 _db.Put(key, value, cf, WriteFlagsToWriteOptions(flags));
             }
+            if (_logger.IsTrace) _logger.Trace($"Wrote {key.ToHexString()}");
         }
         catch (RocksDbSharpException e)
         {

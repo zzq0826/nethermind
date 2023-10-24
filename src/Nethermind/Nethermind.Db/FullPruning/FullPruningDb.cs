@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using Nethermind.Core;
+using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 
 namespace Nethermind.Db.FullPruning
@@ -24,6 +25,7 @@ namespace Nethermind.Db.FullPruning
         private readonly RocksDbSettings _settings;
         private readonly IRocksDbFactory _dbFactory;
         private readonly Action? _updateDuplicateWriteMetrics;
+        private readonly ILogger? _logger;
 
         // current main DB, will be written to and will be main source for reading
         private IDb _currentDb;
@@ -32,12 +34,13 @@ namespace Nethermind.Db.FullPruning
         // this will be null if no full pruning is in progress
         private PruningContext? _pruningContext;
 
-        public FullPruningDb(RocksDbSettings settings, IRocksDbFactory dbFactory, Action? updateDuplicateWriteMetrics = null)
+        public FullPruningDb(RocksDbSettings settings, IRocksDbFactory dbFactory, Action? updateDuplicateWriteMetrics = null, ILogManager? logManager = null)
         {
             _settings = settings;
             _dbFactory = dbFactory;
             _updateDuplicateWriteMetrics = updateDuplicateWriteMetrics;
             _currentDb = CreateDb(_settings).WithEOACompressed();
+            _logger = logManager?.GetClassLogger();
         }
 
         private IDb CreateDb(RocksDbSettings settings) => _dbFactory.CreateDb(settings);
@@ -61,10 +64,13 @@ namespace Nethermind.Db.FullPruning
 
         public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
         {
+            if (_logger?.IsTrace == true) _logger.Trace($"Writing {key.ToHexString()}");
             _currentDb.Set(key, value, flags); // we are writing to the main DB
+            if (_logger?.IsTrace == true) _logger.Trace($"Wrote {key.ToHexString()}");
             IDb? cloningDb = _pruningContext?.CloningDb;
             if (cloningDb is not null) // if pruning is in progress we are also writing to the secondary, copied DB
             {
+                if (_logger?.IsTrace == true) _logger.Trace($"Duplicating {key.ToHexString()}");
                 Duplicate(cloningDb, key, value, flags);
             }
         }
