@@ -573,7 +573,12 @@ public class DbOnTheRocks : IDb, ITunableDb
         }
     }
 
-    public Span<byte> GetSpan(ReadOnlySpan<byte> key)
+    public Span<byte> GetSpan(ReadOnlySpan<byte> key, ReadFlags flags)
+    {
+        return GetSpanWithColumnFamily(key, null);
+    }
+
+    internal Span<byte> GetSpanWithColumnFamily(ReadOnlySpan<byte> key, ColumnFamilyHandle? cf)
     {
         if (_isDisposing)
         {
@@ -584,10 +589,7 @@ public class DbOnTheRocks : IDb, ITunableDb
 
         try
         {
-            Span<byte> span = _db.GetSpan(key);
-            if (!span.IsNullOrEmpty())
-                GC.AddMemoryPressure(span.Length);
-            return span;
+            return _db.GetSpan(key, cf);
         }
         catch (RocksDbSharpException e)
         {
@@ -596,18 +598,30 @@ public class DbOnTheRocks : IDb, ITunableDb
         }
     }
 
-    public void PutSpan(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+    public void PutSpan(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, WriteFlags flags)
+    {
+        PutSpanWithColumnFamily(key, null, value, flags);
+    }
+
+    internal void PutSpanWithColumnFamily(ReadOnlySpan<byte> key, ColumnFamilyHandle? cf, ReadOnlySpan<byte> value, WriteFlags flags = WriteFlags.None)
     {
         if (_isDisposing)
         {
-            throw new ObjectDisposedException($"Attempted to write form a disposed database {Name}");
+            throw new ObjectDisposedException($"Attempted to write to a disposed database {Name}");
         }
 
         UpdateWriteMetrics();
 
         try
         {
-            _db.Put(key, value, null, WriteOptions);
+            if (value.IsNullOrEmpty())
+            {
+                _db.Remove(key, cf, WriteFlagsToWriteOptions(flags));
+            }
+            else
+            {
+                _db.Put(key, value, cf, WriteFlagsToWriteOptions(flags));
+            }
         }
         catch (RocksDbSharpException e)
         {
@@ -897,6 +911,11 @@ public class DbOnTheRocks : IDb, ITunableDb
         }
 
         public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
+        {
+            Set(key, value, null, flags);
+        }
+
+        public void PutSpan(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, WriteFlags flags = WriteFlags.None)
         {
             if (_isDisposed)
             {
