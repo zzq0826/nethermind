@@ -98,7 +98,7 @@ public partial class VerkleStateStore
                     InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(blockNumberToPersist, changesToPersist, reverseDiff));
                     InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, reverseDiff.LeafTable));
                 }
-                catch (EliasFanoExceptions e)
+                catch (Exception e)
                 {
                     Console.WriteLine(e);
                 }
