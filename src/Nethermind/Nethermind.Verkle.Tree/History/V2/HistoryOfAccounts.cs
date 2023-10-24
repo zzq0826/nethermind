@@ -25,7 +25,7 @@ public class HistoryOfAccounts
     public void AppendHistoryBlockNumberForKey(Pedersen key, ulong blockNumber)
     {
         List<ulong> shard = GetLastShardOfBlocks(key);
-        Console.WriteLine($"AppendHistoryBlockNumberForKey: {key} {blockNumber} LastShard:{string.Join(",", shard)}");
+        // Console.WriteLine($"AppendHistoryBlockNumberForKey: {key} {blockNumber} LastShard:{string.Join(",", shard)}");
         shard.Add(blockNumber);
         InsertShard(key, shard);
     }
