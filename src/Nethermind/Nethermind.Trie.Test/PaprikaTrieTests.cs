@@ -309,6 +309,8 @@ public class PaprikaTrieTests
 
     [TestCase(1000, "b255eb6261dc19f0639d13624e384b265759d2e4171c0eb9487e82d2897729f0")]
     [TestCase(10_000, "48864c880bd7610f9bad9aff765844db83c17cab764f5444b43c0076f6cf6c03")]
+    [TestCase(1_000_000, "e46e17a7ffa62ba32679893e6ccb4d9e48a9b044a88f22ff02004e6cc7f005b8")]
+    [TestCase(10_000_000, "a52d8ca37ed3310fa024563ad432df953fabb2130523f78adb1830bda9beccbe")]
     public void Big_random(int count, string hexString)
     {
         MemDb memDb = new();
