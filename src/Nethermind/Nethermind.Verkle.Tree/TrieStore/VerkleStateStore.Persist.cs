@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
@@ -91,8 +92,16 @@ public partial class VerkleStateStore
                 if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
 
                 PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
-                InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(blockNumberToPersist, changesToPersist, reverseDiff));
-                InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, reverseDiff.LeafTable));
+                // TODO: handle this properly - while testing this is needed so that this does not fuck up other things
+                try
+                {
+                    InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(blockNumberToPersist, changesToPersist, reverseDiff));
+                    InsertBatchCompletedV2?.Invoke(this, new InsertBatchCompletedV2(blockNumberToPersist, reverseDiff.LeafTable));
+                }
+                catch (EliasFanoExceptions e)
+                {
+                    Console.WriteLine(e);
+                }
 
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
