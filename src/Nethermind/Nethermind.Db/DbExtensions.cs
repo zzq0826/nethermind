@@ -37,18 +37,6 @@ namespace Nethermind.Db
             return db[key.Bytes];
         }
 
-        public static void Set(this IDb db, Keccak key, Span<byte> value)
-        {
-            if (db is IDbWithSpan dbWithSpan)
-            {
-                dbWithSpan.PutSpan(key.Bytes, value);
-            }
-            else
-            {
-                db[key.Bytes] = value.ToArray();
-            }
-        }
-
         public static void Set(this IDb db, long blockNumber, Keccak key, Span<byte> value)
         {
             Span<byte> blockNumberPrefixedKey = stackalloc byte[40];
@@ -64,26 +52,12 @@ namespace Nethermind.Db
 
         public static void Set(this IDb db, in ValueKeccak key, Span<byte> value)
         {
-            if (db is IDbWithSpan dbWithSpan)
-            {
-                dbWithSpan.PutSpan(key.Bytes, value);
-            }
-            else
-            {
-                db[key.Bytes] = value.ToArray();
-            }
+            db.PutSpan(key.Bytes, value);
         }
 
         public static void Set(this IDb db, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
         {
-            if (db is IDbWithSpan dbWithSpan)
-            {
-                dbWithSpan.PutSpan(key, value);
-            }
-            else
-            {
-                db[key] = value.ToArray();
-            }
+            db.PutSpan(key, value);
         }
 
         public static KeyValuePair<byte[], byte[]>[] MultiGet(this IDb db, IEnumerable<ValueKeccak> keys)
@@ -99,7 +73,7 @@ namespace Nethermind.Db
         /// <param name="key"></param>
         /// <returns>Can return null or empty Span on missing key</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public static Span<byte> GetSpan(this IDbWithSpan db, Keccak key)
+        public static Span<byte> GetSpan(this IDb db, Keccak key)
         {
 #if DEBUG
             if (key == Keccak.OfAnEmptyString)
@@ -161,7 +135,7 @@ namespace Nethermind.Db
         /// <param name="db"></param>
         /// <param name="key"></param>
         /// <returns>Can return null or empty Span on missing key</returns>
-        public static Span<byte> GetSpan(this IDbWithSpan db, long key) => db.GetSpan(key.ToBigEndianByteArrayWithoutLeadingZeros());
+        public static Span<byte> GetSpan(this IDb db, long key) => db.GetSpan(key.ToBigEndianByteArrayWithoutLeadingZeros());
 
 
         public static void Delete(this IDb db, long key)
@@ -201,7 +175,7 @@ namespace Nethermind.Db
             TItem item = cache?.Get(cacheKey);
             if (item is null)
             {
-                if (db is IDbWithSpan spanDb && decoder is IRlpValueDecoder<TItem> valueDecoder)
+                if (db is IDb spanDb && decoder is IRlpValueDecoder<TItem> valueDecoder)
                 {
                     Span<byte> data = spanDb.GetSpan(key);
                     if (data.IsNull())
