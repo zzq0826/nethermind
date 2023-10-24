@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Nethermind.Core.Collections.EliasFano;
 
@@ -25,7 +27,7 @@ public struct EliasFanoBuilder
 
     public EliasFanoBuilder(ulong universe, int numValues)
     {
-        if (numValues == 0) throw new ArgumentException("the number of values > 0");
+        if (numValues == 0) throw new EliasFanoBuilderException($"the number of values:{numValues} > 0");
 
         _universe = universe;
         _numValues = numValues;
@@ -44,9 +46,14 @@ public struct EliasFanoBuilder
     /// <exception cref="ArgumentException"></exception>
     public void Push(ulong val)
     {
-        if (val < _last) throw new ArgumentException("not allowed");
-        if (_universe < _last) throw new ArgumentException("not allowed");
-        if (_numValues <= _pos) throw new ArgumentException("not allowed");
+        if (val < _last)
+            throw new EliasFanoBuilderException($"val:{val} < _last:{_last}");
+
+        if (_universe < _last)
+            throw new EliasFanoBuilderException($"_universe:{_universe} < _last:{_last})");
+
+        if (_numValues <= _pos)
+            throw new EliasFanoBuilderException($"_numValues:{_numValues} <= _pos:{_pos})");
 
         _last = val;
         ulong lowMask = ((ulong)1 << _lowLen) - 1;
@@ -58,7 +65,14 @@ public struct EliasFanoBuilder
 
     public void Extend(IEnumerable<ulong> values)
     {
-        foreach (ulong val in values) Push(val);
+        Console.Write($"Extending: {_universe} {_numValues} {_pos} {_last}");
+
+        foreach (ulong val in values)
+        {
+            Console.Write($"{val} ");
+            Push(val);
+        }
+        Console.WriteLine();
     }
 
     public EliasFano Build()
