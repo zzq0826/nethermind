@@ -37,6 +37,7 @@ public partial class VerkleTree
 
         if (visitor is RootCheckVisitor)
         {
+            _logger.Info($"Using RootCheckVisitor: Want:{rootHash} HaveGetStateRoot:{_verkleStateStore.GetStateRoot()} HaveStateRoot:{_verkleStateStore.StateRoot}");
             if (!rootHash.Bytes.SequenceEqual(_verkleStateStore.GetStateRoot().Bytes)) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
         }
         else
