@@ -28,6 +28,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly ISyncConfig _syncConfig;
         private readonly ISyncReport _syncReport;
         private readonly ISyncPeerPool _syncPeerPool;
+        public override bool IsFinished => (_blockTree.LowestInsertedBodyNumber ?? long.MaxValue) <= _barrier;
 
         private long _pivotNumber;
         private long _barrier;
