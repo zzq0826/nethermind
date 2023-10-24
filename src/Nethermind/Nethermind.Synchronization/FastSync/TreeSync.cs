@@ -372,6 +372,7 @@ namespace Nethermind.Synchronization.FastSync
             }
 
             bool rootNodeKeyExists;
+            if (_logger.IsTrace) _logger.Trace($"State read lock enter");
             _stateDbLock.EnterReadLock();
             try
             {
@@ -384,6 +385,7 @@ namespace Nethermind.Synchronization.FastSync
             }
             finally
             {
+                if (_logger.IsTrace) _logger.Trace($"State read lock exit");
                 _stateDbLock.ExitReadLock();
             }
 
@@ -425,6 +427,7 @@ namespace Nethermind.Synchronization.FastSync
 
         public void ResetStateRoot(long blockNumber, Keccak stateRoot, SyncFeedState currentState)
         {
+            if (_logger.IsTrace) _logger.Trace($"Resetting state root to {blockNumber} {stateRoot}");
             _syncStateLock.EnterWriteLock();
             try
             {
@@ -520,6 +523,7 @@ namespace Nethermind.Synchronization.FastSync
                 }
 
                 ReaderWriterLockSlim lockToTake = syncItem.NodeDataType == NodeDataType.Code ? _codeDbLock : _stateDbLock;
+                if (_logger.IsTrace) _logger.Trace($"Combined read lock enter {syncItem.NodeDataType}");
                 lockToTake.EnterReadLock();
                 try
                 {
@@ -540,6 +544,7 @@ namespace Nethermind.Synchronization.FastSync
                 }
                 finally
                 {
+                    if (_logger.IsTrace) _logger.Trace($"Combined read lock exit {syncItem.NodeDataType}");
                     lockToTake.ExitReadLock();
                 }
 
@@ -572,6 +577,7 @@ namespace Nethermind.Synchronization.FastSync
 
         private void PossiblySaveDependentNodes(Keccak hash)
         {
+            if (_logger.IsTrace) _logger.Trace($"PossiblySaveDependentNodes");
             List<DependentItem> nodesToSave = new();
             lock (_dependencies)
             {
@@ -619,6 +625,7 @@ namespace Nethermind.Synchronization.FastSync
                 case NodeDataType.State:
                     {
                         Interlocked.Increment(ref _data.SavedStateCount);
+                        if (_logger.IsTrace) _logger.Trace($"State write lock enter");
                         _stateDbLock.EnterWriteLock();
                         try
                         {
@@ -628,6 +635,7 @@ namespace Nethermind.Synchronization.FastSync
                         }
                         finally
                         {
+                            if (_logger.IsTrace) _logger.Trace($"State write lock exit");
                             _stateDbLock.ExitWriteLock();
                         }
 
@@ -635,10 +643,12 @@ namespace Nethermind.Synchronization.FastSync
                     }
                 case NodeDataType.Storage:
                     {
+                        if (_logger.IsTrace) _logger.Trace($"Check code same");
                         lock (_codesSameAsNodes)
                         {
                             if (_codesSameAsNodes.Contains(syncItem.Hash))
                             {
+                                if (_logger.IsTrace) _logger.Trace($"Code write lock enter");
                                 _codeDbLock.EnterWriteLock();
                                 try
                                 {
@@ -648,6 +658,7 @@ namespace Nethermind.Synchronization.FastSync
                                 }
                                 finally
                                 {
+                                    if (_logger.IsTrace) _logger.Trace($"Code write lock exit");
                                     _codeDbLock.ExitWriteLock();
                                 }
 
@@ -657,6 +668,7 @@ namespace Nethermind.Synchronization.FastSync
 
                         Interlocked.Increment(ref _data.SavedStorageCount);
 
+                        if (_logger.IsTrace) _logger.Trace($"State write lock enter");
                         _stateDbLock.EnterWriteLock();
                         try
                         {
@@ -666,6 +678,7 @@ namespace Nethermind.Synchronization.FastSync
                         }
                         finally
                         {
+                            if (_logger.IsTrace) _logger.Trace($"State write lock exit");
                             _stateDbLock.ExitWriteLock();
                         }
 
@@ -674,6 +687,7 @@ namespace Nethermind.Synchronization.FastSync
                 case NodeDataType.Code:
                     {
                         Interlocked.Increment(ref _data.SavedCode);
+                        if (_logger.IsTrace) _logger.Trace($"Code write lock enter");
                         _codeDbLock.EnterWriteLock();
                         try
                         {
@@ -683,6 +697,7 @@ namespace Nethermind.Synchronization.FastSync
                         }
                         finally
                         {
+                            if (_logger.IsTrace) _logger.Trace($"Code write lock exit");
                             _codeDbLock.ExitWriteLock();
                         }
 
@@ -706,6 +721,7 @@ namespace Nethermind.Synchronization.FastSync
 
         private void VerifyPostSyncCleanUp()
         {
+            if (_logger.IsDebug) _logger.Debug($"VerifyPostSyncCleanUp");
             lock (_dependencies)
             {
                 if (_dependencies.Count != 0)
@@ -727,6 +743,7 @@ namespace Nethermind.Synchronization.FastSync
 
         private void CleanupMemory()
         {
+            if (_logger.IsTrace) _logger.Trace($"Cleanup memory");
             _syncStateLock.EnterWriteLock();
             try
             {
@@ -745,9 +762,11 @@ namespace Nethermind.Synchronization.FastSync
         private void StoreProgressInDb()
         {
             byte[] serializedData = _data.Serialize();
+            if (_logger.IsTrace) _logger.Trace($"State write lock enter");
             _stateDbLock.EnterWriteLock();
             try
             {
+                if (_logger.IsTrace) _logger.Trace($"Code write lock enter");
                 _codeDbLock.EnterWriteLock();
                 try
                 {
@@ -755,11 +774,13 @@ namespace Nethermind.Synchronization.FastSync
                 }
                 finally
                 {
+                    if (_logger.IsTrace) _logger.Trace($"Code write lock exit");
                     _codeDbLock.ExitWriteLock();
                 }
             }
             finally
             {
+                if (_logger.IsTrace) _logger.Trace($"State write lock exit");
                 _stateDbLock.ExitWriteLock();
             }
         }
@@ -769,6 +790,7 @@ namespace Nethermind.Synchronization.FastSync
             NodeDataType nodeDataType = currentStateSyncItem.NodeDataType;
             TrieNode trieNode = new(NodeType.Unknown, currentResponseItem);
             trieNode.ResolveNode(NullTrieNodeResolver.Instance); // TODO: will this work now?
+            if (_logger.IsTrace) _logger.Trace($"Handle trie node {currentStateSyncItem.Hash} {nodeDataType} {trieNode.NodeType}");
             switch (trieNode.NodeType)
             {
                 case NodeType.Unknown:
