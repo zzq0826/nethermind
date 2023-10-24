@@ -42,7 +42,7 @@ public class HistoryOfAccounts
         }
         catch (EliasFanoBuilderException e)
         {
-            throw new EliasFanoBuilderException($"trying to create from shard and failed: [{string.Join(", ", shard)}]",
+            throw new EliasFanoBuilderException($"trying to create from shard and failed key:{key} shard:[{string.Join(", ", shard)}]",
                 e) { Shard = shard };
         }
 
