@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
@@ -11,6 +10,30 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
+/// <summary>
+/// Now the persisting and state access also have many issues, there are multiple cases to account for
+/// STATE ACCESS
+/// 1. Just read the state for a particular stateRoot - no modifications allowed -> JsonRpc -> readOnlyChain
+/// 2. Move the entire state to the specific state root in the history - cannot be reverted -> can be mostly used for reorgs.
+/// 3. Keep multiple version of changes on top of current working state then choose one of them to be committed -> can
+///    be used when you receive multiple new_payload for one blockNumber but only know the correct state after FCU
+///
+/// This can be achieved with a WorldStateProvider -> (WorldState and ReadOnlyWorldState) interfaces (separate from what we have right now)
+/// Where you can ask WorldStateProvider to give you a object for your needs, you can call methods like
+/// WorldStateProvider.ForSyncClient()
+/// WorldStateProvider.ForSyncServer()
+/// WorldStateProvider.ForBlockProcessing()
+/// WorldStateProvider.ForBlockProduction()
+/// WorldStateProvider.ForNewPayload()
+/// WorldStateProvider.Reorg()
+/// WorldStateProvider.ForkChoiceUpdate()
+/// WorldStateProvider.ForJsonRpc()
+/// WorldStateProvider.FinalizeState()
+///
+/// Now these interfaces would be specially designed to work for a specific interface.
+///
+/// Cases - NewPayload (A) NewPayload(B) FCU(A)
+/// </summary>
 public partial class VerkleStateStore
 {
     private bool _lastPersistedReachedReorgBoundary;
@@ -42,7 +65,6 @@ public partial class VerkleStateStore
     // TODO: do we need to add another approach where we bulk insert into the db - or batching on epochs is fine?
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
     {
-
         ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
             InternalTable = batch.InternalTable,
@@ -51,8 +73,7 @@ public partial class VerkleStateStore
 
         if (blockNumber == 0)
         {
-            if (_logger.IsDebug)
-                _logger.Debug($"VSS: Special case for block 0, Persisting");
+            if (_logger.IsDebug) _logger.Debug($"{DebugLogString} Persisting the changes for block 0");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
             UpdateStateRoot();
@@ -63,7 +84,8 @@ public partial class VerkleStateStore
         else
         {
             if (blockNumber <= LatestCommittedBlockNumber)
-                throw new InvalidOperationException("Cannot flush for same block number `multiple times");
+                throw new StateFlushException(
+                    $"Invalid block commit, {blockNumber} should be >= {LatestCommittedBlockNumber}");
 
             // create a sorted set for leaves - for snap sync
             // TODO: create this sorted set while inserting into the batch - will help reducing allocations
@@ -87,9 +109,9 @@ public partial class VerkleStateStore
             if (shouldPersistBlock)
             {
                 if (_logger.IsDebug)
-                    _logger.Debug($"VSS: BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+                    _logger.Debug($"{DebugLogString} BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 VerkleCommitment root = GetStateRoot(changesToPersist.InternalTable) ?? (new VerkleCommitment(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
-                if (_logger.IsDebug) _logger.Debug($"VSS: StateRoot after persisting forwardDiff: {root}");
+                if (_logger.IsDebug) _logger.Debug($"{DebugLogString} StateRoot after persisting forwardDiff: {root}");
 
                 PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
                 // TODO: handle this properly - while testing this is needed so that this does not fuck up other things
@@ -100,7 +122,7 @@ public partial class VerkleStateStore
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    _logger.Error($"Error while persisting the history, not propagating forward", e);
                 }
 
                 PersistedStateRoot = root;
@@ -110,7 +132,7 @@ public partial class VerkleStateStore
             StateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
-                $"VSS: Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
+                $"{DebugLogString} Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
         }
         AnnounceReorgBoundaries();
     }

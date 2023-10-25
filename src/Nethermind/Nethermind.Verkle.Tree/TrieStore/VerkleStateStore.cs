@@ -11,6 +11,7 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
+    private const string DebugLogString = "VerkleStateStorer >";
     public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private InternalNode? RootNode { get; set; }
     public VerkleCommitment StateRoot { get; private set; } = VerkleCommitment.Zero;
