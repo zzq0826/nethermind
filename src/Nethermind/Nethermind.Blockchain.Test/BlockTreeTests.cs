@@ -19,7 +19,6 @@ using Nethermind.Specs;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Db;
-using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.State.Repositories;
 using Nethermind.Db.Blooms;
@@ -784,7 +783,7 @@ namespace Nethermind.Blockchain.Test
             Block genesisBlock = Build.A.Block.Genesis.TestObject;
             Block headBlock = genesisBlock;
 
-            BlockStore blockStore = new BlockStore(new MemDb());
+            BlockStore blockStore = new BlockStore(new MemDb(), new MemDb());
             blockStore.Insert(genesisBlock);
 
             TestMemDb headersDb = new();
@@ -961,7 +960,7 @@ namespace Nethermind.Blockchain.Test
         [Test, Timeout(Timeout.MaxTestTime)]
         public void When_deleting_invalid_block_deletes_its_descendants()
         {
-            BlockStore blockStore = new(new MemDb());
+            BlockStore blockStore = new(new MemDb(), new MemDb());
             MemDb blockInfosDb = new();
             BlockTree tree = Build.A.BlockTree()
                 .WithoutSettingHead
@@ -998,7 +997,7 @@ namespace Nethermind.Blockchain.Test
         [Test, Timeout(Timeout.MaxTestTime)]
         public void When_deleting_invalid_block_deletes_its_descendants_even_if_not_first()
         {
-            BlockStore blockStore = new(new MemDb());
+            BlockStore blockStore = new(new MemDb(), new MemDb());
             MemDb blockInfosDb = new();
             ChainLevelInfoRepository repository = new(blockInfosDb);
 

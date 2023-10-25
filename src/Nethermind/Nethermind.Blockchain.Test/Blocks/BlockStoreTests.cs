@@ -7,6 +7,7 @@ using Nethermind.Blockchain.Blocks;
 using Nethermind.Core;
 using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
+using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
 using NUnit.Framework;
@@ -20,7 +21,7 @@ public class BlockStoreTests
     public void Test_can_insert_get_and_remove_blocks(bool cached)
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db);
+        BlockStore store = new BlockStore(db, new MemDb());
 
         Block block = Build.A.Block.WithNumber(1).TestObject;
         store.Insert(block);
@@ -38,7 +39,7 @@ public class BlockStoreTests
     public void Test_can_get_block_that_was_stored_with_hash(bool cached)
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db);
+        BlockStore store = new BlockStore(db, new MemDb());
 
         Block block = Build.A.Block.WithNumber(1).TestObject;
         db[block.Hash!.Bytes] = (new BlockDecoder()).Encode(block).Bytes;
@@ -51,7 +52,7 @@ public class BlockStoreTests
     public void Test_can_set_and_get_metadata()
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db);
+        BlockStore store = new BlockStore(db, new MemDb());
 
         byte[] key = new byte[] { 1, 2, 3 };
         byte[] value = new byte[] { 4, 5, 6 };
@@ -64,7 +65,7 @@ public class BlockStoreTests
     public void Test_when_cached_does_not_touch_db_on_next_get()
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db);
+        BlockStore store = new BlockStore(db, new MemDb());
 
         Block block = Build.A.Block.WithNumber(1).TestObject;
         store.Insert(block);
@@ -82,7 +83,7 @@ public class BlockStoreTests
     public void Test_getReceiptRecoveryBlock_produce_same_transaction_as_normal_get()
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db);
+        BlockStore store = new BlockStore(db, new MemDb());
 
         Block block = Build.A.Block.WithNumber(1)
             .WithTransactions(3, MainnetSpecProvider.Instance)

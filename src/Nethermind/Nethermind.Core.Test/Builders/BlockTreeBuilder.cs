@@ -111,7 +111,7 @@ namespace Nethermind.Core.Test.Builders
         {
             get
             {
-                return _blockStore ??= new BlockStore(BlocksDb);
+                return _blockStore ??= new BlockStore(BlocksDb, MetadataDb);
             }
             set
             {

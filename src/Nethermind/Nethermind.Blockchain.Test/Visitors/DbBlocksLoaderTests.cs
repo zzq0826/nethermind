@@ -13,8 +13,6 @@ using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
-using Nethermind.State.Repositories;
-using Nethermind.Db.Blooms;
 using NUnit.Framework;
 
 namespace Nethermind.Blockchain.Test.Visitors
@@ -31,7 +29,7 @@ namespace Nethermind.Blockchain.Test.Visitors
             {
                 Block genesisBlock = Build.A.Block.Genesis.TestObject;
 
-                BlockStore blockStore = new(new MemDb());
+                BlockStore blockStore = new(new MemDb(), new MemDb());
                 MemDb blockInfosDb = new();
                 MemDb headersDb = new();
 
@@ -77,7 +75,7 @@ namespace Nethermind.Blockchain.Test.Visitors
             {
                 Block genesisBlock = Build.A.Block.Genesis.TestObject;
 
-                BlockStore blockStore = new(new MemDb());
+                BlockStore blockStore = new(new MemDb(), new MemDb());
                 MemDb blockInfosDb = new();
                 MemDb headersDb = new();
 
@@ -118,7 +116,7 @@ namespace Nethermind.Blockchain.Test.Visitors
         [Test, Timeout(Timeout.MaxTestTime)]
         public async Task Can_load_from_DB_when_there_is_an_invalid_block_in_DB_and_a_valid_branch()
         {
-            BlockStore blockStore = new(new MemDb());
+            BlockStore blockStore = new(new MemDb(), new MemDb());
             MemDb blockInfosDb = new();
 
             BlockTreeBuilder builder = Build.A.BlockTree()
@@ -188,7 +186,7 @@ namespace Nethermind.Blockchain.Test.Visitors
         [Test, Timeout(Timeout.MaxTestTime)]
         public async Task Can_load_from_DB_when_there_is_only_an_invalid_chain_in_DB()
         {
-            BlockStore blockStore = new(new MemDb());
+            BlockStore blockStore = new(new MemDb(), new MemDb());
             MemDb blockInfosDb = new();
 
             BlockTreeBuilder builder = Build.A.BlockTree()

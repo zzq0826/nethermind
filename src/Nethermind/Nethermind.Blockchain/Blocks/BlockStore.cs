@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Text;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
 using Nethermind.Core.Crypto;
@@ -14,26 +15,31 @@ namespace Nethermind.Blockchain.Blocks;
 
 public class BlockStore : IBlockStore
 {
-    private readonly IDb _blockDb;
+    private readonly IKeyValueStore _blockDb;
+    private readonly IKeyValueStore _metadataDb;
     private readonly BlockDecoder _blockDecoder = new();
     private const int CacheSize = 128 + 32;
+
+    private static readonly byte[] MetadataKeyPrefix = Keccak.Compute("blockmetadata").BytesToArray();
 
     private readonly LruCache<ValueKeccak, Block>
         _blockCache = new(CacheSize, CacheSize, "blocks");
 
-    public BlockStore(IDb blockDb)
+    public BlockStore(IKeyValueStore blockDb, IKeyValueStore metadataDb)
     {
         _blockDb = blockDb;
+        _metadataDb = metadataDb;
     }
 
     public void SetMetadata(byte[] key, byte[] value)
     {
-        _blockDb.Set(key, value);
+        _metadataDb.Set(Bytes.Concat(MetadataKeyPrefix, key), value);
     }
 
     public byte[]? GetMetadata(byte[] key)
     {
-        return _blockDb.Get(key);
+        byte[]? result = _metadataDb.Get(Bytes.Concat(MetadataKeyPrefix, key));
+        return result ?? _blockDb.Get(key);
     }
 
     public void Insert(Block block)
