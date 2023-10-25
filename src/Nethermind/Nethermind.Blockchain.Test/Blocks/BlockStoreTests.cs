@@ -3,6 +3,7 @@
 
 using System;
 using FluentAssertions;
+using Google.Protobuf.WellKnownTypes;
 using Nethermind.Blockchain.Blocks;
 using Nethermind.Core;
 using Nethermind.Core.Test;
@@ -52,12 +53,28 @@ public class BlockStoreTests
     public void Test_can_set_and_get_metadata()
     {
         TestMemDb db = new TestMemDb();
-        BlockStore store = new BlockStore(db, new MemDb());
+        TestMemDb metadataDb = new TestMemDb();
+        BlockStore store = new BlockStore(db, metadataDb);
 
         byte[] key = new byte[] { 1, 2, 3 };
         byte[] value = new byte[] { 4, 5, 6 };
 
         store.SetMetadata(key, value);
+        store.GetMetadata(key).Should().BeEquivalentTo(value);
+
+        metadataDb.Count.Should().Be(1);
+    }
+
+    [Test]
+    public void Test_can_get_metadata_from_block_db()
+    {
+        TestMemDb db = new TestMemDb();
+        BlockStore store = new BlockStore(db, new MemDb());
+
+        byte[] key = new byte[] { 1, 2, 3 };
+        byte[] value = new byte[] { 4, 5, 6 };
+        db[key] = value;
+
         store.GetMetadata(key).Should().BeEquivalentTo(value);
     }
 
