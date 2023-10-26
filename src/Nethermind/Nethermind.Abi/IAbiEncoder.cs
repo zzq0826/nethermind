@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
+
 namespace Nethermind.Abi
 {
     public interface IAbiEncoder
@@ -21,6 +23,6 @@ namespace Nethermind.Abi
         /// <param name="signature">Signature of the Solidity method for which the arguments were passed.</param>
         /// <param name="data">ABI encoded data.</param>
         /// <returns></returns>
-        object[] Decode(AbiEncodingStyle encodingStyle, AbiSignature signature, byte[] data);
+        object[] Decode(AbiEncodingStyle encodingStyle, AbiSignature signature, ReadOnlyMemory<byte> data);
     }
 }

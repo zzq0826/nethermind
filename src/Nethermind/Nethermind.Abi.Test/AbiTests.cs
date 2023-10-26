@@ -479,7 +479,7 @@ public class AbiTests
 
         AbiSignature signature = new AbiSignature("abc", type);
 
-        ValueTuple<UInt256, ValueTuple<byte[], Address>, bool> dynamicTuple = new ValueTuple<UInt256, ValueTuple<byte[], Address>, bool>((UInt256)1000, new ValueTuple<byte[], Address>(Bytes.FromHexString("0x019283fa3d"), Address.SystemUser), true);
+        ValueTuple<UInt256, ValueTuple<ReadOnlyMemory<byte>, Address>, bool> dynamicTuple = new((UInt256)1000, new ValueTuple<ReadOnlyMemory<byte>, Address>(Bytes.FromHexString("0x019283fa3d").AsMemory(), Address.SystemUser), true);
         byte[] encoded = _abiEncoder.Encode(encodingStyle, signature, dynamicTuple);
         object[] arguments = _abiEncoder.Decode(encodingStyle, signature, encoded);
         Assert.That(arguments[0], Is.EqualTo(dynamicTuple));
@@ -494,7 +494,7 @@ public class AbiTests
 
         AbiSignature signature = new AbiSignature("abc", type);
 
-        ValueTuple<byte[], ValueTuple<byte[], Address>, bool> dynamicTuple = new ValueTuple<byte[], ValueTuple<byte[], Address>, bool>(Bytes.FromHexString("0x019283fa3d"), new ValueTuple<byte[], Address>(Bytes.FromHexString("0x019283fa3d"), Address.SystemUser), true);
+        ValueTuple<byte[], ValueTuple<byte[], Address>, bool> dynamicTuple = new(Bytes.FromHexString("0x019283fa3d"), new ValueTuple<byte[], Address>(Bytes.FromHexString("0x019283fa3d"), Address.SystemUser), true);
         byte[] encoded = _abiEncoder.Encode(encodingStyle, signature, dynamicTuple);
         object[] arguments = _abiEncoder.Decode(encodingStyle, signature, encoded);
         Assert.That(arguments[0], Is.EqualTo(dynamicTuple));

@@ -296,7 +296,8 @@ namespace Nethermind.Core.Test
         [TestCase("0x000100", 32, "256")]
         public void To_signed_big_int(string hex, int length, string expectedResult)
         {
-            Assert.That(Bytes.FromHexString(hex).ToSignedBigInteger(length), Is.EqualTo(BigInteger.Parse(expectedResult)));
+            ReadOnlySpan<byte> fromHexString = Bytes.FromHexString(hex);
+            Assert.That(fromHexString.ToSignedBigInteger(length), Is.EqualTo(BigInteger.Parse(expectedResult)));
         }
 
         [TestCase("0x0123456789abcdef0123456789abcdef", "0xefcdab8967452301efcdab8967452301")]

@@ -15,11 +15,14 @@ public sealed class ArrayPoolList<T> : IList<T>, IList, IReadOnlyList<T>, IDispo
 {
     private readonly ArrayPool<T> _arrayPool;
     private T[] _array;
-    private int _count = 0;
+    private int _count;
     private int _capacity;
     private bool _disposed;
 
-    public ArrayPoolList(int capacity) : this(ArrayPool<T>.Shared, capacity) { }
+    public ArrayPoolList(int capacity, int count = 0) : this(ArrayPool<T>.Shared, capacity)
+    {
+        _count = count;
+    }
 
     public ArrayPoolList(int capacity, IEnumerable<T> enumerable) : this(capacity) => this.AddRange(enumerable);
 

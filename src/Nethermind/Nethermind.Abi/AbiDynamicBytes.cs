@@ -26,9 +26,9 @@ namespace Nethermind.Abi
 
         public override string Name => "bytes";
 
-        public override Type CSharpType { get; } = typeof(byte[]);
+        public override Type CSharpType { get; } = typeof(ReadOnlyMemory<byte>);
 
-        public override (object, int) Decode(byte[] data, int position, bool packed)
+        public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             (UInt256 length, int currentPosition) = UInt256.DecodeUInt(data, position, packed);
             int paddingSize = packed ? (int)length : GetPaddingSize((int)length);
@@ -37,6 +37,12 @@ namespace Nethermind.Abi
 
         public override byte[] Encode(object? arg, bool packed)
         {
+            if (arg is ReadOnlyMemory<byte> input2)
+            {
+                byte[] lengthEncoded = UInt256.Encode(new BigInteger(input2.Length), packed);
+                return Bytes.Concat(lengthEncoded, packed ? input2 : input2.PadRight(GetPaddingSize(input2.Length)));
+            }
+
             if (arg is byte[] input)
             {
                 byte[] lengthEncoded = UInt256.Encode(new BigInteger(input.Length), packed);

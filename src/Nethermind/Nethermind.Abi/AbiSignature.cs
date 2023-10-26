@@ -44,6 +44,5 @@ namespace Nethermind.Abi
         }
 
         public static ReadOnlySpan<byte> GetAddress(ReadOnlySpan<byte> bytes) => bytes.Slice(0, 4);
-        public static ReadOnlyMemory<byte> GetAddress(ReadOnlyMemory<byte> bytes) => bytes.Slice(0, 4);
     }
 }

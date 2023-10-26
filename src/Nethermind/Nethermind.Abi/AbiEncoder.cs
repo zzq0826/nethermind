@@ -39,14 +39,14 @@ namespace Nethermind.Abi
             return Bytes.Concat(encodedArguments);
         }
 
-        public object[] Decode(AbiEncodingStyle encodingStyle, AbiSignature signature, byte[] data)
+        public object[] Decode(AbiEncodingStyle encodingStyle, AbiSignature signature, ReadOnlyMemory<byte> data)
         {
             bool packed = (encodingStyle & AbiEncodingStyle.Packed) == AbiEncodingStyle.Packed;
             bool includeSig = encodingStyle == AbiEncodingStyle.IncludeSignature;
             int sigOffset = includeSig ? 4 : 0;
             if (includeSig)
             {
-                if (!Bytes.AreEqual(AbiSignature.GetAddress(data.AsSpan()), signature.Address))
+                if (!Bytes.AreEqual(AbiSignature.GetAddress(data.Span), signature.Address))
                 {
                     throw new AbiException($"Signature in encoded ABI data is not consistent with {signature}");
                 }

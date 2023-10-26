@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Buffers;
 using System.Text;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -37,7 +38,7 @@ namespace Nethermind.Abi
 
         public override string Name { get; }
 
-        public override (object, int) Decode(byte[] data, int position, bool packed)
+        public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             return (data.Slice(position, Length), position + (packed ? Length : MaxLength));
         }

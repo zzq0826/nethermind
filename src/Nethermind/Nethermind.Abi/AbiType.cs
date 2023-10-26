@@ -32,7 +32,7 @@ namespace Nethermind.Abi
 
         public abstract string Name { get; }
 
-        public abstract (object, int) Decode(byte[] data, int position, bool packed);
+        public abstract (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed);
 
         public abstract byte[] Encode(object? arg, bool packed);
 

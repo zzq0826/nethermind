@@ -33,12 +33,12 @@ namespace Nethermind.Abi
 
         private const string RevertedErrorMessagePrefix = "Reverted ";
 
-        public static string UnpackRevert(this IAbiEncoder encoder, byte[] data)
+        public static string UnpackRevert(this IAbiEncoder encoder, ReadOnlyMemory<byte> data)
         {
-            static bool TryDecode<T>(IAbiEncoder encoder, byte[] data, AbiSignature signature, [NotNullWhen(true)] out T? result)
+            static bool TryDecode<T>(IAbiEncoder encoder, ReadOnlyMemory<byte> data, AbiSignature signature, [NotNullWhen(true)] out T? result)
             {
                 ReadOnlySpan<byte> address = signature.Address;
-                if (data.AsSpan().StartsWith(address))
+                if (data.Span.StartsWith(address))
                 {
                     result = (T)encoder.Decode(AbiEncodingStyle.IncludeSignature, signature, data)[0]!;
                     return true;

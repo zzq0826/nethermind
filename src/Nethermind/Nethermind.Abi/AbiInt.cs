@@ -59,7 +59,7 @@ namespace Nethermind.Abi
 
         public override string Name { get; }
 
-        public override (object, int) Decode(byte[] data, int position, bool packed)
+        public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             var (value, length) = DecodeInt(data, position, packed);
 
@@ -78,10 +78,10 @@ namespace Nethermind.Abi
             }
         }
 
-        public (BigInteger, int) DecodeInt(byte[] data, int position, bool packed)
+        public (BigInteger, int) DecodeInt(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             int length = (packed ? LengthInBytes : Int256.LengthInBytes);
-            byte[] input = data.Slice(position, length);
+            ReadOnlySpan<byte> input = data.Slice(position, length).Span;
             return (input.ToSignedBigInteger(length), position + length);
         }
 

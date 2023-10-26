@@ -261,6 +261,23 @@ namespace Nethermind.Core.Extensions
             return result;
         }
 
+        public static ReadOnlyMemory<byte> PadRight(this ReadOnlyMemory<byte> bytes, int length)
+        {
+            if (bytes.Length == length)
+            {
+                return bytes;
+            }
+
+            if (bytes.Length > length)
+            {
+                return bytes.Slice(0, length);
+            }
+
+            byte[] result = new byte[length];
+            bytes.Span.CopyTo(result);
+            return result;
+        }
+
         public static byte[] PadRight(this byte[] bytes, int length)
         {
             if (bytes.Length == length)
@@ -469,29 +486,34 @@ namespace Nethermind.Core.Extensions
             return BinaryPrimitives.ReadUInt64BigEndian(eightBytes);
         }
 
-        public static BigInteger ToSignedBigInteger(this byte[] bytes, int byteLength)
+        public static BigInteger ToSignedBigInteger(this ReadOnlySpan<byte> bytes, int byteLength)
         {
             if (bytes.Length == byteLength)
             {
-                return new BigInteger(bytes.AsSpan(), false, true);
+                return new BigInteger(bytes, false, true);
             }
 
             Debug.Assert(bytes.Length <= byteLength,
-                $"{nameof(ToSignedBigInteger)} expects {nameof(byteLength)} parameter to be less than length of the {bytes}");
+                $"{nameof(ToSignedBigInteger)} expects {nameof(byteLength)} parameter to be less than length of the {bytes.ToHexString()}");
             bool needToExpand = bytes.Length != byteLength;
-            byte[] bytesToUse = needToExpand ? new byte[byteLength] : bytes;
+            ReadOnlySpan<byte> bytesToUse = bytes;
+            ArrayPoolList<byte>? array = null;
             if (needToExpand)
             {
-                Buffer.BlockCopy(bytes, 0, bytesToUse, byteLength - bytes.Length, bytes.Length);
+                array = new(byteLength, byteLength);
+                Span<byte> span = array.AsSpan();
+                bytes.CopyTo(span.Slice(byteLength - bytes.Length, bytes.Length));
+                bytesToUse = span;
             }
 
-            byte[] signedResult = new byte[byteLength];
+            using ArrayPoolList<byte> signedResult = new(byteLength, byteLength);
             for (int i = 0; i < byteLength; i++)
             {
                 signedResult[byteLength - i - 1] = bytesToUse[i];
             }
 
-            return new BigInteger(signedResult);
+            array?.Dispose();
+            return new BigInteger(signedResult.AsSpan());
         }
 
         public static UInt256 ToUInt256(this byte[] bytes)

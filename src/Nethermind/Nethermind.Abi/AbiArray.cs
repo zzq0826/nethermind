@@ -28,7 +28,7 @@ public class AbiArray : AbiType
 
     public override Type CSharpType { get; }
 
-    public override (object, int) Decode(byte[] data, int position, bool packed)
+    public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
     {
         (UInt256 length, position) = UInt256.DecodeUInt(data, position, packed);
         return DecodeSequence(ElementType.CSharpType, (int)length, ElementTypes, data, packed, position);

@@ -23,10 +23,10 @@ namespace Nethermind.Abi
 
         public override string Name => "string";
 
-        public override (object, int) Decode(byte[] data, int position, bool packed)
+        public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             (object bytes, int newPosition) = DynamicBytes.Decode(data, position, packed);
-            return (Encoding.ASCII.GetString((byte[])bytes), newPosition);
+            return (Encoding.ASCII.GetString(((ReadOnlyMemory<byte>)bytes).Span), newPosition);
         }
 
         public override byte[] Encode(object? arg, bool packed)

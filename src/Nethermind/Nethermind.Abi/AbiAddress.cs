@@ -48,7 +48,7 @@ namespace Nethermind.Abi
 
         public override Type CSharpType { get; } = typeof(Address);
 
-        public override (object, int) Decode(byte[] data, int position, bool packed)
+        public override (object, int) Decode(ReadOnlyMemory<byte> data, int position, bool packed)
         {
             return (new Address(data.Slice(position + (packed ? 0 : 12), Address.LengthInBytes)), position + (packed ? Address.LengthInBytes : UInt256.LengthInBytes));
         }
