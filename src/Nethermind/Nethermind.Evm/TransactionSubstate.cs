@@ -20,6 +20,7 @@ public class TransactionSubstate
     private const int RevertPrefix = 4;
 
     private const string RevertedErrorMessagePrefix = "Reverted ";
+    private readonly byte[] ErrorFunctionSelector = { 0x08, 0xc3, 0x79, 0xa0 };
 
     public bool IsError => Error is not null && !ShouldRevert;
     public string? Error { get; }
@@ -68,6 +69,7 @@ public class TransactionSubstate
 
         ReadOnlySpan<byte> span = Output.Span;
         Error = TryGetErrorMessage(span)
+                ?? TryUnpackRevertMessage(span)
                 ?? DefaultErrorMessage(span);
     }
 
@@ -100,6 +102,38 @@ public class TransactionSubstate
             return string.Concat(RevertedErrorMessagePrefix, span.Slice(RevertPrefix + start + sizeof(UInt256), length).ToHexString(true));
         }
         catch (OverflowException)
+        {
+            return null;
+        }
+    }
+
+    private unsafe string? TryUnpackRevertMessage(ReadOnlySpan<byte> span)
+    {
+        if (span.Length < RevertPrefix + sizeof(UInt256) * 2)
+        {
+            return null;
+        }
+
+        if (!span[..RevertPrefix].SequenceEqual(ErrorFunctionSelector))
+        {
+            return null;
+        }
+
+        try
+        {
+            int start = (int)new UInt256(span.Slice(RevertPrefix, sizeof(UInt256)), isBigEndian: true);
+            if (start != sizeof(UInt256))
+            {
+                return null;
+            }
+
+            int length = (int)new UInt256(span.Slice(RevertPrefix + sizeof(UInt256), sizeof(UInt256)), isBigEndian: true);
+            ReadOnlySpan<byte> binaryMessage = span.Slice(RevertPrefix + sizeof(UInt256) + sizeof(UInt256), length);
+            string message = string.Concat(RevertedErrorMessagePrefix, System.Text.Encoding.UTF8.GetString(binaryMessage));
+
+            return message;
+        }
+        catch (Exception e) when (e is OverflowException or ArgumentOutOfRangeException)
         {
             return null;
         }
