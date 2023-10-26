@@ -16,6 +16,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db.Rocks.Config;
 using Nethermind.Db.Rocks.Statistics;
+using Nethermind.Int256;
 using Nethermind.Logging;
 using RocksDbSharp;
 
@@ -1014,6 +1015,11 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
 
     public IEnumerable<KeyValuePair<byte[], byte[]?>> GetIterator(byte[] start, byte[] end)
     {
+        // TODO: another work around for rocksDb not having inclusive range.
+        UInt256 x = new (end, true);
+        x += 1;
+        end = x.ToBigEndian();
+
         Iterator iterator = CreateIterator(start, end, true);
         return GetAllCoreBounded(iterator);
     }
