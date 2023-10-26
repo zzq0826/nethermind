@@ -4,8 +4,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nethermind.Core;
 using Nethermind.Core.Exceptions;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Memory;
 using Nethermind.Logging;
 using Nethermind.Synchronization.Peers;
 
@@ -13,6 +15,9 @@ namespace Nethermind.Synchronization.ParallelSync
 {
     public class SyncDispatcher<T>
     {
+        private readonly RateLimiter _highMemoryPressureRateLimit = new(eventPerSec: 5);
+        private readonly RateLimiter _mediumMemoryPressureRateLimit = new(eventPerSec: 20);
+
         private readonly object _feedStateManipulation = new();
         private SyncFeedState _currentFeedState = SyncFeedState.Dormant;
 
@@ -81,6 +86,8 @@ namespace Nethermind.Synchronization.ParallelSync
                     }
                     else if (currentStateLocal == SyncFeedState.Active)
                     {
+                        await ThrottleIfNeeded(cancellationToken);
+
                         cancellationToken.ThrowIfCancellationRequested();
                         T request = await (Feed.PrepareRequest(cancellationToken) ?? Task.FromResult<T>(default!)); // just to avoid null refs
                         if (request is null)
@@ -128,6 +135,20 @@ namespace Nethermind.Synchronization.ParallelSync
                 {
                     Feed.Finish();
                 }
+            }
+        }
+
+        private async Task ThrottleIfNeeded(CancellationToken cancellationToken)
+        {
+            IMemoryPressureHelper.MemoryPressure pressure = MemoryPressureHelper.Instance.GetCurrentMemoryPressure();
+            switch (pressure)
+            {
+                case IMemoryPressureHelper.MemoryPressure.Medium:
+                    await _mediumMemoryPressureRateLimit.WaitAsync(cancellationToken);
+                    break;
+                case IMemoryPressureHelper.MemoryPressure.High:
+                    await _highMemoryPressureRateLimit.WaitAsync(cancellationToken);
+                    break;
             }
         }
 
