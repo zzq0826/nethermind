@@ -656,11 +656,14 @@ public class DbOnTheRocks : IDbWithSpan, ITunableDb
     {
         ReadOptions readOptions = new();
         readOptions.SetTailing(!ordered);
-        readOptions.SetIterateLowerBound(start);
+        // TODO: does not work with SetIterateLowerBound (use seek instead) - have to figure out the reason behind this?
+        // readOptions.SetIterateLowerBound(start);
         readOptions.SetIterateUpperBound(end);
         try
         {
-            return _db.NewIterator(ch, readOptions);
+            Iterator? iterator = _db.NewIterator(ch, readOptions);
+            iterator.Seek(start);
+            return iterator;
         }
         catch (RocksDbSharpException e)
         {
