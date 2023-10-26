@@ -57,7 +57,7 @@ namespace Nethermind.Abi
 
             if (arg is ITuple input && input.Length == _elements.Length)
             {
-                byte[][] encodedItems = EncodeSequence(_elements.Length, _elements, GetEnumerable(input), packed);
+                ReadOnlyMemory<ReadOnlyMemory<byte>> encodedItems = EncodeSequence(_elements.Length, _elements, GetEnumerable(input), packed);
                 return Bytes.Concat(encodedItems);
             }
 
@@ -108,7 +108,7 @@ namespace Nethermind.Abi
             if (arg is T item)
             {
                 IEnumerable<object?> values = _properties.Select(p => p.GetValue(item));
-                byte[][] encodedItems = EncodeSequence(_elements.Length, _elements, values, packed);
+                ReadOnlyMemory<ReadOnlyMemory<byte>> encodedItems = EncodeSequence(_elements.Length, _elements, values, packed);
                 return Bytes.Concat(encodedItems);
             }
 

@@ -29,11 +29,11 @@ namespace Nethermind.Abi
                 throw new AbiException($"Insufficient parameters for {signature.Name}. Expected {signature.Types.Length} arguments but got {arguments.Length}");
             }
 
-            byte[][] encodedArguments = AbiType.EncodeSequence(signature.Types.Length, signature.Types, arguments, packed, includeSig ? 1 : 0);
+            Memory<ReadOnlyMemory<byte>> encodedArguments = AbiType.EncodeSequence(signature.Types.Length, signature.Types, arguments, packed, includeSig ? 1 : 0);
 
             if (includeSig)
             {
-                encodedArguments[0] = signature.Address;
+                encodedArguments.Span[0] = signature.Address.ToArray();
             }
 
             return Bytes.Concat(encodedArguments);
@@ -46,7 +46,7 @@ namespace Nethermind.Abi
             int sigOffset = includeSig ? 4 : 0;
             if (includeSig)
             {
-                if (!Bytes.AreEqual(AbiSignature.GetAddress(data), signature.Address))
+                if (!Bytes.AreEqual(AbiSignature.GetAddress(data.AsSpan()), signature.Address))
                 {
                     throw new AbiException($"Signature in encoded ABI data is not consistent with {signature}");
                 }

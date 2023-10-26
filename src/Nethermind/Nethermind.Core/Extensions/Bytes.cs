@@ -297,6 +297,26 @@ namespace Nethermind.Core.Extensions
             return result;
         }
 
+        public static byte[] Concat(ReadOnlyMemory<ReadOnlyMemory<byte>> parts)
+        {
+            ReadOnlySpan<ReadOnlyMemory<byte>> partsSpan = parts.Span;
+            int totalLength = 0;
+            for (int i = 0; i < partsSpan.Length; i++)
+            {
+                totalLength += partsSpan[i].Length;
+            }
+
+            byte[] result = new byte[totalLength];
+            int position = 0;
+            for (int i = 0; i < partsSpan.Length; i++)
+            {
+                partsSpan[i].Span.CopyTo(result.AsSpan(position, partsSpan[i].Length));
+                position += partsSpan[i].Length;
+            }
+
+            return result;
+        }
+
         public static byte[] Concat(ReadOnlySpan<byte> part1, ReadOnlySpan<byte> part2)
         {
             byte[] result = new byte[part1.Length + part2.Length];

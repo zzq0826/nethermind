@@ -10,20 +10,10 @@ public static class MemoryExtensions
     /// </summary>
     /// <param name="memory"></param>
     /// <returns></returns>
-    public static byte[]? AsArray(this in Memory<byte>? memory)
-    {
-        if (memory == null) return null;
+    public static byte[]? AsArray(this in Memory<byte>? memory) => memory?.AsArray();
 
-        return memory.Value.AsArray();
-    }
-
-    public static byte[] AsArray(this in Memory<byte> memory)
-    {
-        if (
-            MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment) &&
-            segment.Offset == 0 && segment.Count == segment.Array!.Length
-        ) return segment.Array;
-
-        return memory.Span.ToArray();
-    }
+    public static byte[] AsArray(this in Memory<byte> memory) =>
+        MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment) && segment.Offset == 0 && segment.Count == segment.Array!.Length
+            ? segment.Array
+            : memory.Span.ToArray();
 }

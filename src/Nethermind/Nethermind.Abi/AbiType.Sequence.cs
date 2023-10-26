@@ -12,10 +12,10 @@ namespace Nethermind.Abi
     {
         protected const int PaddingSize = 32;
 
-        internal static byte[][] EncodeSequence(int length, IEnumerable<AbiType> types, IEnumerable<object?> sequence, bool packed, int offset = 0)
+        internal static Memory<ReadOnlyMemory<byte>> EncodeSequence(int length, IEnumerable<AbiType> types, IEnumerable<object?> sequence, bool packed, int offset = 0)
         {
-            List<byte[]> dynamicParts = new(length);
-            List<byte[]?> headerParts = new(length);
+            List<ReadOnlyMemory<byte>> dynamicParts = new(length);
+            List<ReadOnlyMemory<byte>?> headerParts = new(length);
             using IEnumerator<object?> sequenceEnumerator = sequence.GetEnumerator();
             using IEnumerator<AbiType> typesEnumerator = types.GetEnumerator();
             for (int i = 0; i < length; i++)
@@ -60,11 +60,11 @@ namespace Nethermind.Abi
                 }
             }
 
-            byte[][] encodedParts = new byte[offset + headerParts.Count + dynamicParts.Count][];
+            ReadOnlyMemory<byte>[] encodedParts = new ReadOnlyMemory<byte>[offset + headerParts.Count + dynamicParts.Count];
 
             for (int i = 0; i < headerParts.Count; i++)
             {
-                encodedParts[offset + i] = headerParts[i]!;
+                encodedParts[offset + i] = headerParts[i]!.Value;
             }
 
             for (int i = 0; i < dynamicParts.Count; i++)
@@ -72,7 +72,7 @@ namespace Nethermind.Abi
                 encodedParts[offset + headerParts.Count + i] = dynamicParts[i];
             }
 
-            return encodedParts;
+            return encodedParts.AsMemory();
         }
 
         internal static (object[], int) DecodeSequence(int length, IEnumerable<AbiType> types, byte[] data, bool packed, int startPosition)

@@ -44,7 +44,7 @@ namespace Nethermind.Abi
                     throw new AbiException(AbiEncodingExceptionMessage);
                 }
 
-                byte[][] encodedItems = EncodeSequence(input.Length, ElementTypes, input.Cast<object?>(), packed);
+                Memory<ReadOnlyMemory<byte>> encodedItems = EncodeSequence(input.Length, ElementTypes, input.Cast<object?>(), packed);
                 return Bytes.Concat(encodedItems);
             }
 

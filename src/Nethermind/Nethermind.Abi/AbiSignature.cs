@@ -11,6 +11,9 @@ namespace Nethermind.Abi
         private string? _toString;
         private Keccak? _hash;
 
+        public static readonly AbiSignature Revert = new AbiSignature("Error", AbiType.String);
+        public static readonly AbiSignature Panic = new AbiSignature("Panic", AbiType.UInt256);
+
         public AbiSignature(string name, params AbiType[] types)
         {
             Name = name;
@@ -19,7 +22,7 @@ namespace Nethermind.Abi
 
         public string Name { get; }
         public AbiType[] Types { get; }
-        public byte[] Address => GetAddress(Hash.Bytes);
+        public ReadOnlySpan<byte> Address => GetAddress(Hash.Bytes);
         public Keccak Hash => _hash ??= Keccak.Compute(ToString());
 
         public override string ToString()
@@ -40,6 +43,7 @@ namespace Nethermind.Abi
             return _toString ??= ComputeString();
         }
 
-        public static byte[] GetAddress(ReadOnlySpan<byte> bytes) => bytes.Slice(0, 4).ToArray();
+        public static ReadOnlySpan<byte> GetAddress(ReadOnlySpan<byte> bytes) => bytes.Slice(0, 4);
+        public static ReadOnlyMemory<byte> GetAddress(ReadOnlyMemory<byte> bytes) => bytes.Slice(0, 4);
     }
 }

@@ -133,12 +133,25 @@ namespace Nethermind.Core.Extensions
             return result;
         }
 
-        public static ReadOnlySpan<byte> TakeAndMove(this ref ReadOnlySpan<byte> span, int length)
+        public static ReadOnlySpan<T> Split<T>(this ref ReadOnlySpan<T> span, int items)
         {
-            ReadOnlySpan<byte> s = span[..length];
-            span = span[length..];
+            ReadOnlySpan<T> s = span[..items];
+            span = span[items..];
             return s;
         }
+
+        public static bool TrySplit<T>(this ref ReadOnlySpan<T> span, int items, out ReadOnlySpan<T> result)
+        {
+            if (span.Length < items)
+            {
+                result = default;
+                return false;
+            }
+
+            result = span.Split(items);
+            return true;
+        }
+
 
         public static bool IsNullOrEmpty<T>(this in Span<T> span) => span.Length == 0;
         public static bool IsNull<T>(this in Span<T> span) => Unsafe.IsNullRef(ref MemoryMarshal.GetReference(span));

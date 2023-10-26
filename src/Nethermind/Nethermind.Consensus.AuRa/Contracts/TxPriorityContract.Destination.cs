@@ -54,7 +54,7 @@ namespace Nethermind.Consensus.AuRa.Contracts
 
             public static Destination GetTransactionKey(Transaction tx)
             {
-                byte[] fnSignature = tx.Data?.Length >= 4 ? AbiSignature.GetAddress(tx.Data.AsArray()) : FnSignatureEmpty;
+                byte[] fnSignature = tx.Data?.Length >= 4 ? AbiSignature.GetAddress(tx.Data.Value.Span).ToArray() : FnSignatureEmpty;
                 return new Destination(tx.To, fnSignature, UInt256.Zero);
             }
 
@@ -67,7 +67,7 @@ namespace Nethermind.Consensus.AuRa.Contracts
 
         public class ValueDestinationMethodComparer : IComparer<Destination>
         {
-            public static readonly ValueDestinationMethodComparer Instance = new ValueDestinationMethodComparer();
+            public static readonly ValueDestinationMethodComparer Instance = new();
 
             public int Compare(Destination x, Destination y)
             {
@@ -86,7 +86,7 @@ namespace Nethermind.Consensus.AuRa.Contracts
 
         public class DistinctDestinationMethodComparer : IComparer<Destination>, IEqualityComparer<Destination>
         {
-            public static readonly DistinctDestinationMethodComparer Instance = new DistinctDestinationMethodComparer();
+            public static readonly DistinctDestinationMethodComparer Instance = new();
 
             public int Compare(Destination x, Destination y)
             {

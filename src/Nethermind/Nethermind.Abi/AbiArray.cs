@@ -30,15 +30,14 @@ public class AbiArray : AbiType
 
     public override (object, int) Decode(byte[] data, int position, bool packed)
     {
-        UInt256 length;
-        (length, position) = UInt256.DecodeUInt(data, position, packed);
+        (UInt256 length, position) = UInt256.DecodeUInt(data, position, packed);
         return DecodeSequence(ElementType.CSharpType, (int)length, ElementTypes, data, packed, position);
     }
 
     public override byte[] Encode(object? arg, bool packed)
     {
         int length;
-        byte[][] encodedItems;
+        Memory<ReadOnlyMemory<byte>> encodedItems;
         switch (arg)
         {
             case Array array:
@@ -53,7 +52,7 @@ public class AbiArray : AbiType
                 throw new AbiException(AbiEncodingExceptionMessage);
         }
 
-        encodedItems[0] = UInt256.Encode((BigInteger)length, packed);
+        encodedItems.Span[0] = UInt256.Encode((BigInteger)length, packed);
         return Bytes.Concat(encodedItems);
     }
 
