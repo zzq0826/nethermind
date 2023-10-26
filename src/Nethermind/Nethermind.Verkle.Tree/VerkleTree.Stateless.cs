@@ -200,6 +200,7 @@ public partial class VerkleTree
         }
     }
 
+    // TODO: have to handle the case where there is only one subtree included.
     public bool CreateStatelessTreeFromRange(VerkleProof proof, Banderwagon rootPoint, Stem startStem, Stem endStem, PathWithSubTree[] subTrees)
     {
         const int numberOfStems = 2;

@@ -15,6 +15,7 @@ public partial class VerkleStateStore
 {
     public bool IsFullySynced(Keccak stateRoot) => StateRootToBlocks[new VerkleCommitment(stateRoot.Bytes.ToArray())] != -2;
 
+    // TODO: handle the case where there is no stem between the requested range.
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, VerkleCommitment stateRoot, long bytes)
     {
         if(bytes == 0)  yield break;
