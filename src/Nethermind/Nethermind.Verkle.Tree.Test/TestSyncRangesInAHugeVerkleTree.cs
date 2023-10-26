@@ -29,6 +29,19 @@ public class TestSyncRangesInAHugeVerkleTree
         }
     }
 
+    private Pedersen[] GetPedersenPathPool(int pathPoolCount)
+    {
+        Pedersen[] pathPool = new Pedersen[pathPoolCount];
+        for (int i = 0; i < pathPoolCount; i++)
+        {
+            byte[] key = new byte[32];
+            ((UInt256)i).ToBigEndian(key);
+            Pedersen keccak = new Pedersen(key);
+            pathPool[i] = keccak;
+        }
+        return pathPool;
+    }
+
     [TestCase(DbMode.MemDb)]
     [TestCase(DbMode.PersistantDb)]
     public void GetSyncRangeForBigVerkleTree(DbMode dbMode)
@@ -37,24 +50,16 @@ public class TestSyncRangesInAHugeVerkleTree
         const int numBlocks = 200;
         const int leafPerBlock = 10;
         const int blockToGetIteratorFrom = 180;
+        const int initialLeafCount = 10000;
 
         IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
-        Pedersen[] pathPool = new Pedersen[pathPoolCount];
+        Pedersen[] pathPool = GetPedersenPathPool(pathPoolCount);
         SortedDictionary<Pedersen, byte[]> leafs = new();
         SortedDictionary<Pedersen, byte[]> leafsForSync = new();
 
-        for (int i = 0; i < pathPoolCount; i++)
-        {
-            byte[] key = new byte[32];
-            ((UInt256)i).ToBigEndian(key);
-            Pedersen keccak = new Pedersen(key);
-            pathPool[i] = keccak;
-        }
-
-
-        for (int leafIndex = 0; leafIndex < 10000; leafIndex++)
+        for (int leafIndex = 0; leafIndex < initialLeafCount; leafIndex++)
         {
             byte[] value = new byte[32];
             Random.NextBytes(value);
@@ -142,10 +147,14 @@ public class TestSyncRangesInAHugeVerkleTree
     [TestCase(DbMode.PersistantDb)]
     public void GetSyncRangeForBigVerkleTreeAndHealTree(DbMode dbMode)
     {
-        const int pathPoolCount = 100_000;
-        const int numBlocks1 = 200;
-        const int numBlocks2 = 20;
-        const int leafPerBlock = 10;
+        const int pathPoolCount = 100_00;
+        const int numBlocks1 = 150;
+        const int numBlocks2 = 10;
+        const int leafPerBlock = 2;
+        const int initialLeafCount = 10000;
+        const int blockJump = 5;
+        const int healingLoop = 5;
+        const int numPathInOneHealingLoop = pathPoolCount / (healingLoop * blockJump);
 
         IVerkleTrieStore remoteStore = TestItem.GetVerkleStore(dbMode);
         VerkleTree remoteTree = new(remoteStore, LimboLogs.Instance);
@@ -153,29 +162,18 @@ public class TestSyncRangesInAHugeVerkleTree
         IVerkleTrieStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
         VerkleTree localTree = new(localStore, LimboLogs.Instance);
 
-        Pedersen[] pathPool = new Pedersen[pathPoolCount];
+        Pedersen[] pathPool = GetPedersenPathPool(pathPoolCount);
         SortedDictionary<Pedersen, byte[]> leafs = new();
-        SortedDictionary<Pedersen, byte[]> leafsForSync = new();
-
-        for (int i = 0; i < pathPoolCount; i++)
-        {
-            byte[] key = new byte[32];
-            ((UInt256)i).ToBigEndian(key);
-            Pedersen keccak = new Pedersen(key);
-            pathPool[i] = keccak;
-        }
 
 
-        for (int leafIndex = 0; leafIndex < 10000; leafIndex++)
+        for (int leafIndex = 0; leafIndex < initialLeafCount; leafIndex++)
         {
             byte[] value = new byte[32];
             Random.NextBytes(value);
             Pedersen path = pathPool[Random.Next(pathPool.Length - 1)];
             remoteTree.Insert(path, value);
             leafs[path] = value;
-            leafsForSync[path] = value;
         }
-
         remoteTree.Commit();
         remoteTree.CommitTree(0);
 
@@ -192,14 +190,11 @@ public class TestSyncRangesInAHugeVerkleTree
                 if (leafs.ContainsKey(path))
                 {
                     if (!(Random.NextSingle() > 0.5)) continue;
-                    // Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
-                    // Console.WriteLine("new values");
                 }
                 else
                 {
-                    // Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
                 }
@@ -215,12 +210,12 @@ public class TestSyncRangesInAHugeVerkleTree
 
         int startingHashIndex = 0;
         int endHashIndex = 0;
-        for (int blockNumber = numBlocks1 + 1; blockNumber <= numBlocks1 + 5; blockNumber++)
+        for (int blockNumber = numBlocks1 + 1; blockNumber <= numBlocks1 + blockJump; blockNumber++)
         {
-            for (int i = 0; i < 19; i++)
+            for (int i = 0; i < healingLoop; i++)
             {
-                endHashIndex = startingHashIndex + 1000;
-
+                endHashIndex = startingHashIndex + numPathInOneHealingLoop - 1;
+                Console.WriteLine($"{startingHashIndex} {endHashIndex}");
                 PathWithSubTree[] range =
                     remoteTree._verkleStateStore
                         .GetLeafRangeIterator(
@@ -251,15 +246,12 @@ public class TestSyncRangesInAHugeVerkleTree
                 if (leafs.ContainsKey(path))
                 {
                     if (!(Random.NextSingle() > 0.5)) continue;
-                    // Console.WriteLine($"blockNumber:{blockNumber} uKey:{path} uValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
                     update.Add(path.Bytes);
-                    // Console.WriteLine("new values");
                 }
                 else
                 {
-                    // Console.WriteLine($"blockNumber:{blockNumber} nKey:{path} nValue:{leafValue.ToHexString()}");
                     remoteTree.Insert(path, leafValue);
                     leafs[path] = leafValue;
                     update.Add(path.Bytes);
@@ -280,6 +272,7 @@ public class TestSyncRangesInAHugeVerkleTree
             {
                 endHashIndex = pathPool.Length - 1;
             }
+            Console.WriteLine($"{startingHashIndex} {endHashIndex}");
 
             PathWithSubTree[] range = remoteTree._verkleStateStore.GetLeafRangeIterator(
                 pathPool[startingHashIndex].StemAsSpan.ToArray(),
@@ -400,17 +393,8 @@ public class TestSyncRangesInAHugeVerkleTree
         IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
-        Pedersen[] pathPool = new Pedersen[pathPoolCount];
+        Pedersen[] pathPool = GetPedersenPathPool(pathPoolCount);
         SortedDictionary<Pedersen, byte[]> leafs = new();
-
-        for (int i = 0; i < pathPoolCount; i++)
-        {
-            byte[] key = new byte[32];
-            ((UInt256)i).ToBigEndian(key);
-            Pedersen keccak = new Pedersen(key);
-            pathPool[i] = keccak;
-        }
-
 
         for (int leafIndex = 0; leafIndex < 10000; leafIndex++)
         {
