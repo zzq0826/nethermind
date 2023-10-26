@@ -1,19 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Diagnostics;
 using FluentAssertions;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Verkle;
-using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieStore;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -142,6 +139,7 @@ public class TestSyncRangesInAHugeVerkleTree
     }
 
     [TestCase(DbMode.MemDb)]
+    [TestCase(DbMode.PersistantDb)]
     public void GetSyncRangeForBigVerkleTreeAndHealTree(DbMode dbMode)
     {
         const int pathPoolCount = 100_000;
@@ -152,7 +150,7 @@ public class TestSyncRangesInAHugeVerkleTree
         IVerkleTrieStore remoteStore = TestItem.GetVerkleStore(dbMode);
         VerkleTree remoteTree = new(remoteStore, LimboLogs.Instance);
 
-        IVerkleTrieStore localStore = TestItem.GetVerkleStore(dbMode);
+        IVerkleTrieStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
         VerkleTree localTree = new(localStore, LimboLogs.Instance);
 
         Pedersen[] pathPool = new Pedersen[pathPoolCount];
