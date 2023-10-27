@@ -7,6 +7,7 @@ using System.IO;
 using DotNetty.Buffers;
 using Nethermind.Api;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Memory;
 using Nethermind.Db.Rocks.Config;
@@ -410,15 +411,12 @@ namespace Nethermind.Init
                     }
                 }
 
+                // Arena order is the depth of the tree used for binary buddy algorithm, which determine size per chunk
+                // which is 8192*(2^order). The chunk is more like the minimum memory allocated per arena instead of the
                 networkConfig.NettyArenaOrder = Math.Min(11, targetNettyArenaOrder);
             }
 
             NettyMemory = estimate;
-
-            // Need to set these early, or otherwise if the allocator is used ahead of these setting, these config
-            // will not take affect
-
-            Environment.SetEnvironmentVariable("io.netty.allocator.maxOrder", networkConfig.NettyArenaOrder.ToString());
 
             // Arena count is capped because if its too high, the memory budget per arena can get too low causing
             // a very small chunk size. Any allocation of size higher than a chunk will essentially be unpooled triggering LOH.
@@ -437,13 +435,7 @@ namespace Nethermind.Init
             // Heap arena frees a chunk by just dereferencing, leaving GC to take it later.
             // Direct arena holds a pinned `GCHandle` per chunk and calls `GCHandle.Free` to release the chunk.
             // We never use any direct arena, but it does not take up memory because of that.
-            Environment.SetEnvironmentVariable("io.netty.allocator.numHeapArenas", arenaCount.ToString());
-            Environment.SetEnvironmentVariable("io.netty.allocator.numDirectArenas", arenaCount.ToString());
-
-            if (PooledByteBufferAllocator.Default.Metric.HeapArenas().Count != arenaCount)
-            {
-                _logger.Warn("unable to set netty pooled byte buffer config");
-            }
+            NethPooledBuffer.Configure(arenaCount, networkConfig.NettyArenaOrder);
         }
 
         private static void ValidateCpuCount(uint cpuCount)
