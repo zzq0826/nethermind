@@ -10,6 +10,7 @@ using Nethermind.Api;
 using Nethermind.Api.Extensions;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
+using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.Db;
 using Nethermind.Facade.Eth;
@@ -46,8 +47,8 @@ namespace Nethermind.Init.Steps;
 
 public static class NettyMemoryEstimator
 {
-    // Environment.SetEnvironmentVariable("io.netty.allocator.pageSize", "8192");
-    private const uint PageSize = 8192;
+    // Used by `NethPooledBuffer`, whose page size is set to 32.KiB
+    private static uint PageSize = (uint) 32.KiB();
 
     public static long Estimate(uint arenaCount, int arenaOrder)
     {

@@ -19,6 +19,7 @@ using Nethermind.Logging;
 using Nethermind.Network.Config;
 using Nethermind.Network.Discovery.Lifecycle;
 using Nethermind.Network.Discovery.RoutingTable;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Stats.Model;
 using LogLevel = DotNetty.Handlers.Logging.LogLevel;
 
@@ -134,7 +135,7 @@ public class DiscoveryApp : IDiscoveryApp
         _group = new MultithreadEventLoopGroup(1);
         Bootstrap bootstrap = new();
         bootstrap.Group(_group);
-        bootstrap.Option(ChannelOption.Allocator, NethPooledBuffer.Instance);
+        bootstrap.Option(ChannelOption.Allocator, NethPooledBufferAllocator.Instance);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {

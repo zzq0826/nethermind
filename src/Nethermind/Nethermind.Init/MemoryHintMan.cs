@@ -14,6 +14,7 @@ using Nethermind.Db.Rocks.Config;
 using Nethermind.Init.Steps;
 using Nethermind.Logging;
 using Nethermind.Network.Config;
+using Nethermind.Serialization.Rlp;
 using Nethermind.TxPool;
 
 namespace Nethermind.Init
@@ -435,7 +436,7 @@ namespace Nethermind.Init
             // Heap arena frees a chunk by just dereferencing, leaving GC to take it later.
             // Direct arena holds a pinned `GCHandle` per chunk and calls `GCHandle.Free` to release the chunk.
             // We never use any direct arena, but it does not take up memory because of that.
-            NethPooledBuffer.Configure(arenaCount, networkConfig.NettyArenaOrder);
+            NethPooledBufferAllocator.Configure(arenaCount, networkConfig.NettyArenaOrder);
         }
 
         private static void ValidateCpuCount(uint cpuCount)

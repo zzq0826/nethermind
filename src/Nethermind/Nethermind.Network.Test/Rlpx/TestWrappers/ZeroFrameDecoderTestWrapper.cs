@@ -9,6 +9,7 @@ using DotNetty.Transport.Channels;
 using Nethermind.Core.Buffers;
 using Nethermind.Logging;
 using Nethermind.Network.Rlpx;
+using Nethermind.Serialization.Rlp;
 using NSubstitute;
 
 namespace Nethermind.Network.Test.Rlpx.TestWrappers
@@ -20,7 +21,7 @@ namespace Nethermind.Network.Test.Rlpx.TestWrappers
         public ZeroFrameDecoderTestWrapper(IFrameCipher frameCipher, FrameMacProcessor frameMacProcessor) : base(frameCipher, frameMacProcessor, LimboLogs.Instance)
         {
             _context = Substitute.For<IChannelHandlerContext>();
-            _context.Allocator.Returns(NethPooledBuffer.Instance);
+            _context.Allocator.Returns(NethPooledBufferAllocator.Instance);
         }
 
         public IByteBuffer Decode(IByteBuffer input, bool throwOnCorruptedFrames = true)

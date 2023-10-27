@@ -10,6 +10,7 @@ using Nethermind.Core.Test.Builders;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
 using Nethermind.Network.Rlpx;
 using Nethermind.Network.Test.Rlpx.TestWrappers;
+using Nethermind.Serialization.Rlp;
 using NUnit.Framework;
 
 namespace Nethermind.Network.Test.Rlpx
@@ -23,8 +24,8 @@ namespace Nethermind.Network.Test.Rlpx
         [SetUp]
         public void Setup()
         {
-            _input = ReferenceCountUtil.ReleaseLater(NethPooledBuffer.Instance.Buffer(16 * 1024));
-            _output = ReferenceCountUtil.ReleaseLater(NethPooledBuffer.Instance.Buffer(16 * 1024));
+            _input = ReferenceCountUtil.ReleaseLater(NethPooledBufferAllocator.Instance.Buffer(16 * 1024));
+            _output = ReferenceCountUtil.ReleaseLater(NethPooledBufferAllocator.Instance.Buffer(16 * 1024));
         }
 
         [TearDown]

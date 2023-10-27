@@ -11,6 +11,7 @@ using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
+using Nethermind.Serialization.Rlp;
 using NUnit.Framework;
 
 namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V62;
@@ -29,7 +30,7 @@ public class BlockBodiesMessageSerializerTests
     [TestCaseSource(nameof(GetBlockBodyValues))]
     public void Should_not_contain_network_form_tx_wrapper(BlockBody[] bodies)
     {
-        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024 * 16);
+        IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer(1024 * 16);
         BlockBodiesMessageSerializer serializer = new();
         serializer.Serialize(buffer, new BlockBodiesMessage(bodies));
         BlockBodiesMessage deserializedMessage = serializer.Deserialize(buffer);

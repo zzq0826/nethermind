@@ -8,6 +8,7 @@ using DotNetty.Buffers;
 using DotNetty.Common.Utilities;
 using Nethermind.Core.Buffers;
 using Nethermind.Network.P2P.Messages;
+using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network
 {
@@ -20,7 +21,7 @@ namespace Nethermind.Network
             if (!TryGetZeroSerializer(out IZeroMessageSerializer<T> zeroMessageSerializer))
                 throw new InvalidOperationException($"No {nameof(IZeroMessageSerializer<T>)} registered for {typeof(T).Name}.");
 
-            IByteBuffer byteBuffer = NethPooledBuffer.Instance.Buffer(bytes.Length);
+            IByteBuffer byteBuffer = NethPooledBufferAllocator.Instance.Buffer(bytes.Length);
             byteBuffer.WriteBytes(bytes);
             try
             {
@@ -97,7 +98,7 @@ namespace Nethermind.Network
                 ? zeroInnerMessageSerializer.GetLength(message, out _) + p2pMessageLength
                 : 64;
 
-            allocator ??= NethPooledBuffer.Instance;
+            allocator ??= NethPooledBufferAllocator.Instance;
             IByteBuffer byteBuffer = allocator.Buffer(length);
 
             try

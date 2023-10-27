@@ -229,7 +229,7 @@ public class NodeRecord
 
         const string prefix = "enr:";
         int rlpLength = GetRlpLengthWithSignature();
-        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(rlpLength);
+        IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer(rlpLength);
         try
         {
             NettyRlpStream rlpStream = new(buffer);

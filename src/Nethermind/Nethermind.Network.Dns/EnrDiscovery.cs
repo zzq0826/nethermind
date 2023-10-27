@@ -8,6 +8,7 @@ using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.Enr;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Stats.Model;
 
 namespace Nethermind.Network.Dns;
@@ -27,7 +28,7 @@ public class EnrDiscovery : INodeSource
 
     public async Task SearchTree(string domain)
     {
-        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer();
+        IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer();
         try
         {
             await foreach (string nodeRecordText in _crawler.SearchTree(domain))

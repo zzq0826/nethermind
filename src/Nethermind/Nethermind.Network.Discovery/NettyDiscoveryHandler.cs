@@ -12,6 +12,7 @@ using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.Network.Discovery.Messages;
+using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Network.Discovery;
 
@@ -72,7 +73,7 @@ public class NettyDiscoveryHandler : SimpleChannelInboundHandler<DatagramPacket>
         try
         {
             if (_logger.IsTrace) _logger.Trace($"Sending message: {discoveryMsg}");
-            msgBuffer = Serialize(discoveryMsg, NethPooledBuffer.Instance);
+            msgBuffer = Serialize(discoveryMsg, NethPooledBufferAllocator.Instance);
         }
         catch (Exception e)
         {

@@ -65,7 +65,7 @@ public class BlobTxStorage : ITxStorage
         GetHashPrefixedByTimestamp(transaction.Timestamp, transaction.Hash, txHashPrefixed);
 
         int length = _txDecoder.GetLength(transaction, RlpBehaviors.InMempoolForm);
-        IByteBuffer byteBuffer = NethPooledBuffer.Instance.Buffer(length);
+        IByteBuffer byteBuffer = NethPooledBufferAllocator.Instance.Buffer(length);
         using NettyRlpStream rlpStream = new(byteBuffer);
         rlpStream.Encode(transaction, RlpBehaviors.InMempoolForm);
 

@@ -11,6 +11,7 @@ using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
+using Nethermind.Serialization.Rlp;
 using NUnit.Framework;
 
 namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V62;
@@ -88,7 +89,7 @@ public class TransactionsMessageSerializerTests
     [TestCaseSource(nameof(GetTransactionMessages))]
     public void Should_contain_network_form_tx_wrapper(TransactionsMessage transactionsMessage)
     {
-        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024 * 130);
+        IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer(1024 * 130);
         TransactionsMessageSerializer serializer = new();
         serializer.Serialize(buffer, transactionsMessage);
         TransactionsMessage deserializedMessage = serializer.Deserialize(buffer);

@@ -103,8 +103,8 @@ namespace Nethermind.AccountAbstraction.Test.Network
 
         private static void TestZero(UserOperationsMessageSerializer serializer, UserOperationsMessage message, string expectedData)
         {
-            IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024);
-            IByteBuffer buffer2 = NethPooledBuffer.Instance.Buffer(1024);
+            IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer(1024);
+            IByteBuffer buffer2 = NethPooledBufferAllocator.Instance.Buffer(1024);
             try
             {
                 serializer.Serialize(buffer, message);

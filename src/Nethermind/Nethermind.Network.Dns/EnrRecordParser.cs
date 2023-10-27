@@ -28,7 +28,7 @@ public class EnrRecordParser : IEnrRecordParser
 
     public NodeRecord ParseRecord(string nodeRecordText)
     {
-        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer();
+        IByteBuffer buffer = NethPooledBufferAllocator.Instance.Buffer();
         try
         {
             return ParseRecord(nodeRecordText, buffer);

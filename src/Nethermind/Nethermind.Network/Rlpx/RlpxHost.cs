@@ -19,6 +19,7 @@ using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.Analyzers;
 using Nethermind.Network.P2P.EventArg;
 using Nethermind.Network.Rlpx.Handshake;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Stats.Model;
 using ILogger = Nethermind.Logging.ILogger;
 using LogLevel = DotNetty.Handlers.Logging.LogLevel;
@@ -112,9 +113,9 @@ namespace Nethermind.Network.Rlpx
                 bootstrap
                     .Group(_bossGroup, _workerGroup)
                     .Channel<TcpServerSocketChannel>()
-                    .Option(ChannelOption.Allocator, NethPooledBuffer.Instance)
+                    .Option(ChannelOption.Allocator, NethPooledBufferAllocator.Instance)
                     .ChildOption(ChannelOption.SoBacklog, 100)
-                    .ChildOption(ChannelOption.Allocator, NethPooledBuffer.Instance)
+                    .ChildOption(ChannelOption.Allocator, NethPooledBufferAllocator.Instance)
                     .Handler(new LoggingHandler("BOSS", LogLevel.TRACE))
                     .ChildHandler(new ActionChannelInitializer<ISocketChannel>(ch =>
                     {
@@ -172,7 +173,7 @@ namespace Nethermind.Network.Rlpx
             clientBootstrap.Option(ChannelOption.TcpNodelay, true);
             clientBootstrap.Option(ChannelOption.MessageSizeEstimator, DefaultMessageSizeEstimator.Default);
             clientBootstrap.Option(ChannelOption.ConnectTimeout, _connectTimeout);
-            clientBootstrap.Option(ChannelOption.Allocator, NethPooledBuffer.Instance);
+            clientBootstrap.Option(ChannelOption.Allocator, NethPooledBufferAllocator.Instance);
             clientBootstrap.Handler(new ActionChannelInitializer<ISocketChannel>(ch =>
             {
                 Session session = new(LocalPort, node, ch, _disconnectsAnalyzer, _logManager);
