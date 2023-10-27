@@ -9,6 +9,7 @@ using System.Threading;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Find;
 using Nethermind.Blockchain.Receipts;
+using Nethermind.Config;
 using Nethermind.Consensus.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -27,19 +28,22 @@ public class GethStyleTracer : IGethStyleTracer
     private readonly IBlockchainProcessor _processor;
     private readonly IReceiptStorage _receiptStorage;
     private readonly IFileSystem _fileSystem;
+    private readonly IBlocksConfig _blocksConfig;
 
     public GethStyleTracer(
         IBlockchainProcessor processor,
         IReceiptStorage receiptStorage,
         IBlockTree blockTree,
         ChangeableTransactionProcessorAdapter transactionProcessorAdapter,
-        IFileSystem fileSystem)
+        IFileSystem fileSystem,
+        IBlocksConfig blocksConfig)
     {
         _processor = processor ?? throw new ArgumentNullException(nameof(processor));
         _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
         _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
         _transactionProcessorAdapter = transactionProcessorAdapter;
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+        _blocksConfig = blocksConfig;
     }
 
     public GethLikeTxTrace Trace(Keccak blockHash, int txIndex, GethTraceOptions options, CancellationToken cancellationToken)
@@ -57,12 +61,12 @@ public class GethStyleTracer : IGethStyleTracer
         return TraceBlock(GetBlockToTrace(block), options with { TxHash = txHash }, cancellationToken).FirstOrDefault();
     }
 
-    public GethLikeTxTrace? Trace(BlockParameter blockParameter, Transaction tx, GethTraceOptions options, CancellationToken cancellationToken)
+    public GethLikeTxTrace? Trace(BlockParameter blockParameter, Transaction tx, GethTraceCallOptions options, CancellationToken cancellationToken)
     {
         Block block = _blockTree.FindBlock(blockParameter);
         if (block is null) throw new InvalidOperationException($"Cannot find block {blockParameter}");
         tx.Hash ??= tx.CalculateHash();
-        block = block.WithReplacedBodyCloned(BlockBody.WithOneTransactionOnly(tx));
+        block = new Block(options.BlockOverride?.GetBlockHeader(block.Header, _blocksConfig) ?? block.Header.Clone(), BlockBody.WithOneTransactionOnly(tx));
         ITransactionProcessorAdapter currentAdapter = _transactionProcessorAdapter.CurrentAdapter;
         _transactionProcessorAdapter.CurrentAdapter = new TraceTransactionProcessorAdapter(_transactionProcessorAdapter.TransactionProcessor);
 

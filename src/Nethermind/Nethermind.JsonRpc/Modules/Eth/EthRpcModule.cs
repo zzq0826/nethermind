@@ -10,7 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Find;
+using Nethermind.Config;
 using Nethermind.Consensus.Processing;
+using Nethermind.Consensus.Tracing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -57,6 +59,7 @@ public partial class EthRpcModule : IEthRpcModule
     private readonly IEthSyncingInfo _ethSyncingInfo;
 
     private readonly IFeeHistoryOracle _feeHistoryOracle;
+    private readonly IBlocksConfig _blocksConfig;
 
     public EthRpcModule(
         IJsonRpcConfig rpcConfig,
@@ -70,7 +73,8 @@ public partial class EthRpcModule : IEthRpcModule
         ISpecProvider specProvider,
         IGasPriceOracle gasPriceOracle,
         IEthSyncingInfo ethSyncingInfo,
-        IFeeHistoryOracle feeHistoryOracle)
+        IFeeHistoryOracle feeHistoryOracle,
+        IBlocksConfig blocksConfig)
     {
         _logger = logManager.GetClassLogger();
         _rpcConfig = rpcConfig ?? throw new ArgumentNullException(nameof(rpcConfig));
@@ -84,6 +88,7 @@ public partial class EthRpcModule : IEthRpcModule
         _gasPriceOracle = gasPriceOracle ?? throw new ArgumentNullException(nameof(gasPriceOracle));
         _ethSyncingInfo = ethSyncingInfo ?? throw new ArgumentNullException(nameof(ethSyncingInfo));
         _feeHistoryOracle = feeHistoryOracle ?? throw new ArgumentNullException(nameof(feeHistoryOracle));
+        _blocksConfig = blocksConfig;
     }
 
     public ResultWrapper<string> eth_protocolVersion()
@@ -334,21 +339,22 @@ public partial class EthRpcModule : IEthRpcModule
     public ResultWrapper<string> eth_call(
         TransactionForRpc transactionCall,
         BlockParameter? blockParameter = null,
-        Dictionary<Address, AccountOverride>? stateOverrides = null) =>
-        new CallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, stateOverrides)
-            .ExecuteTx(transactionCall, blockParameter);
+        Dictionary<Address, AccountOverride>? stateOverrides = null,
+        BlockOverride? blockOverride = null) =>
+        new CallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, _blocksConfig, stateOverrides)
+            .ExecuteTx(transactionCall, blockParameter, blockOverride);
 
     public ResultWrapper<IReadOnlyList<MultiCallBlockResult>> eth_multicallV1(MultiCallPayload<TransactionForRpc> payload, BlockParameter? blockParameter = null) =>
-        new MultiCallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig)
-            .Execute(payload, blockParameter);
+        new MultiCallTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, _blocksConfig)
+            .Execute(payload, blockParameter, null);
 
 
     public ResultWrapper<UInt256?> eth_estimateGas(TransactionForRpc transactionCall, BlockParameter blockParameter) =>
-        new EstimateGasTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig)
+        new EstimateGasTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, _blocksConfig)
             .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<AccessListForRpc> eth_createAccessList(TransactionForRpc transactionCall, BlockParameter? blockParameter = null, bool optimize = true) =>
-        new CreateAccessListTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, optimize)
+        new CreateAccessListTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, _blocksConfig, optimize)
             .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<BlockForRpc> eth_getBlockByHash(Keccak blockHash, bool returnFullTransactionObjects)

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Collections.Generic;
 using Nethermind.Blockchain;
 using Nethermind.Core;
@@ -19,6 +20,7 @@ namespace Nethermind.Consensus.Processing
 {
     public class ReadOnlyTxProcessingEnv : ReadOnlyTxProcessingEnvBase, IReadOnlyTxProcessorSource
     {
+        private readonly ISpecProvider _specProvider;
         private readonly OverridableCodeInfoRepository _codeInfoRepository;
         public ITransactionProcessor TransactionProcessor { get; set; }
 
@@ -40,15 +42,20 @@ namespace Nethermind.Consensus.Processing
             ILogManager? logManager
             ) : base(readOnlyDbProvider, trieStore, blockTree, logManager)
         {
+            _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
             _codeInfoRepository = new OverridableCodeInfoRepository();
             IVirtualMachine machine = new VirtualMachine(BlockhashProvider, specProvider, _codeInfoRepository, logManager);
             TransactionProcessor = new TransactionProcessor(specProvider, StateProvider, machine, _codeInfoRepository, logManager);
         }
 
-        public IReadOnlyTransactionProcessor Build(Keccak stateRoot, Dictionary<Address, AccountOverride>? accountOverrides = null)
+        public IReadOnlyTransactionProcessor Build(BlockHeader block, Dictionary<Address, AccountOverride>? accountOverrides = null)
         {
-            StateProvider.ApplyStateOverrides();
-            return new ReadOnlyTransactionProcessor(TransactionProcessor, StateProvider, _codeInfoRepository, stateRoot);
+            if (accountOverrides is not null)
+            {
+                StateProvider.ApplyStateOverrides(_codeInfoRepository, accountOverrides, _specProvider.GetSpec(block), block.Number);
+            }
+
+            return new ReadOnlyTransactionProcessor(TransactionProcessor, StateProvider, _codeInfoRepository, block.StateRoot!);
         }
 
         public IReadOnlyTransactionProcessor Build(Keccak stateRoot)

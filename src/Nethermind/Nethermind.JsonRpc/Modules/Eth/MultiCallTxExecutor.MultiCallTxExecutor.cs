@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Nethermind.Blockchain.Find;
+using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Facade;
 using Nethermind.Facade.Multicall;
@@ -16,8 +17,8 @@ namespace Nethermind.JsonRpc.Modules.Eth;
 
 public class MultiCallTxExecutor : ExecutorBase<IReadOnlyList<MultiCallBlockResult>, MultiCallPayload<TransactionForRpc>, MultiCallPayload<Transaction>>
 {
-    public MultiCallTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig) :
-        base(blockchainBridge, blockFinder, rpcConfig)
+    public MultiCallTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, IBlocksConfig blocksConfig) :
+        base(blockchainBridge, blockFinder, rpcConfig, blocksConfig)
     { }
 
     protected override MultiCallPayload<Transaction> Prepare(MultiCallPayload<TransactionForRpc> call)

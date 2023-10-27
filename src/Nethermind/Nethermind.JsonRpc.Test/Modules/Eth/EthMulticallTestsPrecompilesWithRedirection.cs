@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
+using Nethermind.Config;
 using Nethermind.Consensus.Processing;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
@@ -132,9 +133,9 @@ public class EthMulticallTestsPrecompilesWithRedirection
         };
 
         //will mock our GetCachedCodeInfo function - it shall be called 3 times if redirect is working, 2 times if not
-        MultiCallTxExecutor executor = new(chain.Bridge, chain.BlockFinder, new JsonRpcConfig());
+        MultiCallTxExecutor executor = new(chain.Bridge, chain.BlockFinder, new JsonRpcConfig(), new BlocksConfig());
 
-        ResultWrapper<IReadOnlyList<MultiCallBlockResult>> result = executor.Execute(payload, BlockParameter.Latest);
+        ResultWrapper<IReadOnlyList<MultiCallBlockResult>> result = executor.Execute(payload, BlockParameter.Latest, null);
 
         //Check results
         byte[] addressBytes = result.Data[0].Calls.First().ReturnData!.SliceWithZeroPaddingEmptyOnError(12, 20);

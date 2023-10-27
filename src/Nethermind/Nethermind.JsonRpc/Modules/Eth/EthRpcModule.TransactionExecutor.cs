@@ -7,13 +7,16 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using Nethermind.Blockchain.Find;
+using Nethermind.Config;
 using Nethermind.Consensus.Processing;
+using Nethermind.Consensus.Tracing;
 using Nethermind.Core;
 using Nethermind.Core.Eip2930;
 using Nethermind.Core.Extensions;
 using Nethermind.Evm;
 using Nethermind.Facade;
 using Nethermind.Facade.Proxy.Models;
+using Nethermind.Facade.Proxy.Models.MultiCall;
 using Nethermind.Int256;
 using Nethermind.JsonRpc.Data;
 using Nethermind.Specs.Forks;
@@ -26,8 +29,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
         // Single call executor
         private abstract class TxExecutor<TResult> : ExecutorBase<TResult, TransactionForRpc, Transaction>
         {
-            protected TxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig)
-                : base(blockchainBridge, blockFinder, rpcConfig) { }
+            protected TxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, IBlocksConfig blocksConfig)
+                : base(blockchainBridge, blockFinder, rpcConfig, blocksConfig) { }
 
             protected override Transaction Prepare(TransactionForRpc call) => call.ToTransaction(_blockchainBridge.GetChainId());
 
@@ -35,13 +38,15 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
             public override ResultWrapper<TResult> Execute(
                 TransactionForRpc transactionCall,
-                BlockParameter? blockParameter)
+                BlockParameter? blockParameter,
+                BlockOverride? blockOverride)
             {
                 transactionCall.EnsureDefaults(_rpcConfig.GasCap);
-                return base.Execute(transactionCall, blockParameter);
+                return base.Execute(transactionCall, blockParameter, blockOverride);
             }
 
-            public ResultWrapper<TResult> ExecuteTx(TransactionForRpc transactionCall, BlockParameter? blockParameter) => Execute(transactionCall, blockParameter);
+            public ResultWrapper<TResult> ExecuteTx(TransactionForRpc transactionCall, BlockParameter? blockParameter, BlockOverride? blockOverride = null) =>
+                Execute(transactionCall, blockParameter, blockOverride);
 
             protected abstract ResultWrapper<TResult> ExecuteTx(BlockHeader header, Transaction tx, CancellationToken token);
         }
@@ -50,8 +55,13 @@ namespace Nethermind.JsonRpc.Modules.Eth
         {
             private readonly Dictionary<Address, AccountOverride>? _accountOverrides;
 
-            public CallTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, Dictionary<Address, AccountOverride>? accountOverrides = null)
-                : base(blockchainBridge, blockFinder, rpcConfig)
+            public CallTxExecutor(
+                IBlockchainBridge blockchainBridge,
+                IBlockFinder blockFinder,
+                IJsonRpcConfig rpcConfig,
+                IBlocksConfig blocksConfig,
+                Dictionary<Address, AccountOverride>? accountOverrides = null)
+                : base(blockchainBridge, blockFinder, rpcConfig, blocksConfig)
             {
                 _accountOverrides = accountOverrides;
             }
@@ -69,8 +79,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
         private class EstimateGasTxExecutor : TxExecutor<UInt256?>
         {
-            public EstimateGasTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig)
-                : base(blockchainBridge, blockFinder, rpcConfig)
+            public EstimateGasTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, IBlocksConfig blocksConfig)
+                : base(blockchainBridge, blockFinder, rpcConfig, blocksConfig)
             {
             }
 
@@ -88,8 +98,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
         {
             private readonly bool _optimize;
 
-            public CreateAccessListTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, bool optimize)
-                : base(blockchainBridge, blockFinder, rpcConfig)
+            public CreateAccessListTxExecutor(IBlockchainBridge blockchainBridge, IBlockFinder blockFinder, IJsonRpcConfig rpcConfig, IBlocksConfig blocksConfig, bool optimize)
+                : base(blockchainBridge, blockFinder, rpcConfig, blocksConfig)
             {
                 _optimize = optimize;
             }

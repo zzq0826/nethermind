@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Api.Extensions;
 using Nethermind.Blockchain.FullPruning;
+using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Init.Steps.Migrations;
 using Nethermind.JsonRpc;
@@ -103,7 +104,8 @@ public class RegisterRpcModules : IStep
             _api.SpecProvider,
             _api.ReceiptStorage,
             _api.GasPriceOracle,
-            _api.EthSyncingInfo);
+            _api.EthSyncingInfo,
+            _api.Config<IBlocksConfig>());
 
         RpcLimits.Init(rpcConfig.RequestQueueLimit);
         rpcModuleProvider.RegisterBounded(ethModuleFactory, rpcConfig.EthModuleConcurrentInstances ?? Environment.ProcessorCount, rpcConfig.Timeout);

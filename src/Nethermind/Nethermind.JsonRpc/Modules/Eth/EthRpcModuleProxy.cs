@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Find;
 using Nethermind.Consensus.Processing;
+using Nethermind.Consensus.Tracing;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Facade.Eth;
@@ -156,7 +157,8 @@ namespace Nethermind.JsonRpc.Modules.Eth
         public ResultWrapper<string> eth_call(
             TransactionForRpc transactionCall,
             BlockParameter? blockParameter = null,
-            Dictionary<Address, AccountOverride>? stateOverrides = null)
+            Dictionary<Address, AccountOverride>? stateOverrides = null,
+            BlockOverride? blockOverride = null)
         {
             throw new NotSupportedException();
         }

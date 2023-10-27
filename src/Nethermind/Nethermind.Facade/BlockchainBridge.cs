@@ -253,8 +253,7 @@ namespace Nethermind.Facade
             transaction.SenderAddress ??= Address.SystemUser;
 
             Keccak stateRoot = blockHeader.StateRoot!;
-            _processingEnv.
-            using IReadOnlyTransactionProcessor transactionProcessor = _processingEnv.Build(stateRoot, accountOverrides);
+            using IReadOnlyTransactionProcessor transactionProcessor = _processingEnv.Build(blockHeader, accountOverrides);
 
             if (transaction.Nonce == 0)
             {

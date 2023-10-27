@@ -20,6 +20,7 @@ using NUnit.Framework;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Receipts;
+using Nethermind.Config;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Facade.Eth;
 using Nethermind.JsonRpc.Modules.Eth.GasPrice;
@@ -53,7 +54,8 @@ namespace Nethermind.JsonRpc.Test.Modules
                 Substitute.For<ISpecProvider>(),
                 Substitute.For<IReceiptStorage>(),
                 Substitute.For<IGasPriceOracle>(),
-                Substitute.For<IEthSyncingInfo>());
+                Substitute.For<IEthSyncingInfo>(),
+                new BlocksConfig());
             return Task.CompletedTask;
         }
 

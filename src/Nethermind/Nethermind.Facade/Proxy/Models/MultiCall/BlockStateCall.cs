@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Consensus.Processing;
+using Nethermind.Consensus.Tracing;
 using Nethermind.Core;
 
 namespace Nethermind.Facade.Proxy.Models.MultiCall;

@@ -37,7 +37,6 @@ public class DebugModuleFactory : ModuleFactoryBase<IDebugRpcModule>
     private readonly IReadOnlyBlockTree _blockTree;
     private readonly ISyncModeSelector _syncModeSelector;
     private readonly IFileSystem _fileSystem;
-    private ILogger _logger;
 
     public DebugModuleFactory(
         IDbProvider dbProvider,
@@ -69,7 +68,6 @@ public class DebugModuleFactory : ModuleFactoryBase<IDebugRpcModule>
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _syncModeSelector = syncModeSelector ?? throw new ArgumentNullException(nameof(syncModeSelector));
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-        _logger = logManager.GetClassLogger();
     }
 
     public override IDebugRpcModule Create()
