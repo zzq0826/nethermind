@@ -17,7 +17,7 @@ namespace Nethermind.Serialization.Rlp;
 public class NethPooledBufferAllocator : AbstractByteBufferAllocator
 {
     private static NethPooledBufferAllocator? _instance = null;
-    public static NethPooledBufferAllocator Instance = _instance ?? new NethPooledBufferAllocator(1, 11); // The default is in unit tests only
+    public static NethPooledBufferAllocator Instance => _instance ??= new NethPooledBufferAllocator(1, 11); // The default is in unit tests only
 
     // 32KB is the maximum allocation size that is cached in threadcache
     private readonly int SizeThreshold = (int)32.KiB();
