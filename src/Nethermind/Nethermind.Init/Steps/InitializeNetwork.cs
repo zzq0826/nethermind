@@ -47,8 +47,8 @@ namespace Nethermind.Init.Steps;
 
 public static class NettyMemoryEstimator
 {
-    // Used by `NethPooledBuffer`, whose page size is set to 32.KiB
-    private static uint PageSize = (uint) 32.KiB();
+    // Environment.SetEnvironmentVariable("io.netty.allocator.pageSize", "8192");
+    private const uint PageSize = 8192;
 
     public static long Estimate(uint arenaCount, int arenaOrder)
     {
