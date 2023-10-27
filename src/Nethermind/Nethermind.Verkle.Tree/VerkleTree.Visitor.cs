@@ -28,6 +28,7 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
+            _logger.Info($"using the state store: {_verkleStateStore.GetType()}");
             _verkleStateStore.MoveToStateRoot(new VerkleCommitment(rootHash.Bytes.ToArray()));
         }
         else
