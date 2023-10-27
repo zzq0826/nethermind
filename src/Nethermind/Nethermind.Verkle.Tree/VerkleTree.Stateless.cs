@@ -203,11 +203,14 @@ public partial class VerkleTree
     // TODO: have to handle the case where there is only one subtree included.
     public bool CreateStatelessTreeFromRange(VerkleProof proof, Banderwagon rootPoint, Stem startStem, Stem endStem, PathWithSubTree[] subTrees)
     {
-        const int numberOfStems = 2;
-        List<Banderwagon> commSortedByPath = new(proof.CommsSorted.Length + 1) { rootPoint };
-        commSortedByPath.AddRange(proof.CommsSorted);
+        int numberOfStems = 2;
+        if (subTrees.Length == 1) numberOfStems = 1;
+        Banderwagon[] commSortedByPath = new Banderwagon[proof.CommsSorted.Length + 1];
+        commSortedByPath[0] = rootPoint;
+        proof.CommsSorted.CopyTo(commSortedByPath.AsSpan(1));
 
         Stem[] stems = { startStem, endStem };
+        if (numberOfStems == 1) stems = new [] { startStem };
 
         // map stems to depth and extension status and create a list of stem with extension present
         Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
