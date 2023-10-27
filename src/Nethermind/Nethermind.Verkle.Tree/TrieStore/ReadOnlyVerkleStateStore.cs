@@ -59,6 +59,12 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         return _verkleStateStore.GetStateRoot();
     }
+
+    public bool HashStateForBlock(VerkleCommitment stateRoot)
+    {
+        return _verkleStateStore.HashStateForBlock(stateRoot);
+    }
+
     public bool MoveToStateRoot(VerkleCommitment stateRoot)
     {
         return _verkleStateStore.MoveToStateRoot(stateRoot);

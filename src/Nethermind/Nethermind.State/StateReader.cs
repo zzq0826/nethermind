@@ -70,6 +70,13 @@ namespace Nethermind.State
             _state.Accept(treeVisitor, rootHash, visitingOptions);
         }
 
+        public bool HashStateForStateRoot(Keccak stateRoot)
+        {
+            RootCheckVisitor rootCheckVisitor = new();
+            RunTreeVisitor(rootCheckVisitor, stateRoot);
+            return rootCheckVisitor.HasRoot;
+        }
+
         public byte[] GetCode(Keccak stateRoot, Address address)
         {
             Account? account = GetState(stateRoot, address);

@@ -27,6 +27,40 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         return new VerkleCommitment(stateRoot);
     }
 
+    public bool HashStateForBlock(VerkleCommitment stateRoot)
+    {
+        if (stateRoot == StateRoot) return true;
+        if (stateRoot.Equals(new VerkleCommitment(Keccak.EmptyTreeHash.Bytes.ToArray())))
+        {
+            if (StateRoot.Equals(VerkleCommitment.Zero)) return true;
+            return false;
+        }
+
+        long fromBlock = StateRootToBlocks[StateRoot];
+        if (fromBlock == -1)
+        {
+            if (_logger.IsDebug) _logger.Debug($"Cannot get the block number for currentRoot:{StateRoot}");
+            return false;
+        }
+        long toBlock = StateRootToBlocks[stateRoot];
+        if (toBlock == -1)
+        {
+            if (_logger.IsDebug) _logger.Debug($"Cannot get the block number for wantedStateRoot:{stateRoot}");
+            return false;
+        }
+
+        if (fromBlock > toBlock)
+        {
+            long noOfBlockToMove = fromBlock - toBlock;
+            if (BlockCache is not null && noOfBlockToMove <= BlockCache.Count)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static VerkleCommitment? GetStateRoot(IVerkleDb db)
     {
         return db.GetInternalNode(RootNodeKey, out InternalNode? node) ? new VerkleCommitment(node!.Bytes) : null;
@@ -179,7 +213,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
                 _logger.Error(
                     $"Cannot more state root back for {noOfBlockToMove} - only {BlockCache.Count} diff to remove");
-
+                return false;
                 // if (History is null)
                 // {
                 //     if (_logger.IsDebug) _logger.Debug($"History is null and in this case - state cannot be reverted to wanted state root");
@@ -193,7 +227,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
                 // BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
                 // ApplyDiffLayer(batchDiff);
             }
-            else if (BlockCache is not null)
+            if (BlockCache is not null)
             {
                 BlockCache.RemoveDiffs(noOfBlockToMove);
             }

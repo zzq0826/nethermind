@@ -10,6 +10,11 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
+    public bool HasStateForStateRoot(Keccak stateRoot)
+    {
+        return _verkleStateStore.HashStateForBlock(new VerkleCommitment(stateRoot.Bytes.ToArray()));
+    }
+
     public void Accept(ITreeVisitor visitor, Keccak rootHash, VisitingOptions? visitingOptions = null)
     {
         if (visitor is null) throw new ArgumentNullException(nameof(visitor));
@@ -28,6 +33,8 @@ public partial class VerkleTree
 
         if (!rootHash.Equals(Keccak.EmptyTreeHash))
         {
+            // TODO: use another way to check if we have the state root - this is not good. - move to the stateStore
+            //   something of sorts HasStateForStateRoot(Keccak stateRoot)
             _logger.Info($"using the state store: {_verkleStateStore.GetType()}");
             _verkleStateStore.MoveToStateRoot(new VerkleCommitment(rootHash.Bytes.ToArray()));
         }

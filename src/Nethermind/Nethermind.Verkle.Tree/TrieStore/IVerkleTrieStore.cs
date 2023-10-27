@@ -14,6 +14,8 @@ public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
     VerkleCommitment StateRoot { get; }
     VerkleCommitment GetStateRoot();
+
+    bool HashStateForBlock(VerkleCommitment stateRoot);
     bool MoveToStateRoot(VerkleCommitment stateRoot);
 
     byte[]? GetLeaf(ReadOnlySpan<byte> key, VerkleCommitment? stateRoot = null);

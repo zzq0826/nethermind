@@ -71,6 +71,11 @@ public class VerkleStateReader : IStateReader
         _state.Accept(treeVisitor, rootHash, visitingOptions);
     }
 
+    public bool HashStateForStateRoot(Keccak stateRoot)
+    {
+        return _state.HasStateForStateRoot(stateRoot);
+    }
+
     public byte[] GetCode(Keccak stateRoot, Address address)
     {
         Account? account = GetState(stateRoot, address);
