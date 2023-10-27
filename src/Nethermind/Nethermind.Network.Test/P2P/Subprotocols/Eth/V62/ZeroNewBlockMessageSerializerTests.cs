@@ -3,6 +3,7 @@
 
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
@@ -17,7 +18,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V62
         [Test]
         public void Roundtrip()
         {
-            IByteBuffer byteBuffer = PooledByteBufferAllocator.Default.Buffer(1024);
+            IByteBuffer byteBuffer = NethPooledBuffer.Instance.Buffer(1024);
             try
             {
                 Transaction a = Build.A.Transaction.TestObject;
@@ -42,7 +43,7 @@ namespace Nethermind.Network.Test.P2P.Subprotocols.Eth.V62
         [Test]
         public void Roundtrip2()
         {
-            IByteBuffer byteBuffer = PooledByteBufferAllocator.Default.Buffer(1024);
+            IByteBuffer byteBuffer = NethPooledBuffer.Instance.Buffer(1024);
             try
             {
                 Transaction a = Build.A.Transaction.TestObject;

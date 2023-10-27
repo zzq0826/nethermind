@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
@@ -87,7 +88,7 @@ public class PooledTransactionsMessageSerializerTests
     [TestCaseSource(nameof(GetTransactionMessages))]
     public void Should_contain_network_form_tx_wrapper(PooledTransactionsMessage transactionsMessage)
     {
-        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 130);
+        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024 * 130);
         PooledTransactionsMessageSerializer serializer = new();
         serializer.Serialize(buffer, transactionsMessage);
         PooledTransactionsMessage deserializedMessage = serializer.Deserialize(buffer);

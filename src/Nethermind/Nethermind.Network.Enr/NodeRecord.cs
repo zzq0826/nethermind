@@ -4,6 +4,7 @@
 using System.Text;
 using DotNetty.Buffers;
 using DotNetty.Codecs.Base64;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
@@ -228,7 +229,7 @@ public class NodeRecord
 
         const string prefix = "enr:";
         int rlpLength = GetRlpLengthWithSignature();
-        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(rlpLength);
+        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(rlpLength);
         try
         {
             NettyRlpStream rlpStream = new(buffer);

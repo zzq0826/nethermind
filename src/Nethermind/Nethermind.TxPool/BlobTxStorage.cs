@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Int256;
@@ -64,7 +65,7 @@ public class BlobTxStorage : ITxStorage
         GetHashPrefixedByTimestamp(transaction.Timestamp, transaction.Hash, txHashPrefixed);
 
         int length = _txDecoder.GetLength(transaction, RlpBehaviors.InMempoolForm);
-        IByteBuffer byteBuffer = PooledByteBufferAllocator.Default.Buffer(length);
+        IByteBuffer byteBuffer = NethPooledBuffer.Instance.Buffer(length);
         using NettyRlpStream rlpStream = new(byteBuffer);
         rlpStream.Encode(transaction, RlpBehaviors.InMempoolForm);
 

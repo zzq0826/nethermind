@@ -6,6 +6,7 @@ using FluentAssertions;
 using Nethermind.AccountAbstraction.Data;
 using Nethermind.AccountAbstraction.Network;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Network.Test.P2P;
 using Nethermind.Serialization.Rlp;
 using NUnit.Framework;
@@ -102,8 +103,8 @@ namespace Nethermind.AccountAbstraction.Test.Network
 
         private static void TestZero(UserOperationsMessageSerializer serializer, UserOperationsMessage message, string expectedData)
         {
-            IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024);
-            IByteBuffer buffer2 = PooledByteBufferAllocator.Default.Buffer(1024);
+            IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024);
+            IByteBuffer buffer2 = NethPooledBuffer.Instance.Buffer(1024);
             try
             {
                 serializer.Serialize(buffer, message);

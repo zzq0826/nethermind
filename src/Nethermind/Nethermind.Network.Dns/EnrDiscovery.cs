@@ -4,6 +4,7 @@
 using System.Net;
 using DnsClient;
 using DotNetty.Buffers;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.Enr;
@@ -26,7 +27,7 @@ public class EnrDiscovery : INodeSource
 
     public async Task SearchTree(string domain)
     {
-        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer();
+        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer();
         try
         {
             await foreach (string nodeRecordText in _crawler.SearchTree(domain))

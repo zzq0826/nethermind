@@ -8,6 +8,7 @@ using DotNetty.Transport.Channels;
 using DotNetty.Transport.Channels.Sockets;
 using FastEnumUtility;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.Network.Discovery.Messages;
@@ -71,7 +72,7 @@ public class NettyDiscoveryHandler : SimpleChannelInboundHandler<DatagramPacket>
         try
         {
             if (_logger.IsTrace) _logger.Trace($"Sending message: {discoveryMsg}");
-            msgBuffer = Serialize(discoveryMsg, PooledByteBufferAllocator.Default);
+            msgBuffer = Serialize(discoveryMsg, NethPooledBuffer.Instance);
         }
         catch (Exception e)
         {

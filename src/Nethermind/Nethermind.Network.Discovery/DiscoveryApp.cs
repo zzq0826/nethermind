@@ -11,6 +11,7 @@ using DotNetty.Transport.Channels.Sockets;
 using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
@@ -133,6 +134,7 @@ public class DiscoveryApp : IDiscoveryApp
         _group = new MultithreadEventLoopGroup(1);
         Bootstrap bootstrap = new();
         bootstrap.Group(_group);
+        bootstrap.Option(ChannelOption.Allocator, NethPooledBuffer.Instance);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {

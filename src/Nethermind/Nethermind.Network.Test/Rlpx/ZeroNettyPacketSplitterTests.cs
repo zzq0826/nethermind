@@ -4,6 +4,7 @@
 using DotNetty.Buffers;
 using DotNetty.Common.Utilities;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
@@ -22,8 +23,8 @@ namespace Nethermind.Network.Test.Rlpx
         [SetUp]
         public void Setup()
         {
-            _input = ReferenceCountUtil.ReleaseLater(PooledByteBufferAllocator.Default.Buffer(16 * 1024));
-            _output = ReferenceCountUtil.ReleaseLater(PooledByteBufferAllocator.Default.Buffer(16 * 1024));
+            _input = ReferenceCountUtil.ReleaseLater(NethPooledBuffer.Instance.Buffer(16 * 1024));
+            _output = ReferenceCountUtil.ReleaseLater(NethPooledBuffer.Instance.Buffer(16 * 1024));
         }
 
         [TearDown]

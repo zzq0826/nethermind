@@ -5,6 +5,7 @@ using System.Text;
 using DotNetty.Buffers;
 using DotNetty.Codecs.Base64;
 using DotNetty.Common.Utilities;
+using Nethermind.Core.Buffers;
 using Nethermind.Network.Enr;
 using Nethermind.Serialization.Rlp;
 
@@ -27,7 +28,7 @@ public class EnrRecordParser : IEnrRecordParser
 
     public NodeRecord ParseRecord(string nodeRecordText)
     {
-        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer();
+        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer();
         try
         {
             return ParseRecord(nodeRecordText, buffer);

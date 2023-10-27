@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotNetty.Buffers;
 using Nethermind.Core;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Logging;
@@ -28,7 +29,7 @@ public class BlockBodiesMessageSerializerTests
     [TestCaseSource(nameof(GetBlockBodyValues))]
     public void Should_not_contain_network_form_tx_wrapper(BlockBody[] bodies)
     {
-        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+        IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024 * 16);
         BlockBodiesMessageSerializer serializer = new();
         serializer.Serialize(buffer, new BlockBodiesMessage(bodies));
         BlockBodiesMessage deserializedMessage = serializer.Deserialize(buffer);

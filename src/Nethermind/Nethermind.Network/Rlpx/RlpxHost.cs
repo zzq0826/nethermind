@@ -11,6 +11,7 @@ using DotNetty.Handlers.Logging;
 using DotNetty.Transport.Bootstrapping;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Channels.Sockets;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.Config;
@@ -111,7 +112,9 @@ namespace Nethermind.Network.Rlpx
                 bootstrap
                     .Group(_bossGroup, _workerGroup)
                     .Channel<TcpServerSocketChannel>()
+                    .Option(ChannelOption.Allocator, NethPooledBuffer.Instance)
                     .ChildOption(ChannelOption.SoBacklog, 100)
+                    .ChildOption(ChannelOption.Allocator, NethPooledBuffer.Instance)
                     .Handler(new LoggingHandler("BOSS", LogLevel.TRACE))
                     .ChildHandler(new ActionChannelInitializer<ISocketChannel>(ch =>
                     {
@@ -169,6 +172,7 @@ namespace Nethermind.Network.Rlpx
             clientBootstrap.Option(ChannelOption.TcpNodelay, true);
             clientBootstrap.Option(ChannelOption.MessageSizeEstimator, DefaultMessageSizeEstimator.Default);
             clientBootstrap.Option(ChannelOption.ConnectTimeout, _connectTimeout);
+            clientBootstrap.Option(ChannelOption.Allocator, NethPooledBuffer.Instance);
             clientBootstrap.Handler(new ActionChannelInitializer<ISocketChannel>(ch =>
             {
                 Session session = new(LocalPort, node, ch, _disconnectsAnalyzer, _logManager);

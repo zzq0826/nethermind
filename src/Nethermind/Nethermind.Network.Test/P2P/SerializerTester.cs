@@ -6,6 +6,7 @@ using System;
 using DotNetty.Buffers;
 using FluentAssertions;
 using FluentAssertions.Equivalency;
+using Nethermind.Core.Buffers;
 using Nethermind.Core.Extensions;
 using Nethermind.Network.P2P.Messages;
 using Nethermind.Serialization.Rlp;
@@ -17,8 +18,8 @@ namespace Nethermind.Network.Test.P2P
     {
         public static void TestZero<T>(IZeroMessageSerializer<T> serializer, T message, string? expectedData = null, Func<EquivalencyAssertionOptions<T>, EquivalencyAssertionOptions<T>>? additionallyExcluding = null) where T : P2PMessage
         {
-            IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
-            IByteBuffer buffer2 = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+            IByteBuffer buffer = NethPooledBuffer.Instance.Buffer(1024 * 16);
+            IByteBuffer buffer2 = NethPooledBuffer.Instance.Buffer(1024 * 16);
             try
             {
                 serializer.Serialize(buffer, message);
