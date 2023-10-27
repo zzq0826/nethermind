@@ -36,7 +36,7 @@ public class NethPooledBufferAllocator : AbstractByteBufferAllocator
         // Large allocator. Minimum allocation is 32.KiB. Use a lot of space. No threadcache, so if buffer is released,
         // chunk should be released easier.
         _notSmallAllocator = new PooledByteBufferAllocator(
-            (int)arenaCount, (int)arenaCount, (int)32.KiB(), arenaOrder,
+            (int)arenaCount, (int)arenaCount, 8192, arenaOrder,
             // No thread cache! Well.. allocation here would be more than 32KB so wont get cached anyway...
             tinyCacheSize: 0, smallCacheSize: 0, normalCacheSize: 0);
     }
