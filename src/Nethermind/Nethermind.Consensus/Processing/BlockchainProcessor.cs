@@ -648,7 +648,10 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
 
             branchingPoint = _blockTree.FindParentHeader(toBeProcessed.Header,
                 BlockTreeLookupOptions.TotalDifficultyNotNeeded);
+
+            // TODO: we only need this for stateless processing
             toBeProcessed.Header.MaybeParent = new WeakReference<BlockHeader>(branchingPoint);
+
             if (branchingPoint is null)
             {
                 // genesis block
