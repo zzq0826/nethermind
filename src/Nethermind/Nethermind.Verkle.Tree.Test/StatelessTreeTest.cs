@@ -35,7 +35,7 @@ public class StatelessTreeTest
     [TestCase(DbMode.MemDb, 10, 20, 30)]
     [TestCase(DbMode.MemDb, 100, 200, 300)]
     [TestCase(DbMode.MemDb, 1000, 2000, 3000)]
-    public void InsertAndCreateStatelessTree(DbMode dbMode, int start, int end, int pathCount)
+    public void CreateStatelessTreeAndThenBuildStateOverThat(DbMode dbMode, int start, int end, int pathCount)
     {
         VerkleTree initTree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
 
