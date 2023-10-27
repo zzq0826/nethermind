@@ -38,26 +38,30 @@ namespace Nethermind.Consensus.Processing
         {
             if (block.Transactions.Length == 0)
                 return;
+            //
+            // Transaction firstTx = block.Transactions[0];
+            // if (firstTx.IsSigned && firstTx.SenderAddress is not null)
+            //     // already recovered a sender for a signed tx in this block,
+            //     // so we assume the rest of txs in the block are already recovered
+            //     return;
+            //
 
-            Transaction firstTx = block.Transactions[0];
-            if (firstTx.IsSigned && firstTx.SenderAddress is not null)
-                // already recovered a sender for a signed tx in this block,
-                // so we assume the rest of txs in the block are already recovered
-                return;
-
-            var releaseSpec = _specProvider.GetSpec(block.Header);
-
+            IReleaseSpec? releaseSpec = null;
             Parallel.ForEach(
                 block.Transactions.Where(tx => tx.IsSigned && tx.SenderAddress is null),
                 blockTransaction =>
                 {
-                    _txPool.TryGetPendingTransaction(blockTransaction.Hash, out Transaction? transaction);
+                    _txPool.TryGetPendingTransaction(blockTransaction.Hash!, out Transaction? transaction);
+                    Address? sender = transaction?.SenderAddress;
+                    Address? blockTransactionAddress = blockTransaction.SenderAddress;
+                    blockTransaction.SenderAddress = sender;
 
-                    Address sender = transaction?.SenderAddress;
-                    Address blockTransactionAddress = blockTransaction.SenderAddress;
+                    if (blockTransaction.SenderAddress is null)
+                    {
+                        releaseSpec ??= _specProvider.GetSpec(block.Header);
+                        blockTransaction.SenderAddress = _ecdsa.RecoverAddress(blockTransaction, !releaseSpec.ValidateChainId);
+                    }
 
-                    blockTransaction.SenderAddress =
-                        sender ?? _ecdsa.RecoverAddress(blockTransaction, !releaseSpec.ValidateChainId);
                     if (_logger.IsTrace) _logger.Trace($"Recovered {blockTransaction.SenderAddress} sender for {blockTransaction.Hash} (tx pool cached value: {sender}, block transaction address: {blockTransactionAddress})");
                 });
         }
