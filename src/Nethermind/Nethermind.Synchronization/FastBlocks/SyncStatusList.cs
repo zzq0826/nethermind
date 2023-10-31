@@ -89,7 +89,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     blockInfos[collected] = blockInfo;
                     collected++;
                 }
-                else if (status == insertedStatus)
+                else if (status >= insertedStatus)
                 {
                     long currentLowest = Volatile.Read(ref lowestWithoutGapVar);
                     if (currentNumber == currentLowest)
