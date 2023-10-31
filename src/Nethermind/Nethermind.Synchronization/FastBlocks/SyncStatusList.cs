@@ -9,7 +9,7 @@ using Nethermind.Core.Caching;
 
 namespace Nethermind.Synchronization.FastBlocks
 {
-    internal class SyncStatusList
+    internal class SyncStatusList: ISyncStatusList
     {
         private long _queueSize;
         private readonly IBlockTree _blockTree;

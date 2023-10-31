@@ -34,7 +34,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly IReceiptStorage _receiptStorage;
         private readonly ISyncPeerPool _syncPeerPool;
 
-        private SyncStatusList _syncStatusList;
+        private ISyncStatusList _syncStatusList;
         private long _pivotNumber;
         private long _barrier;
 

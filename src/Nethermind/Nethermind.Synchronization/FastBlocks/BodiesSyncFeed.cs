@@ -36,7 +36,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private long _pivotNumber;
         private long _barrier;
 
-        private SyncStatusList _syncStatusList;
+        private ISyncStatusList _syncStatusList;
 
         public BodiesSyncFeed(
             IBlockTree blockTree,
