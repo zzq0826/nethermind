@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Receipts;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Synchronization.FastBlocks;
@@ -49,11 +51,20 @@ namespace Nethermind.Synchronization.Test.FastBlocks
         {
             IBlockTree blockTree = Substitute.For<IBlockTree>();
             blockTree.FindCanonicalBlockInfo(Arg.Any<long>()).Returns(new BlockInfo(TestItem.KeccakA, 0));
-            SyncStatusList syncStatusList = new TestSyncStatusList(blockTree, 1000, null, 900);
+            blockTree.LowestInsertedBodyNumber.Returns((long?)null);
+
+            ISyncConfig syncConfig = new SyncConfig()
+            {
+                SnapSync = true,
+                PivotNumber = "1000",
+                AncientBodiesBarrier = 900
+            };
+
+            SyncStatusList syncStatusList = new(blockTree, new InMemoryReceiptStorage(), syncConfig);
             syncStatusList.Reset();
 
             BlockInfo?[] infos = new BlockInfo?[500];
-            syncStatusList.GetInfosForBatch(infos);
+            syncStatusList.GetInfosForBodiesBatch(infos);
 
             infos.Count((it) => it != null).Should().Be(101);
         }
@@ -161,25 +172,5 @@ namespace Nethermind.Synchronization.Test.FastBlocks
 
         private static FastBlockStatusList CreateFastBlockStatusList(int length, bool parallel = true) =>
             new(Enumerable.Range(0, length).Select(i => (FastBlockStatus)(i % 5)).ToList(), parallel);
-
-        private class TestSyncStatusList: SyncStatusList
-        {
-            private readonly long _pivot;
-            private readonly long? _lowestInserted;
-            private readonly long _barrier;
-
-
-            public TestSyncStatusList(IBlockTree blockTree, long pivot, long? lowestInserted, long barrier) : base(blockTree)
-            {
-                _pivot = pivot;
-                _lowestInserted = lowestInserted;
-                _barrier = barrier;
-            }
-
-            public override void Reset()
-            {
-                base.Reset(_pivot, _lowestInserted, _barrier);
-            }
-        }
     }
 }

@@ -98,6 +98,7 @@ namespace Nethermind.Synchronization.Test.FastSync
         {
             _receiptStorage = Substitute.For<IReceiptStorage>();
             _blockTree = Substitute.For<IBlockTree>();
+            _blockTree.LowestInsertedBodyNumber.Returns(0);
 
             _syncConfig = new SyncConfig { FastBlocks = true, FastSync = true };
             _syncConfig.PivotNumber = _pivotNumber.ToString();
@@ -123,7 +124,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
-                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                new SyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
         }
 
@@ -139,7 +140,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                     _syncPeerPool,
                     _syncConfig,
                     _syncReport,
-                    new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                    new SyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                     LimboLogs.Instance));
         }
 
@@ -153,7 +154,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
-                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                new SyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
             _feed.InitializeFeed();
 
@@ -247,7 +248,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
-                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                new SyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
             _feed.InitializeFeed();
 

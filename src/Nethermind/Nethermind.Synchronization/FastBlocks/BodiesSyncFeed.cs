@@ -36,7 +36,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private long _pivotNumber;
         private long _barrier;
 
-        private ISyncStatusList _syncStatusList;
+        private SyncStatusList _syncStatusList;
 
         public BodiesSyncFeed(
             IBlockTree blockTree,
@@ -44,7 +44,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncConfig syncConfig,
             ISyncReport syncReport,
             IDbMeta blocksDb,
-            ISyncStatusList syncStatusList,
+            SyncStatusList syncStatusList,
             ILogManager logManager,
             long flushDbInterval = DefaultFlushDbInterval)
         {
@@ -93,7 +93,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private bool ShouldBuildANewBatch()
         {
             bool shouldDownloadBodies = _syncConfig.DownloadBodiesInFastSync;
-            bool allBodiesDownloaded = _syncStatusList.LowestInsertWithoutGaps <= _barrier;
+            bool allBodiesDownloaded = _syncStatusList.BodiesLowestInsertWithoutGaps <= _barrier;
             bool shouldFinish = !shouldDownloadBodies || allBodiesDownloaded;
             if (shouldFinish)
             {
@@ -122,7 +122,7 @@ namespace Nethermind.Synchronization.FastBlocks
             if (ShouldBuildANewBatch())
             {
                 BlockInfo?[] infos = new BlockInfo[_requestSize];
-                _syncStatusList.GetInfosForBatch(infos);
+                _syncStatusList.GetInfosForBodiesBatch(infos);
                 if (infos[0] is not null)
                 {
                     batch = new BodiesSyncBatch(infos);
@@ -132,8 +132,8 @@ namespace Nethermind.Synchronization.FastBlocks
             }
 
             if (
-                (_blockTree.LowestInsertedBodyNumber ?? long.MaxValue) - _syncStatusList.LowestInsertWithoutGaps > _flushDbInterval ||
-                _syncStatusList.LowestInsertWithoutGaps <= _barrier // Other state depends on LowestInsertedBodyNumber, so this need to flush or it wont finish
+                (_blockTree.LowestInsertedBodyNumber ?? long.MaxValue) - _syncStatusList.BodiesLowestInsertWithoutGaps > _flushDbInterval ||
+                _syncStatusList.BodiesLowestInsertWithoutGaps <= _barrier // Other state depends on LowestInsertedBodyNumber, so this need to flush or it wont finish
             )
             {
                 Flush();
@@ -144,7 +144,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void Flush()
         {
-            long lowestInsertedAtPoint = _syncStatusList.LowestInsertWithoutGaps;
+            long lowestInsertedAtPoint = _syncStatusList.BodiesLowestInsertWithoutGaps;
             _blocksDb.Flush();
             _blockTree.LowestInsertedBodyNumber = lowestInsertedAtPoint;
         }
@@ -170,7 +170,7 @@ namespace Nethermind.Synchronization.FastBlocks
                 foreach (BlockInfo? batchInfo in batch.Infos)
                 {
                     if (batchInfo is null) break;
-                    _syncStatusList.MarkPending(batchInfo);
+                    _syncStatusList.MarkPendingBody(batchInfo);
                 }
 
                 throw;
@@ -238,12 +238,12 @@ namespace Nethermind.Synchronization.FastBlocks
                             _syncPeerPool.ReportBreachOfProtocol(batch.ResponseSourcePeer, DisconnectReason.InvalidTxOrUncle, "invalid tx or uncles root");
                         }
 
-                        _syncStatusList.MarkPending(blockInfo);
+                        _syncStatusList.MarkPendingBody(blockInfo);
                     }
                 }
                 else
                 {
-                    _syncStatusList.MarkPending(blockInfo);
+                    _syncStatusList.MarkPendingBody(blockInfo);
                 }
             }
 
@@ -257,7 +257,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private void InsertOneBlock(Block block)
         {
             _blockTree.Insert(block, BlockTreeInsertBlockOptions.SkipCanAcceptNewBlocks, bodiesWriteFlags: WriteFlags.DisableWAL);
-            _syncStatusList.MarkInserted(block.Number);
+            _syncStatusList.MarkInsertedBody(block.Number);
         }
 
         private void LogPostProcessingBatchInfo(BodiesSyncBatch batch, int validResponsesCount)
@@ -269,8 +269,8 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void UpdateSyncReport()
         {
-            _syncReport.FastBlocksBodies.Update(_pivotNumber - _syncStatusList.LowestInsertWithoutGaps);
-            _syncReport.BodiesInQueue.Update(_syncStatusList.QueueSize);
+            _syncReport.FastBlocksBodies.Update(_pivotNumber - _syncStatusList.BodiesLowestInsertWithoutGaps);
+            _syncReport.BodiesInQueue.Update(_syncStatusList.BodiesQueueSize);
         }
 
         private void AdjustRequestSizes(BodiesSyncBatch batch, int validResponsesCount)

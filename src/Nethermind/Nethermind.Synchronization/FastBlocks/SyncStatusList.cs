@@ -4,56 +4,59 @@
 using System;
 using System.Threading;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Receipts;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
 
 namespace Nethermind.Synchronization.FastBlocks
 {
-    abstract class SyncStatusList: ISyncStatusList
+    public class SyncStatusList
     {
-        private long _queueSize;
-        protected readonly IBlockTree _blockTree;
-        private FastBlockStatusList _statuses;
+        private readonly ISyncConfig _syncConfig;
+        private readonly IBlockTree _blockTree;
+        private readonly IReceiptStorage _receiptStorage;
         private readonly LruCache<long, BlockInfo> _cache = new(maxCapacity: 64, startCapacity: 64, "blockInfo Cache");
-        private long _lowestInsertWithoutGaps;
-        private long _lowerBound;
 
-        public long LowestInsertWithoutGaps
-        {
-            get => _lowestInsertWithoutGaps;
-            private set => _lowestInsertWithoutGaps = value;
-        }
+        private FastBlockStatusList _statuses;
 
-        public long QueueSize => _queueSize;
+        private long _bodiesQueueSize;
+        private long _bodiesLowestInsertWithoutGaps;
+        private long _bodiesLowerBound;
 
-        protected SyncStatusList(IBlockTree blockTree)
+        private long _receiptsQueueSize;
+        private long _receiptsLowestInsertWithoutGaps;
+        private long _receiptsLowerBound;
+
+        public SyncStatusList(IBlockTree blockTree, IReceiptStorage receiptStorage, ISyncConfig syncConfig)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
+            _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
         }
 
-        protected void Reset(
-            long pivotNumber,
-            long? lowestInserted,
-            long lowerBound)
+        public void Reset()
         {
+            long pivotNumber = _syncConfig.PivotNumberParsed;
             _statuses = new FastBlockStatusList(pivotNumber + 1);
-            LowestInsertWithoutGaps = lowestInserted ?? pivotNumber;
-            _lowerBound = lowerBound;
+
+            BodiesLowestInsertWithoutGaps = _blockTree.LowestInsertedBodyNumber ?? pivotNumber;
+            _bodiesLowerBound = _syncConfig.AncientBodiesBarrier;
+
+            ReceiptsLowestInsertWithoutGaps = _receiptStorage.LowestInsertedReceiptBlockNumber ?? pivotNumber;
+            _receiptsLowerBound = _syncConfig.AncientReceiptsBarrier;
+
+            if (ReceiptsLowestInsertWithoutGaps != 0 && ReceiptsLowestInsertWithoutGaps >= _receiptsLowerBound)
+            {
+                // Need to fill it with bodies inserted or receipts won't start.
+                for (long i = pivotNumber; i > BodiesLowestInsertWithoutGaps; i--)
+                {
+                    _statuses[i] = FastBlockStatus.BodiesInserted;
+                }
+            }
         }
 
-        public void GetInfosForBatch(BlockInfo?[] blockInfos)
-        {
-            GetInfosForBatch(
-                blockInfos,
-                FastBlockStatus.BodiesRequestSent,
-                FastBlockStatus.BodiesInserted,
-                _lowerBound,
-                ref _lowestInsertWithoutGaps,
-                ref _queueSize
-            );
-        }
-
-        protected void GetInfosForBatch(
+        private void GetInfosForBatch(
             BlockInfo?[] blockInfos,
             FastBlockStatus sentStatus,
             FastBlockStatus insertedStatus,
@@ -102,22 +105,85 @@ namespace Nethermind.Synchronization.FastBlocks
             }
         }
 
-        public void MarkInserted(long blockNumber)
+        #region Bodies
+
+        public long BodiesLowestInsertWithoutGaps
+        {
+            get => _bodiesLowestInsertWithoutGaps;
+            private set => _bodiesLowestInsertWithoutGaps = value;
+        }
+
+        public long BodiesQueueSize => _bodiesQueueSize;
+
+        public void GetInfosForBodiesBatch(BlockInfo?[] blockInfos)
+        {
+            GetInfosForBatch(
+                blockInfos,
+                FastBlockStatus.BodiesRequestSent,
+                FastBlockStatus.BodiesInserted,
+                _bodiesLowerBound,
+                ref _bodiesLowestInsertWithoutGaps,
+                ref _bodiesQueueSize
+            );
+        }
+
+        public void MarkInsertedBody(long blockNumber)
         {
             if (_statuses.TrySet(blockNumber, FastBlockStatus.BodiesInserted))
             {
-                Interlocked.Increment(ref _queueSize);
+                Interlocked.Increment(ref _bodiesQueueSize);
             }
         }
 
-        public abstract void Reset();
-
-        public void MarkPending(BlockInfo blockInfo)
+        public void MarkPendingBody(BlockInfo blockInfo)
         {
             if (_statuses.TrySet(blockInfo.BlockNumber, FastBlockStatus.BodiesPending))
             {
                 _cache.Set(blockInfo.BlockNumber, blockInfo);
             }
         }
+
+        #endregion
+
+
+        #region Receipts
+
+        public long ReceiptsLowestInsertWithoutGaps
+        {
+            get => _receiptsLowestInsertWithoutGaps;
+            private set => _receiptsLowestInsertWithoutGaps = value;
+        }
+
+        public long ReceiptsQueueSize => _receiptsQueueSize;
+
+        public void GetInfosForReceiptsBatch(BlockInfo?[] blockInfos)
+        {
+            GetInfosForBatch(
+                blockInfos,
+                FastBlockStatus.ReceiptRequestSent,
+                FastBlockStatus.ReceiptInserted,
+                _receiptsLowerBound,
+                ref _receiptsLowestInsertWithoutGaps,
+                ref _receiptsQueueSize
+            );
+        }
+
+        public void MarkInsertedReceipt(long blockNumber)
+        {
+            if (_statuses.TrySet(blockNumber, FastBlockStatus.ReceiptInserted))
+            {
+                Interlocked.Increment(ref _receiptsQueueSize);
+            }
+        }
+
+        public void MarkPendingReceipt(BlockInfo blockInfo)
+        {
+            if (_statuses.TrySet(blockInfo.BlockNumber, FastBlockStatus.BodiesInserted))
+            {
+                _cache.Set(blockInfo.BlockNumber, blockInfo);
+            }
+        }
+
+        #endregion
     }
 }

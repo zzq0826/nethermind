@@ -63,9 +63,10 @@ public class ReceiptSyncFeedTests
             Substitute.For<ISyncPeerPool>(),
             syncConfig,
             new NullSyncReport(),
-            new ReceiptsSyncStatusList(syncingTooBlockTree, receiptStorage, syncConfig),
+            new SyncStatusList(syncingTooBlockTree, receiptStorage, syncConfig),
             LimboLogs.Instance
         );
+        syncingTooBlockTree.LowestInsertedBodyNumber = 0;
         syncFeed.InitializeFeed();
 
         ReceiptsSyncBatch req = (await syncFeed.PrepareRequest())!;

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Receipts;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Test;
@@ -62,7 +63,7 @@ public class BodiesSyncFeedTests
             syncConfig,
             new NullSyncReport(),
             _blocksDb,
-            new BodiesSyncStatusList(syncingTooBlockTree, syncConfig),
+            new SyncStatusList(syncingTooBlockTree, new InMemoryReceiptStorage(), syncConfig),
             LimboLogs.Instance,
             flushDbInterval: 10
         );

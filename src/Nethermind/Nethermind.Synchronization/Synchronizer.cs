@@ -97,6 +97,10 @@ namespace Nethermind.Synchronization
             _logManager,
             _chainSpec?.SealEngineType == SealEngineType.Clique);
 
+        private SyncStatusList? _syncStatusList;
+        private SyncStatusList SyncStatusList =>
+            _syncStatusList ??= new SyncStatusList(_blockTree, _receiptStorage, _syncConfig);
+
         public Synchronizer(
             IDbProvider dbProvider,
             ISpecProvider specProvider,
@@ -196,7 +200,7 @@ namespace Nethermind.Synchronization
                 _syncConfig,
                 _syncReport,
                 _dbProvider.BlocksDb,
-                new BodiesSyncStatusList(_blockTree, _syncConfig),
+                SyncStatusList,
                 _logManager);
         }
 
@@ -210,7 +214,7 @@ namespace Nethermind.Synchronization
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
-                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                SyncStatusList,
                 _logManager);
         }
 

@@ -34,7 +34,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly IReceiptStorage _receiptStorage;
         private readonly ISyncPeerPool _syncPeerPool;
 
-        private ISyncStatusList _syncStatusList;
+        private SyncStatusList _syncStatusList;
         private long _pivotNumber;
         private long _barrier;
 
@@ -49,7 +49,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncPeerPool syncPeerPool,
             ISyncConfig syncConfig,
             ISyncReport syncReport,
-            ISyncStatusList syncStatusList,
+            SyncStatusList syncStatusList,
             ILogManager logManager)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
@@ -98,7 +98,7 @@ namespace Nethermind.Synchronization.FastBlocks
         {
             bool shouldDownloadReceipts = _syncConfig.DownloadReceiptsInFastSync;
             bool allReceiptsDownloaded = AllReceiptsDownloaded;
-            bool isGenesisDownloaded = _syncStatusList.LowestInsertWithoutGaps <= MinReceiptBlock;
+            bool isGenesisDownloaded = _syncStatusList.ReceiptsLowestInsertWithoutGaps <= MinReceiptBlock;
             bool noBatchesLeft = !shouldDownloadReceipts
                                  || allReceiptsDownloaded
                                  || isGenesisDownloaded;
@@ -132,7 +132,7 @@ namespace Nethermind.Synchronization.FastBlocks
             if (ShouldBuildANewBatch())
             {
                 BlockInfo?[] infos = new BlockInfo[_requestSize];
-                _syncStatusList.GetInfosForBatch(infos);
+                _syncStatusList.GetInfosForReceiptsBatch(infos);
                 if (infos[0] is not null)
                 {
                     batch = new ReceiptsSyncBatch(infos);
@@ -143,7 +143,7 @@ namespace Nethermind.Synchronization.FastBlocks
                 // Array.Reverse(infos);
             }
 
-            _receiptStorage.LowestInsertedReceiptBlockNumber = _syncStatusList.LowestInsertWithoutGaps;
+            _receiptStorage.LowestInsertedReceiptBlockNumber = _syncStatusList.ReceiptsLowestInsertWithoutGaps;
 
             return Task.FromResult(batch);
         }
@@ -167,7 +167,7 @@ namespace Nethermind.Synchronization.FastBlocks
                 foreach (BlockInfo? batchInfo in batch.Infos)
                 {
                     if (batchInfo is null) break;
-                    _syncStatusList.MarkPending(batchInfo);
+                    _syncStatusList.MarkPendingReceipt(batchInfo);
                 }
 
                 throw;
@@ -238,19 +238,19 @@ namespace Nethermind.Synchronization.FastBlocks
                                 if (_logger.IsWarn) _logger.Warn($"Could not find block {blockInfo.BlockHash}");
                             }
 
-                            _syncStatusList.MarkPending(blockInfo);
+                            _syncStatusList.MarkPendingReceipt(blockInfo);
                         }
                         else
                         {
                             try
                             {
                                 _receiptStorage.Insert(block, prepared, ensureCanonical: true);
-                                _syncStatusList.MarkInserted(block.Number);
+                                _syncStatusList.MarkInsertedReceipt(block.Number);
                                 validResponsesCount++;
                             }
                             catch (InvalidDataException)
                             {
-                                _syncStatusList.MarkPending(blockInfo);
+                                _syncStatusList.MarkPendingReceipt(blockInfo);
                             }
                         }
                     }
@@ -264,14 +264,14 @@ namespace Nethermind.Synchronization.FastBlocks
                             _syncPeerPool.ReportBreachOfProtocol(batch.ResponseSourcePeer, DisconnectReason.InvalidReceiptRoot, "invalid tx or uncles root");
                         }
 
-                        _syncStatusList.MarkPending(blockInfo);
+                        _syncStatusList.MarkPendingReceipt(blockInfo);
                     }
                 }
                 else
                 {
                     if (blockInfo is not null)
                     {
-                        _syncStatusList.MarkPending(blockInfo);
+                        _syncStatusList.MarkPendingReceipt(blockInfo);
                     }
                 }
             }
@@ -279,8 +279,8 @@ namespace Nethermind.Synchronization.FastBlocks
             AdjustRequestSize(batch, validResponsesCount);
             LogPostProcessingBatchInfo(batch, validResponsesCount);
 
-            _syncReport.FastBlocksReceipts.Update(_pivotNumber - _syncStatusList.LowestInsertWithoutGaps);
-            _syncReport.ReceiptsInQueue.Update(_syncStatusList.QueueSize);
+            _syncReport.FastBlocksReceipts.Update(_pivotNumber - _syncStatusList.ReceiptsLowestInsertWithoutGaps);
+            _syncReport.ReceiptsInQueue.Update(_syncStatusList.ReceiptsQueueSize);
             return validResponsesCount;
         }
 
