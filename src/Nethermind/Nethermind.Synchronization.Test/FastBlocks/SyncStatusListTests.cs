@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Blockchain;
 using Nethermind.Core;
-using Nethermind.Core.Crypto;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Synchronization.FastBlocks;
 using NSubstitute;
@@ -50,7 +49,8 @@ namespace Nethermind.Synchronization.Test.FastBlocks
         {
             IBlockTree blockTree = Substitute.For<IBlockTree>();
             blockTree.FindCanonicalBlockInfo(Arg.Any<long>()).Returns(new BlockInfo(TestItem.KeccakA, 0));
-            SyncStatusList syncStatusList = new SyncStatusList(blockTree, 1000, null, 900);
+            SyncStatusList syncStatusList = new TestSyncStatusList(blockTree, 1000, null, 900);
+            syncStatusList.Reset();
 
             BlockInfo?[] infos = new BlockInfo?[500];
             syncStatusList.GetInfosForBatch(infos);
@@ -151,5 +151,25 @@ namespace Nethermind.Synchronization.Test.FastBlocks
 
         private static FastBlockStatusList CreateFastBlockStatusList(int length, bool parallel = true) =>
             new(Enumerable.Range(0, length).Select(i => (FastBlockStatus)(i % 3)).ToList(), parallel);
+
+        private class TestSyncStatusList: SyncStatusList
+        {
+            private readonly long _pivot;
+            private readonly long? _lowestInserted;
+            private readonly long _barrier;
+
+
+            public TestSyncStatusList(IBlockTree blockTree, long pivot, long? lowestInserted, long barrier) : base(blockTree)
+            {
+                _pivot = pivot;
+                _lowestInserted = lowestInserted;
+                _barrier = barrier;
+            }
+
+            public override void Reset()
+            {
+                base.Reset(_pivot, _lowestInserted, _barrier);
+            }
+        }
     }
 }

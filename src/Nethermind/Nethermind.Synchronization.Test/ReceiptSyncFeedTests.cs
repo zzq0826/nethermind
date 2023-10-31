@@ -63,6 +63,7 @@ public class ReceiptSyncFeedTests
             Substitute.For<ISyncPeerPool>(),
             syncConfig,
             new NullSyncReport(),
+            new ReceiptsSyncStatusList(syncingTooBlockTree, receiptStorage, syncConfig),
             LimboLogs.Instance
         );
         syncFeed.InitializeFeed();
