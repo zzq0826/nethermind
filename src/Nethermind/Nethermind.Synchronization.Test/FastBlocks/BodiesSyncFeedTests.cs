@@ -62,6 +62,7 @@ public class BodiesSyncFeedTests
             syncConfig,
             new NullSyncReport(),
             _blocksDb,
+            new BodiesSyncStatusList(syncingTooBlockTree, syncConfig),
             LimboLogs.Instance,
             flushDbInterval: 10
         );

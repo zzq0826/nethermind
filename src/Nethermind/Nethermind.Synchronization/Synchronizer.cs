@@ -190,13 +190,28 @@ namespace Nethermind.Synchronization
         private BodiesSyncFeed? CreateBodiesSyncFeed()
         {
             if (!_syncConfig.FastSync || !_syncConfig.FastBlocks || !_syncConfig.DownloadHeadersInFastSync || !_syncConfig.DownloadBodiesInFastSync) return null;
-            return new BodiesSyncFeed(_blockTree, _syncPeerPool, _syncConfig, _syncReport, _dbProvider.BlocksDb, _logManager);
+            return new BodiesSyncFeed(
+                _blockTree,
+                _syncPeerPool,
+                _syncConfig,
+                _syncReport,
+                _dbProvider.BlocksDb,
+                new BodiesSyncStatusList(_blockTree, _syncConfig),
+                _logManager);
         }
 
         private ReceiptsSyncFeed? CreateReceiptsSyncFeed()
         {
             if (!_syncConfig.FastSync || !_syncConfig.FastBlocks || !_syncConfig.DownloadHeadersInFastSync || !_syncConfig.DownloadBodiesInFastSync || !_syncConfig.DownloadReceiptsInFastSync) return null;
-            return new ReceiptsSyncFeed(_specProvider, _blockTree, _receiptStorage, _syncPeerPool, _syncConfig, _syncReport, _logManager);
+            return new ReceiptsSyncFeed(
+                _specProvider,
+                _blockTree,
+                _receiptStorage,
+                _syncPeerPool,
+                _syncConfig,
+                _syncReport,
+                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
+                _logManager);
         }
 
         private SnapSyncFeed? CreateSnapSyncFeed()

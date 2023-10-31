@@ -49,6 +49,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncPeerPool syncPeerPool,
             ISyncConfig syncConfig,
             ISyncReport syncReport,
+            ISyncStatusList syncStatusList,
             ILogManager logManager)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
@@ -58,6 +59,7 @@ namespace Nethermind.Synchronization.FastBlocks
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _syncStatusList = syncStatusList ?? throw new ArgumentNullException(nameof(syncStatusList));
 
             if (!_syncConfig.FastBlocks)
             {
@@ -82,11 +84,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void ResetSyncStatusList()
         {
-            _syncStatusList = new SyncStatusList(
-                _blockTree,
-                _pivotNumber,
-                _receiptStorage.LowestInsertedReceiptBlockNumber,
-                _syncConfig.AncientReceiptsBarrier);
+            _syncStatusList.Reset();
         }
 
         protected override SyncMode ActivationSyncModes { get; }

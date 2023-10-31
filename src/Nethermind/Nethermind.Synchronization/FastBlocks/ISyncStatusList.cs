@@ -13,4 +13,5 @@ public interface ISyncStatusList
     void GetInfosForBatch(BlockInfo[] infos);
     void MarkPending(BlockInfo batchInfo);
     void MarkInserted(long blockNumber);
+    void Reset();
 }

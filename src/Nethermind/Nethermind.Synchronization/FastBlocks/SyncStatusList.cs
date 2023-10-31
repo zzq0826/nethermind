@@ -9,28 +9,34 @@ using Nethermind.Core.Caching;
 
 namespace Nethermind.Synchronization.FastBlocks
 {
-    internal class SyncStatusList: ISyncStatusList
+    abstract class SyncStatusList: ISyncStatusList
     {
         private long _queueSize;
-        private readonly IBlockTree _blockTree;
-        private readonly FastBlockStatusList _statuses;
+        protected readonly IBlockTree _blockTree;
+        private FastBlockStatusList _statuses;
         private readonly LruCache<long, BlockInfo> _cache = new(maxCapacity: 64, startCapacity: 64, "blockInfo Cache");
         private long _lowestInsertWithoutGaps;
-        private readonly long _lowerBound;
+        private long _lowerBound;
 
         public long LowestInsertWithoutGaps
         {
             get => _lowestInsertWithoutGaps;
-            private init => _lowestInsertWithoutGaps = value;
+            private set => _lowestInsertWithoutGaps = value;
         }
 
         public long QueueSize => _queueSize;
 
-        public SyncStatusList(IBlockTree blockTree, long pivotNumber, long? lowestInserted, long lowerBound)
+        protected SyncStatusList(IBlockTree blockTree)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
-            _statuses = new FastBlockStatusList(pivotNumber + 1);
+        }
 
+        protected void Reset(
+            long pivotNumber,
+            long? lowestInserted,
+            long lowerBound)
+        {
+            _statuses = new FastBlockStatusList(pivotNumber + 1);
             LowestInsertWithoutGaps = lowestInserted ?? pivotNumber;
             _lowerBound = lowerBound;
         }
@@ -84,6 +90,8 @@ namespace Nethermind.Synchronization.FastBlocks
                 Interlocked.Increment(ref _queueSize);
             }
         }
+
+        public abstract void Reset();
 
         public void MarkPending(BlockInfo blockInfo)
         {

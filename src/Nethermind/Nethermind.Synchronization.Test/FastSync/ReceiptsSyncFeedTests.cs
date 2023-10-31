@@ -123,6 +123,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
         }
 
@@ -138,6 +139,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                     _syncPeerPool,
                     _syncConfig,
                     _syncReport,
+                    new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                     LimboLogs.Instance));
         }
 
@@ -151,6 +153,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
             _feed.InitializeFeed();
 
@@ -244,6 +247,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _syncPeerPool,
                 _syncConfig,
                 _syncReport,
+                new ReceiptsSyncStatusList(_blockTree, _receiptStorage, _syncConfig),
                 LimboLogs.Instance);
             _feed.InitializeFeed();
 

@@ -44,6 +44,7 @@ namespace Nethermind.Synchronization.FastBlocks
             ISyncConfig syncConfig,
             ISyncReport syncReport,
             IDbMeta blocksDb,
+            ISyncStatusList syncStatusList,
             ILogManager logManager,
             long flushDbInterval = DefaultFlushDbInterval)
         {
@@ -53,6 +54,7 @@ namespace Nethermind.Synchronization.FastBlocks
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
             _syncReport = syncReport ?? throw new ArgumentNullException(nameof(syncReport));
             _blocksDb = blocksDb ?? throw new ArgumentNullException(nameof(blocksDb));
+            _syncStatusList = syncStatusList ?? throw new ArgumentNullException(nameof(syncStatusList));
             _flushDbInterval = flushDbInterval;
 
             if (!_syncConfig.FastBlocks)
@@ -79,11 +81,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
         private void ResetSyncStatusList()
         {
-            _syncStatusList = new SyncStatusList(
-                _blockTree,
-                _pivotNumber,
-                _blockTree.LowestInsertedBodyNumber,
-                _syncConfig.AncientBodiesBarrier);
+            _syncStatusList.Reset();
         }
 
         protected override SyncMode ActivationSyncModes { get; } = SyncMode.FastBodies & ~SyncMode.FastBlocks;
