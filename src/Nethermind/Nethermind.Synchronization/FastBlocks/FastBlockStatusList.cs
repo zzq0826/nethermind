@@ -14,19 +14,19 @@ namespace Nethermind.Synchronization.FastBlocks;
 
 internal class FastBlockStatusList
 {
-    private readonly int[] _statuses;
+    private readonly long[] _statuses;
     private readonly long _length;
 
     public FastBlockStatusList(long length)
     {
-        // Can fit 16 statuses per int, however need to round up the division
-        long size = length / 16;
-        if (size * 16 < length)
+        // Can fit 21 statuses per long, however need to round up the division
+        long size = length / 21;
+        if (size * 21 < length)
         {
             size++;
         }
 
-        _statuses = new int[size];
+        _statuses = new long[size];
         _length = length;
     }
 
@@ -54,19 +54,20 @@ internal class FastBlockStatusList
         {
             GuardLength(index);
             (long position, int shift) = GetValuePosition(index);
-            int status = Volatile.Read(ref _statuses[position]);
-            return DecodeValue(status, shift);
+            long status = Volatile.Read(ref _statuses[position]);
+            FastBlockStatus decoded = DecodeValue(status, shift);;
+            return decoded;
         }
-        private set
+        internal set
         {
             GuardLength(index);
             (long position, int shift) = GetValuePosition(index);
-            ref int status = ref _statuses[position];
-            int oldValue = Volatile.Read(ref status);
+            ref long status = ref _statuses[position];
+            long oldValue = Volatile.Read(ref status);
             do
             {
-                int newValue = EncodeValue(value, oldValue, shift);
-                int currentValue = Interlocked.CompareExchange(ref status, newValue, oldValue);
+                long newValue = EncodeValue(value, oldValue, shift);
+                long currentValue = Interlocked.CompareExchange(ref status, newValue, oldValue);
                 if (currentValue == oldValue || DecodeValue(currentValue, shift) == value)
                 {
                     // Change has happened
@@ -89,38 +90,43 @@ internal class FastBlockStatusList
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (long position, int shift) GetValuePosition(long index)
     {
-        (long position, long shift) = Math.DivRem(index, 16);
-        return (position, (int)shift * 2); // 2 bits per status
+        (long position, long shift) = Math.DivRem(index, 21);
+        return (position, (int)shift * 3); // 3 bits per status
     }
 
     public bool TrySet(long index, FastBlockStatus newState) => TrySet(index, newState, out _);
+
+    private bool CanTransition(FastBlockStatus priorState, FastBlockStatus newState)
+    {
+        return priorState switch
+        {
+            FastBlockStatus.BodiesPending => newState is FastBlockStatus.BodiesRequestSent,
+            FastBlockStatus.BodiesRequestSent => newState is FastBlockStatus.BodiesPending or FastBlockStatus.BodiesInserted,
+            FastBlockStatus.BodiesInserted => newState is FastBlockStatus.ReceiptRequestSent,
+            FastBlockStatus.ReceiptRequestSent => newState is FastBlockStatus.ReceiptInserted or FastBlockStatus.BodiesInserted,
+            FastBlockStatus.ReceiptInserted => false,
+            _ => throw new ArgumentOutOfRangeException(nameof(newState), newState, null)
+        };
+    }
 
     public bool TrySet(long index, FastBlockStatus newState, out FastBlockStatus previousValue)
     {
         GuardLength(index);
 
-        FastBlockStatus requiredPriorState = newState switch
-        {
-            FastBlockStatus.Sent => FastBlockStatus.Pending,
-            FastBlockStatus.Inserted => FastBlockStatus.Sent,
-            FastBlockStatus.Pending => FastBlockStatus.Sent,
-            _ => throw new ArgumentOutOfRangeException(nameof(newState), newState, null)
-        };
-
         (long position, int shift) = GetValuePosition(index);
-        ref int status = ref _statuses[position];
-        int oldValue = Volatile.Read(ref status);
+        ref long status = ref _statuses[position];
+        long oldValue = Volatile.Read(ref status);
         do
         {
             previousValue = DecodeValue(oldValue, shift);
-            if (previousValue != requiredPriorState)
+            if (!CanTransition(previousValue, newState))
             {
                 // Change not possible
                 return false;
             }
 
-            int newValue = EncodeValue(newState, oldValue, shift);
-            int previousValueInt = Interlocked.CompareExchange(ref status, newValue, oldValue);
+            long newValue = EncodeValue(newState, oldValue, shift);
+            long previousValueInt = Interlocked.CompareExchange(ref status, newValue, oldValue);
             if (previousValueInt == oldValue)
             {
                 // Change has happened
@@ -140,10 +146,10 @@ internal class FastBlockStatusList
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static FastBlockStatus DecodeValue(int value, int shift) => (FastBlockStatus)((value >> shift) & 0b11);
+    private static FastBlockStatus DecodeValue(long value, int shift) => (FastBlockStatus)((value >> shift) & 0b111);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int EncodeValue(FastBlockStatus newState, int oldValue, int shift) => (oldValue & ~(0b11 << shift)) | ((int)newState << shift);
+    private static long EncodeValue(FastBlockStatus newState, long oldValue, int shift) => (oldValue & ~((long)0b111 << shift)) | (((long)newState) << shift);
 
     [DoesNotReturn]
     [StackTraceHidden]

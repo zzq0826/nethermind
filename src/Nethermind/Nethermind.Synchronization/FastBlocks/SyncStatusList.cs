@@ -43,9 +43,28 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void GetInfosForBatch(BlockInfo?[] blockInfos)
         {
+            GetInfosForBatch(
+                blockInfos,
+                FastBlockStatus.BodiesRequestSent,
+                FastBlockStatus.BodiesInserted,
+                _lowerBound,
+                ref _lowestInsertWithoutGaps,
+                ref _queueSize
+            );
+        }
+
+        protected void GetInfosForBatch(
+            BlockInfo?[] blockInfos,
+            FastBlockStatus sentStatus,
+            FastBlockStatus insertedStatus,
+            long lowerBound,
+            ref long lowestWithoutGapVar,
+            ref long queueSizeVar
+        )
+        {
             int collected = 0;
-            long currentNumber = Volatile.Read(ref _lowestInsertWithoutGaps);
-            while (collected < blockInfos.Length && currentNumber != 0 && currentNumber >= _lowerBound)
+            long currentNumber = Volatile.Read(ref lowestWithoutGapVar);
+            while (collected < blockInfos.Length && currentNumber != 0 && currentNumber >= lowerBound)
             {
                 if (blockInfos[collected] is not null)
                 {
@@ -53,7 +72,7 @@ namespace Nethermind.Synchronization.FastBlocks
                     continue;
                 }
 
-                if (_statuses.TrySet(currentNumber, FastBlockStatus.Sent, out FastBlockStatus status))
+                if (_statuses.TrySet(currentNumber, sentStatus, out FastBlockStatus status))
                 {
                     if (_cache.TryGet(currentNumber, out BlockInfo blockInfo))
                     {
@@ -67,14 +86,14 @@ namespace Nethermind.Synchronization.FastBlocks
                     blockInfos[collected] = blockInfo;
                     collected++;
                 }
-                else if (status == FastBlockStatus.Inserted)
+                else if (status == insertedStatus)
                 {
-                    long currentLowest = Volatile.Read(ref _lowestInsertWithoutGaps);
+                    long currentLowest = Volatile.Read(ref lowestWithoutGapVar);
                     if (currentNumber == currentLowest)
                     {
-                        if (Interlocked.CompareExchange(ref _lowestInsertWithoutGaps, currentLowest - 1, currentLowest) == currentLowest)
+                        if (Interlocked.CompareExchange(ref lowestWithoutGapVar, currentLowest - 1, currentLowest) == currentLowest)
                         {
-                            Interlocked.Decrement(ref _queueSize);
+                            Interlocked.Decrement(ref queueSizeVar);
                         }
                     }
                 }
@@ -85,7 +104,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void MarkInserted(long blockNumber)
         {
-            if (_statuses.TrySet(blockNumber, FastBlockStatus.Inserted))
+            if (_statuses.TrySet(blockNumber, FastBlockStatus.BodiesInserted))
             {
                 Interlocked.Increment(ref _queueSize);
             }
@@ -95,7 +114,7 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void MarkPending(BlockInfo blockInfo)
         {
-            if (_statuses.TrySet(blockInfo.BlockNumber, FastBlockStatus.Pending))
+            if (_statuses.TrySet(blockInfo.BlockNumber, FastBlockStatus.BodiesPending))
             {
                 _cache.Set(blockInfo.BlockNumber, blockInfo);
             }

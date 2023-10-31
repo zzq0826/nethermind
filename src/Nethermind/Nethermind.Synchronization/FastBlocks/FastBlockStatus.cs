@@ -5,7 +5,9 @@ namespace Nethermind.Synchronization.FastBlocks;
 
 internal enum FastBlockStatus : byte
 {
-    Pending = 0,
-    Sent = 1,
-    Inserted = 2,
+    BodiesPending = 0,
+    BodiesRequestSent = 1,
+    BodiesInserted = 2,
+    ReceiptRequestSent = 3,
+    ReceiptInserted = 4,
 }

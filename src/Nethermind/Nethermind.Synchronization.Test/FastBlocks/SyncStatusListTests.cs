@@ -28,8 +28,8 @@ namespace Nethermind.Synchronization.Test.FastBlocks
 
             Assert.Throws<IndexOutOfRangeException>(() => { FastBlockStatus a = list[-1]; });
             Assert.Throws<IndexOutOfRangeException>(() => { FastBlockStatus a = list[1]; });
-            Assert.Throws<IndexOutOfRangeException>(() => { list.TrySet(-1, FastBlockStatus.Pending); });
-            Assert.Throws<IndexOutOfRangeException>(() => { list.TrySet(1, FastBlockStatus.Pending); });
+            Assert.Throws<IndexOutOfRangeException>(() => { list.TrySet(-1, FastBlockStatus.BodiesPending); });
+            Assert.Throws<IndexOutOfRangeException>(() => { list.TrySet(1, FastBlockStatus.BodiesPending); });
         }
 
         [Test]
@@ -40,7 +40,7 @@ namespace Nethermind.Synchronization.Test.FastBlocks
             FastBlockStatusList list = CreateFastBlockStatusList(length, false);
             for (int i = 0; i < length; i++)
             {
-                Assert.IsTrue((FastBlockStatus)(i % 3) == list[i]);
+                Assert.IsTrue((FastBlockStatus)(i % 5) == list[i]);
             }
         }
 
@@ -68,7 +68,7 @@ namespace Nethermind.Synchronization.Test.FastBlocks
                 FastBlockStatusList list = CreateFastBlockStatusList(len);
                 Parallel.For(0, len, (i) =>
                 {
-                    Assert.IsTrue((FastBlockStatus)(i % 3) == list[i]);
+                    Assert.IsTrue((FastBlockStatus)(i % 5) == list[i]);
                 });
             }
         }
@@ -83,30 +83,7 @@ namespace Nethermind.Synchronization.Test.FastBlocks
                 FastBlockStatusList list = CreateFastBlockStatusList(len, false);
                 for (int i = 0; i < len; i++)
                 {
-                    switch (list[i])
-                    {
-                        case FastBlockStatus.Pending:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Inserted));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Sent));
-                            goto case FastBlockStatus.Sent;
-
-                        case FastBlockStatus.Sent:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Inserted));
-                            goto case FastBlockStatus.Inserted;
-
-                        case FastBlockStatus.Inserted:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Inserted));
-                            break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
+                    AssertTransition(list, i);
                 }
             }
         }
@@ -121,36 +98,69 @@ namespace Nethermind.Synchronization.Test.FastBlocks
                 FastBlockStatusList list = CreateFastBlockStatusList(len);
                 Parallel.For(0, len, (i) =>
                 {
-                    switch (list[i])
-                    {
-                        case FastBlockStatus.Pending:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Inserted));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Sent));
-                            goto case FastBlockStatus.Sent;
-
-                        case FastBlockStatus.Sent:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsTrue(list.TrySet(i, FastBlockStatus.Inserted));
-                            goto case FastBlockStatus.Inserted;
-
-                        case FastBlockStatus.Inserted:
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Pending));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Sent));
-                            Assert.IsFalse(list.TrySet(i, FastBlockStatus.Inserted));
-                            break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
+                    AssertTransition(list, i);
                 });
             }
         }
 
+
+        private static void AssertTransition(FastBlockStatusList list, int i)
+        {
+            switch (list[i])
+            {
+                case FastBlockStatus.BodiesPending:
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesPending));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesInserted));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptInserted));
+
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.BodiesRequestSent));
+                    break;
+
+                case FastBlockStatus.BodiesRequestSent:
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptInserted));
+
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.BodiesInserted));
+                    list[i] = FastBlockStatus.BodiesRequestSent;
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.BodiesPending));
+                    break;
+
+                case FastBlockStatus.BodiesInserted:
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesPending));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesInserted));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptInserted));
+
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.ReceiptRequestSent));
+                    break;
+
+                case FastBlockStatus.ReceiptRequestSent:
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesPending));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptRequestSent));
+
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.BodiesInserted));
+                    list[i] = FastBlockStatus.ReceiptRequestSent;
+                    Assert.IsTrue(list.TrySet(i, FastBlockStatus.ReceiptInserted));
+                    break;
+
+                case FastBlockStatus.ReceiptInserted:
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesPending));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.BodiesInserted));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptRequestSent));
+                    Assert.IsFalse(list.TrySet(i, FastBlockStatus.ReceiptInserted));
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
         private static FastBlockStatusList CreateFastBlockStatusList(int length, bool parallel = true) =>
-            new(Enumerable.Range(0, length).Select(i => (FastBlockStatus)(i % 3)).ToList(), parallel);
+            new(Enumerable.Range(0, length).Select(i => (FastBlockStatus)(i % 5)).ToList(), parallel);
 
         private class TestSyncStatusList: SyncStatusList
         {
