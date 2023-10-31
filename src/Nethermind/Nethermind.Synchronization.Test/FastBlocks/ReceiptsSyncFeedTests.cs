@@ -396,5 +396,68 @@ namespace Nethermind.Synchronization.Test.FastSync
             Assert.True(feed.IsFinished);
         }
 
+        [Test]
+        public async Task ShouldRecoverOnInsertFailure()
+        {
+            InMemoryReceiptStorage syncingFromReceiptStore = new InMemoryReceiptStorage();
+            BlockTree syncingFromBlockTree = Build.A.BlockTree()
+                .WithTransactions(syncingFromReceiptStore)
+                .OfChainLength(100)
+                .TestObject;
+
+            BlockTree syncingTooBlockTree = Build.A.BlockTree()
+                .TestObject;
+
+            for (int i = 1; i < 100; i++)
+            {
+                Block block = syncingFromBlockTree.FindBlock(i, BlockTreeLookupOptions.None)!;
+                syncingTooBlockTree.Insert(block.Header);
+                syncingTooBlockTree.Insert(block);
+            }
+
+            Block pivot = syncingFromBlockTree.FindBlock(99, BlockTreeLookupOptions.None)!;
+
+            SyncConfig syncConfig = new()
+            {
+                FastSync = true,
+                PivotHash = pivot.Hash!.ToString(),
+                PivotNumber = pivot.Number.ToString(),
+                AncientBodiesBarrier = 0,
+                FastBlocks = true,
+                DownloadBodiesInFastSync = true,
+            };
+
+            IReceiptStorage receiptStorage = Substitute.For<IReceiptStorage>();
+            ReceiptsSyncFeed syncFeed = new ReceiptsSyncFeed(
+                MainnetSpecProvider.Instance,
+                syncingTooBlockTree,
+                receiptStorage,
+                Substitute.For<ISyncPeerPool>(),
+                syncConfig,
+                new NullSyncReport(),
+                new SyncStatusList(syncingTooBlockTree, receiptStorage, syncConfig),
+                LimboLogs.Instance
+            );
+            syncingTooBlockTree.LowestInsertedBodyNumber = 0;
+            syncFeed.InitializeFeed();
+
+            ReceiptsSyncBatch req = (await syncFeed.PrepareRequest())!;
+            req.Response = req.Infos.Take(8).Select((info) => syncingFromReceiptStore.Get(info!.BlockHash)).ToArray();
+
+            receiptStorage
+                .When((it) => it.Insert(Arg.Any<Block>(), Arg.Any<TxReceipt[]?>(), Arg.Any<bool>()))
+                .Do((callInfo) =>
+                {
+                    Block block = (Block)callInfo[0];
+                    if (block.Number == 95) throw new Exception("test exception");
+                });
+
+            Func<SyncResponseHandlingResult> act = () => syncFeed.HandleResponse(req);
+            act.Should().Throw<Exception>();
+            req = (await syncFeed.PrepareRequest())!;
+
+            req.Infos[0]!.BlockNumber.Should().Be(95);
+        }
+
     }
 }
