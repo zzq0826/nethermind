@@ -28,6 +28,10 @@ namespace Nethermind.Synchronization.FastBlocks
         private long _receiptsLowestInsertWithoutGaps;
         private long _receiptsLowerBound;
 
+        // Don't let the distance between receipt and bodies become too large. This is for efficiency reason as recently
+        // stored bodies are likely to be in the memtable or os cache.
+        private const int MaxBodiesToReceiptGap = 10000;
+
         public SyncStatusList(IBlockTree blockTree, IReceiptStorage receiptStorage, ISyncConfig syncConfig)
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
@@ -117,11 +121,18 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void GetInfosForBodiesBatch(BlockInfo?[] blockInfos)
         {
+            long lowerBound = _bodiesLowerBound;
+
+            if (_syncConfig.DownloadReceiptsInFastSync)
+            {
+                lowerBound = Math.Max(_receiptsLowestInsertWithoutGaps - MaxBodiesToReceiptGap, lowerBound);
+            }
+
             GetInfosForBatch(
                 blockInfos,
                 FastBlockStatus.BodiesRequestSent,
                 FastBlockStatus.BodiesInserted,
-                _bodiesLowerBound,
+                lowerBound,
                 ref _bodiesLowestInsertWithoutGaps,
                 ref _bodiesQueueSize
             );
