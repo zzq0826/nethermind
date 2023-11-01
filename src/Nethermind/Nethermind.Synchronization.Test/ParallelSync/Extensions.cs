@@ -16,7 +16,7 @@ namespace Nethermind.Synchronization.Test.ParallelSync
                 case FastBlocksState.None:
                     return SyncMode.FastHeaders;
                 case FastBlocksState.FinishedHeaders:
-                    return isFullSync ? SyncMode.FastBodies : SyncMode.None;
+                    return isFullSync ? (SyncMode.FastBodies | SyncMode.FastReceipts) : SyncMode.None;
                 case FastBlocksState.FinishedBodies:
                     return isFullSync ? SyncMode.FastReceipts : SyncMode.None;
                 default:
