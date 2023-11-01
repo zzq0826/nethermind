@@ -277,14 +277,18 @@ namespace Nethermind.Synchronization.FastBlocks
         {
             lock (_syncStatusList)
             {
-                if (validResponsesCount == batch.Infos.Length)
+                // Note, there are already per-peer request size limit, so specifying high number here would not result
+                // in timeout. However, it will cause lots of unfulfilled block which will need to get re-requested
+                // by another request, which is not ideal. At the sae time the block size is smaller at the start of
+                // the chain, so reducing it slows down syncing at the end of the chain.
+                if (validResponsesCount == batch.Infos.Length && validResponsesCount >= _requestSize)
                 {
-                    _requestSize = Math.Min(256, _requestSize * 2);
+                    _requestSize = Math.Min(GethSyncLimits.MaxBodyFetch, _requestSize * 2);
                 }
 
                 if (validResponsesCount == 0)
                 {
-                    _requestSize = Math.Max(4, _requestSize / 2);
+                    _requestSize = Math.Max(8, _requestSize / 2);
                 }
             }
         }
