@@ -19,6 +19,7 @@ namespace Nethermind.Synchronization.FastBlocks
         private readonly LruCache<long, BlockInfo> _cache = new(maxCapacity: 64, startCapacity: 64, "blockInfo Cache");
 
         private FastBlockStatusList _statuses;
+        private ReaderWriterLockSlim _resetLock = new ReaderWriterLockSlim();
 
         private long _bodiesQueueSize;
         private long _bodiesLowestInsertWithoutGaps;
@@ -41,22 +42,30 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void Reset()
         {
-            long pivotNumber = _syncConfig.PivotNumberParsed;
-            _statuses = new FastBlockStatusList(pivotNumber + 1);
-
-            BodiesLowestInsertWithoutGaps = _blockTree.LowestInsertedBodyNumber ?? pivotNumber;
-            _bodiesLowerBound = _syncConfig.AncientBodiesBarrier;
-
-            ReceiptsLowestInsertWithoutGaps = _receiptStorage.LowestInsertedReceiptBlockNumber ?? pivotNumber;
-            _receiptsLowerBound = _syncConfig.AncientReceiptsBarrier;
-
-            if (ReceiptsLowestInsertWithoutGaps != 0 && ReceiptsLowestInsertWithoutGaps >= _receiptsLowerBound)
+            _resetLock.EnterWriteLock();
+            try
             {
-                // Need to fill it with bodies inserted or receipts won't start.
-                for (long i = pivotNumber; i > BodiesLowestInsertWithoutGaps; i--)
+                long pivotNumber = _syncConfig.PivotNumberParsed;
+                _statuses = new FastBlockStatusList(pivotNumber + 1);
+
+                BodiesLowestInsertWithoutGaps = _blockTree.LowestInsertedBodyNumber ?? pivotNumber;
+                _bodiesLowerBound = _syncConfig.AncientBodiesBarrier;
+
+                ReceiptsLowestInsertWithoutGaps = _receiptStorage.LowestInsertedReceiptBlockNumber ?? pivotNumber;
+                _receiptsLowerBound = _syncConfig.AncientReceiptsBarrier;
+
+                if (ReceiptsLowestInsertWithoutGaps != 0 && ReceiptsLowestInsertWithoutGaps >= _receiptsLowerBound)
                 {
-                    _statuses[i] = FastBlockStatus.BodiesInserted;
+                    // Need to fill it with bodies inserted or receipts won't start.
+                    for (long i = pivotNumber; i > BodiesLowestInsertWithoutGaps; i--)
+                    {
+                        _statuses[i] = FastBlockStatus.BodiesInserted;
+                    }
                 }
+            }
+            finally
+            {
+                _resetLock.ExitWriteLock();
             }
         }
 
@@ -121,21 +130,29 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void GetInfosForBodiesBatch(BlockInfo?[] blockInfos)
         {
-            long lowerBound = _bodiesLowerBound;
-
-            if (_syncConfig.DownloadReceiptsInFastSync)
+            _resetLock.EnterReadLock();
+            try
             {
-                lowerBound = Math.Max(_receiptsLowestInsertWithoutGaps - MaxBodiesToReceiptGap, lowerBound);
-            }
+                long lowerBound = _bodiesLowerBound;
 
-            GetInfosForBatch(
-                blockInfos,
-                FastBlockStatus.BodiesRequestSent,
-                FastBlockStatus.BodiesInserted,
-                lowerBound,
-                ref _bodiesLowestInsertWithoutGaps,
-                ref _bodiesQueueSize
-            );
+                if (_syncConfig.DownloadReceiptsInFastSync)
+                {
+                    lowerBound = Math.Max(_receiptsLowestInsertWithoutGaps - MaxBodiesToReceiptGap, lowerBound);
+                }
+
+                GetInfosForBatch(
+                    blockInfos,
+                    FastBlockStatus.BodiesRequestSent,
+                    FastBlockStatus.BodiesInserted,
+                    lowerBound,
+                    ref _bodiesLowestInsertWithoutGaps,
+                    ref _bodiesQueueSize
+                );
+            }
+            finally
+            {
+                _resetLock.ExitReadLock();
+            }
         }
 
         public void MarkInsertedBody(long blockNumber)
@@ -169,14 +186,22 @@ namespace Nethermind.Synchronization.FastBlocks
 
         public void GetInfosForReceiptsBatch(BlockInfo?[] blockInfos)
         {
-            GetInfosForBatch(
-                blockInfos,
-                FastBlockStatus.ReceiptRequestSent,
-                FastBlockStatus.ReceiptInserted,
-                _receiptsLowerBound,
-                ref _receiptsLowestInsertWithoutGaps,
-                ref _receiptsQueueSize
-            );
+            _resetLock.EnterReadLock();
+            try
+            {
+                GetInfosForBatch(
+                    blockInfos,
+                    FastBlockStatus.ReceiptRequestSent,
+                    FastBlockStatus.ReceiptInserted,
+                    _receiptsLowerBound,
+                    ref _receiptsLowestInsertWithoutGaps,
+                    ref _receiptsQueueSize
+                );
+            }
+            finally
+            {
+                _resetLock.ExitReadLock();
+            }
         }
 
         public void MarkInsertedReceipt(long blockNumber)
