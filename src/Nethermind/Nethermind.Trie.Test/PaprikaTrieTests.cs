@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.Xml;
+using System.Threading.Tasks;
+using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -386,6 +392,58 @@ public class PaprikaTrieTests
         TrieNode root = state.Root;
 
         Assert.That(root.Keccak, Is.EqualTo(new Keccak(Convert.FromHexString(hexString))));
+    }
+
+    [TestCase(1, "0x622ab7418fc24b6befa9b46b58e4a7481526d6193af1dadac6918c47e75273ad")]
+    [TestCase(100, "0xd5a06a7f5cd264aeb54f783809beab33aaf015983cbc425b1fb779878131279e")]
+    [TestCase(1000, "0x2096c9367baf7a329f231b03824a980d9f897de39a7c20c05bd79dbc6e351121")]
+    [TestCase(10000, "0x1db15bc352135f4395c1b98251d17dd698d0507001e63dd8543786e446c6e7d1")]
+    [TestCase(19225, "0x75a76f63025d1a44a2c175170360a120a6abb156456c067646292ac25a1c5fe3")]
+    [TestCase(19226, "0x1038152ba60bb21d331b99dde453d73dd42c3b2dddca1e4d22885f7658b56272")]
+    [TestCase(21864, "0xf98d55b3dbfe56766df86feb59737de4b029c1a775f822ee47cf7efcf2765a9c")]
+    public void Sepolia_big_storage_tree(int take, string storageHash)
+    {
+        ILogManager logs = NullLogManager.Instance;
+
+        MemDb memDb = new();
+        using TrieStore trieStore = new(memDb, new TestPruningStrategy(true), Persist.EveryBlock, logs);
+
+        StorageTree storage = new(trieStore, logs);
+
+        Run(storage, take);
+
+        storage.UpdateRootHash();
+
+        TrieNode? lastBranch = storage.RootRef.GetChild(trieStore, 0xE)
+            .GetChild(trieStore, 0x0)
+            .GetChild(trieStore, 0x5)
+            .GetChild(trieStore, 0x7)
+            .GetChild(trieStore, 0x0);
+        //.GetChild(trieStore, 0x4)
+
+        lastBranch.Keccak = null;
+        lastBranch.ResolveKey(trieStore, false);
+
+        Keccak? actual = storage.RootHash;
+
+        actual.ToString().Should().Be(storageHash);
+
+        return;
+
+        static void Run(StorageTree storage, int take)
+        {
+            foreach (string line in GetData("storage-big-tree.txt").Take(take))
+            {
+                string[]? strings = line.Split(":");
+                Keccak? key = new(strings[0]);
+                storage.Set(key, Convert.FromHexString(strings[1]));
+            }
+        }
+    }
+
+    private static IEnumerable<string> GetData(string file, [CallerFilePath] string path = "")
+    {
+        return File.ReadLines(Path.Combine(Path.GetDirectoryName(path)!, file));
     }
 
     private static class Values

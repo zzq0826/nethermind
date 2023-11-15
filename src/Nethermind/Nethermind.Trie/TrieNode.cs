@@ -52,7 +52,7 @@ namespace Nethermind.Trie
 
         public bool IsPersisted { get; set; }
 
-        public Keccak? Keccak { get; internal set; }
+        public Keccak? Keccak { get; set; }
 
         public byte[]? FullRlp { get; internal set; }
 
