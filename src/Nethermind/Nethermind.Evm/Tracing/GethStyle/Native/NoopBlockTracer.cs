@@ -5,15 +5,15 @@ using Nethermind.Core;
 
 namespace Nethermind.Evm.Tracing.GethStyle.Native;
 
-public class NoopBlockTracer : GethLikeBlockTracerBase<NoopTransactionTracer>
+public class NoopBlockTracer : GethLikeBlockTracerBase<NoopTxTracer>
 {
     public NoopBlockTracer(GethTraceOptions options) : base(options) { }
-    protected override NoopTransactionTracer OnStart(Transaction? tx) => new(_options);
+    protected override NoopTxTracer OnStart(Transaction? tx) => new(_options);
 }
 
-public sealed class NoopTransactionTracer : GethLikeTxTracer
+public sealed class NoopTxTracer : GethLikeTxTracer
 {
-    public NoopTransactionTracer(GethTraceOptions options) : base(options)
+    public NoopTxTracer(GethTraceOptions options) : base(options)
     {
         IsTracingRefunds = true;
         IsTracingActions = true;

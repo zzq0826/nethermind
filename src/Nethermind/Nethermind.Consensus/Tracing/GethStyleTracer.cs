@@ -39,6 +39,7 @@ public class GethStyleTracer : IGethStyleTracer
     static GethStyleTracer()
     {
         _nativeTracers["noopTracer"] = (options, _, _) => new NoopBlockTracer(options);
+        _nativeTracers["4byteTracer"] = (options, _, _) => new FourByteBlockTracer(options);
     }
 
     public GethStyleTracer(IBlockchainProcessor processor,
