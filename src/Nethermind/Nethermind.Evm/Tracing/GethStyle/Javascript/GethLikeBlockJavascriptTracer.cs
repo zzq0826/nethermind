@@ -13,20 +13,18 @@ using Nethermind.State;
 
 namespace Nethermind.Evm.Tracing.GethStyle.Javascript;
 
-public class GethLikeBlockJavascriptTracer : BlockTracerBase<GethLikeTxTrace, GethLikeJavascriptTxTracer>, IDisposable
+public class GethLikeBlockJavascriptTracer : GethLikeBlockTracerBase<GethLikeJavascriptTxTracer>, IDisposable
 {
     private readonly IReleaseSpec _spec;
-    private readonly GethTraceOptions _options;
     private readonly Context _ctx;
     private readonly Db _db;
     private int _index;
     private ArrayPoolList<IDisposable>? _engines;
     private UInt256 _baseFee;
 
-    public GethLikeBlockJavascriptTracer(IWorldState worldState, IReleaseSpec spec, GethTraceOptions options) : base(options.TxHash)
+    public GethLikeBlockJavascriptTracer(GethTraceOptions options, IWorldState worldState, IReleaseSpec spec) : base(options)
     {
         _spec = spec;
-        _options = options;
         _ctx = new Context();
         _db = new Db(worldState);
     }

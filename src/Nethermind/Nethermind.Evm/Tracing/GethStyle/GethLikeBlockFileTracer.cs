@@ -13,26 +13,24 @@ using System.IO.Abstractions;
 
 namespace Nethermind.Evm.Tracing.GethStyle;
 
-public class GethLikeBlockFileTracer : BlockTracerBase<GethLikeTxTrace, GethLikeTxFileTracer>
+public class GethLikeBlockFileTracer : GethLikeBlockTracerBase<GethLikeTxFileTracer>
 {
-    private const string _alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+    private const string Alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     private readonly Block _block;
-    private Stream _file;
+    private Stream? _file;
     private readonly string _fileNameFormat;
     private readonly List<string> _fileNames = new();
-    private IFileSystem _fileSystem;
-    private Utf8JsonWriter _jsonWriter;
-    private readonly GethTraceOptions _options;
+    private readonly IFileSystem _fileSystem;
+    private Utf8JsonWriter? _jsonWriter;
     private readonly JsonSerializerOptions _serializerOptions = new();
 
-    public GethLikeBlockFileTracer(Block block, GethTraceOptions options, IFileSystem fileSystem) : base(options?.TxHash)
+    public GethLikeBlockFileTracer(Block block, GethTraceOptions options, IFileSystem fileSystem) : base(options)
     {
         _block = block ?? throw new ArgumentNullException(nameof(block));
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
 
-        var hash = _block.Hash.Bytes[..4].ToHexString(true);
+        var hash = _block.Hash!.Bytes[..4].ToHexString(true);
 
         _fileNameFormat = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), $"block_{hash}-{{0}}-{{1}}-{{2}}.jsonl");
 
@@ -54,7 +52,7 @@ public class GethLikeBlockFileTracer : BlockTracerBase<GethLikeTxTrace, GethLike
     {
         var trace = txTracer.BuildResult();
 
-        JsonSerializer.Serialize(_jsonWriter,
+        JsonSerializer.Serialize(_jsonWriter!,
             new
             {
                 output = trace.ReturnValue.ToHexString(true),
@@ -72,7 +70,7 @@ public class GethLikeBlockFileTracer : BlockTracerBase<GethLikeTxTrace, GethLike
         // Ensure the current file stream is disposed in case of API misuse
         DisposeFileStreamIfAny();
 
-        _fileNames.Add(GetFileName(tx.Hash));
+        _fileNames.Add(GetFileName(tx!.Hash!));
 
         _file = _fileSystem.File.OpenWrite(_fileNames.Last());
         _jsonWriter = new(_file);
@@ -89,7 +87,7 @@ public class GethLikeBlockFileTracer : BlockTracerBase<GethLikeTxTrace, GethLike
         _jsonWriter = null;
     }
 
-    private void DumpTraceEntry(GethTxFileTraceEntry entry) => JsonSerializer.Serialize(_jsonWriter, entry, _serializerOptions);
+    private void DumpTraceEntry(GethTxFileTraceEntry entry) => JsonSerializer.Serialize(_jsonWriter!, entry, _serializerOptions);
 
     private string GetFileName(Hash256 txHash)
     {
@@ -99,7 +97,7 @@ public class GethLikeBlockFileTracer : BlockTracerBase<GethLikeTxTrace, GethLike
             (chars, rand) =>
             {
                 for (var i = 0; i < chars.Length; i++)
-                    chars[i] = _alphabet[rand.Next(0, _alphabet.Length)];
+                    chars[i] = Alphabet[rand.Next(0, Alphabet.Length)];
             });
 
         for (; index < _block.Transactions.Length; index++)

@@ -48,7 +48,7 @@ public class GethLikeJavascriptTracerTests : VirtualMachineTestsBase
         traces.CustomTracerResult?.Value.Should().BeEquivalentTo(expectedStrings);
     }
 
-    private GethLikeBlockJavascriptTracer GetTracer(string userTracer) => new(TestState, Shanghai.Instance, GethTraceOptions.Default with { EnableMemory = true, Tracer = userTracer });
+    private GethLikeBlockJavascriptTracer GetTracer(string userTracer) => new(GethTraceOptions.Default with { EnableMemory = true, Tracer = userTracer }, TestState, Shanghai.Instance);
 
 
     [Test]

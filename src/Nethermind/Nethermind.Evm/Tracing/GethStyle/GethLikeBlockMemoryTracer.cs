@@ -2,16 +2,14 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core;
+using Nethermind.Evm.Tracing.GethStyle.Javascript;
 
 namespace Nethermind.Evm.Tracing.GethStyle;
 
-public class GethLikeBlockMemoryTracer : BlockTracerBase<GethLikeTxTrace, GethLikeTxMemoryTracer>
+public class GethLikeBlockMemoryTracer : GethLikeBlockTracerBase<GethLikeTxMemoryTracer>
 {
-    private readonly GethTraceOptions _options;
-
-    public GethLikeBlockMemoryTracer(GethTraceOptions options) : base(options.TxHash) => _options = options;
+    public GethLikeBlockMemoryTracer(GethTraceOptions options) : base(options) { }
 
     protected override GethLikeTxMemoryTracer OnStart(Transaction? tx) => new(_options);
 
-    protected override GethLikeTxTrace OnEnd(GethLikeTxMemoryTracer txTracer) => txTracer.BuildResult();
 }
