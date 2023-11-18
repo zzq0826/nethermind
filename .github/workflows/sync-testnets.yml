@@ -62,8 +62,19 @@ jobs:
           sudo apt install docker-ce -y
 
       - name: Build docker image
-        run: docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load .
+        run: |
+          # This action likes to fail with not well known reason from time to time
+          # Retry mechanism is added as a temp solution
 
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt"
+            docker buildx build --platform=linux/amd64 -t current_branch_image -f Dockerfile \
+            --build-arg COMMIT_HASH=${{ steps.settings.outputs.COMMIT_HASH }} \
+            --build-arg BUILD_TIMESTAMP=${{ steps.settings.outputs.BUILD_TIMESTAMP}} --load . && break
+            echo "Build failed, retrying..."
+            sleep 5  # Optional: adds a delay between retries
+          done
+        
       - name: Setup Go environment
         uses: actions/setup-go@v4.0.0
         with:
@@ -74,7 +85,7 @@ jobs:
       - name: Install Sedge environment
         run: |
           echo "Downloading sedge sources..."
-          git clone https://github.com/NethermindEth/sedge.git sedge --branch develop --single-branch
+          rm -rf sedge && git clone https://github.com/NethermindEth/sedge.git sedge --branch develop --single-branch
           echo "Sources downloaded."
           cd sedge
           echo "Building sedge..."
