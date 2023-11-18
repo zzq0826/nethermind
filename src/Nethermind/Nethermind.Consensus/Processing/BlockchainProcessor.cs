@@ -543,11 +543,17 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
                 options,
                 new ParityLikeBlockTracer(ParityTraceTypes.StateDiff | ParityTraceTypes.Trace),
                 DumpOptions.Parity);
-
+            GethTraceOptions optionsNew = new()
+            {
+                Tracer = "callTracer",
+                DisableStack = false,
+                DisableStorage = false,
+                EnableMemory = true
+            };
             TraceFailingBranch(
                 processingBranch,
                 options,
-                new GethLikeBlockMemoryTracer(GethTraceOptions.Default),
+                new GethLikeBlockMemoryTracer(optionsNew),
                 DumpOptions.Geth);
 
             processedBlocks = null;

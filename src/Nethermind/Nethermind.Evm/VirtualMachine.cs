@@ -430,7 +430,9 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             }
             catch (Exception ex) when (ex is EvmException or OverflowException)
             {
-                if (typeof(TLogger) == typeof(IsTracing)) _logger.Trace($"exception ({ex.GetType().Name}) in {currentState.ExecutionType} at depth {currentState.Env.CallDepth} - restoring snapshot");
+                if (typeof(TLogger) == typeof(IsTracing))
+                    _logger.Trace(
+                        $"exception ({ex.GetType().Name}) in {currentState.ExecutionType} at depth {currentState.Env.CallDepth} - restoring snapshot");
 
                 _worldState.Restore(currentState.Snapshot);
 
@@ -568,7 +570,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
 
     private bool ChargeAccountAccessGas(ref long gasAvailable, EvmState vmState, Address address, IReleaseSpec spec, bool chargeForWarm = true, bool valueTransfer = false, Instruction opCode = Instruction.STOP)
     {
-        // Console.WriteLine($"Accessing {address}");
 
         bool result = true;
         if (spec.IsVerkleTreeEipEnabled)
@@ -646,7 +647,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         StorageAccessType storageAccessType,
         IReleaseSpec spec)
     {
-        // Console.WriteLine($"Accessing {storageCell} {storageAccessType}");
 
         bool result = vmState.Env.Witness.AccessAndChargeForStorage(storageCell.Address, storageCell.Index,
             storageAccessType == StorageAccessType.SSTORE, ref gasAvailable);
@@ -1349,23 +1349,34 @@ OutOfGas:
                     }
                 case Instruction.CODECOPY:
                     {
-                        stack.PopUInt256(out a);
-                        stack.PopUInt256(out b);
-                        stack.PopUInt256(out result);
+                        stack.PopUInt256(out a); // memOffset
+                        stack.PopUInt256(out b); // codeOffset
+                        stack.PopUInt256(out result); // codeLength
                         gasAvailable -= GasCostOf.VeryLow + GasCostOf.Memory * EvmPooledMemory.Div32Ceiling(in result);
 
                         if (!result.IsZero)
                         {
                             if (!UpdateMemoryCost(vmState, ref gasAvailable, in a, result)) goto OutOfGas;
-
-                            slice = code.SliceWithZeroPadding(in b, (int)result);
+                            int codeSizeToUse = (int)result;
+                            slice = code.SliceWithZeroPadding(in b, codeSizeToUse);
                             vmState.Memory.Save(in a, in slice);
                             if (typeof(TTracingInstructions) == typeof(IsTracing)) _txTracer.ReportMemoryChange((long)a, in slice);
 
-                            int src;
-                            if (b > result) src = (int)result;
-                            else src = (int)b;
-                            env.Witness.AccessAndChargeForCodeSlice(vmState.To, src, slice.Length, false, ref gasAvailable);
+                            int actualCodeLength = code.Length;
+
+                            int startIncluded;
+                            int endNotIncluded;
+                            if (b >= actualCodeLength)
+                            {
+                                startIncluded = endNotIncluded = code.Length;
+                            }
+                            else
+                            {
+                                startIncluded = (int)b;
+                                endNotIncluded = startIncluded + codeSizeToUse;
+                                if (endNotIncluded > actualCodeLength) endNotIncluded = actualCodeLength;
+                            }
+                            env.Witness.AccessAndChargeForCodeSlice(vmState.To, startIncluded, endNotIncluded, false, ref gasAvailable);
                         }
 
                         break;
@@ -1453,17 +1464,29 @@ OutOfGas:
                             if (!UpdateMemoryCost(vmState, ref gasAvailable, in a, result)) goto OutOfGas;
 
                             ICode externalCode = GetCachedCodeInfo(_worldState, address, spec).MachineCode;
-                            slice = externalCode.SliceWithZeroPadding(b, (int)result);
+                            int codeSizeToUse = (int)result;
+                            slice = externalCode.SliceWithZeroPadding(b, codeSizeToUse);
                             vmState.Memory.Save(in a, in slice);
                             if (typeof(TTracingInstructions) == typeof(IsTracing))
                             {
                                 _txTracer.ReportMemoryChange((long)a, in slice);
                             }
 
-                            int src;
-                            if (b > result) src = (int)codeLength;
-                            else src = (int)b;
-                            env.Witness.AccessAndChargeForCodeSlice(vmState.To, src, slice.Length, false, ref gasAvailable);
+                            int actualCodeLength = code.Length;
+
+                            int startIncluded;
+                            int endNotIncluded;
+                            if (b >= actualCodeLength)
+                            {
+                                startIncluded = endNotIncluded = code.Length;
+                            }
+                            else
+                            {
+                                startIncluded = (int)b;
+                                endNotIncluded = startIncluded + codeSizeToUse;
+                                if (endNotIncluded > actualCodeLength) endNotIncluded = actualCodeLength;
+                            }
+                            env.Witness.AccessAndChargeForCodeSlice(vmState.To, startIncluded, endNotIncluded, false, ref gasAvailable);
 
                         }
 
@@ -1772,9 +1795,11 @@ OutOfGas:
                         else
                         {
                             stack.PushByte(code[programCounterInt]);
+                            // just a optimization - because if it is not the first element of the chunk
+                            // it means that that it was already included as witness due to code execution
                             if (programCounterInt % 31 == 0)
                             {
-                                if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To,programCounterInt + 1,
+                                if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounterInt + 1,
                                         false, ref gasAvailable)) goto OutOfGas;
                             }
                         }
@@ -1814,16 +1839,19 @@ OutOfGas:
                 case Instruction.PUSH31:
                 case Instruction.PUSH32:
                     {
+
                         gasAvailable -= GasCostOf.VeryLow;
 
-                        int length = instruction - Instruction.PUSH1 + 1;
+                        int length = instruction - Instruction.PUSH0;
                         int usedFromCode = Math.Min(code.Length - programCounter, length);
                         stack.PushLeftPaddedBytes(code.Slice(programCounter, usedFromCode), length);
-
-                        // TODO: fix this possibly
-                        int endOffset = programCounter + length > code.Length ? code.Length : programCounter + length;
-                        int codeSliceLength = endOffset - programCounter - 1;
-                        if(!env.Witness.AccessAndChargeForCodeSlice(vmState.To, programCounter, codeSliceLength, false, ref gasAvailable)) goto OutOfGas;
+                        int endNotIncluded = programCounter + usedFromCode;
+                        // this is a change done to support a use case I dont believe in - should be removed before fork
+                        // the idea for this was to add proof of absence in case where we dont have all the required bytes
+                        // for PUSHX, but this can already be inferred using codeSize - no need for proof of absence
+                        if (endNotIncluded == code.Length) endNotIncluded++;
+                        if (!env.Witness.AccessAndChargeForCodeSlice(vmState.To, programCounter,
+                                endNotIncluded, false, ref gasAvailable)) goto OutOfGas;
 
                         programCounter += length;
                         break;
@@ -2273,6 +2301,7 @@ ReturnFailure:
             ? codeSource
             : env.ExecutingAccount;
 
+
         if (typeof(TLogger) == typeof(IsTracing))
         {
             _logger.Trace($"caller {caller}");
@@ -2356,7 +2385,8 @@ ReturnFailure:
             transferValue: transferValue,
             value: callValue,
             inputData: callData,
-            codeInfo: GetCachedCodeInfo(_worldState, codeSource, spec)
+            codeInfo: GetCachedCodeInfo(_worldState, codeSource, spec),
+            witness: env.Witness
         );
         if (typeof(TLogger) == typeof(IsTracing)) _logger.Trace($"Tx call gas {gasLimitUl}");
         if (outputLength == 0)
@@ -2484,6 +2514,7 @@ ReturnFailure:
             if (initCodeLength > spec.MaxInitCodeSize) return (outOfGas: true, null);
         }
 
+
         long gasCost = GasCostOf.Create +
                        (spec.IsEip3860Enabled ? GasCostOf.InitCodeWord * EvmPooledMemory.Div32Ceiling(initCodeLength) : 0) +
                        (instruction == Instruction.CREATE2
@@ -2525,6 +2556,7 @@ ReturnFailure:
         if (typeof(TTracing) == typeof(IsTracing)) EndInstructionTrace(gasAvailable, vmState.Memory?.Size ?? 0);
         // todo: === below is a new call - refactor / move
 
+
         long callGas = spec.Use63Over64Rule ? gasAvailable - gasAvailable / 64L : gasAvailable;
         if (!UpdateGas(callGas, ref gasAvailable)) return (outOfGas: true, null);
 
@@ -2532,7 +2564,7 @@ ReturnFailure:
             ? ContractAddress.From(env.ExecutingAccount, _state.GetNonce(env.ExecutingAccount))
             : ContractAddress.From(env.ExecutingAccount, salt, initCode);
 
-        if(!env.Witness.AccessAndChargeForContractCreationInit(contractAddress, !vmState.Env.Value.IsZero, ref gasAvailable)) return (outOfGas: true, null);
+        if(!env.Witness.AccessAndChargeForContractCreationInit(contractAddress, !vmState.Env.Value.IsZero, ref callGas)) return (outOfGas: true, null);
 
         if (spec.UseHotAndColdStorage)
         {
@@ -2558,11 +2590,11 @@ ReturnFailure:
         // TODO: analyse this properly in context of verkle trees
         if (accountExists)
         {
-            if(spec.IsVerkleTreeEipEnabled) _state.UpdateStorageRoot(contractAddress, Keccak.EmptyTreeHash);
+            if(!spec.IsVerkleTreeEipEnabled) _state.UpdateStorageRoot(contractAddress, Keccak.EmptyTreeHash);
         }
         else if (_state.IsDeadAccount(contractAddress))
         {
-            if(spec.IsVerkleTreeEipEnabled) _state.ClearStorage(contractAddress);
+            if(!spec.IsVerkleTreeEipEnabled) _state.ClearStorage(contractAddress);
         }
 
         _state.SubtractFromBalance(env.ExecutingAccount, value, spec);
@@ -2576,7 +2608,7 @@ ReturnFailure:
             _codeCache.Set(codeHash, codeInfo);
         }
 
-        if(!env.Witness.AccessAndChargeForContractCreated(contractAddress, ref gasAvailable)) return (outOfGas: true, null);
+        if(!env.Witness.AccessAndChargeForContractCreated(contractAddress, ref callGas)) return (outOfGas: true, null);
 
         ExecutionEnvironment callEnv = new
         (
@@ -2584,11 +2616,12 @@ ReturnFailure:
             callDepth: env.CallDepth + 1,
             caller: env.ExecutingAccount,
             executingAccount: contractAddress,
-            codeSource: null,
+            codeSource: contractAddress,
             codeInfo: codeInfo,
             inputData: default,
             transferValue: value,
-            value: value
+            value: value,
+            witness: env.Witness
         );
         EvmState callState = new(
             callGas,
@@ -2672,7 +2705,6 @@ ReturnFailure:
                 spec)) return false;
 
         Span<byte> currentValue = _state.Get(in storageCell);
-        // Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
         bool currentIsZero = currentValue.IsZero();
 
         bool newSameAsCurrent = (newIsZero && currentIsZero) || Bytes.AreEqual(currentValue, bytes);

@@ -587,6 +587,7 @@ public class VerkleWorldState : IWorldState
     public void Reset()
     {
         if (_logger.IsTrace) _logger.Trace("Clearing state provider caches");
+        _tree.Reset();
         _intraBlockCache.Reset();
         _committedThisRound.Reset();
         _readsForTracing.Clear();

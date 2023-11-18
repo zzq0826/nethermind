@@ -47,7 +47,7 @@ public class NoExecWitness: IWitness
         return true;
     }
 
-    public bool AccessAndChargeForCodeSlice(Address address, int start, int codeSliceLength, bool isWrite, ref long unspentGas)
+    public bool AccessAndChargeForCodeSlice(Address address, int startIncluded, int endNotIncluded, bool isWrite, ref long unspentGas)
     {
         return true;
     }

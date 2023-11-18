@@ -120,7 +120,6 @@ namespace Nethermind.Evm.TransactionProcessing
 
             if (!ValidateStatic(tx, header, spec, tracer, opts, out long intrinsicGas))
                 return;
-
             UInt256 effectiveGasPrice =
                 tx.CalculateEffectiveGasPrice(spec.IsEip1559Enabled, header.BaseFeePerGas);
 
@@ -147,12 +146,12 @@ namespace Nethermind.Evm.TransactionProcessing
             if (!ValidateSender(tx, header, spec, tracer, opts))
                 return;
 
+
             if (!BuyGas(tx, header, spec, tracer, opts, effectiveGasPrice, out UInt256 premiumPerGas, out UInt256 senderReservedGasPayment))
                 return;
 
             if (!IncrementNonce(tx, header, spec, tracer, opts))
                 return;
-
             if (commit)
                 _worldState.Commit(spec, tracer.IsTracingState ? tracer : NullTxTracer.Instance);
 
@@ -659,7 +658,8 @@ namespace Nethermind.Evm.TransactionProcessing
                 // (but this would generally be a hash collision)
                 if (codeIsNotEmpty || accountNonceIsNotZero)
                 {
-                    if (_logger.IsTrace) _logger.Trace($"Contract collision at {contractAddress}");
+                    if (_logger.IsTrace)
+                        _logger.Trace($"Contract collision at {contractAddress}");
                     throw new TransactionCollisionException();
                 }
 

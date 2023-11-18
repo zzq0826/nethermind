@@ -85,10 +85,12 @@ public class VerkleExecWitness: IWitness
         return UpdateGas(gas, ref unspentGas);
     }
 
-    public bool AccessAndChargeForCodeSlice(Address address, int start, int codeSliceLength, bool isWrite, ref long unspentGas)
+    public bool AccessAndChargeForCodeSlice(Address address, int startIncluded, int endNotIncluded, bool isWrite, ref long unspentGas)
     {
-        byte startChunkId = CalculateCodeChunkIdFromPc(start);
-        byte endChunkId = CalculateCodeChunkIdFromPc(start + codeSliceLength);
+        if (startIncluded == endNotIncluded) return true;
+
+        byte startChunkId = CalculateCodeChunkIdFromPc(startIncluded);
+        byte endChunkId = CalculateCodeChunkIdFromPc(endNotIncluded - 1);
 
         long accGas = 0;
         for (byte ch = startChunkId; ch <= endChunkId; ch++)
@@ -97,7 +99,7 @@ public class VerkleExecWitness: IWitness
             accGas += gas;
             if (!UpdateGas(gas, ref unspentGas)) return false;
         }
-        if(_logger.IsTrace) _logger.Trace($"AccessAndChargeForCodeSlice: {accGas} {start} {start + codeSliceLength} {isWrite} {unspentGas}");
+        if(_logger.IsTrace) _logger.Trace($"AccessAndChargeForCodeSlice: {accGas} {startIncluded} {endNotIncluded} {isWrite} {unspentGas}");
         return true;
     }
 

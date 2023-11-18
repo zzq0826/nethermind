@@ -32,7 +32,7 @@ public interface IWitness
 
     public bool AccessAndChargeForAbsentAccount(Address address, ref long unspentGas);
 
-    public bool AccessAndChargeForCodeSlice(Address address, int start, int codeSliceLength, bool isWrite,
+    public bool AccessAndChargeForCodeSlice(Address address, int startIncluded, int endNotIncluded, bool isWrite,
         ref long unspentGas);
 
     public byte[][] GetAccessedKeys();
