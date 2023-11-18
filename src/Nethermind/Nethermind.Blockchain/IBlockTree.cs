@@ -158,8 +158,6 @@ namespace Nethermind.Blockchain
 
         void ForkChoiceUpdated(Hash256? finalizedBlockHash, Hash256? safeBlockBlockHash);
 
-        void LoadLowestInsertedBeaconHeader();
-
         event EventHandler<BlockEventArgs> NewBestSuggestedBlock;
         event EventHandler<BlockEventArgs> NewSuggestedBlock;
 

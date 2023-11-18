@@ -1462,7 +1462,7 @@ namespace Nethermind.Blockchain
                 byte[] data = _blockInfoDb.Get(HeadAddressInDb);
                 if (data is not null)
                 {
-                    startBlock = FindBlock(new Keccak(data), BlockTreeLookupOptions.None);
+                    startBlock = FindBlock(new Hash256(data), BlockTreeLookupOptions.None);
                     if (_logger.IsInfo) _logger.Info($"Start block loaded from HEAD - {startBlock?.ToString(Block.Format.Short)}");
                 }
             }
@@ -1478,7 +1478,7 @@ namespace Nethermind.Blockchain
             }
         }
 
-        private void SetHeadBlock(Keccak headHash)
+        private void SetHeadBlock(Hash256 headHash)
         {
             Block? headBlock = FindBlock(headHash, BlockTreeLookupOptions.None);
             if (headBlock is null)
@@ -1498,7 +1498,7 @@ namespace Nethermind.Blockchain
             Head = headBlock;
         }
 
-        public bool IsKnownBlock(long number, Keccak blockHash)
+        public bool IsKnownBlock(long number, Hash256 blockHash)
         {
             if (number > BestKnownNumber)
             {
