@@ -213,7 +213,7 @@ namespace Nethermind.Blockchain
         {
             if (_metadataDb.KeyExists(MetadataDbKeys.LowestInsertedBeaconHeaderHash))
             {
-                Keccak? lowestBeaconHeaderHash = _metadataDb.Get(MetadataDbKeys.LowestInsertedBeaconHeaderHash)?
+                Hash256? lowestBeaconHeaderHash = _metadataDb.Get(MetadataDbKeys.LowestInsertedBeaconHeaderHash)?
                     .AsRlpStream().DecodeKeccak();
                 _lowestInsertedBeaconHeader = FindHeader(lowestBeaconHeaderHash, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
             }
