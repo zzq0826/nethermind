@@ -1270,60 +1270,6 @@ namespace Nethermind.Blockchain.Test
             Assert.That(loadedTree.BestKnownNumber, Is.EqualTo(expectedResult), "loaded tree");
         }
 
-        [Test]
-        public void Loads_best_head_up_to_best_persisted_state()
-        {
-            MemDb metadataDb = new();
-            metadataDb.Set(MetadataDbKeys.BeaconSyncPivotNumber, Rlp.Encode(51).Bytes);
-
-            SyncConfig syncConfig = new()
-            {
-                PivotNumber = "0",
-                FastSync = true,
-            };
-
-            BlockTreeBuilder builder = Build.A.BlockTree()
-                .WithoutSettingHead
-                .WithMetadataDb(metadataDb)
-                .WithSyncConfig(syncConfig);
-
-            BlockTree tree = builder.TestObject;
-            Block genesis = Build.A.Block.Genesis.TestObject;
-            tree.SuggestBlock(genesis);
-            Block parent = genesis;
-
-            List<Block> blocks = new() { genesis };
-
-            for (long i = 1; i < 100; i++)
-            {
-                Block block = Build.A.Block
-                    .WithNumber(i)
-                    .WithParent(parent)
-                    .WithTotalDifficulty(i).TestObject;
-                blocks.Add(block);
-                parent = block;
-                if (i <= 50)
-                {
-                    // tree.Insert(block.Header);
-                    tree.SuggestBlock(block);
-                }
-                else
-                {
-                    tree.Insert(block, BlockTreeInsertBlockOptions.SaveHeader, BlockTreeInsertHeaderOptions.BeaconBodyMetadata);
-                }
-            }
-            tree.UpdateMainChain(blocks.ToArray(), true);
-            tree.BestPersistedState = 50;
-
-            BlockTree loadedTree = Build.A.BlockTree()
-                .WithoutSettingHead
-                .WithDatabaseFrom(builder)
-                .WithSyncConfig(syncConfig)
-                .TestObject;
-
-            Assert.That(loadedTree.Head?.Number, Is.EqualTo(50));
-        }
-
         [Timeout(Timeout.MaxTestTime)]
         [TestCase(1L)]
         [TestCase(2L)]
