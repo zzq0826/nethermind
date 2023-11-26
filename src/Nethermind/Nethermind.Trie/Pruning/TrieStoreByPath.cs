@@ -211,8 +211,12 @@ namespace Nethermind.Trie.Pruning
             if (rlp is null || rlp[0] != PathMarker)
                 return rlp;
 
-            rlp = keyValueStore[rlp.AsSpan()[1..]];
-            return rlp;
+            Span<byte> fullPath = stackalloc byte[column == StateColumns.State ? 64 : 130];
+            Span<byte> keyNibbles = Nibbles.BytesToNibblesStorage(rlp[1..]);
+            path.CopyTo(fullPath);
+            keyNibbles.CopyTo(fullPath.Slice(path.Length));
+
+            return keyValueStore[Nibbles.NibblesToByteStorage(fullPath)];
         }
 
         internal byte[] LoadRlp(Hash256 keccak, IKeyValueStore? keyValueStore, ReadFlags flags = ReadFlags.None)
@@ -465,10 +469,12 @@ namespace Nethermind.Trie.Pruning
                 {
                     if (trieNode.PathToNode.Length < 64)
                     {
-                        byte[] newPath = new byte[pathBytes.Length + 1];
-                        Array.Copy(pathBytes, 0, newPath, 1, pathBytes.Length);
-                        newPath[0] = PathMarker;
-                        batch.Set(pathToNodeBytes, newPath, writeFlags);
+                        //store only the key to reconstruct full path
+                        Span<byte> keyBytes = stackalloc byte[trieNode.Key.Length / 2 + 2];
+                        keyBytes[0] = PathMarker;
+                        Nibbles.NibblesToByteStorage(trieNode.Key, keyBytes[1..]);
+
+                        batch.Set(pathToNodeBytes, keyBytes.ToArray(), writeFlags);
 
                         if (withDelete)
                             RequestDeletionForLeaf(pathToNodeNibbles, trieNode.FullPath);
@@ -529,10 +535,12 @@ namespace Nethermind.Trie.Pruning
                 {
                     if (pathToNodeLength < 64)
                     {
-                        Span<byte> newPath = stackalloc byte[pathBytes.Length + 1];
-                        newPath[0] = PathMarker;
-                        pathBytes.CopyTo(newPath.Slice(1));
-                        batch.Set(pathToNodeBytes, newPath.ToArray(), writeFlags);
+                        //store only the key to reconstruct full path
+                        Span<byte> keyBytes = stackalloc byte[(fullPath.Length - pathToNodeIndexWithPrefix) / 2 + 2];
+                        keyBytes[0] = PathMarker;
+                        Nibbles.NibblesToByteStorage(fullPath[pathToNodeIndexWithPrefix..], keyBytes[1..]);
+
+                        batch.Set(pathToNodeBytes, keyBytes.ToArray(), writeFlags);
                     }
                 }
             }
