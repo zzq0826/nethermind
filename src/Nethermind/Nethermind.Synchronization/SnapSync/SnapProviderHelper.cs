@@ -141,6 +141,7 @@ namespace Nethermind.Synchronization.SnapSync
             List<TrieNode> sortedBoundaryList = new();
 
             Dictionary<ValueHash256, TrieNode> dict = CreateProofDict(proofs, tree.TrieStore);
+            // trieStore.ProofDict = dict;
 
             if (!dict.TryGetValue(expectedRootHash, out TrieNode root))
             {
@@ -257,7 +258,7 @@ namespace Nethermind.Synchronization.SnapSync
             for (int i = 0; i < proofs.Length; i++)
             {
                 byte[] proof = proofs[i];
-                TrieNode node = new(NodeType.Unknown, proof, isDirty: true);
+                TrieNode node = new(NodeType.Unknown, null, new TreePath(), proof, isDirty: true);
                 node.IsBoundaryProofNode = true;
                 node.ResolveNode(store);
                 node.ResolveKey(store, isRoot: i == 0);
