@@ -700,7 +700,7 @@ public class ChainSpecBasedSpecProviderTests
                 Eip3860TransitionTimestamp = 1000000012,
                 Eip1153TransitionTimestamp = 1000000024,
                 Eip2537TransitionTimestamp = 1000000024,
-                VerkleTreeTransitionTimestamp = 1000000030
+                Eip6800TransitionTimestamp = 1000000030
             }
         };
 

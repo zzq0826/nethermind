@@ -147,11 +147,11 @@ namespace Nethermind.Specs.Test
             }
         }
 
-        private ulong? _overridenVerkleTreeTransitionTimeStamp;
-        public ulong VerkleTreeTransitionTimeStamp
+        private ulong? _overridenEip6800TransitionTimeStamp;
+        public ulong Eip6800TransitionTimeStamp
         {
-            get =>_overridenVerkleTreeTransitionTimeStamp ?? _spec.VerkleTreeTransitionTimeStamp;
-            set => _overridenVerkleTreeTransitionTimeStamp = value;
+            get =>_overridenEip6800TransitionTimeStamp ?? _spec.Eip6800TransitionTimeStamp;
+            set => _overridenEip6800TransitionTimeStamp = value;
         }
 
         public bool IsEip1153Enabled => _spec.IsEip1153Enabled;

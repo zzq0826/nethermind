@@ -82,6 +82,6 @@ namespace Nethermind.Specs
         public bool IsEip5656Enabled { get; set; }
         public bool IsEip6780Enabled { get; set; }
         public bool IsVerkleTreeEipEnabled { get; set; }
-        public ulong VerkleTreeTransitionTimeStamp { get; set; }
+        public ulong Eip6800TransitionTimeStamp { get; set; }
     }
 }

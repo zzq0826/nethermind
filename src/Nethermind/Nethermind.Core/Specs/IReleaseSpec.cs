@@ -286,7 +286,7 @@ namespace Nethermind.Core.Specs
         public ulong WithdrawalTimestamp { get; }
 
         public ulong Eip4844TransitionTimestamp { get; }
-        public ulong VerkleTreeTransitionTimeStamp { get; }
+        public ulong Eip6800TransitionTimeStamp { get; }
 
         // STATE related
         public bool ClearEmptyAccountWhenTouched => IsEip158Enabled;
