@@ -126,7 +126,64 @@ public class VirtualMachine : IVirtualMachine
     public readonly struct IsTracing : IIsTracing { }
 }
 
-internal sealed class VirtualMachine<TLogger> : IVirtualMachine
+internal sealed class VirtualMachine<TLogger> : VirtualMachineBase<TLogger> where TLogger : struct, IIsTracing
+{
+    public VirtualMachine(IBlockhashProvider? blockhashProvider, ISpecProvider? specProvider, ILogger? logger) : base(blockhashProvider, specProvider, logger)
+    {
+    }
+}
+
+class MultiCallVirtualMachine<TLogger> : VirtualMachineBase<TLogger> where TLogger : struct, IIsTracing
+{
+    private IDictionary<Address, IDictionary<ReadOnlyMemory<byte>, (byte[] Output, long GasUsed)>> _overrides = new Dictionary<Address, IDictionary<ReadOnlyMemory<byte>, (byte[] Output, long GasUsed)>>();
+
+    protected override CallResult ExecuteCode<TTracingInstructions, TTracingRefunds, TTracingStorage>(EvmState vmState, scoped ref EvmStack<TTracingInstructions> stack, long gasAvailable, IReleaseSpec spec)
+    {
+        return TryGetOverrideCallResult(vmState, gasAvailable, out CallResult executePrecompile) ? executePrecompile : base.ExecuteCode<TTracingInstructions, TTracingRefunds, TTracingStorage>(vmState, ref stack, gasAvailable, spec);
+    }
+
+    protected override CallResult ExecutePrecompile(EvmState state, IReleaseSpec spec)
+    {
+        // if (!_state.AccountExists(state.Env.ExecutingAccount))
+        // {
+        //     wasCreated = true;
+        //     _state.CreateAccount(state.Env.ExecutingAccount, transferValue);
+        // }
+        // else
+        // {
+        //     _state.AddToBalance(state.Env.ExecutingAccount, transferValue, spec);
+        // }
+        return TryGetOverrideCallResult(state, state.GasAvailable, out CallResult executePrecompile) ? executePrecompile : base.ExecutePrecompile(state, spec);
+    }
+
+    private bool TryGetOverrideCallResult(EvmState state, long gasAvailable, out CallResult callResult)
+    {
+        if (_overrides.TryGetValue(state.Env.CodeSource ?? state.Env.ExecutingAccount, out IDictionary<ReadOnlyMemory<byte>, (byte[] Output, long GasUsed)> inputMappings))
+        {
+            if (inputMappings.TryGetValue(state.Env.InputData, out (byte[] Output, long GasUsed) result))
+            {
+                if (!UpdateGas(result.GasUsed, ref gasAvailable))
+                {
+                    Metrics.EvmExceptions++;
+                    throw new OutOfGasException();
+                }
+
+                state.GasAvailable = gasAvailable;
+                callResult = new CallResult(result.Output, true, false, EvmExceptionType.None);
+                return true;
+            }
+        }
+
+        callResult = CallResult.Empty;
+        return false;
+    }
+
+    public MultiCallVirtualMachine(IBlockhashProvider? blockhashProvider, ISpecProvider? specProvider, ILogger? logger) : base(blockhashProvider, specProvider, logger)
+    {
+    }
+}
+
+internal class VirtualMachineBase<TLogger> : IVirtualMachine
     where TLogger : struct, IIsTracing
 {
     private UInt256 P255Int = (UInt256)System.Numerics.BigInteger.Pow(2, 255);
@@ -166,7 +223,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
     private byte[] _returnDataBuffer = Array.Empty<byte>();
     private ITxTracer _txTracer = NullTxTracer.Instance;
 
-    public VirtualMachine(
+    public VirtualMachineBase(
         IBlockhashProvider? blockhashProvider,
         ISpecProvider? specProvider,
         ILogger? logger)
@@ -540,7 +597,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         };
     }
 
-    private static bool UpdateGas(long gasCost, ref long gasAvailable)
+    protected static bool UpdateGas(long gasCost, ref long gasAvailable)
     {
         if (gasAvailable < gasCost)
         {
@@ -620,7 +677,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         return result;
     }
 
-    private CallResult ExecutePrecompile(EvmState state, IReleaseSpec spec)
+    protected virtual CallResult ExecutePrecompile(EvmState state, IReleaseSpec spec)
     {
         ReadOnlyMemory<byte> callData = state.Env.InputData;
         UInt256 transferValue = state.Env.TransferValue;
@@ -765,7 +822,7 @@ OutOfGas:
     }
 
     [SkipLocalsInit]
-    private CallResult ExecuteCode<TTracingInstructions, TTracingRefunds, TTracingStorage>(EvmState vmState, scoped ref EvmStack<TTracingInstructions> stack, long gasAvailable, IReleaseSpec spec)
+    protected virtual CallResult ExecuteCode<TTracingInstructions, TTracingRefunds, TTracingStorage>(EvmState vmState, scoped ref EvmStack<TTracingInstructions> stack, long gasAvailable, IReleaseSpec spec)
         where TTracingInstructions : struct, IIsTracing
         where TTracingRefunds : struct, IIsTracing
         where TTracingStorage : struct, IIsTracing
