@@ -688,8 +688,6 @@ namespace Nethermind.Trie.Pruning
             Metrics.DeepPruningTime = stopwatch.ElapsedMilliseconds;
         }
 
-        private Dictionary<PruneKey, string> RemovedKey = new();
-
         /// <summary>
         /// This method is responsible for reviewing the nodes that are directly in the cache and
         /// removing ones that are either no longer referenced or already persisted.
@@ -717,7 +715,6 @@ namespace Nethermind.Trie.Pruning
                         }
                     }
 
-                    RemovedKey[key] = "marked persisted";
                     _dirtyNodes.Remove(key);
 
                     Metrics.PrunedPersistedNodesCount++;
@@ -729,7 +726,6 @@ namespace Nethermind.Trie.Pruning
                     {
                         throw new InvalidOperationException($"Removed {node}");
                     }
-                    RemovedKey[key] = $"not needed {node.LastSeen} {LastPersistedBlockNumber} {LatestCommittedBlockNumber}";
                     _dirtyNodes.Remove(key);
 
                     Metrics.PrunedTransientNodesCount++;
