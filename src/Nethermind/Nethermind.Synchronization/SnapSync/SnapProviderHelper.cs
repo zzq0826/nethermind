@@ -141,7 +141,6 @@ namespace Nethermind.Synchronization.SnapSync
             List<TrieNode> sortedBoundaryList = new();
 
             Dictionary<ValueHash256, TrieNode> dict = CreateProofDict(proofs, tree.TrieStore);
-            // trieStore.ProofDict = dict;
 
             if (!dict.TryGetValue(expectedRootHash, out TrieNode root))
             {
@@ -251,14 +250,14 @@ namespace Nethermind.Synchronization.SnapSync
             return (AddRangeResult.OK, sortedBoundaryList, moreChildrenToRight);
         }
 
-        private static Dictionary<ValueHash256, TrieNode> CreateProofDict(byte[][] proofs, ITrieStore store)
+        private static Dictionary<ValueHash256, TrieNode> CreateProofDict(byte[][] proofs, ISmallTrieStore store)
         {
             Dictionary<ValueHash256, TrieNode> dict = new();
 
             for (int i = 0; i < proofs.Length; i++)
             {
                 byte[] proof = proofs[i];
-                TrieNode node = new(NodeType.Unknown, null, new TreePath(), proof, isDirty: true);
+                TrieNode node = new(NodeType.Unknown, new TreePath(), proof, isDirty: true);
                 node.IsBoundaryProofNode = true;
                 node.ResolveNode(store);
                 node.ResolveKey(store, isRoot: i == 0);
@@ -269,7 +268,7 @@ namespace Nethermind.Synchronization.SnapSync
             return dict;
         }
 
-        private static void StitchBoundaries(List<TrieNode> sortedBoundaryList, ITrieStore store)
+        private static void StitchBoundaries(List<TrieNode> sortedBoundaryList, ISmallTrieStore store)
         {
             if (sortedBoundaryList is null || sortedBoundaryList.Count == 0)
             {
@@ -308,7 +307,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
-        private static bool IsChildPersisted(TrieNode node, int childIndex, ITrieStore store)
+        private static bool IsChildPersisted(TrieNode node, int childIndex, ISmallTrieStore store)
         {
             TrieNode data = node.GetData(childIndex) as TrieNode;
             if (data is not null)
@@ -321,7 +320,7 @@ namespace Nethermind.Synchronization.SnapSync
                 return true;
             }
 
-            return store.IsPersisted(childKeccak);
+            return store.IsPersisted(node.Path, childKeccak);
         }
     }
 }
