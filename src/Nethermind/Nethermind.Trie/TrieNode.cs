@@ -271,7 +271,7 @@ namespace Nethermind.Trie
         /// <summary>
         /// Highly optimized
         /// </summary>
-        public void ResolveNode(ITrieNodeResolver tree, TreePath path, ReadFlags readFlags = ReadFlags.None, ICappedArrayPool? bufferPool = null)
+        public void ResolveNode(ITrieNodeResolver tree, in TreePath path, ReadFlags readFlags = ReadFlags.None, ICappedArrayPool? bufferPool = null)
         {
             try
             {
@@ -352,7 +352,7 @@ namespace Nethermind.Trie
             }
         }
 
-        public void ResolveKey(ITrieNodeResolver tree, TreePath path, bool isRoot, ICappedArrayPool? bufferPool = null)
+        public void ResolveKey(ITrieNodeResolver tree, in TreePath path, bool isRoot, ICappedArrayPool? bufferPool = null)
         {
             if (Keccak is not null)
             {
@@ -364,7 +364,7 @@ namespace Nethermind.Trie
             Keccak = GenerateKey(tree, path, isRoot, bufferPool);
         }
 
-        public Hash256? GenerateKey(ITrieNodeResolver tree, TreePath path, bool isRoot, ICappedArrayPool? bufferPool = null)
+        public Hash256? GenerateKey(ITrieNodeResolver tree, in TreePath path, bool isRoot, ICappedArrayPool? bufferPool = null)
         {
             Hash256? keccak = Keccak;
             if (keccak is not null)
@@ -418,7 +418,7 @@ namespace Nethermind.Trie
             return false;
         }
 
-        internal CappedArray<byte> RlpEncode(ITrieNodeResolver tree, TreePath path, ICappedArrayPool? bufferPool = null)
+        internal CappedArray<byte> RlpEncode(ITrieNodeResolver tree, in TreePath path, ICappedArrayPool? bufferPool = null)
         {
             CappedArray<byte> rlp = TrieNodeDecoder.Encode(tree, ref path, this, bufferPool);
             // just included here to improve the class reading
@@ -519,23 +519,20 @@ namespace Nethermind.Trie
             set => SetChild(i, value);
         }
 
-        public TreePath GetChildPath(TreePath currentPath, int childIndex)
+        public TreePath GetChildPath(in TreePath currentPath, int childIndex)
         {
-            TreePath childPath = currentPath;
             if (IsExtension)
             {
                 // Should be just extension
-                childPath.Append(Key);
+                return currentPath.Append(Key);
             }
             else
             {
-                childPath.Append((byte) childIndex);
+                return currentPath.Append((byte) childIndex);
             }
-
-            return childPath;
         }
 
-        public TrieNode? GetChild(ITrieNodeResolver tree, TreePath currentPath, int childIndex)
+        public TrieNode? GetChild(ITrieNodeResolver tree, in TreePath currentPath, int childIndex)
         {
             /* extensions store value before the child while branches store children before the value
              * so just to treat them in the same way we update index on extensions
@@ -731,7 +728,7 @@ namespace Nethermind.Trie
         public void CallRecursively(
             Action<TrieNode, Hash256?, TreePath> action,
             Hash256? storageAddress,
-            TreePath currentPath,
+            in TreePath currentPath,
             ITrieNodeResolver resolver,
             bool skipPersisted,
             ILogger logger,
@@ -764,8 +761,7 @@ namespace Nethermind.Trie
                 if (storageRoot is not null || (resolveStorageRoot && TryResolveStorageRoot(resolver, currentPath, out storageRoot)))
                 {
                     if (logger.IsTrace) logger.Trace($"Persist recursively on storage root {_storageRoot} of {this}");
-                    TreePath storagePath = currentPath;
-                    storagePath.Append(Key);
+                    TreePath storagePath = currentPath.Append(Key);
                     if (storagePath.Length != 64) throw new Exception("unexpected storage length");
 
                     storageRoot!.CallRecursively(action, storagePath.Path.ToCommitment(), TreePath.Empty, resolver.GetStorageTrieNodeResolver(storagePath.Path.ToCommitment()), skipPersisted, logger);
@@ -830,7 +826,7 @@ namespace Nethermind.Trie
 
         #region private
 
-        private bool TryResolveStorageRoot(ITrieNodeResolver resolver, TreePath currentPath, out TrieNode? storageRoot)
+        private bool TryResolveStorageRoot(ITrieNodeResolver resolver, in TreePath currentPath, out TrieNode? storageRoot)
         {
             bool hasStorage = false;
             storageRoot = _storageRoot;
@@ -846,11 +842,10 @@ namespace Nethermind.Trie
                     Hash256 storageHash = _accountDecoder.DecodeStorageRootOnly(Value.AsRlpStream());
                     if (storageHash != Nethermind.Core.Crypto.Keccak.EmptyTreeHash)
                     {
-                        TreePath storagePath = currentPath;
-                        storagePath.Append(Key);
+                        TreePath storagePath = currentPath.Append(Key);
                         hasStorage = true;
                         _storageRoot = storageRoot = resolver.GetStorageTrieNodeResolver(storagePath.Path.ToCommitment())
-                            .FindCachedOrUnknown(new TreePath(), storageHash);
+                            .FindCachedOrUnknown(in TreePath.Empty, storageHash);
                     }
                 }
             }
@@ -903,7 +898,7 @@ namespace Nethermind.Trie
             }
         }
 
-        private object? ResolveChild(ITrieNodeResolver tree, TreePath currentPath, int i)
+        private object? ResolveChild(ITrieNodeResolver tree, in TreePath currentPath, int i)
         {
             object? childOrRef;
             if (_rlpStream is null)
@@ -933,12 +928,13 @@ namespace Nethermind.Trie
                             rlpStream.Position--;
                             Hash256 keccak = rlpStream.DecodeKeccak();
 
-                            TrieNode child = tree.FindCachedOrUnknown(GetChildPath(currentPath, i), keccak);
+                            TreePath childPath = GetChildPath(currentPath, i);
+                            TrieNode child = tree.FindCachedOrUnknown(childPath, keccak);
                             _data![i] = childOrRef = child;
 
                             if (IsPersisted && !child.IsPersisted)
                             {
-                                child.CallRecursively(_markPersisted, null, GetChildPath(currentPath, i), tree, false, NullLogger.Instance);
+                                child.CallRecursively(_markPersisted, null, childPath, tree, false, NullLogger.Instance);
                             }
 
                             break;

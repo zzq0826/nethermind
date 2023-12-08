@@ -34,7 +34,7 @@ namespace Nethermind.Trie
             ITreeVisitor visitor,
             ITrieNodeResolver nodeResolver,
             Hash256? address,
-            TreePath path,
+            in TreePath path,
             SmallTrieVisitContext trieVisitContext,
             IList<(Hash256?, TreePath, TrieNode, SmallTrieVisitContext)> nextToVisit
         )
@@ -113,8 +113,7 @@ namespace Nethermind.Trie
 
                                 if (TryResolveStorageRoot(nodeResolver, path, out TrieNode? chStorageRoot))
                                 {
-                                    TreePath storage = path;
-                                    storage.Append(Key);
+                                    TreePath storage = path.Append(Key);
                                     nextToVisit.Add((storage.Path.ToCommitment(), TreePath.Empty, chStorageRoot!, trieVisitContext));
                                 }
                                 else
@@ -132,7 +131,7 @@ namespace Nethermind.Trie
             }
         }
 
-        internal void Accept(ITreeVisitor visitor, ITrieNodeResolver nodeResolver, TreePath path, TrieVisitContext trieVisitContext)
+        internal void Accept(ITreeVisitor visitor, ITrieNodeResolver nodeResolver, in TreePath path, TrieVisitContext trieVisitContext)
         {
             try
             {
@@ -151,15 +150,16 @@ namespace Nethermind.Trie
                 case NodeType.Branch:
                     {
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                        void VisitChild(int i, TrieNode? child, ITrieNodeResolver resolver, ITreeVisitor v, TrieVisitContext context)
+                        void VisitChild(in TreePath parentPath, int i, TrieNode? child, ITrieNodeResolver resolver, ITreeVisitor v, TrieVisitContext context)
                         {
                             if (child is not null)
                             {
-                                child.ResolveKey(resolver, GetChildPath(path, i), false);
+                                TreePath childPath = GetChildPath(parentPath, i);
+                                child.ResolveKey(resolver, childPath, false);
                                 if (v.ShouldVisit(child.Keccak!))
                                 {
                                     context.BranchChildIndex = i;
-                                    child.Accept(v, resolver, GetChildPath(path, i), context);
+                                    child.Accept(v, resolver, childPath, context);
                                 }
 
                                 if (child.IsPersisted)
@@ -170,18 +170,19 @@ namespace Nethermind.Trie
                         }
 
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                        void VisitSingleThread(ITreeVisitor treeVisitor, ITrieNodeResolver trieNodeResolver, TrieVisitContext visitContext)
+                        void VisitSingleThread(in TreePath parentPath, ITreeVisitor treeVisitor, ITrieNodeResolver trieNodeResolver, TrieVisitContext visitContext)
                         {
                             // single threaded route
                             for (int i = 0; i < BranchesCount; i++)
                             {
-                                VisitChild(i, GetChild(trieNodeResolver, path, i), trieNodeResolver, treeVisitor, visitContext);
+                                VisitChild(parentPath, i, GetChild(trieNodeResolver, parentPath, i), trieNodeResolver, treeVisitor, visitContext);
                             }
                         }
 
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                        void VisitMultiThread(ITreeVisitor treeVisitor, ITrieNodeResolver trieNodeResolver, TrieVisitContext visitContext, TrieNode?[] children)
+                        void VisitMultiThread(in TreePath parentPath, ITreeVisitor treeVisitor, ITrieNodeResolver trieNodeResolver, TrieVisitContext visitContext, TrieNode?[] children)
                         {
+                            TreePath closureParentPath = parentPath;
                             // multithreaded route
                             Parallel.For(0, BranchesCount, i =>
                             {
@@ -190,7 +191,7 @@ namespace Nethermind.Trie
                                 {
                                     // we need to have separate context for each thread as context tracks level and branch child index
                                     TrieVisitContext childContext = visitContext.Clone();
-                                    VisitChild(i, children[i], trieNodeResolver, treeVisitor, childContext);
+                                    VisitChild(closureParentPath, i, children[i], trieNodeResolver, treeVisitor, childContext);
                                 }
                                 finally
                                 {
@@ -214,16 +215,16 @@ namespace Nethermind.Trie
 
                             if (trieVisitContext.Semaphore.CurrentCount > 1)
                             {
-                                VisitMultiThread(visitor, nodeResolver, trieVisitContext, children);
+                                VisitMultiThread(path, visitor, nodeResolver, trieVisitContext, children);
                             }
                             else
                             {
-                                VisitSingleThread(visitor, nodeResolver, trieVisitContext);
+                                VisitSingleThread(path, visitor, nodeResolver, trieVisitContext);
                             }
                         }
                         else
                         {
-                            VisitSingleThread(visitor, nodeResolver, trieVisitContext);
+                            VisitSingleThread(path, visitor, nodeResolver, trieVisitContext);
                         }
 
                         trieVisitContext.Level--;
@@ -276,8 +277,7 @@ namespace Nethermind.Trie
 
                                 if (TryResolveStorageRoot(nodeResolver, path, out TrieNode? storageRoot))
                                 {
-                                    TreePath storageAddress = path;
-                                    storageAddress.Append(Key);
+                                    TreePath storageAddress = path.Append(Key);
                                     storageRoot!.Accept(visitor, nodeResolver.GetStorageTrieNodeResolver(storageAddress.Path.ToCommitment()), TreePath.Empty, trieVisitContext);
                                 }
                                 else

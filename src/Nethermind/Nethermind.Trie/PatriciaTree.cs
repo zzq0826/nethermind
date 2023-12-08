@@ -308,7 +308,7 @@ namespace Nethermind.Trie
             }
             else if (resetObjects)
             {
-                RootRef = TrieStore.FindCachedOrUnknown(new TreePath(), _rootHash);
+                RootRef = TrieStore.FindCachedOrUnknown(TreePath.Empty, _rootHash);
             }
         }
 
@@ -432,7 +432,7 @@ namespace Nethermind.Trie
             if (startRootHash is not null)
             {
                 if (_logger.IsTrace) _logger.Trace($"Starting from {startRootHash} - {traverseContext.ToString()}");
-                TrieNode startNode = TrieStore.FindCachedOrUnknown(new TreePath(), startRootHash);
+                TrieNode startNode = TrieStore.FindCachedOrUnknown(TreePath.Empty, startRootHash);
                 ResolveNode(startNode, TreePath.Empty, in traverseContext);
                 result = TraverseNode(startNode, in traverseContext);
             }
@@ -462,7 +462,7 @@ namespace Nethermind.Trie
             return result;
         }
 
-        private void ResolveNode(TrieNode node, TreePath path, in TraverseContext traverseContext)
+        private void ResolveNode(TrieNode node, in TreePath path, in TraverseContext traverseContext)
         {
             try
             {
@@ -498,7 +498,7 @@ namespace Nethermind.Trie
 
             bool isRoot = _nodeStack.Count == 0;
             TrieNode nextNode = node;
-            TreePath nextPath = path;
+            ref TreePath nextPath = ref path;
 
             while (!isRoot)
             {
@@ -584,8 +584,7 @@ namespace Nethermind.Trie
                                         $"Extending child {childNodeIndex} {childNode} of {node} into {extensionFromBranch}");
 
                                 nextNode = extensionFromBranch;
-                                nextPath = path;
-                                nextPath.Append((byte) childNodeIndex);
+                                nextPath = path.Append((byte) childNodeIndex);
                             }
                             else if (childNode.IsExtension)
                             {
@@ -621,8 +620,7 @@ namespace Nethermind.Trie
                                     _logger.Trace(
                                         $"Extending child {childNodeIndex} {childNode} of {node} into {extendedExtension}");
                                 nextNode = extendedExtension;
-                                nextPath = path;
-                                nextPath.Append(newKey);
+                                nextPath = path.Append(newKey);
                             }
                             else if (childNode.IsLeaf)
                             {
@@ -640,8 +638,7 @@ namespace Nethermind.Trie
                                 }
 
                                 nextNode = extendedLeaf;
-                                nextPath = path;
-                                nextPath.Append(newKey);
+                                nextPath = path.Append(newKey);
                             }
                             else
                             {
@@ -666,8 +663,7 @@ namespace Nethermind.Trie
                             _logger.Trace($"Combining {node} and {nextNode} into {extendedLeaf}");
 
                         nextNode = extendedLeaf;
-                        nextPath = path;
-                        nextPath.Append(newKey);
+                        nextPath = path.Append(newKey);
                     }
                     else if (nextNode.IsExtension)
                     {
@@ -702,8 +698,7 @@ namespace Nethermind.Trie
                             _logger.Trace($"Combining {node} and {nextNode} into {extendedExtension}");
 
                         nextNode = extendedExtension;
-                        nextPath = path;
-                        nextPath.Append(newKey);
+                        nextPath = path.Append(newKey);
                     }
                     else if (nextNode.IsBranch)
                     {
@@ -1066,7 +1061,7 @@ namespace Nethermind.Trie
 
         private readonly struct StackedNode
         {
-            public StackedNode(TrieNode node, TreePath path, int pathIndex)
+            public StackedNode(TrieNode node, in TreePath path, int pathIndex)
             {
                 Node = node;
                 Path = path;
@@ -1101,7 +1096,7 @@ namespace Nethermind.Trie
             TrieNode rootRef = null;
             if (!rootHash.Equals(Keccak.EmptyTreeHash))
             {
-                rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(new TreePath(), rootHash);
+                rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(TreePath.Empty, rootHash);
                 try
                 {
                     rootRef!.ResolveNode(TrieStore, TreePath.Empty);
@@ -1167,7 +1162,7 @@ namespace Nethermind.Trie
 
         [DoesNotReturn]
         [StackTraceHidden]
-        private static void ThrowMissingTrieNodeException(in TraverseContext traverseContext, TreePath path, TrieNodeException e)
+        private static void ThrowMissingTrieNodeException(in TraverseContext traverseContext, in TreePath path, TrieNodeException e)
         {
             throw new MissingTrieNodeException($"{e.Message} {path}", e, traverseContext.UpdatePath.ToArray(), traverseContext.CurrentIndex);
         }

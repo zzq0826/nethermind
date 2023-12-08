@@ -13,7 +13,8 @@ namespace Nethermind.Trie.Pruning
 
         void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root, WriteFlags writeFlags = WriteFlags.None);
 
-        bool IsPersisted(TreePath path, in ValueHash256 keccak);
+        // Only used by snap provider, so ValueHash instead of Hash
+        bool IsPersisted(in TreePath path, in ValueHash256 keccak);
 
         IKeyValueStore AsKeyValueStore();
     }
@@ -24,7 +25,7 @@ namespace Nethermind.Trie.Pruning
 
         void FinishBlockCommit(TrieType trieType, long blockNumber, Hash256? address, TrieNode? root, WriteFlags writeFlags = WriteFlags.None);
 
-        bool IsPersisted(Hash256? address, TreePath path, in ValueHash256 keccak);
+        bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak);
 
         IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
 
@@ -33,7 +34,7 @@ namespace Nethermind.Trie.Pruning
         IKeyValueStore AsKeyValueStore(Hash256? address);
         ISmallTrieStore GetTrieStore(Hash256? address);
 
-        TrieNode FindCachedOrUnknown(Hash256? address, TreePath path, Hash256 hash);
-        byte[]? LoadRlp(Hash256? address, TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None);
+        TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash);
+        byte[]? LoadRlp(Hash256? address, in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None);
     }
 }

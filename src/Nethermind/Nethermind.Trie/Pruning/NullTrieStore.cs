@@ -17,8 +17,6 @@ namespace Nethermind.Trie.Pruning
 
         public void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root, WriteFlags flags = WriteFlags.None) { }
 
-        public static void HackPersistOnShutdown() { }
-
         public ISmallReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore) => this;
 
         public event EventHandler<ReorgBoundaryReached> ReorgBoundaryReached
@@ -29,15 +27,15 @@ namespace Nethermind.Trie.Pruning
 
         public IKeyValueStore AsKeyValueStore() => null!;
 
-        public TrieNode FindCachedOrUnknown(TreePath treePath, Hash256 hash) => new(NodeType.Unknown, hash);
+        public TrieNode FindCachedOrUnknown(in TreePath treePath, Hash256 hash) => new(NodeType.Unknown, hash);
 
-        public byte[] LoadRlp(TreePath treePath, Hash256 hash, ReadFlags flags = ReadFlags.None) => Array.Empty<byte>();
+        public byte[] LoadRlp(in TreePath treePath, Hash256 hash, ReadFlags flags = ReadFlags.None) => Array.Empty<byte>();
         public ITrieNodeResolver GetStorageTrieNodeResolver(Hash256 storageRoot)
         {
             return this;
         }
 
-        public bool IsPersisted(TreePath path, in ValueHash256 keccak) => true;
+        public bool IsPersisted(in TreePath path, in ValueHash256 keccak) => true;
 
         public void Dispose() { }
 

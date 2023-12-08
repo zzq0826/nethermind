@@ -368,7 +368,7 @@ public class BatchedTrieVisitor
         public readonly (Hash256?, TreePath, ValueHash256) Key;
         public readonly SmallTrieVisitContext Context;
 
-        public Job(Hash256? address, TreePath path, ValueHash256 key, SmallTrieVisitContext context)
+        public Job(Hash256? address, in TreePath path, ValueHash256 key, SmallTrieVisitContext context)
         {
             Key = (address, path, key);
             Context = context;

@@ -33,7 +33,7 @@ public class HealingTrieStore : TrieStore
         _recovery = recovery;
     }
 
-    public override byte[] LoadRlp(Hash256? storageRoot, TreePath path, Hash256 keccak, ReadFlags readFlags = ReadFlags.None)
+    public override byte[] LoadRlp(Hash256? storageRoot, in TreePath path, Hash256 keccak, ReadFlags readFlags = ReadFlags.None)
     {
         try
         {

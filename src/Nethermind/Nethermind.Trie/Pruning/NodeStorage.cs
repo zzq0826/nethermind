@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Diagnostics;
+using System.Reflection.Metadata;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
@@ -13,6 +15,7 @@ public class NodeStorage: INodeStorage
 {
     protected readonly IKeyValueStore _keyValueStore;
     private static byte[] EmptyTreeHashBytes = new byte[] { 128 };
+    public const int StoragePathLength = 40;
 
     public NodeStorage(IKeyValueStore keyValueStore)
     {
@@ -22,16 +25,27 @@ public class NodeStorage: INodeStorage
     private static int _cutLength = int.Parse(Environment.GetEnvironmentVariable("CUT_LENGTH") ?? "4");
     private static bool _centerPath = Environment.GetEnvironmentVariable("CENTER_PATH") == "1";
 
-    public static byte[] GetNodeStoragePath(Hash256? address, TreePath path, ValueHash256 keccak)
+    public static byte[] GetNodeStoragePath(Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
-        byte[] pathBytes = new byte[40];
-        Span<byte> pathSpan = pathBytes;
+        byte[] bytes = new byte[StoragePathLength];
+        GetNodeStoragePathSpan(bytes, address, path, keccak);
+        return bytes;
+    }
+
+    public Span<byte> GetPath(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
+    {
+        return GetNodeStoragePathSpan(pathSpan, address, path, keccak);
+    }
+
+    public static Span<byte> GetNodeStoragePathSpan(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
+    {
+        Debug.Assert(pathSpan.Length == StoragePathLength);
         TreePath centeredPath = path;
         if (_centerPath)
         {
             // Modify the path so that it would be in the center of the range of its children.
             // This improve cache hit rate by about 10%
-            if (centeredPath.Length < 16) centeredPath.Append(8);
+            if (centeredPath.Length < 16) centeredPath = centeredPath.Append(8);
         }
 
         if (address != null)
@@ -46,52 +60,55 @@ public class NodeStorage: INodeStorage
             // Separate the top level tree into its own section. This improve cache hit rate by about a few %.
             if (path.Length <= _cutLength)
             {
-                pathBytes[0] = 1;
+                pathSpan[0] = 1;
             }
             else
             {
-                pathBytes[0] = 2;
+                pathSpan[0] = 2;
             }
         }
 
-        keccak.Bytes.CopyTo(pathBytes.AsSpan()[8..]);
+        keccak.Bytes.CopyTo(pathSpan[8..]);
 
-        return pathBytes;
+        return pathSpan;
     }
 
-    public byte[]? Get(Hash256? address, TreePath path, ValueHash256 keccak, ReadFlags readFlags = ReadFlags.None)
+    public byte[]? Get(Hash256? address, in TreePath path, in ValueHash256 keccak, ReadFlags readFlags = ReadFlags.None)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
             return EmptyTreeHashBytes;
         }
 
-        return _keyValueStore.Get(GetNodeStoragePath(address, path, keccak), readFlags);
+        Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
+        return _keyValueStore.Get(GetPath(storagePathSpan, address, path, keccak), readFlags);
     }
 
-    public bool KeyExists(Hash256? address, TreePath path, Hash256 keccak)
+    public bool KeyExists(Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
             return true;
         }
 
-        return _keyValueStore.KeyExists(GetNodeStoragePath(address, path, keccak));
+        Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
+        return _keyValueStore.KeyExists(GetPath(storagePathSpan, address, path, keccak));
     }
 
     public INodeWriteBatch StartWriteBatch()
     {
-        return new NodeWriteBatch(((IKeyValueStoreWithBatching)_keyValueStore).StartWriteBatch());
+        return new NodeWriteBatch(((IKeyValueStoreWithBatching)_keyValueStore).StartWriteBatch(), this);
     }
 
-    public void Set(Hash256? address, TreePath path, Hash256 keccak, byte[] toArray, WriteFlags writeFlags)
+    public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] toArray, WriteFlags writeFlags)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
             return;
         }
 
-        _keyValueStore.Set(GetNodeStoragePath(address, path, keccak), toArray, writeFlags);
+        Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
+        _keyValueStore.Set(GetPath(storagePathSpan, address, path, keccak), toArray, writeFlags);
     }
 
     public byte[]? GetByHash(ReadOnlySpan<byte> key, ReadFlags flags)
@@ -110,9 +127,9 @@ public class NodeStorage: INodeStorage
 
 public interface INodeStorage
 {
-    byte[]? Get(Hash256? address, TreePath path, ValueHash256 keccak, ReadFlags readFlags = ReadFlags.None);
-    void Set(Hash256? address, TreePath path, Hash256 hash, byte[] toArray, WriteFlags writeFlags = WriteFlags.None);
-    bool KeyExists(Hash256? address, TreePath path, Hash256 hash);
+    byte[]? Get(Hash256? address, in TreePath path, in ValueHash256 keccak, ReadFlags readFlags = ReadFlags.None);
+    void Set(Hash256? address, in TreePath path, in ValueHash256 hash, byte[] toArray, WriteFlags writeFlags = WriteFlags.None);
+    bool KeyExists(Hash256? address, in TreePath path, in ValueHash256 hash);
     INodeWriteBatch StartWriteBatch();
 
     byte[]? GetByHash(ReadOnlySpan<byte> key, ReadFlags flags);
@@ -121,17 +138,19 @@ public interface INodeStorage
 
 public interface INodeWriteBatch: IDisposable
 {
-    void Remove(Hash256? address, TreePath path, ValueHash256 persistedHash);
-    void Set(Hash256? address, TreePath path, Hash256 currentNodeKeccak, byte[] toArray, WriteFlags writeFlags);
+    void Remove(Hash256? address, in TreePath path, in ValueHash256 persistedHash);
+    void Set(Hash256? address, in TreePath path, in ValueHash256 currentNodeKeccak, byte[] toArray, WriteFlags writeFlags);
 }
 
 public class NodeWriteBatch : INodeWriteBatch
 {
     private readonly IWriteBatch _writeBatch;
+    private readonly NodeStorage _nodeStorage;
 
-    public NodeWriteBatch(IWriteBatch writeBatch)
+    public NodeWriteBatch(IWriteBatch writeBatch, NodeStorage nodeStorage)
     {
         _writeBatch = writeBatch;
+        _nodeStorage = nodeStorage;
     }
 
     public void Dispose()
@@ -139,23 +158,25 @@ public class NodeWriteBatch : INodeWriteBatch
         _writeBatch.Dispose();
     }
 
-    public void Remove(Hash256? address, TreePath path, ValueHash256 keccak)
+    public void Remove(Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
             return;
         }
 
-        _writeBatch.Remove(NodeStorage.GetNodeStoragePath(address, path, keccak));
+        Span<byte> storagePathSpan = stackalloc byte[NodeStorage.StoragePathLength];
+        _writeBatch.Remove(_nodeStorage.GetPath(storagePathSpan, address, path, keccak));
     }
 
-    public void Set(Hash256? address, TreePath path, Hash256 keccak, byte[] toArray, WriteFlags writeFlags)
+    public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] toArray, WriteFlags writeFlags)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
             return;
         }
 
-        _writeBatch.Set(NodeStorage.GetNodeStoragePath(address, path, keccak), toArray, writeFlags);
+        Span<byte> storagePathSpan = stackalloc byte[NodeStorage.StoragePathLength];
+        _writeBatch.Set(_nodeStorage.GetPath(storagePathSpan, address, path, keccak), toArray, writeFlags);
     }
 }

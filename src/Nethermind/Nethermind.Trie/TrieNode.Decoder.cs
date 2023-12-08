@@ -42,7 +42,7 @@ namespace Nethermind.Trie
             }
 
             [SkipLocalsInit]
-            private static CappedArray<byte> EncodeExtension(ITrieNodeResolver tree, TreePath path, TrieNode item, ICappedArrayPool? bufferPool)
+            private static CappedArray<byte> EncodeExtension(ITrieNodeResolver tree, in TreePath path, TrieNode item, ICappedArrayPool? bufferPool)
             {
                 Debug.Assert(item.NodeType == NodeType.Extension,
                     $"Node passed to {nameof(EncodeExtension)} is {item.NodeType}");
@@ -130,7 +130,7 @@ namespace Nethermind.Trie
                 return data;
             }
 
-            private static CappedArray<byte> RlpEncodeBranch(ITrieNodeResolver tree, TreePath path, TrieNode item, ICappedArrayPool? pool)
+            private static CappedArray<byte> RlpEncodeBranch(ITrieNodeResolver tree, in TreePath path, TrieNode item, ICappedArrayPool? pool)
             {
                 int valueRlpLength = AllowBranchValues ? Rlp.LengthOf(item.Value.AsSpan()) : 1;
                 int contentLength = valueRlpLength + GetChildrenRlpLength(tree, path, item, pool);
@@ -152,7 +152,7 @@ namespace Nethermind.Trie
                 return result;
             }
 
-            private static int GetChildrenRlpLength(ITrieNodeResolver tree, TreePath path, TrieNode item, ICappedArrayPool? bufferPool)
+            private static int GetChildrenRlpLength(ITrieNodeResolver tree, in TreePath path, TrieNode item, ICappedArrayPool? bufferPool)
             {
                 int totalLength = 0;
                 item.InitData();
@@ -188,7 +188,7 @@ namespace Nethermind.Trie
                 return totalLength;
             }
 
-            private static void WriteChildrenRlp(ITrieNodeResolver tree, TreePath path, TrieNode item, Span<byte> destination, ICappedArrayPool? bufferPool)
+            private static void WriteChildrenRlp(ITrieNodeResolver tree, in TreePath path, TrieNode item, Span<byte> destination, ICappedArrayPool? bufferPool)
             {
                 int position = 0;
                 RlpStream rlpStream = item._rlpStream;

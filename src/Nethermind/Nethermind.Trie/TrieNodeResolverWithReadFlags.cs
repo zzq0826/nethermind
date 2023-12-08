@@ -18,12 +18,12 @@ public class TrieNodeResolverWithReadFlags : ITrieNodeResolver
         _defaultFlags = defaultFlags;
     }
 
-    public TrieNode FindCachedOrUnknown(TreePath treePath, Hash256 hash)
+    public TrieNode FindCachedOrUnknown(in TreePath treePath, Hash256 hash)
     {
         return _baseResolver.FindCachedOrUnknown(treePath, hash);
     }
 
-    public byte[]? LoadRlp(TreePath treePath, Hash256 hash, ReadFlags flags = ReadFlags.None)
+    public byte[]? LoadRlp(in TreePath treePath, Hash256 hash, ReadFlags flags = ReadFlags.None)
     {
         if (flags != ReadFlags.None)
         {

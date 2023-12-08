@@ -13,8 +13,8 @@ namespace Nethermind.Trie.Pruning
 
         public static readonly NullTrieNodeResolver Instance = new();
 
-        public TrieNode FindCachedOrUnknown(TreePath path, Hash256 hash) => new(NodeType.Unknown, hash);
-        public byte[]? LoadRlp(TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None) => null;
+        public TrieNode FindCachedOrUnknown(in TreePath path, Hash256 hash) => new(NodeType.Unknown, hash);
+        public byte[]? LoadRlp(in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None) => null;
         public ITrieNodeResolver GetStorageTrieNodeResolver(Hash256 storage)
         {
             return this;
@@ -39,7 +39,7 @@ namespace Nethermind.Trie.Pruning
             throw new NotImplementedException();
         }
 
-        public bool IsPersisted(Hash256? address, TreePath path, in ValueHash256 keccak)
+        public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak)
         {
             throw new NotImplementedException();
         }
@@ -63,8 +63,8 @@ namespace Nethermind.Trie.Pruning
             throw new NotImplementedException();
         }
 
-        public TrieNode FindCachedOrUnknown(Hash256? address, TreePath path, Hash256 hash) => new(NodeType.Unknown, hash);
-        public byte[]? LoadRlp(Hash256? address, TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None) => null;
+        public TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash) => new(NodeType.Unknown, hash);
+        public byte[]? LoadRlp(Hash256? address, in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None) => null;
         public ITrieNodeResolver GetStorageTrieNodeResolver(Hash256 storage)
         {
             return NullTrieNodeResolver.Instance;

@@ -32,7 +32,7 @@ namespace Nethermind.Trie.Pruning
                 _trieStore = trieStore;
             }
 
-            public void SaveInCache(Hash256? address, TreePath path, TrieNode node)
+            public void SaveInCache(Hash256? address, in TreePath path, TrieNode node)
             {
                 Debug.Assert(node.Keccak is not null, "Cannot store in cache nodes without resolved key.");
                 if (_objectsCache.TryAdd(new PruneKey(address, path, node.Keccak), (address, path, node)))
@@ -42,7 +42,7 @@ namespace Nethermind.Trie.Pruning
                 }
             }
 
-            public TrieNode FindCachedOrUnknown(Hash256? address, TreePath path, Hash256 hash)
+            public TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash)
             {
                 TrieNode trieNode;
                 if (_objectsCache.TryGetValue(new PruneKey(address, path, hash), out (Hash256, TreePath, TrieNode) item))
@@ -60,7 +60,7 @@ namespace Nethermind.Trie.Pruning
                 return trieNode;
             }
 
-            public TrieNode FromCachedRlpOrUnknown(Hash256? address, TreePath path, Hash256 hash)
+            public TrieNode FromCachedRlpOrUnknown(Hash256? address, in TreePath path, Hash256 hash)
             {
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 TrieNode trieNode;
@@ -340,7 +340,7 @@ namespace Nethermind.Trie.Pruning
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-        public byte[] LoadRlp(Hash256? address, TreePath path, Hash256 keccak, INodeStorage? nodeStorage, ReadFlags readFlags = ReadFlags.None)
+        public byte[] LoadRlp(Hash256? address, in TreePath path, Hash256 keccak, INodeStorage? nodeStorage, ReadFlags readFlags = ReadFlags.None)
         {
             nodeStorage ??= _nodeStorage;
             byte[]? rlp = nodeStorage.Get(address, path, keccak, readFlags);
@@ -355,12 +355,12 @@ namespace Nethermind.Trie.Pruning
             return rlp;
         }
 
-        public virtual byte[]? LoadRlp(Hash256? address, TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
+        public virtual byte[]? LoadRlp(Hash256? address, in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
         {
             return LoadRlp(address, path, hash, null, flags);
         }
 
-        public bool IsPersisted(Hash256? address, TreePath path, in ValueHash256 keccak)
+        public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak)
         {
             byte[]? rlp = _nodeStorage.Get(address, path, keccak, ReadFlags.None);
 
@@ -381,14 +381,14 @@ namespace Nethermind.Trie.Pruning
         }
 
         public bool IsNodeCached(PruneKey key) => _dirtyNodes.IsNodeCached(key);
-        public bool IsNodeCached(Hash256? address, TreePath path, Hash256? hash) => _dirtyNodes.IsNodeCached(new PruneKey(address, path, hash));
+        public bool IsNodeCached(Hash256? address, in TreePath path, Hash256? hash) => _dirtyNodes.IsNodeCached(new PruneKey(address, path, hash));
 
-        public TrieNode FindCachedOrUnknown(Hash256? address, TreePath path, Hash256? hash)
+        public TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256? hash)
         {
             return FindCachedOrUnknown(address, path, hash, false);
         }
 
-        internal TrieNode FindCachedOrUnknown(Hash256? address, TreePath path, Hash256? hash, bool isReadOnly)
+        internal TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256? hash, bool isReadOnly)
         {
             ArgumentNullException.ThrowIfNull(hash);
 
@@ -655,7 +655,7 @@ namespace Nethermind.Trie.Pruning
             PruneCurrentSet();
         }
 
-        private void Persist(Hash256? address, TreePath path, TrieNode currentNode, long blockNumber, WriteFlags writeFlags = WriteFlags.None)
+        private void Persist(Hash256? address, in TreePath path, TrieNode currentNode, long blockNumber, WriteFlags writeFlags = WriteFlags.None)
         {
             _currentBatch ??= _nodeStorage.StartWriteBatch();
             ArgumentNullException.ThrowIfNull(currentNode);
@@ -835,7 +835,7 @@ namespace Nethermind.Trie.Pruning
             });
         }
 
-        private byte[]? Get(Hash256? address, TreePath path, ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
+        private byte[]? Get(Hash256? address, in TreePath path, ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
         {
             // TODO: Who would get from here directly
             return _pruningStrategy.PruningEnabled
@@ -882,12 +882,12 @@ namespace Nethermind.Trie.Pruning
                 _address = address;
             }
 
-            public TrieNode FindCachedOrUnknown(TreePath path, Hash256 hash)
+            public TrieNode FindCachedOrUnknown(in TreePath path, Hash256 hash)
             {
                 return _trieStoreImplementation.FindCachedOrUnknown(_address, path, hash);
             }
 
-            public byte[]? LoadRlp(TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
+            public byte[]? LoadRlp(in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
             {
                 return _trieStoreImplementation.LoadRlp(_address, path, hash, flags);
             }
@@ -912,7 +912,7 @@ namespace Nethermind.Trie.Pruning
                 _trieStoreImplementation.FinishBlockCommit(trieType, blockNumber, _address, root, writeFlags);
             }
 
-            public bool IsPersisted(TreePath path, in ValueHash256 keccak)
+            public bool IsPersisted(in TreePath path, in ValueHash256 keccak)
             {
                 return _trieStoreImplementation.IsPersisted(_address, path, in keccak);
             }

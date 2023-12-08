@@ -21,13 +21,13 @@ namespace Nethermind.Trie.Pruning
             _readOnlyStore = readOnlyStore != null ? new NodeStorage(readOnlyStore) : null;
         }
 
-        public TrieNode FindCachedOrUnknown(Hash256? address, TreePath treePath, Hash256 hash) =>
+        public TrieNode FindCachedOrUnknown(Hash256? address, in TreePath treePath, Hash256 hash) =>
             _trieStore.FindCachedOrUnknown(address, treePath, hash, true);
 
-        public byte[] LoadRlp(Hash256? address, TreePath treePath, Hash256 hash, ReadFlags flags) =>
+        public byte[] LoadRlp(Hash256? address, in TreePath treePath, Hash256 hash, ReadFlags flags) =>
             _trieStore.LoadRlp(address, treePath, hash, _readOnlyStore, flags);
 
-        public bool IsPersisted(Hash256? address, TreePath path, in ValueHash256 keccak) => _trieStore.IsPersisted(address, path, keccak);
+        public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak) => _trieStore.IsPersisted(address, path, keccak);
 
         public IReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore)
         {
@@ -79,12 +79,12 @@ namespace Nethermind.Trie.Pruning
                 _address = address;
             }
 
-            public TrieNode FindCachedOrUnknown(TreePath path, Hash256 hash)
+            public TrieNode FindCachedOrUnknown(in TreePath path, Hash256 hash)
             {
                 return _trieStoreImplementation.FindCachedOrUnknown(_address, path, hash);
             }
 
-            public byte[]? LoadRlp(TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
+            public byte[]? LoadRlp(in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
             {
                 return _trieStoreImplementation.LoadRlp(_address, path, hash, flags);
             }
@@ -106,7 +106,7 @@ namespace Nethermind.Trie.Pruning
             {
             }
 
-            public bool IsPersisted(TreePath path, in ValueHash256 keccak)
+            public bool IsPersisted(in TreePath path, in ValueHash256 keccak)
             {
                 return _trieStoreImplementation.IsPersisted(_address, path, in keccak);
             }

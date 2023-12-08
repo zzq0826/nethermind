@@ -6,47 +6,82 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie;
 
-public struct TreePath
+public readonly struct TreePath
 {
-    public ValueHash256 Path;
-    public int Length;
+    public readonly ValueHash256 Path;
+    public readonly int Length;
 
     public static TreePath Empty = new TreePath();
 
-    public TreePath()
+    public TreePath(in ValueHash256 path, int length)
     {
+        Path = path;
+        Length = length;
     }
 
     public static TreePath FromPath(ReadOnlySpan<byte> pathHash)
     {
         if (pathHash.Length != 32) throw new Exception("Path must be 32 byte");
-        TreePath path = new TreePath();
-        path.Path = new Hash256(pathHash);
-        path.Length = 32;
-        return path;
+        return new TreePath(new ValueHash256(pathHash), 64);
     }
 
     public static TreePath FromNibble(ReadOnlySpan<byte> pathNibbles)
     {
-        TreePath path = new TreePath();
         Span<byte> pathBytes = stackalloc byte[32];
         Nibbles.ToBytesExtra(pathNibbles).CopyTo(pathBytes);
-        path.Path = new Hash256(pathBytes);
-        path.Length = pathNibbles.Length;
-        return path;
+
+        return new TreePath(new ValueHash256(pathBytes), pathNibbles.Length);
     }
 
-    public void Append(params byte[] data)
+    public TreePath Append(params byte[]? nibbles)
     {
-        if (data == null) return;
-        foreach (byte b in data)
+        if (nibbles == null) return this;
+
+        int length = Length;
+        ValueHash256 path = Path;
+        Span<byte> span = path.BytesAsSpan;
+
+        // TODO: Optimize this
+        foreach (byte nib in nibbles)
         {
-            this[Length] = b;
-            Length++;
+            SetNibble(span, nib, length);
+            length++;
+        }
+
+        return new TreePath(path, length);
+    }
+
+    public TreePath Append(byte nib)
+    {
+        int length = Length;
+        ValueHash256 path = Path;
+        Span<byte> span = path.BytesAsSpan;
+
+        SetNibble(span, nib, length);
+        length++;
+
+        return new TreePath(path, length);
+    }
+
+    private static void SetNibble(Span<byte> bytes, byte nib, int idx)
+    {
+        if (idx >= 64) throw new IndexOutOfRangeException();
+        if (idx % 2 == 0)
+        {
+            bytes[idx / 2] =
+                (byte)((bytes[idx / 2] & 0x0f) |
+                       (nib & 0x0f) << 4);
+        }
+        else
+        {
+            bytes[idx / 2] =
+                (byte)((bytes[idx / 2] & 0xf0) |
+                       ((nib & 0x0f)));
         }
     }
 
     // TODO: Someone will optimize this
+    /*
     public byte this[int childPathLength]
     {
         get
@@ -78,6 +113,7 @@ public struct TreePath
             }
         }
     }
+    */
 
     public override string ToString()
     {

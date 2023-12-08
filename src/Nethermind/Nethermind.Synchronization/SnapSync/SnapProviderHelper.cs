@@ -307,7 +307,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
-        private static bool IsChildPersisted(TrieNode node, TreePath nodePath, int childIndex, ISmallTrieStore store)
+        private static bool IsChildPersisted(TrieNode node, in TreePath nodePath, int childIndex, ISmallTrieStore store)
         {
             TrieNode data = node.GetData(childIndex) as TrieNode;
             if (data is not null)
