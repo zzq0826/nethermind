@@ -46,24 +46,29 @@ namespace Nethermind.Trie
                         visitor.VisitBranch(this, trieVisitContext.ToVisitContext());
                         trieVisitContext.Level++;
 
+                        TreePath pathMut = path;
+                        int pathLength = path.Length;
                         for (int i = 0; i < BranchesCount; i++)
                         {
                             TrieNode child = GetChild(nodeResolver, path, i);
                             if (child is not null)
                             {
-                                child.ResolveKey(nodeResolver, GetChildPath(path, i), false);
+                                GetChildPathMut(ref pathMut, i);
+                                child.ResolveKey(nodeResolver, pathMut, false);
                                 if (visitor.ShouldVisit(child.Keccak!))
                                 {
                                     SmallTrieVisitContext childCtx = trieVisitContext; // Copy
                                     childCtx.BranchChildIndex = (byte?)i;
 
-                                    nextToVisit.Add((address, GetChildPath(path, i), child, childCtx));
+                                    nextToVisit.Add((address, pathMut, child, childCtx));
                                 }
 
                                 if (child.IsPersisted)
                                 {
                                     UnresolveChild(i);
                                 }
+
+                                pathMut.Truncate(pathLength);
                             }
                         }
 
@@ -78,13 +83,14 @@ namespace Nethermind.Trie
                             throw new InvalidDataException($"Child of an extension {Key} should not be null.");
                         }
 
-                        child.ResolveKey(nodeResolver, GetChildPath(path, 0), false);
+                        TreePath childPath = GetChildPath(path, 0);
+                        child.ResolveKey(nodeResolver, childPath, false);
                         if (visitor.ShouldVisit(child.Keccak!))
                         {
                             trieVisitContext.Level++;
                             trieVisitContext.BranchChildIndex = null;
 
-                            nextToVisit.Add((address, GetChildPath(path, 0), child, trieVisitContext));
+                            nextToVisit.Add((address, childPath, child, trieVisitContext));
                         }
 
                         break;

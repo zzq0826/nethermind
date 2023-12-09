@@ -7,17 +7,25 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie;
 
-public readonly struct TreePath
+public struct TreePath
 {
     public readonly ValueHash256 Path;
-    public readonly int Length;
+    private int _length;
 
     public static TreePath Empty = new TreePath();
+
+    private readonly Span<byte> Span => Path.BytesAsSpan;
 
     public TreePath(in ValueHash256 path, int length)
     {
         Path = path;
-        Length = length;
+        _length = length;
+    }
+
+    public int Length
+    {
+        readonly get => _length;
+        set => _length = value;
     }
 
     public static TreePath FromPath(ReadOnlySpan<byte> pathHash)
@@ -34,104 +42,119 @@ public readonly struct TreePath
         return new TreePath(new ValueHash256(pathBytes), pathNibbles.Length);
     }
 
-    public TreePath Append(Span<byte> nibbles)
+    public readonly TreePath Append(Span<byte> nibbles)
     {
         if (nibbles.Length == 0) return this;
         if (nibbles.Length == 1) return Append(nibbles[0]);
 
-        int length = Length;
-        ValueHash256 path = Path;
-        Span<byte> pathSpan = path.BytesAsSpan;
+        TreePath copy = this;
+        copy.AppendMut(nibbles);
+        return copy;
+    }
 
-        if (length % 2 == 1)
+    public readonly TreePath Append(byte nib)
+    {
+        TreePath copy = this;
+        copy.AppendMut(nib);
+        return copy;
+    }
+
+    public void AppendMut(Span<byte> nibbles)
+    {
+        if (nibbles.Length == 0) return;
+        if (nibbles.Length == 1)
         {
-            SetNibble(pathSpan, nibbles[0], length);
-            length++;
+            AppendMut(nibbles[0]);
+            return;
+        }
 
+        Span<byte> pathSpan = Span;
+
+        if (_length % 2 == 1)
+        {
+            this[_length] = nibbles[0];
+            _length++;
             nibbles = nibbles[1..];
         }
 
         int byteLength = nibbles.Length / 2;
-        int pathSpanStart = length / 2;
+        int pathSpanStart = _length / 2;
         for (int i = 0; i < byteLength; i++)
         {
             pathSpan[i + pathSpanStart] = Nibbles.ToByte(nibbles[i * 2], nibbles[i * 2 + 1]);
-            length+=2;
+            _length+=2;
         }
 
         if (nibbles.Length % 2 == 1)
         {
-            SetNibble(pathSpan, nibbles[^1], length);
-            length++;
+            this[_length] = nibbles[^1];
+            _length++;
         }
-
-        return new TreePath(path, length);
     }
 
-    public TreePath Append(byte nib)
+    public void AppendMut(byte nib)
     {
-        int length = Length;
-        ValueHash256 path = Path;
-        Span<byte> span = path.BytesAsSpan;
-
-        SetNibble(span, nib, length);
-        length++;
-
-        return new TreePath(path, length);
+        this[_length] = nib;
+        _length++;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetNibble(Span<byte> bytes, byte nib, int idx)
-    {
-        if (idx >= 64) throw new IndexOutOfRangeException();
-        if (idx % 2 == 0)
-        {
-            bytes[idx / 2] =
-                (byte)((bytes[idx / 2] & 0x0f) |
-                       (nib & 0x0f) << 4);
-        }
-        else
-        {
-            bytes[idx / 2] =
-                (byte)((bytes[idx / 2] & 0xf0) |
-                       ((nib & 0x0f)));
-        }
-    }
-
-    // TODO: Someone will optimize this
-    /*
     public byte this[int childPathLength]
     {
-        get
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get
         {
             if (childPathLength >= 64) throw new IndexOutOfRangeException();
             if (childPathLength % 2 == 0)
             {
-                return (byte)(Path.Bytes[childPathLength / 2] & 0xf0);
+                return (byte)(Span[childPathLength / 2] & 0xf0);
             }
             else
             {
-                return (byte)((Path.Bytes[childPathLength / 2] & 0x0f) << 4);
+                return (byte)((Span[childPathLength / 2] & 0x0f) << 4);
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (childPathLength >= 64) throw new IndexOutOfRangeException();
             if (childPathLength % 2 == 0)
             {
-                Path.BytesAsSpan[childPathLength / 2] =
-                    (byte)((Path.Bytes[childPathLength / 2] & 0x0f) |
+                Span[childPathLength / 2] =
+                    (byte)((Span[childPathLength / 2] & 0x0f) |
                            (value & 0x0f) << 4);
             }
             else
             {
-                Path.BytesAsSpan[childPathLength / 2] =
-                    (byte)((Path.Bytes[childPathLength / 2] & 0xf0) |
+                Span[childPathLength / 2] =
+                    (byte)((Span[childPathLength / 2] & 0xf0) |
                            ((value & 0x0f)));
             }
         }
     }
-    */
+
+    public void Truncate(int pathLength)
+    {
+        if (pathLength > _length) throw new IndexOutOfRangeException("path length must be less than current length");
+        if (pathLength == _length) return;
+
+        if (_length % 2 == 1)
+        {
+            this[_length-1] = 0;
+            _length--;
+        }
+
+        if (pathLength == _length) return;
+
+        int byteClearStart = (pathLength + 1) / 2;
+        Span[byteClearStart..(_length/2)].Clear();
+
+        if (pathLength % 2 == 1)
+        {
+            this[pathLength] = 0;
+        }
+
+        _length = pathLength;
+    }
 
     public override string ToString()
     {

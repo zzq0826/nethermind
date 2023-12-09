@@ -532,6 +532,21 @@ namespace Nethermind.Trie
             }
         }
 
+        public ref TreePath GetChildPathMut(ref TreePath currentPath, int childIndex)
+        {
+            if (IsExtension)
+            {
+                // Should be just extension
+                currentPath.AppendMut(Key);
+                return ref currentPath;
+            }
+            else
+            {
+                currentPath.AppendMut((byte) childIndex);
+                return ref currentPath;
+            }
+        }
+
         public TrieNode? GetChild(ITrieNodeResolver tree, in TreePath currentPath, int childIndex)
         {
             /* extensions store value before the child while branches store children before the value
@@ -744,6 +759,8 @@ namespace Nethermind.Trie
             {
                 if (_data is not null)
                 {
+                    TreePath mutablePath = currentPath;
+                    int length = mutablePath.Length;
                     for (int i = 0; i < _data.Length; i++)
                     {
                         object o = _data[i];
