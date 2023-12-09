@@ -260,7 +260,8 @@ namespace Nethermind.Synchronization.SnapSync
                 TrieNode node = new(NodeType.Unknown, proof, isDirty: true);
                 node.IsBoundaryProofNode = true;
                 node.ResolveNode(store, TreePath.Empty);
-                node.ResolveKey(store, TreePath.Empty, isRoot: i == 0);
+                TreePath emptyPath = TreePath.Empty;
+                node.ResolveKey(store, ref emptyPath, isRoot: i == 0);
 
                 dict[node.Keccak] = node;
             }

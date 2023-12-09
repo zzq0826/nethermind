@@ -191,15 +191,16 @@ namespace Nethermind.Trie.Test.Pruning
         public void Dispatcher_will_try_to_clear_memory()
         {
             TrieNode trieNode1 = new(NodeType.Leaf, new byte[0]);
-            trieNode1.ResolveKey(null!, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            trieNode1.ResolveKey(null!, ref emptyPath, true);
             TrieNode trieNode2 = new(NodeType.Leaf, new byte[1]);
-            trieNode2.ResolveKey(null!, TreePath.Empty, true);
+            trieNode2.ResolveKey(null!, ref emptyPath, true);
 
             TrieNode trieNode3 = new(NodeType.Leaf, new byte[2]);
-            trieNode3.ResolveKey(null!, TreePath.Empty, true);
+            trieNode3.ResolveKey(null!, ref emptyPath, true);
 
             TrieNode trieNode4 = new(NodeType.Leaf, new byte[3]);
-            trieNode4.ResolveKey(null!, TreePath.Empty, true);
+            trieNode4.ResolveKey(null!, ref emptyPath, true);
 
             using TrieStore fullTrieStore = new(new MemDb(), new MemoryLimit(640), No.Persistence, _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
@@ -221,15 +222,16 @@ namespace Nethermind.Trie.Test.Pruning
         public void Dispatcher_will_try_to_clear_memory_the_soonest_possible()
         {
             TrieNode trieNode1 = new(NodeType.Leaf, new byte[0]);
-            trieNode1.ResolveKey(null!, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            trieNode1.ResolveKey(null!, ref emptyPath, true);
             TrieNode trieNode2 = new(NodeType.Leaf, new byte[1]);
-            trieNode2.ResolveKey(null!, TreePath.Empty, true);
+            trieNode2.ResolveKey(null!, ref emptyPath, true);
 
             TrieNode trieNode3 = new(NodeType.Leaf, new byte[2]);
-            trieNode3.ResolveKey(null!, TreePath.Empty, true);
+            trieNode3.ResolveKey(null!, ref emptyPath, true);
 
             TrieNode trieNode4 = new(NodeType.Leaf, new byte[3]);
-            trieNode4.ResolveKey(null!, TreePath.Empty, true);
+            trieNode4.ResolveKey(null!, ref emptyPath, true);
 
             using TrieStore fullTrieStore = new(new MemDb(), new MemoryLimit(512), No.Persistence, _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
@@ -250,17 +252,18 @@ namespace Nethermind.Trie.Test.Pruning
         {
             using TrieStore fullTrieStore = new(new MemDb(), new MemoryLimit(512), No.Persistence, _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
+            TreePath emptyPath = TreePath.Empty;
             for (int i = 0; i < 1024; i++)
             {
                 for (int j = 0; j < 1 + i % 3; j++)
                 {
                     TrieNode trieNode = new(NodeType.Leaf, new byte[0]); // 192B
-                    trieNode.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+                    trieNode.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
                     trieStore.CommitNode(i, new NodeCommitInfo(trieNode, TreePath.Empty));
                 }
 
                 TrieNode fakeRoot = new(NodeType.Leaf, new byte[0]); // 192B
-                fakeRoot.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+                fakeRoot.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
                 trieStore.FinishBlockCommit(TrieType.State, i, fakeRoot);
             }
 
@@ -271,7 +274,8 @@ namespace Nethermind.Trie.Test.Pruning
         public void Dispatcher_will_save_to_db_everything_from_snapshot_blocks()
         {
             TrieNode a = new(NodeType.Leaf, new byte[0]); // 192B
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage storage = new NodeStorage(memDb);
@@ -294,7 +298,8 @@ namespace Nethermind.Trie.Test.Pruning
         public void Stays_in_memory_until_persisted()
         {
             TrieNode a = new(NodeType.Leaf, new byte[0]); // 192B
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage storage = new NodeStorage(memDb);
@@ -328,7 +333,8 @@ namespace Nethermind.Trie.Test.Pruning
         public void Will_get_persisted_on_snapshot_if_referenced()
         {
             TrieNode a = new(NodeType.Leaf, new byte[0]); // 192B
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage storage = new NodeStorage(memDb);
@@ -355,10 +361,11 @@ namespace Nethermind.Trie.Test.Pruning
         public void Will_not_get_dropped_on_snapshot_if_unreferenced_in_later_blocks()
         {
             TrieNode a = new(NodeType.Leaf, new byte[0]);
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode b = new(NodeType.Leaf, new byte[1]);
-            b.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            b.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage nodeStorage = new NodeStorage(memDb);
@@ -386,10 +393,11 @@ namespace Nethermind.Trie.Test.Pruning
         public void Will_get_dropped_on_snapshot_if_it_was_a_transient_node()
         {
             TrieNode a = new(NodeType.Leaf, new byte[] { 1 });
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode b = new(NodeType.Leaf, new byte[] { 2 });
-            b.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            b.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
 
@@ -473,13 +481,14 @@ namespace Nethermind.Trie.Test.Pruning
         public void Will_store_storage_on_snapshot()
         {
             TrieNode storage1 = new(NodeType.Leaf, new byte[2]);
-            storage1.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            storage1.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode a = new(NodeType.Leaf);
             Account account = new(1, 1, storage1.Keccak, Keccak.OfAnEmptyString);
             a.Value = _accountDecoder.Encode(account).Bytes;
             a.Key = Nibbles.BytesToNibbleBytes(TestItem.KeccakA.BytesToArray());
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage asStorage = new NodeStorage(memDb);
@@ -512,16 +521,17 @@ namespace Nethermind.Trie.Test.Pruning
         public void Will_drop_transient_storage()
         {
             TrieNode storage1 = new(NodeType.Leaf, new byte[2]);
-            storage1.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            storage1.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode a = new(NodeType.Leaf);
             Account account = new(1, 1, storage1.Keccak, Keccak.OfAnEmptyString);
             a.Value = _accountDecoder.Encode(account).Bytes;
             a.Key = Bytes.FromHexString("abc");
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode b = new(NodeType.Leaf, new byte[1]);
-            b.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            b.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
 
@@ -557,27 +567,28 @@ namespace Nethermind.Trie.Test.Pruning
             storage2Nib[0] = 1;
 
             TrieNode storage1 = new(NodeType.Leaf, new byte[32]);
-            storage1.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            storage1.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode a = new(NodeType.Leaf);
             Account account = new(1, 1, storage1.Keccak, Keccak.OfAnEmptyString);
             a.Value = _accountDecoder.Encode(account).Bytes;
             a.Key = storage1Nib[1..];
-            a.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            a.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode storage2 = new(NodeType.Leaf, new byte[32]);
-            storage2.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            storage2.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode b = new(NodeType.Leaf);
             Account accountB = new(2, 1, storage2.Keccak, Keccak.OfAnEmptyString);
             b.Value = _accountDecoder.Encode(accountB).Bytes;
             b.Key = storage2Nib[1..];
-            b.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            b.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             TrieNode branch = new(NodeType.Branch);
             branch.SetChild(0, a);
             branch.SetChild(1, b);
-            branch.ResolveKey(NullTrieStore.Instance, TreePath.Empty, true);
+            branch.ResolveKey(NullTrieStore.Instance, ref emptyPath, true);
 
             MemDb memDb = new();
             NodeStorage storage = new NodeStorage(memDb);
@@ -620,7 +631,8 @@ namespace Nethermind.Trie.Test.Pruning
             Account account = new(1, 1, TestItem.KeccakA, Keccak.OfAnEmptyString);
             node.Value = _accountDecoder.Encode(account).Bytes;
             node.Key = Bytes.FromHexString("abc");
-            node.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            node.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             MemDb originalStore = new MemDb();
             WitnessCollector witnessCollector = new WitnessCollector(new MemDb(), LimboLogs.Instance);
@@ -651,7 +663,8 @@ namespace Nethermind.Trie.Test.Pruning
             MemDb memDb = new();
             using TrieStore fullTrieStore = new(memDb, Prune.WhenCacheReaches(10.MB()), Persist.IfBlockOlderThan(10), _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
-            trieNode.ResolveKey(trieStore, TreePath.Empty, false);
+            TreePath emptyPath = TreePath.Empty;
+            trieNode.ResolveKey(trieStore, ref emptyPath, false);
             trieStore.CommitNode(1, new NodeCommitInfo(trieNode, TreePath.Empty));
 
             if (beThreadSafe)
@@ -700,7 +713,8 @@ namespace Nethermind.Trie.Test.Pruning
             Account account = new(1, 1, TestItem.KeccakA, Keccak.OfAnEmptyString);
             node.Value = _accountDecoder.Encode(account).Bytes;
             node.Key = Nibbles.BytesToNibbleBytes(TestItem.KeccakA.BytesToArray());
-            node.ResolveKey(NullTrieNodeResolver.Instance, TreePath.Empty, true);
+            TreePath emptyPath = TreePath.Empty;
+            node.ResolveKey(NullTrieNodeResolver.Instance, ref emptyPath, true);
 
             using TrieStore fullTrieStore = new(new MemDb(), new TestPruningStrategy(pruning), No.Persistence, _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);

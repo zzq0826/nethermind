@@ -839,7 +839,7 @@ namespace Nethermind.Synchronization.FastSync
 
                     break;
                 case NodeType.Extension:
-                    Hash256? next = trieNode.GetChild(NullTrieNodeResolver.Instance, path, 0)?.Keccak;
+                    Hash256? next = trieNode.GetChild(NullTrieNodeResolver.Instance, ref path, 0)?.Keccak;
                     if (next is not null)
                     {
                         DependentItem dependentItem = new(currentStateSyncItem, currentResponseItem, 1);

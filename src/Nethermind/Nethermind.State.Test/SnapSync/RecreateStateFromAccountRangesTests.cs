@@ -53,7 +53,8 @@ namespace Nethermind.Store.Test
             {
                 byte[] nodeBytes = (firstProof!)[i];
                 var node = new TrieNode(NodeType.Unknown, nodeBytes);
-                node.ResolveKey(store, TreePath.Empty, i == 0);
+                TreePath emptyPath = TreePath.Empty;
+                node.ResolveKey(store, ref emptyPath, i == 0);
 
                 nodes.Add(node);
                 if (i < (firstProof!).Length - 1)
@@ -68,7 +69,8 @@ namespace Nethermind.Store.Test
             {
                 byte[] nodeBytes = (lastProof!)[i];
                 var node = new TrieNode(NodeType.Unknown, nodeBytes);
-                node.ResolveKey(store, TreePath.Empty, i == 0);
+                TreePath emptyPath = TreePath.Empty;
+                node.ResolveKey(store, ref emptyPath, i == 0);
 
                 nodes.Add(node);
                 if (i < (lastProof!).Length - 1)

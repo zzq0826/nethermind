@@ -263,7 +263,7 @@ public class BatchedTrieVisitor
                 using ArrayPoolList<(Hash256?, TreePath, TrieNode, SmallTrieVisitContext)> recursiveResult = new(1);
                 trieNode.ResolveNode(_resolver, path);
                 Interlocked.Increment(ref _activeJobs);
-                trieNode.AcceptResolvedNode(_visitor, _resolver, address, path, ctx, recursiveResult);
+                trieNode.AcceptResolvedNode(_visitor, _resolver, address, ref path, ctx, recursiveResult);
 
                 QueueNextNodes(recursiveResult);
                 continue;
@@ -299,7 +299,8 @@ public class BatchedTrieVisitor
             {
                 TrieNode cur = currentBatch[i].Item3;
 
-                cur.ResolveKey(_resolver, currentBatch[i].Item2, false);
+                TreePath path = currentBatch[i].Item2;
+                cur.ResolveKey(_resolver, ref path, false);
 
                 SmallTrieVisitContext ctx = currentBatch[i].Item4;
 
@@ -354,7 +355,7 @@ public class BatchedTrieVisitor
                     return; // missing node
                 }
 
-                nodeToResolve.AcceptResolvedNode(_visitor, _resolver, address, path, ctx, nextToProcesses);
+                nodeToResolve.AcceptResolvedNode(_visitor, _resolver, address, ref path, ctx, nextToProcesses);
                 QueueNextNodes(nextToProcesses);
             }
 

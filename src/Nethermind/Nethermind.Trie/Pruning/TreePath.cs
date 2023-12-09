@@ -12,7 +12,7 @@ public struct TreePath
     public readonly ValueHash256 Path;
     private int _length;
 
-    public static TreePath Empty = new TreePath();
+    public static TreePath Empty => new TreePath();
 
     private readonly Span<byte> Span => Path.BytesAsSpan;
 
@@ -132,7 +132,14 @@ public struct TreePath
         }
     }
 
-    public void Truncate(int pathLength)
+    public readonly TreePath Truncate(int pathLength)
+    {
+        TreePath copy = this;
+        copy.TruncateMut(pathLength);
+        return copy;
+    }
+
+    public void TruncateMut(int pathLength)
     {
         if (pathLength > _length) throw new IndexOutOfRangeException("path length must be less than current length");
         if (pathLength == _length) return;

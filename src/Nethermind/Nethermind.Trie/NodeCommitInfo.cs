@@ -26,7 +26,7 @@ namespace Nethermind.Trie
         }
 
         public TrieNode? Node { get; }
-        public TreePath Path { get; }
+        public readonly TreePath Path;
 
         public TrieNode? NodeParent { get; }
 

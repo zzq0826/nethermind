@@ -270,7 +270,8 @@ namespace Nethermind.Trie.Pruning
                     if (!ReferenceEquals(cachedNodeCopy, node))
                     {
                         if (_logger.IsTrace) _logger.Trace($"Replacing {node} with its cached copy {cachedNodeCopy}.");
-                        cachedNodeCopy.ResolveKey(GetTrieStore(address), nodeCommitInfo.Path, nodeCommitInfo.IsRoot);
+                        TreePath path = nodeCommitInfo.Path;
+                        cachedNodeCopy.ResolveKey(GetTrieStore(address), ref path, nodeCommitInfo.IsRoot);
                         if (node.Keccak != cachedNodeCopy.Keccak)
                         {
                             throw new InvalidOperationException($"The hash of replacement node {cachedNodeCopy} is not the same as the original {node}.");
@@ -525,7 +526,8 @@ namespace Nethermind.Trie.Pruning
                     Hash256? keccak = node.Keccak;
                     if (keccak is null)
                     {
-                        keccak = node.GenerateKey(this.GetTrieStore(address), path, isRoot: true);
+                        TreePath path2 = path;
+                        keccak = node.GenerateKey(this.GetTrieStore(address), ref path2, isRoot: true);
                         PruneKey newKey = new PruneKey(address, path, keccak);
                         if (newKey != key)
                         {
@@ -636,7 +638,8 @@ namespace Nethermind.Trie.Pruning
                 if (_logger.IsDebug) _logger.Debug($"Persisting from root {commitSet.Root} in {commitSet.BlockNumber}");
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                commitSet.Root?.CallRecursively(PersistNode, address, TreePath.Empty, GetTrieStore(address), true, _logger);
+                TreePath path = TreePath.Empty;
+                commitSet.Root?.CallRecursively(PersistNode, null, ref path, GetTrieStore(null), true, _logger);
                 stopwatch.Stop();
                 Metrics.SnapshotPersistenceTime = stopwatch.ElapsedMilliseconds;
 
@@ -827,7 +830,8 @@ namespace Nethermind.Trie.Pruning
                 {
                     if (!cancellationToken.IsCancellationRequested)
                     {
-                        nodesCopy[i].Value.Item3.CallRecursively(PersistNode, null, nodesCopy[i].Value.Item2, this.GetTrieStore(nodesCopy[i].Value.Item1), false, _logger, false);
+                        TreePath path = nodesCopy[i].Value.Item2;
+                        nodesCopy[i].Value.Item3.CallRecursively(PersistNode, null, ref path, this.GetTrieStore(nodesCopy[i].Value.Item1), false, _logger, false);
                     }
                 });
 

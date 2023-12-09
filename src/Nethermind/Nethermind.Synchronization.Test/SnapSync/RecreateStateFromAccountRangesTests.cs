@@ -59,12 +59,13 @@ namespace Nethermind.Synchronization.Test.SnapSync
             StateTree tree = new(store, LimboLogs.Instance);
 
             IList<TrieNode> nodes = new List<TrieNode>();
+            TreePath emptyPath = TreePath.Empty;
 
             for (int i = 0; i < (firstProof!).Length; i++)
             {
                 byte[] nodeBytes = (firstProof!)[i];
                 var node = new TrieNode(NodeType.Unknown, nodeBytes);
-                node.ResolveKey(store, TreePath.Empty, i == 0);
+                node.ResolveKey(store, ref emptyPath, i == 0);
 
                 nodes.Add(node);
                 if (i < (firstProof!).Length - 1)
@@ -79,7 +80,7 @@ namespace Nethermind.Synchronization.Test.SnapSync
             {
                 byte[] nodeBytes = (lastProof!)[i];
                 var node = new TrieNode(NodeType.Unknown, nodeBytes);
-                node.ResolveKey(store, TreePath.Empty, i == 0);
+                node.ResolveKey(store, ref emptyPath, i == 0);
 
                 nodes.Add(node);
                 if (i < (lastProof!).Length - 1)
