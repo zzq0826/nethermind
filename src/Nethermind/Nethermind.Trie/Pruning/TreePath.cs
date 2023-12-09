@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Runtime.CompilerServices;
 using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie;
@@ -33,18 +34,34 @@ public readonly struct TreePath
         return new TreePath(new ValueHash256(pathBytes), pathNibbles.Length);
     }
 
-    public TreePath Append(params byte[]? nibbles)
+    public TreePath Append(Span<byte> nibbles)
     {
-        if (nibbles == null) return this;
+        if (nibbles.Length == 0) return this;
+        if (nibbles.Length == 1) return Append(nibbles[0]);
 
         int length = Length;
         ValueHash256 path = Path;
-        Span<byte> span = path.BytesAsSpan;
+        Span<byte> pathSpan = path.BytesAsSpan;
 
-        // TODO: Optimize this
-        foreach (byte nib in nibbles)
+        if (length % 2 == 1)
         {
-            SetNibble(span, nib, length);
+            SetNibble(pathSpan, nibbles[0], length);
+            length++;
+
+            nibbles = nibbles[1..];
+        }
+
+        int byteLength = nibbles.Length / 2;
+        int pathSpanStart = length / 2;
+        for (int i = 0; i < byteLength; i++)
+        {
+            pathSpan[i + pathSpanStart] = Nibbles.ToByte(nibbles[i * 2], nibbles[i * 2 + 1]);
+            length+=2;
+        }
+
+        if (nibbles.Length % 2 == 1)
+        {
+            SetNibble(pathSpan, nibbles[^1], length);
             length++;
         }
 
@@ -63,6 +80,7 @@ public readonly struct TreePath
         return new TreePath(path, length);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void SetNibble(Span<byte> bytes, byte nib, int idx)
     {
         if (idx >= 64) throw new IndexOutOfRangeException();

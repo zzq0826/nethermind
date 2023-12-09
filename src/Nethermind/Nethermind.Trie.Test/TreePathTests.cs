@@ -39,4 +39,24 @@ public class TreePathTests
         string asHex = newPath.Path.Bytes.ToHexString();
         asHex.Should().Be("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
     }
+
+    [TestCase(1)]
+    [TestCase(11)]
+    [TestCase(20)]
+    [TestCase(40)]
+    [TestCase(41)]
+    public void TestAppendArrayDivided(int divisor)
+    {
+        byte[] nibbles = new byte[64];
+        for (int i = 0; i < 64; i++)
+        {
+            nibbles[i] = (byte)(i % 16);
+        }
+        TreePath path = new TreePath();
+        path = path.Append(nibbles[..divisor]);
+        path = path.Append(nibbles[divisor..]);
+
+        string asHex = path.Path.Bytes.ToHexString();
+        asHex.Should().Be("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+    }
 }
