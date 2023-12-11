@@ -22,9 +22,6 @@ public class NodeStorage: INodeStorage
         _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
     }
 
-    private static int _cutLength = int.Parse(Environment.GetEnvironmentVariable("CUT_LENGTH") ?? "4");
-    private static bool _centerPath = Environment.GetEnvironmentVariable("CENTER_PATH") == "1";
-
     public static byte[] GetNodeStoragePath(Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
         byte[] bytes = new byte[StoragePathLength];
@@ -37,35 +34,30 @@ public class NodeStorage: INodeStorage
         return GetNodeStoragePathSpan(pathSpan, address, path, keccak);
     }
 
+    private static int _cutLength = int.Parse(Environment.GetEnvironmentVariable("CUT_LENGTH") ?? "5");
+
     public static Span<byte> GetNodeStoragePathSpan(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
         Debug.Assert(pathSpan.Length == StoragePathLength);
-        TreePath centeredPath = path;
-        if (_centerPath)
+        if (address == null)
         {
-            // Modify the path so that it would be in the center of the range of its children.
-            // This improve cache hit rate by about 10%
-            if (centeredPath.Length < 16) centeredPath = centeredPath.Append(8);
-        }
-
-        if (address != null)
-        {
-            // TODO: Calculate the average size of storage
-            // Note, pathSpan[0] == 0.
-            address.Bytes[..4].CopyTo(pathSpan[1..]);
-            centeredPath.Path.BytesAsSpan[..3].CopyTo(pathSpan[5..]);
-        } else {
-            centeredPath.Path.BytesAsSpan[..7].CopyTo(pathSpan[1..]);
+            path.Path.BytesAsSpan[..7].CopyTo(pathSpan[1..]);
 
             // Separate the top level tree into its own section. This improve cache hit rate by about a few %.
             if (path.Length <= _cutLength)
             {
-                pathSpan[0] = 1;
+                pathSpan[0] = 0;
             }
             else
             {
-                pathSpan[0] = 2;
+                pathSpan[0] = 1;
             }
+        }
+        else
+        {
+            pathSpan[0] = 2;
+            address.Bytes[..4].CopyTo(pathSpan[1..]);
+            path.Path.BytesAsSpan[..3].CopyTo(pathSpan[5..]);
         }
 
         keccak.Bytes.CopyTo(pathSpan[8..]);
