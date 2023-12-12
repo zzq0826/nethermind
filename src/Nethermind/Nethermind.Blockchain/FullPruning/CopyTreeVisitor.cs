@@ -51,7 +51,7 @@ namespace Nethermind.Blockchain.FullPruning
             if (_logger.IsWarn) _logger.Warn($"Full Pruning Started on root hash {rootHash}: do not close the node until finished or progress will be lost.");
         }
 
-        public void VisitMissingNode(Hash256 nodeHash, TrieVisitContext trieVisitContext)
+        public void VisitMissingNode(in TreePath path, Hash256 nodeHash, TrieVisitContext trieVisitContext)
         {
             if (_logger.IsWarn)
             {
@@ -62,13 +62,13 @@ namespace Nethermind.Blockchain.FullPruning
             _pruningContext.CancellationTokenSource.Cancel();
         }
 
-        public void VisitBranch(TrieNode node, TrieVisitContext trieVisitContext) => PersistNode(node);
+        public void VisitBranch(in TreePath path, TrieNode node, TrieVisitContext trieVisitContext) => PersistNode(node);
 
-        public void VisitExtension(TrieNode node, TrieVisitContext trieVisitContext) => PersistNode(node);
+        public void VisitExtension(in TreePath path, TrieNode node, TrieVisitContext trieVisitContext) => PersistNode(node);
 
-        public void VisitLeaf(TrieNode node, TrieVisitContext trieVisitContext, byte[]? value = null) => PersistNode(node);
+        public void VisitLeaf(in TreePath path, TrieNode node, TrieVisitContext trieVisitContext, byte[]? value = null) => PersistNode(node);
 
-        public void VisitCode(Hash256 codeHash, TrieVisitContext trieVisitContext) { }
+        public void VisitCode(in TreePath path, Hash256 codeHash, TrieVisitContext trieVisitContext) { }
 
         private void PersistNode(TrieNode node)
         {

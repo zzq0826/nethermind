@@ -44,7 +44,7 @@ namespace Nethermind.Trie
             {
                 case NodeType.Branch:
                     {
-                        visitor.VisitBranch(this, trieVisitContext.ToVisitContext());
+                        visitor.VisitBranch(path, this, trieVisitContext.ToVisitContext());
                         trieVisitContext.Level++;
 
                         for (int i = 0; i < BranchesCount; i++)
@@ -75,7 +75,7 @@ namespace Nethermind.Trie
                     }
                 case NodeType.Extension:
                     {
-                        visitor.VisitExtension(this, trieVisitContext.ToVisitContext());
+                        visitor.VisitExtension(path, this, trieVisitContext.ToVisitContext());
                         TrieNode child = GetChild(nodeResolver, ref path, 0);
                         if (child is null)
                         {
@@ -98,7 +98,7 @@ namespace Nethermind.Trie
 
                 case NodeType.Leaf:
                     {
-                        visitor.VisitLeaf(this, trieVisitContext.ToVisitContext(), Value.ToArray());
+                        visitor.VisitLeaf(path, this, trieVisitContext.ToVisitContext(), Value.ToArray());
 
                         if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
                         {
@@ -107,25 +107,27 @@ namespace Nethermind.Trie
                             {
                                 trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
-                                visitor.VisitCode(account.CodeHash, trieVisitContext.ToVisitContext());
+                                visitor.VisitCode(path, account.CodeHash, trieVisitContext.ToVisitContext());
                                 trieVisitContext.Level--;
                             }
 
                             if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
                             {
-                                trieVisitContext.IsStorage = true;
                                 trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
 
                                 if (TryResolveStorageRoot(nodeResolver, ref path, out TrieNode? chStorageRoot))
                                 {
                                     path.AppendMut(Key);
-                                    nextToVisit.Add((path.Path.ToCommitment(), TreePath.Empty, chStorageRoot!, trieVisitContext));
+                                    Hash256 storageAddr = path.Path.ToCommitment();
+                                    trieVisitContext.Storage = storageAddr;
+                                    nextToVisit.Add((storageAddr, TreePath.Empty, chStorageRoot!, trieVisitContext));
                                     path.TruncateMut(originalPathLength);
+                                    trieVisitContext.Storage = null;
                                 }
                                 else
                                 {
-                                    visitor.VisitMissingNode(account.StorageRoot, trieVisitContext.ToVisitContext());
+                                    visitor.VisitMissingNode(path, account.StorageRoot, trieVisitContext.ToVisitContext());
                                 }
                             }
                         }
@@ -146,7 +148,7 @@ namespace Nethermind.Trie
             }
             catch (TrieException)
             {
-                visitor.VisitMissingNode(Keccak, trieVisitContext);
+                visitor.VisitMissingNode(path, Keccak, trieVisitContext);
                 return;
             }
 
@@ -209,7 +211,7 @@ namespace Nethermind.Trie
                             });
                         }
 
-                        visitor.VisitBranch(this, trieVisitContext);
+                        visitor.VisitBranch(path, this, trieVisitContext);
                         trieVisitContext.AddVisited();
                         trieVisitContext.Level++;
 
@@ -243,7 +245,7 @@ namespace Nethermind.Trie
 
                 case NodeType.Extension:
                     {
-                        visitor.VisitExtension(this, trieVisitContext);
+                        visitor.VisitExtension(path, this, trieVisitContext);
                         trieVisitContext.AddVisited();
                         TrieNode child = GetChild(nodeResolver, ref path, 0);
                         if (child is null)
@@ -269,7 +271,7 @@ namespace Nethermind.Trie
 
                 case NodeType.Leaf:
                     {
-                        visitor.VisitLeaf(this, trieVisitContext, Value.ToArray());
+                        visitor.VisitLeaf(path, this, trieVisitContext, Value.ToArray());
                         trieVisitContext.AddVisited();
                         if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
                         {
@@ -278,13 +280,12 @@ namespace Nethermind.Trie
                             {
                                 trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
-                                visitor.VisitCode(account.CodeHash, trieVisitContext);
+                                visitor.VisitCode(path, account.CodeHash, trieVisitContext);
                                 trieVisitContext.Level--;
                             }
 
                             if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
                             {
-                                trieVisitContext.IsStorage = true;
                                 trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
 
@@ -292,17 +293,19 @@ namespace Nethermind.Trie
                                 {
                                     int originalPathLength = path.Length;
                                     path.AppendMut(Key);
+                                    Hash256 storageAccount = path.Path.ToCommitment();
                                     TreePath emptyPath = TreePath.Empty;
-                                    storageRoot!.Accept(visitor, nodeResolver.GetStorageTrieNodeResolver(path.Path.ToCommitment()), ref emptyPath, trieVisitContext);
+                                    trieVisitContext.Storage = storageAccount;
+                                    storageRoot!.Accept(visitor, nodeResolver.GetStorageTrieNodeResolver(storageAccount), ref emptyPath, trieVisitContext);
                                     path.TruncateMut(originalPathLength);
+                                    trieVisitContext.Storage = null;
                                 }
                                 else
                                 {
-                                    visitor.VisitMissingNode(account.StorageRoot, trieVisitContext);
+                                    visitor.VisitMissingNode(path, account.StorageRoot, trieVisitContext);
                                 }
 
                                 trieVisitContext.Level--;
-                                trieVisitContext.IsStorage = false;
                             }
                         }
 

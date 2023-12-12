@@ -338,7 +338,7 @@ public class BatchedTrieVisitor
                 }
                 catch (TrieException)
                 {
-                    _visitor.VisitMissingNode(nodeToResolve.Keccak, ctx.ToVisitContext());
+                    _visitor.VisitMissingNode(path, nodeToResolve.Keccak, ctx.ToVisitContext());
                 }
             };
 

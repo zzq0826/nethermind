@@ -1099,6 +1099,7 @@ namespace Nethermind.Trie
             };
 
             TrieNode rootRef = null;
+            TreePath startingPath = TreePath.Empty;
             if (!rootHash.Equals(Keccak.EmptyTreeHash))
             {
                 rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(TreePath.Empty, rootHash);
@@ -1108,7 +1109,7 @@ namespace Nethermind.Trie
                 }
                 catch (TrieException)
                 {
-                    visitor.VisitMissingNode(rootHash, trieVisitContext);
+                    visitor.VisitMissingNode(startingPath, rootHash, trieVisitContext);
                     return;
                 }
             }

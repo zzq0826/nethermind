@@ -334,7 +334,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitExtension(node, context);
+            visitor.Received().VisitExtension(TreePath.Empty, node, context);
         }
 
         [Test]
@@ -347,7 +347,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitMissingNode(node.Keccak, context);
+            visitor.Received().VisitMissingNode(TreePath.Empty, node.Keccak, context);
         }
 
         [Test]
@@ -362,7 +362,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitLeaf(node, context, node.Value.ToArray());
+            visitor.Received().VisitLeaf(TreePath.Empty, node, context, node.Value.ToArray());
         }
 
         [Test]
@@ -377,7 +377,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitLeaf(node, context, node.Value.ToArray());
+            visitor.Received().VisitLeaf(TreePath.Empty, node, context, node.Value.ToArray());
         }
 
         [Test]
@@ -394,7 +394,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitLeaf(node, context, node.Value.ToArray());
+            visitor.Received().VisitLeaf(TreePath.Empty, node, context, node.Value.ToArray());
         }
 
         [Test]
@@ -411,7 +411,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitLeaf(node, context, node.Value.ToArray());
+            visitor.Received().VisitLeaf(TreePath.Empty, node, context, node.Value.ToArray());
         }
 
         [Test]
@@ -427,8 +427,8 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitExtension(node, context);
-            visitor.Received().VisitLeaf(ctx.AccountLeaf, context, ctx.AccountLeaf.Value.ToArray());
+            visitor.Received().VisitExtension(TreePath.Empty, node, context);
+            visitor.Received().VisitLeaf(Arg.Any<TreePath>(), ctx.AccountLeaf, context, ctx.AccountLeaf.Value.ToArray());
         }
 
         [Test]
@@ -448,8 +448,8 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitBranch(node, context);
-            visitor.Received(16).VisitLeaf(ctx.AccountLeaf, context, ctx.AccountLeaf.Value.ToArray());
+            visitor.Received().VisitBranch(TreePath.Empty, node, context);
+            visitor.Received(16).VisitLeaf(Arg.Any<TreePath>(), ctx.AccountLeaf, context, ctx.AccountLeaf.Value.ToArray());
         }
 
         [Test]
@@ -466,7 +466,7 @@ namespace Nethermind.Trie.Test
             TreePath emptyPath = TreePath.Empty;
             node.Accept(visitor, NullTrieNodeResolver.Instance, ref emptyPath, context);
 
-            visitor.Received().VisitBranch(node, context);
+            visitor.Received().VisitBranch(TreePath.Empty, node, context);
         }
 
         [Test]
