@@ -1,0 +1,31 @@
+// SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
+// SPDX-License-Identifier: LGPL-3.0-only
+
+using System;
+using System.Diagnostics.CodeAnalysis;
+using Nethermind.Core.Crypto;
+using Nethermind.Core.Verkle;
+using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.History.V1;
+using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.VerkleDb;
+
+namespace Nethermind.Verkle.Tree.TrieStore;
+
+public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
+{
+    Hash256 StateRoot { get; }
+    Hash256 GetStateRoot();
+
+    bool HashStateForBlock(Hash256 stateRoot);
+    bool MoveToStateRoot(Hash256 stateRoot);
+
+    byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null);
+    InternalNode? GetInternalNode(ReadOnlySpan<byte> key, Hash256? stateRoot = null);
+
+    void InsertBatch(long blockNumber, VerkleMemoryDb memDb);
+
+    void ApplyDiffLayer(BatchChangeSet changeSet);
+
+    ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore);
+}

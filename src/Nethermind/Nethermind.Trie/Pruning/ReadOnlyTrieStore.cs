@@ -64,5 +64,7 @@ namespace Nethermind.Trie.Pruning
 
             public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None) { }
         }
+
+        public bool IsFullySynced(Hash256 stateRoot) => _trieStore.IsFullySynced(stateRoot);
     }
 }
