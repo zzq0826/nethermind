@@ -23,7 +23,7 @@ public readonly struct AccountHeader
 
     private static readonly LruCache<(byte[], UInt256), byte[]> _keyCache = new(1000000, 10000, "Verkle Key Cache");
 
-    private static byte[] GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
+    public static byte[] GetTreeKeyPrefix(ReadOnlySpan<byte> address20, UInt256 treeIndex)
     {
         if (_keyCache.TryGet((address20.ToArray(), treeIndex), out byte[] value)) return value;
         value = PedersenHash.ComputeHashBytes(address20, treeIndex);

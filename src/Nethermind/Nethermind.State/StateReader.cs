@@ -44,6 +44,12 @@ namespace Nethermind.State
             return _storage.Get(index, storageRoot);
         }
 
+        public byte[]? GetStorage(Hash256 stateRoot, in StorageCell cell)
+        {
+            Account account = GetAccount(stateRoot, cell.Address);
+            return account is not null ? GetStorage(account.StorageRoot, cell.Index) : null;
+        }
+
         public UInt256 GetBalance(Hash256 stateRoot, Address address)
         {
             return GetState(stateRoot, address)?.Balance ?? UInt256.Zero;
