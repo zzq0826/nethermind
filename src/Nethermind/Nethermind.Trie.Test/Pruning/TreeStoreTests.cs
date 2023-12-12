@@ -250,7 +250,7 @@ namespace Nethermind.Trie.Test.Pruning
         [Test]
         public void Dispatcher_will_always_try_to_clear_memory()
         {
-            using TrieStore fullTrieStore = new(new MemDb(), new MemoryLimit(512), No.Persistence, _logManager);
+            TrieStore fullTrieStore = new(new MemDb(), new MemoryLimit(512), No.Persistence, _logManager);
             ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
             TreePath emptyPath = TreePath.Empty;
             for (int i = 0; i < 1024; i++)

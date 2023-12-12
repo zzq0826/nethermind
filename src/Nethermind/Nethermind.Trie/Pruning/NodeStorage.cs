@@ -92,7 +92,7 @@ public class NodeStorage: INodeStorage
         return new NodeWriteBatch(((IKeyValueStoreWithBatching)_keyValueStore).StartWriteBatch(), this);
     }
 
-    public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] toArray, WriteFlags writeFlags)
+    public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] toArray, WriteFlags writeFlags = WriteFlags.None)
     {
         if (keccak == Keccak.EmptyTreeHash)
         {
