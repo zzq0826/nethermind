@@ -20,11 +20,11 @@ public class HealingTrieStore : TrieStore
     private ITrieNodeRecovery<IReadOnlyList<Hash256>>? _recovery;
 
     public HealingTrieStore(
-        IKeyValueStoreWithBatching? keyValueStore,
+        INodeStorage nodeStorage,
         IPruningStrategy? pruningStrategy,
         IPersistenceStrategy? persistenceStrategy,
         ILogManager? logManager)
-        : base(keyValueStore, pruningStrategy, persistenceStrategy, logManager)
+        : base(nodeStorage, pruningStrategy, persistenceStrategy, logManager)
     {
     }
 

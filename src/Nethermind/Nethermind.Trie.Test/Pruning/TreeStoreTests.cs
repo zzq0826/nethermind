@@ -642,7 +642,7 @@ namespace Nethermind.Trie.Test.Pruning
             trieStore.CommitNode(0, new NodeCommitInfo(node, TreePath.Empty));
             trieStore.FinishBlockCommit(TrieType.State, 0, node);
 
-            IReadOnlyTrieStore readOnlyTrieStore = fullTrieStore.AsReadOnly(originalStore);
+            IReadOnlyTrieStore readOnlyTrieStore = fullTrieStore.AsReadOnly(new NodeStorage(originalStore));
             readOnlyTrieStore.LoadRlp(null, TreePath.Empty, node.Keccak);
 
             witnessCollector.Collected.Should().BeEmpty();

@@ -121,6 +121,7 @@ namespace Nethermind.Runner.Test.Ethereum
             };
 
             api.WorldStateManager = new ReadOnlyWorldStateManager(api.DbProvider, Substitute.For<IReadOnlyTrieStore>(), LimboLogs.Instance);
+            api.NodeStorageFactory = new NodeStorageFactory();
             return api;
         }
     }

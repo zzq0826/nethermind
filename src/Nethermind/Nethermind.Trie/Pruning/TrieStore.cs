@@ -144,6 +144,11 @@ namespace Nethermind.Trie.Pruning
         {
         }
 
+        public TrieStore(INodeStorage nodeStorage, ILogManager? logManager)
+            : this(nodeStorage, No.Pruning, Pruning.Persist.EveryBlock, logManager)
+        {
+        }
+
         public TrieStore(
             IKeyValueStoreWithBatching? keyValueStore,
             IPruningStrategy? pruningStrategy,
@@ -381,9 +386,9 @@ namespace Nethermind.Trie.Pruning
         }
 
 
-        public IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore)
+        public IReadOnlyTrieStore AsReadOnly(INodeStorage? store)
         {
-            return new ReadOnlyTrieStore(this, keyValueStore);
+            return new ReadOnlyTrieStore(this, store);
         }
 
         public bool IsNodeCached(PruneKey key) => _dirtyNodes.IsNodeCached(key);

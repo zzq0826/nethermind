@@ -94,5 +94,6 @@ namespace Nethermind.Api
         CompositePruningTrigger PruningTrigger { get; }
 
         IBlockProductionPolicy? BlockProductionPolicy { get; set; }
+        INodeStorageFactory NodeStorageFactory { get; set; }
     }
 }

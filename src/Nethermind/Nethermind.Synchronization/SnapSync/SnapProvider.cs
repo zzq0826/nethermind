@@ -22,17 +22,17 @@ namespace Nethermind.Synchronization.SnapSync
     public class SnapProvider : ISnapProvider
     {
         private readonly ObjectPool<ITrieStore> _trieStorePool;
-        private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
         private readonly ILogger _logger;
 
         private readonly ProgressTracker _progressTracker;
+        private readonly IDb _codeDb;
 
-        public SnapProvider(ProgressTracker progressTracker, IDbProvider dbProvider, ILogManager logManager)
+        public SnapProvider(ProgressTracker progressTracker, IDb codeDb, INodeStorage nodeStorage, ILogManager logManager)
         {
-            _dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
+            _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
             _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-            _trieStorePool = new DefaultObjectPool<ITrieStore>(new TrieStorePoolPolicy(_dbProvider.StateDb, logManager));
+            _trieStorePool = new DefaultObjectPool<ITrieStore>(new TrieStorePoolPolicy(nodeStorage, logManager));
 
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _logger = logManager.GetClassLogger<SnapProvider>();
@@ -276,7 +276,7 @@ namespace Nethermind.Synchronization.SnapSync
         {
             HashSet<ValueHash256> set = requestedHashes.ToHashSet();
 
-            using (IWriteBatch writeWriteBatch = _dbProvider.CodeDb.StartWriteBatch())
+            using (IWriteBatch writeWriteBatch = _codeDb.StartWriteBatch())
             {
                 for (int i = 0; i < codes.Length; i++)
                 {
@@ -325,10 +325,10 @@ namespace Nethermind.Synchronization.SnapSync
 
         private class TrieStorePoolPolicy : IPooledObjectPolicy<ITrieStore>
         {
-            private readonly IKeyValueStoreWithBatching _stateDb;
+            private readonly INodeStorage _stateDb;
             private readonly ILogManager _logManager;
 
-            public TrieStorePoolPolicy(IKeyValueStoreWithBatching stateDb, ILogManager logManager)
+            public TrieStorePoolPolicy(INodeStorage stateDb, ILogManager logManager)
             {
                 _stateDb = stateDb;
                 _logManager = logManager;

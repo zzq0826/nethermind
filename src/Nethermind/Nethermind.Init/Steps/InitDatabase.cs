@@ -14,6 +14,7 @@ using Nethermind.Db.Rocks.Config;
 using Nethermind.Db.Rpc;
 using Nethermind.JsonRpc.Client;
 using Nethermind.Logging;
+using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 
 namespace Nethermind.Init.Steps
@@ -90,6 +91,8 @@ namespace Nethermind.Init.Steps
                     _api.MemDbFactory = new MemDbFactory();
                     break;
             }
+
+            _api.NodeStorageFactory = new NodeStorageFactory();
         }
     }
 }

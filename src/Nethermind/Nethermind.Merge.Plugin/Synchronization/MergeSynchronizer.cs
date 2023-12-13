@@ -40,6 +40,7 @@ public class MergeSynchronizer : Synchronizer
 
     public MergeSynchronizer(
         IDbProvider dbProvider,
+        INodeStorage nodeStorage,
         ISpecProvider specProvider,
         IBlockTree blockTree,
         IReceiptStorage receiptStorage,
@@ -59,6 +60,7 @@ public class MergeSynchronizer : Synchronizer
         ILogManager logManager)
         : base(
             dbProvider,
+            nodeStorage,
             specProvider,
             blockTree,
             receiptStorage,

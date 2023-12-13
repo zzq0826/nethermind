@@ -13,12 +13,12 @@ namespace Nethermind.Trie.Pruning
     public class ReadOnlyTrieStore : IReadOnlyTrieStore
     {
         private readonly TrieStore _trieStore;
-        private readonly NodeStorage? _readOnlyStore;
+        private readonly INodeStorage? _readOnlyStore;
 
-        public ReadOnlyTrieStore(TrieStore trieStore, IKeyValueStore? readOnlyStore)
+        public ReadOnlyTrieStore(TrieStore trieStore, INodeStorage? readOnlyStore)
         {
             _trieStore = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
-            _readOnlyStore = readOnlyStore != null ? new NodeStorage(readOnlyStore) : null;
+            _readOnlyStore = readOnlyStore;
         }
 
         public TrieNode FindCachedOrUnknown(Hash256? address, in TreePath treePath, Hash256 hash) =>
@@ -33,9 +33,9 @@ namespace Nethermind.Trie.Pruning
 
         public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak) => _trieStore.IsPersisted(address, path, keccak);
 
-        public IReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore)
+        public IReadOnlyTrieStore AsReadOnly(INodeStorage nodeStore)
         {
-            return new ReadOnlyTrieStore(_trieStore, keyValueStore);
+            return new ReadOnlyTrieStore(_trieStore, nodeStore);
         }
 
         public void CommitNode(long blockNumber, Hash256? address, NodeCommitInfo nodeCommitInfo, WriteFlags flags = WriteFlags.None) { }

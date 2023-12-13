@@ -18,7 +18,7 @@ namespace Nethermind.Trie.Pruning
 
         bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak);
 
-        IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore);
+        IReadOnlyTrieStore AsReadOnly(INodeStorage? keyValueStore);
 
         event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 

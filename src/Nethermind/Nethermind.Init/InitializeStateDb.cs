@@ -104,12 +104,12 @@ public class InitializeStateDb : IStep
 
         TrieStore trieStore = syncConfig.TrieHealing
             ? new HealingTrieStore(
-                stateWitnessedBy,
+                _api.NodeStorageFactory.WrapKeyValueStore(stateWitnessedBy),
                 pruningStrategy,
                 persistenceStrategy,
                 getApi.LogManager)
             : new TrieStore(
-                stateWitnessedBy,
+                _api.NodeStorageFactory.WrapKeyValueStore(stateWitnessedBy),
                 pruningStrategy,
                 persistenceStrategy,
                 getApi.LogManager);
@@ -133,7 +133,7 @@ public class InitializeStateDb : IStep
             fullPruningDb.PruningStarted += (_, args) =>
             {
                 cachedStateDb.PersistCache(args.Context);
-                trieStore.PersistCache(new NodeStorage(args.Context), args.Context.CancellationTokenSource.Token);
+                trieStore.PersistCache( _api.NodeStorageFactory.WrapKeyValueStore(args.Context), args.Context.CancellationTokenSource.Token);
             };
         }
 
@@ -224,7 +224,7 @@ public class InitializeStateDb : IStep
                 }
 
                 IDriveInfo? drive = api.FileSystem.GetDriveInfos(pruningDbPath).FirstOrDefault();
-                FullPruner pruner = new(fullPruningDb, api.PruningTrigger, pruningConfig, api.BlockTree!,
+                FullPruner pruner = new(fullPruningDb, api.NodeStorageFactory, api.PruningTrigger, pruningConfig, api.BlockTree!,
                     stateReader, api.ProcessExit!, ChainSizes.CreateChainSizeInfo(api.ChainSpec.ChainId),
                     drive, api.LogManager);
                 api.DisposeStack.Push(pruner);

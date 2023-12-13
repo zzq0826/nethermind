@@ -29,7 +29,7 @@ public class HealingTrieStoreTests
         TestMemDb db = new();
         NodeStorage storage = new NodeStorage(db);
         storage.Set(null, TreePath.Empty, TestItem.KeccakA, new byte[] { 1, 2 });
-        HealingTrieStore healingTrieStore = new(db, Nethermind.Trie.Pruning.No.Pruning, Persist.EveryBlock, LimboLogs.Instance);
+        HealingTrieStore healingTrieStore = new(storage, Nethermind.Trie.Pruning.No.Pruning, Persist.EveryBlock, LimboLogs.Instance);
         healingTrieStore.LoadRlp(null, TreePath.Empty, TestItem.KeccakA);
     }
 
@@ -41,7 +41,7 @@ public class HealingTrieStoreTests
         byte[] key = NodeStorage.GetNodeStoragePath(null, TreePath.Empty, hash);
 
         TestMemDb db = new();
-        HealingTrieStore healingTrieStore = new(db, Nethermind.Trie.Pruning.No.Pruning, Persist.EveryBlock, LimboLogs.Instance);
+        HealingTrieStore healingTrieStore = new(new NodeStorage(db), Nethermind.Trie.Pruning.No.Pruning, Persist.EveryBlock, LimboLogs.Instance);
         ITrieNodeRecovery<IReadOnlyList<Hash256>> recovery = Substitute.For<ITrieNodeRecovery<IReadOnlyList<Hash256>>>();
         recovery.CanRecover.Returns(isMainThread);
         recovery.Recover(hash, Arg.Is<IReadOnlyList<Hash256>>(l => l.SequenceEqual(new[] { hash })))
