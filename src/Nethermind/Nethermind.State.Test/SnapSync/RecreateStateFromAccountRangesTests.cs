@@ -44,7 +44,7 @@ namespace Nethermind.Store.Test
             byte[][] lastProof = accountProofCollector.BuildResult().Proof;
 
             MemDb db = new();
-            ISmallTrieStore store = new TrieStore(db, LimboLogs.Instance).GetTrieStore(null);
+            IScopedTrieStore store = new TrieStore(db, LimboLogs.Instance).GetTrieStore(null);
             StateTree tree = new(store, LimboLogs.Instance);
 
             IList<TrieNode> nodes = new List<TrieNode>();

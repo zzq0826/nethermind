@@ -58,7 +58,7 @@ namespace Nethermind.Trie.Pruning
             throw new NotImplementedException();
         }
 
-        public ISmallTrieStore GetTrieStore(Hash256? address)
+        public IScopedTrieStore GetTrieStore(Hash256? address)
         {
             throw new NotImplementedException();
         }

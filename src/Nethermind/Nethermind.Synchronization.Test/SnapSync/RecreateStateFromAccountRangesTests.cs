@@ -55,7 +55,7 @@ namespace Nethermind.Synchronization.Test.SnapSync
 
             MemDb db = new();
             TrieStore fullStore = new(db, LimboLogs.Instance);
-            ISmallTrieStore store = fullStore.GetTrieStore(null);
+            IScopedTrieStore store = fullStore.GetTrieStore(null);
             StateTree tree = new(store, LimboLogs.Instance);
 
             IList<TrieNode> nodes = new List<TrieNode>();

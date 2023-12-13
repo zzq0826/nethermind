@@ -661,7 +661,7 @@ namespace Nethermind.Synchronization.Test
 
             Hash256 nodeKey = TestItem.KeccakA;
             TrieNode node = new(NodeType.Leaf, nodeKey, TestItem.KeccakB.Bytes);
-            ISmallTrieStore trieStore = fullTrieStore.GetTrieStore(null);
+            IScopedTrieStore trieStore = fullTrieStore.GetTrieStore(null);
             trieStore.CommitNode(1, new NodeCommitInfo(node, TreePath.Empty));
             trieStore.FinishBlockCommit(TrieType.State, 1, node);
 

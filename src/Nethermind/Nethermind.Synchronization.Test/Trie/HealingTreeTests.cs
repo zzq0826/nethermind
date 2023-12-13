@@ -35,7 +35,7 @@ public class HealingTreeTests
     [Test]
     public void get_storage_tree_works()
     {
-        HealingStorageTree stateTree = new(Substitute.For<ISmallTrieStore>(), Keccak.EmptyTreeHash, LimboLogs.Instance, TestItem.AddressA, TestItem.KeccakA, null);
+        HealingStorageTree stateTree = new(Substitute.For<IScopedTrieStore>(), Keccak.EmptyTreeHash, LimboLogs.Instance, TestItem.AddressA, TestItem.KeccakA, null);
         stateTree.Get(stackalloc byte[] { 1, 2, 3 });
     }
 
@@ -83,7 +83,7 @@ public class HealingTreeTests
             k => throw new MissingTrieNodeException("", new TrieNodeException("", _key), path, 1),
             k => new TrieNode(NodeType.Leaf) { Key = path });
         trieStore.GetTrieStore(Arg.Any<Hash256?>())
-            .Returns((callInfo) => new TrieStore.StorageTrieStore(trieStore, (Hash256?)callInfo[0]));
+            .Returns((callInfo) => new ScopedTrieStore(trieStore, (Hash256?)callInfo[0]));
         TestMemDb db = new();
         trieStore.AsKeyValueStore(null).Returns(db);
 

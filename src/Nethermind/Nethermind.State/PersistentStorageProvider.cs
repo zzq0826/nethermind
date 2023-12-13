@@ -297,7 +297,7 @@ namespace Nethermind.State
 
         private class StorageTreeFactory : IStorageTreeFactory
         {
-            public StorageTree Create(Address address, ISmallTrieStore trieStore, Hash256 storageRoot, Hash256 stateRoot, ILogManager? logManager)
+            public StorageTree Create(Address address, IScopedTrieStore trieStore, Hash256 storageRoot, Hash256 stateRoot, ILogManager? logManager)
                 => new(trieStore, storageRoot, logManager);
         }
     }

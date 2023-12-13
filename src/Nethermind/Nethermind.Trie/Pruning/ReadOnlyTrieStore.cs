@@ -49,7 +49,7 @@ namespace Nethermind.Trie.Pruning
         }
 
         public IKeyValueStore AsKeyValueStore(Hash256? address) => new ReadOnlyValueStore(_trieStore.AsKeyValueStore(address));
-        public ISmallTrieStore GetTrieStore(Hash256? address)
+        public IScopedTrieStore GetTrieStore(Hash256? address)
         {
             return new ReadOnlyStorageTrieStore(this, address);
         }
@@ -72,7 +72,7 @@ namespace Nethermind.Trie.Pruning
             public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None) { }
         }
 
-        public class ReadOnlyStorageTrieStore : ISmallTrieStore
+        public class ReadOnlyStorageTrieStore : IScopedTrieStore
         {
             private ReadOnlyTrieStore _trieStoreImplementation;
             private readonly Hash256? _address;

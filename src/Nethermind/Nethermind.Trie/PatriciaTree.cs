@@ -46,7 +46,7 @@ namespace Nethermind.Trie
 
         private readonly ConcurrentQueue<NodeCommitInfo>? _currentCommit;
 
-        public ISmallTrieStore TrieStore { get; set; }
+        public IScopedTrieStore TrieStore { get; set; }
         public ICappedArrayPool? _bufferPool;
 
         private readonly bool _parallelBranches;
@@ -90,7 +90,7 @@ namespace Nethermind.Trie
         {
         }
 
-        public PatriciaTree(ISmallTrieStore trieStore, ILogManager logManager, ICappedArrayPool? bufferPool = null)
+        public PatriciaTree(IScopedTrieStore trieStore, ILogManager logManager, ICappedArrayPool? bufferPool = null)
             : this(trieStore, EmptyTreeHash, false, true, logManager, bufferPool: bufferPool)
         {
         }
@@ -113,7 +113,7 @@ namespace Nethermind.Trie
         }
 
         public PatriciaTree(
-            ISmallTrieStore? trieStore,
+            IScopedTrieStore? trieStore,
             Hash256 rootHash,
             bool parallelBranches,
             bool allowCommits,

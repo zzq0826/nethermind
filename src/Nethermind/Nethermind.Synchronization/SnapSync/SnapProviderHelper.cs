@@ -250,7 +250,7 @@ namespace Nethermind.Synchronization.SnapSync
             return (AddRangeResult.OK, sortedBoundaryList, moreChildrenToRight);
         }
 
-        private static Dictionary<ValueHash256, TrieNode> CreateProofDict(byte[][] proofs, ISmallTrieStore store)
+        private static Dictionary<ValueHash256, TrieNode> CreateProofDict(byte[][] proofs, IScopedTrieStore store)
         {
             Dictionary<ValueHash256, TrieNode> dict = new();
 
@@ -269,7 +269,7 @@ namespace Nethermind.Synchronization.SnapSync
             return dict;
         }
 
-        private static void StitchBoundaries(List<(TrieNode, TreePath)> sortedBoundaryList, ISmallTrieStore store)
+        private static void StitchBoundaries(List<(TrieNode, TreePath)> sortedBoundaryList, IScopedTrieStore store)
         {
             if (sortedBoundaryList is null || sortedBoundaryList.Count == 0)
             {
@@ -308,7 +308,7 @@ namespace Nethermind.Synchronization.SnapSync
             }
         }
 
-        private static bool IsChildPersisted(TrieNode node, in TreePath nodePath, int childIndex, ISmallTrieStore store)
+        private static bool IsChildPersisted(TrieNode node, in TreePath nodePath, int childIndex, IScopedTrieStore store)
         {
             TrieNode data = node.GetData(childIndex) as TrieNode;
             if (data is not null)

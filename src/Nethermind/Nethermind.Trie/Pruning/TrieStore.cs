@@ -165,9 +165,9 @@ namespace Nethermind.Trie.Pruning
             _dirtyNodes = new DirtyNodesCache(this);
         }
 
-        public ISmallTrieStore GetTrieStore(Hash256? address)
+        public IScopedTrieStore GetTrieStore(Hash256? address)
         {
-            return new StorageTrieStore(this, address);
+            return new ScopedTrieStore(this, address);
         }
 
         public long LastPersistedBlockNumber
@@ -877,63 +877,6 @@ namespace Nethermind.Trie.Pruning
             public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
             {
                 throw new Exception("Unsupported");
-            }
-        }
-
-        public class StorageTrieStore : ISmallTrieStore
-        {
-            private ITrieStore _trieStoreImplementation;
-            private readonly Hash256? _address;
-
-            public StorageTrieStore(ITrieStore fullTrieStore, Hash256? address)
-            {
-                _trieStoreImplementation = fullTrieStore;
-                _address = address;
-            }
-
-            public TrieNode FindCachedOrUnknown(in TreePath path, Hash256 hash)
-            {
-                return _trieStoreImplementation.FindCachedOrUnknown(_address, path, hash);
-            }
-
-            public byte[]? LoadRlp(in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None)
-            {
-                return _trieStoreImplementation.LoadRlp(_address, path, hash, flags);
-            }
-
-            public ITrieNodeResolver GetStorageTrieNodeResolver(Hash256? address)
-            {
-                return new StorageTrieStore(_trieStoreImplementation, address);
-            }
-
-            public void Dispose()
-            {
-                _trieStoreImplementation.Dispose();
-            }
-
-            public void CommitNode(long blockNumber, NodeCommitInfo nodeCommitInfo, WriteFlags writeFlags = WriteFlags.None)
-            {
-                _trieStoreImplementation.CommitNode(blockNumber, _address, nodeCommitInfo, writeFlags);
-            }
-
-            public void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root, WriteFlags writeFlags = WriteFlags.None)
-            {
-                _trieStoreImplementation.FinishBlockCommit(trieType, blockNumber, _address, root, writeFlags);
-            }
-
-            public bool IsPersisted(in TreePath path, in ValueHash256 keccak)
-            {
-                return _trieStoreImplementation.IsPersisted(_address, path, in keccak);
-            }
-
-            public IKeyValueStore AsKeyValueStore()
-            {
-                return _trieStoreImplementation.AsKeyValueStore(_address);
-            }
-
-            public void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp)
-            {
-                _trieStoreImplementation.Set(_address, path, keccak, rlp);
             }
         }
     }
