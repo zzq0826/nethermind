@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using FastEnumUtility;
 using Nethermind.Core.Specs;
@@ -40,7 +38,7 @@ namespace Nethermind.Evm
         SHR = 0x1c, // EIP-145
         SAR = 0x1d, // EIP-145
 
-        SHA3 = 0x20,
+        KECCAK256 = 0x20,
 
         ADDRESS = 0x30,
         BALANCE = 0x31,
@@ -69,6 +67,7 @@ namespace Nethermind.Evm
         SELFBALANCE = 0x47,
         BASEFEE = 0x48,
         BLOBHASH = 0x49,
+        BLOBBASEFEE = 0x4a,
 
         POP = 0x50,
         MLOAD = 0x51,
@@ -190,4 +189,3 @@ namespace Nethermind.Evm
             };
     }
 }
-

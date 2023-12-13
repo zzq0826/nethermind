@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core.Extensions;
@@ -17,7 +16,6 @@ using Nethermind.Serialization.Json;
 using NSubstitute;
 using NSubstitute.Extensions;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace Nethermind.Sockets.Test
 {
@@ -64,7 +62,7 @@ namespace Nethermind.Sockets.Test
                     }
                 }
 
-                if (!_receiveResults.Any() && ReturnTaskWithFaultOnEmptyQueue)
+                if (_receiveResults.Count == 0 && ReturnTaskWithFaultOnEmptyQueue)
                 {
                     Task<WebSocketReceiveResult> a = new Task<WebSocketReceiveResult>(() => throw new Exception());
                     a.Start();
@@ -107,6 +105,13 @@ namespace Nethermind.Sockets.Test
             await webSocketsClient.Received().ProcessAsync(Arg.Is<ArraySegment<byte>>(ba => ba.Count == 2 * 4096 + 1024));
         }
 
+        class Disposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
         [Test]
         public async Task Updates_Metrics_And_Stats_Successfully()
         {
@@ -118,14 +123,14 @@ namespace Nethermind.Sockets.Test
             var processor = Substitute.For<IJsonRpcProcessor>();
             processor.ProcessAsync(default, default).ReturnsForAnyArgs((x) => new List<JsonRpcResult>()
             {
-                JsonRpcResult.Single(new JsonRpcResponse(), new RpcReport()),
-                JsonRpcResult.Collection(new JsonRpcBatchResult((e, c) =>
+                (JsonRpcResult.Single((new JsonRpcResponse()), new RpcReport())),
+                (JsonRpcResult.Collection(new JsonRpcBatchResult((e, c) =>
                     new List<JsonRpcResult.Entry>()
                 {
                     new(new JsonRpcResponse(), new RpcReport()),
                     new(new JsonRpcResponse(), new RpcReport()),
                     new(new JsonRpcResponse(), new RpcReport()),
-                }.ToAsyncEnumerable().GetAsyncEnumerator(c)))
+                }.ToAsyncEnumerable().GetAsyncEnumerator(c))))
             }.ToAsyncEnumerable());
 
             var service = Substitute.For<IJsonRpcService>();

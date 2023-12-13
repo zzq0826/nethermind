@@ -10,6 +10,7 @@ using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
+using Nethermind.Network.Contract.P2P;
 using Nethermind.State.Snap;
 using Nethermind.Synchronization.FastSync;
 using Nethermind.Synchronization.ParallelSync;
@@ -20,7 +21,7 @@ namespace Nethermind.Synchronization.StateSync
 {
     public class StateSyncDownloader : ISyncDownloader<StateSyncBatch>
     {
-        private ILogger Logger;
+        private readonly ILogger Logger;
 
         public StateSyncDownloader(ILogManager logManager)
         {
@@ -37,24 +38,34 @@ namespace Nethermind.Synchronization.StateSync
             ISyncPeer peer = peerInfo.SyncPeer;
             Task<byte[][]> task = null;
             HashList? hashList = null;
-            // Use GETNODEDATA if possible
-            if (peerInfo.CanGetNodeData())
+            // Use GETNODEDATA if possible. Firstly via dedicated NODEDATA protocol
+            if (peer.TryGetSatelliteProtocol(Protocol.NodeData, out INodeDataPeer nodeDataHandler))
             {
+                if (Logger.IsTrace) Logger.Trace($"Requested NodeData via NodeDataProtocol from peer {peer}");
+                hashList = HashList.Rent(batch.RequestedNodes);
+                task = nodeDataHandler.GetNodeData(hashList, cancellationToken);
+            }
+            // If NODEDATA protocol is not supported, try eth66
+            else if (peer.ProtocolVersion < EthVersions.Eth67)
+            {
+                if (Logger.IsTrace) Logger.Trace($"Requested NodeData via EthProtocol from peer {peer}");
                 hashList = HashList.Rent(batch.RequestedNodes);
                 task = peer.GetNodeData(hashList, cancellationToken);
             }
             // GETNODEDATA is not supported so we try with SNAP protocol
-            else if (peer.TryGetSatelliteProtocol("snap", out ISnapSyncPeer handler))
+            else if (peer.TryGetSatelliteProtocol(Protocol.Snap, out ISnapSyncPeer snapHandler))
             {
                 if (batch.NodeDataType == NodeDataType.Code)
                 {
+                    if (Logger.IsTrace) Logger.Trace($"Requested ByteCodes via SnapProtocol from peer {peer}");
                     hashList = HashList.Rent(batch.RequestedNodes);
-                    task = handler.GetByteCodes(new KeccakToValueKeccakList(hashList), cancellationToken);
+                    task = snapHandler.GetByteCodes(new KeccakToValueKeccakList(hashList), cancellationToken);
                 }
                 else
                 {
+                    if (Logger.IsTrace) Logger.Trace($"Requested TrieNodes via SnapProtocol from peer {peer}");
                     GetTrieNodesRequest request = GetGroupedRequest(batch);
-                    task = handler.GetTrieNodes(request, cancellationToken);
+                    task = snapHandler.GetTrieNodes(request, cancellationToken);
                 }
             }
 
@@ -111,7 +122,7 @@ namespace Nethermind.Synchronization.StateSync
             for (; accountPathIndex < accountTreePaths.Count; accountPathIndex++)
             {
                 (byte[] path, StateSyncItem syncItem) accountPath = accountTreePaths[accountPathIndex];
-                request.AccountAndStoragePaths[accountPathIndex] = new PathGroup() { Group = new[] { EncodePath(accountPath.path) } };
+                request.AccountAndStoragePaths[accountPathIndex] = new PathGroup() { Group = new[] { Nibbles.EncodePath(accountPath.path) } };
 
                 // We validate the order of the response later and it has to be the same as RequestedNodes
                 batch.RequestedNodes[requestedNodeIndex] = accountPath.syncItem;
@@ -122,12 +133,12 @@ namespace Nethermind.Synchronization.StateSync
             foreach (var kvp in itemsGroupedByAccount)
             {
                 byte[][] group = new byte[kvp.Value.Count + 1][];
-                group[0] = EncodePath(kvp.Key);
+                group[0] = Nibbles.EncodePath(kvp.Key);
 
                 for (int groupIndex = 1; groupIndex < group.Length; groupIndex++)
                 {
                     (byte[] path, StateSyncItem syncItem) storagePath = kvp.Value[groupIndex - 1];
-                    group[groupIndex] = EncodePath(storagePath.path);
+                    group[groupIndex] = Nibbles.EncodePath(storagePath.path);
 
                     // We validate the order of the response later and it has to be the same as RequestedNodes
                     batch.RequestedNodes[requestedNodeIndex] = storagePath.syncItem;
@@ -148,13 +159,11 @@ namespace Nethermind.Synchronization.StateSync
             return request;
         }
 
-        private static byte[] EncodePath(byte[] input) => input.Length == 64 ? Nibbles.ToBytes(input) : Nibbles.ToCompactHexEncoding(input);
-
         /// <summary>
         /// Present an array of StateSyncItem[] as IReadOnlyList<Keccak> to avoid allocating secondary array
         /// Also Rent and Return cache for single item to try and avoid allocating the HashList in common case
         /// </summary>
-        private sealed class HashList : IReadOnlyList<Keccak>
+        private sealed class HashList : IReadOnlyList<Hash256>
         {
             private static HashList s_cache;
 
@@ -183,11 +192,11 @@ namespace Nethermind.Synchronization.StateSync
                 _items = null;
             }
 
-            public Keccak this[int index] => _items[index].Hash;
+            public Hash256 this[int index] => _items[index].Hash;
 
             public int Count => _items.Count;
 
-            public IEnumerator<Keccak> GetEnumerator()
+            public IEnumerator<Hash256> GetEnumerator()
             {
                 foreach (StateSyncItem item in _items)
                 {
@@ -201,18 +210,18 @@ namespace Nethermind.Synchronization.StateSync
         /// <summary>
         /// Transition class to prevent even larger change. Need to be removed later.
         /// </summary>
-        private sealed class KeccakToValueKeccakList : IReadOnlyList<ValueKeccak>
+        private sealed class KeccakToValueKeccakList : IReadOnlyList<ValueHash256>
         {
-            private HashList _innerList;
+            private readonly HashList _innerList;
 
             internal KeccakToValueKeccakList(HashList innerList)
             {
                 _innerList = innerList;
             }
 
-            public IEnumerator<ValueKeccak> GetEnumerator()
+            public IEnumerator<ValueHash256> GetEnumerator()
             {
-                foreach (Keccak keccak in _innerList)
+                foreach (Hash256 keccak in _innerList)
                 {
                     yield return keccak;
                 }
@@ -225,7 +234,7 @@ namespace Nethermind.Synchronization.StateSync
 
             public int Count => _innerList.Count;
 
-            public ValueKeccak this[int index] => _innerList[index];
+            public ValueHash256 this[int index] => _innerList[index];
         }
     }
 }

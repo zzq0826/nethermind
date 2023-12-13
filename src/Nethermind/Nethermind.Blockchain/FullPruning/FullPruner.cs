@@ -182,11 +182,12 @@ namespace Nethermind.Blockchain.FullPruning
             }
 
             long available = _driveInfo?.AvailableFreeSpace ?? 0;
-            if (available < currentChainSize.Value * ChainSizeThresholdFactor / 100)
+            long required = currentChainSize.Value * ChainSizeThresholdFactor / 100;
+            if (available < required)
             {
                 if (_logger.IsWarn)
                     _logger.Warn(
-                        $"Not enough disk space to run full pruning. Required {(currentChainSize * ChainSizeThresholdFactor) / 1.GB()} GB. Have {available / 1.GB()} GB");
+                        $"Not enough disk space to run full pruning. Required {required / 1.GB()} GB. Have {available / 1.GB()} GB");
                 return false;
             }
             return true;
@@ -204,7 +205,7 @@ namespace Nethermind.Blockchain.FullPruning
             }
         }
 
-        protected virtual void RunPruning(IPruningContext pruning, Keccak statRoot)
+        protected virtual void RunPruning(IPruningContext pruning, Hash256 statRoot)
         {
             try
             {

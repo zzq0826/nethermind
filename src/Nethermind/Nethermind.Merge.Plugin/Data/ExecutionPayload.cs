@@ -9,17 +9,19 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
+using Nethermind.Merge.Plugin.Handlers;
 using Nethermind.Serialization.Json;
 using Nethermind.Serialization.Rlp;
 using Nethermind.State.Proofs;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Nethermind.Merge.Plugin.Data;
 
 /// <summary>
 /// Represents an object mapping the <c>ExecutionPayload</c> structure of the beacon chain spec.
 /// </summary>
-public class ExecutionPayload
+public class ExecutionPayload : IForkValidator, IExecutionPayloadParams
 {
     public ExecutionPayload() { } // Needed for tests
 
@@ -39,15 +41,13 @@ public class ExecutionPayload
         Timestamp = block.Timestamp;
         BaseFeePerGas = block.BaseFeePerGas;
         Withdrawals = block.Withdrawals;
-        DataGasUsed = block.DataGasUsed;
-        ExcessDataGas = block.ExcessDataGas;
 
         SetTransactions(block.Transactions);
     }
 
     public UInt256 BaseFeePerGas { get; set; }
 
-    public Keccak BlockHash { get; set; } = Keccak.Zero;
+    public Hash256 BlockHash { get; set; } = Keccak.Zero;
 
     public long BlockNumber { get; set; }
 
@@ -61,13 +61,13 @@ public class ExecutionPayload
 
     public Bloom LogsBloom { get; set; } = Bloom.Empty;
 
-    public Keccak ParentHash { get; set; } = Keccak.Zero;
+    public Hash256 ParentHash { get; set; } = Keccak.Zero;
 
-    public Keccak PrevRandao { get; set; } = Keccak.Zero;
+    public Hash256 PrevRandao { get; set; } = Keccak.Zero;
 
-    public Keccak ReceiptsRoot { get; set; } = Keccak.Zero;
+    public Hash256 ReceiptsRoot { get; set; } = Keccak.Zero;
 
-    public Keccak StateRoot { get; set; } = Keccak.Zero;
+    public Hash256 StateRoot { get; set; } = Keccak.Zero;
 
     public ulong Timestamp { get; set; }
 
@@ -94,20 +94,27 @@ public class ExecutionPayload
     /// </summary>
     public IEnumerable<Withdrawal>? Withdrawals { get; set; }
 
-    /// <summary>
-    /// Gets or sets <see cref="Block.DataGasUsed"/> as defined in
-    /// <see href="https://eips.ethereum.org/EIPS/eip-4844">EIP-4844</see>.
-    /// </summary>
-    [JsonProperty(ItemConverterType = typeof(NullableUInt256Converter), NullValueHandling = NullValueHandling.Ignore)]
-    public ulong? DataGasUsed { get; set; }
 
     /// <summary>
-    /// Gets or sets <see cref="Block.ExcessDataGas"/> as defined in
+    /// Gets or sets <see cref="Block.BlobGasUsed"/> as defined in
     /// <see href="https://eips.ethereum.org/EIPS/eip-4844">EIP-4844</see>.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(NullableUInt256Converter), NullValueHandling = NullValueHandling.Ignore)]
-    public ulong? ExcessDataGas { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ulong? BlobGasUsed { get; set; }
 
+    /// <summary>
+    /// Gets or sets <see cref="Block.ExcessBlobGas"/> as defined in
+    /// <see href="https://eips.ethereum.org/EIPS/eip-4844">EIP-4844</see>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ulong? ExcessBlobGas { get; set; }
+
+    /// <summary>
+    /// Gets or sets <see cref="Block.ParentBeaconBlockRoot"/> as defined in
+    /// <see href="https://eips.ethereum.org/EIPS/eip-4788">EIP-4788</see>.
+    /// </summary>
+    [JsonIgnore]
+    public Hash256? ParentBeaconBlockRoot { get; set; }
 
     /// <summary>
     /// Creates the execution block from payload.
@@ -128,9 +135,7 @@ public class ExecutionPayload
                 BlockNumber,
                 GasLimit,
                 Timestamp,
-                ExtraData,
-                DataGasUsed,
-                ExcessDataGas)
+                ExtraData)
             {
                 Hash = BlockHash,
                 ReceiptsRoot = ReceiptsRoot,
@@ -154,7 +159,6 @@ public class ExecutionPayload
         catch (Exception)
         {
             block = null;
-
             return false;
         }
     }
@@ -166,8 +170,17 @@ public class ExecutionPayload
     /// </summary>
     /// <returns>An RLP-decoded array of <see cref="Transaction"/>.</returns>
     public Transaction[] GetTransactions() => _transactions ??= Transactions
-        .Select(t => Rlp.Decode<Transaction>(t, RlpBehaviors.SkipTypedWrapping))
-        .ToArray();
+        .Select((t, i) =>
+        {
+            try
+            {
+                return Rlp.Decode<Transaction>(t, RlpBehaviors.SkipTypedWrapping);
+            }
+            catch (RlpException e)
+            {
+                throw new RlpException($"Transaction {i} is not valid", e);
+            }
+        }).ToArray();
 
     /// <summary>
     /// RLP-encodes and sets the transactions specified to <see cref="Transactions"/>.
@@ -182,20 +195,23 @@ public class ExecutionPayload
     }
 
     public override string ToString() => $"{BlockNumber} ({BlockHash.ToShortString()})";
-}
 
-public static class ExecutionPayloadExtensions
-{
-    public static int GetVersion(this ExecutionPayload executionPayload) =>
-        executionPayload.Withdrawals is null ? 1 : 2;
+    ExecutionPayload IExecutionPayloadParams.ExecutionPayload => this;
 
-    public static bool Validate(
-        this ExecutionPayload executionPayload,
-        IReleaseSpec spec,
-        int version,
-        [NotNullWhen(false)] out string? error)
+    public virtual ValidationResult ValidateParams(IReleaseSpec spec, int version, out string? error)
     {
-        int actualVersion = executionPayload.GetVersion();
+        if (spec.IsEip4844Enabled)
+        {
+            error = "ExecutionPayloadV3 expected";
+            return ValidationResult.Fail;
+        }
+
+        int actualVersion = this switch
+        {
+            { BlobGasUsed: not null } or { ExcessBlobGas: not null } or { ParentBeaconBlockRoot: not null } => 3,
+            { Withdrawals: not null } => 2,
+            _ => 1
+        };
 
         error = actualVersion switch
         {
@@ -204,15 +220,9 @@ public static class ExecutionPayloadExtensions
             _ => actualVersion > version ? $"ExecutionPayloadV{version} expected" : null
         };
 
-        return error is null;
+        return error is null ? ValidationResult.Success : ValidationResult.Fail;
     }
 
-    public static bool Validate(this ExecutionPayload executionPayload,
-        ISpecProvider specProvider,
-        int version,
-        [NotNullWhen(false)] out string? error) =>
-        executionPayload.Validate(
-            specProvider.GetSpec(executionPayload.BlockNumber, executionPayload.Timestamp),
-            version,
-            out error);
+    public virtual bool ValidateFork(ISpecProvider specProvider) =>
+        !specProvider.GetSpec(BlockNumber, Timestamp).IsEip4844Enabled;
 }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FastEnumUtility;
@@ -41,12 +42,14 @@ public class P2PProtocolHandler : ProtocolHandlerBase, IPingSender, IP2PProtocol
 
     public static readonly IEnumerable<Capability> DefaultCapabilities = new Capability[]
     {
-        new(Protocol.Eth, 66)
+        new(Protocol.Eth, 66),
+        new(Protocol.NodeData, 1)
     };
 
     public IReadOnlyList<Capability> AgreedCapabilities { get { return _agreedCapabilities; } }
     public IReadOnlyList<Capability> AvailableCapabilities { get { return _availableCapabilities; } }
     private readonly List<Capability> SupportedCapabilities = DefaultCapabilities.ToList();
+    private readonly Regex? _clientIdPattern;
 
     public int ListenPort { get; }
     public PublicKey LocalNodeId { get; }
@@ -61,9 +64,12 @@ public class P2PProtocolHandler : ProtocolHandlerBase, IPingSender, IP2PProtocol
         PublicKey localNodeId,
         INodeStatsManager nodeStatsManager,
         IMessageSerializationService serializer,
+        Regex? clientIdPattern,
         ILogManager logManager) : base(session, nodeStatsManager, serializer, logManager)
     {
         _nodeStatsManager = nodeStatsManager ?? throw new ArgumentNullException(nameof(nodeStatsManager));
+        _clientIdPattern = clientIdPattern;
+
         LocalNodeId = localNodeId;
         ListenPort = session.LocalPort;
         _agreedCapabilities = new List<Capability>();
@@ -239,6 +245,13 @@ public class P2PProtocolHandler : ProtocolHandlerBase, IPingSender, IP2PProtocol
             Session.InitiateDisconnect(
                 DisconnectReason.NoCapabilityMatched,
                 $"capabilities: {string.Join(", ", capabilities)}");
+        }
+
+        if (_clientIdPattern?.IsMatch(hello.ClientId) == false)
+        {
+            Session.InitiateDisconnect(
+                DisconnectReason.ClientFiltered,
+                $"clientId: {hello.ClientId}");
         }
 
         ReceivedProtocolInitMsg(hello);

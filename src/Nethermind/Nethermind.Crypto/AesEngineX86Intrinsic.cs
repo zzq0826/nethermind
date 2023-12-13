@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 // Modified from BouncyCastle MIT
 
+#pragma warning disable CA1857 // A constant is expected for the parameter
+
 using System;
-using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -420,3 +421,5 @@ public sealed class AesEngineX86Intrinsic : IBlockCipher
         }
     }
 }
+
+#pragma warning restore CA1857 // A constant is expected for the parameter

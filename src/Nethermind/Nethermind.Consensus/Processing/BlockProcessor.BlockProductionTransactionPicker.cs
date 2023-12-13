@@ -13,9 +13,9 @@ namespace Nethermind.Consensus.Processing
 {
     public partial class BlockProcessor
     {
-        protected class BlockProductionTransactionPicker
+        public class BlockProductionTransactionPicker : IBlockProductionTransactionPicker
         {
-            private readonly ISpecProvider _specProvider;
+            protected readonly ISpecProvider _specProvider;
 
             public BlockProductionTransactionPicker(ISpecProvider specProvider)
             {
@@ -24,7 +24,12 @@ namespace Nethermind.Consensus.Processing
 
             public event EventHandler<AddingTxEventArgs>? AddingTransaction;
 
-            public AddingTxEventArgs CanAddTransaction(Block block, Transaction currentTx, IReadOnlySet<Transaction> transactionsInBlock, IWorldState stateProvider)
+            protected void OnAddingTransaction(AddingTxEventArgs e)
+            {
+                AddingTransaction?.Invoke(this, e);
+            }
+
+            public virtual AddingTxEventArgs CanAddTransaction(Block block, Transaction currentTx, IReadOnlySet<Transaction> transactionsInBlock, IWorldState stateProvider)
             {
                 AddingTxEventArgs args = new(transactionsInBlock.Count, currentTx, block, transactionsInBlock);
 
@@ -75,7 +80,7 @@ namespace Nethermind.Consensus.Processing
                     return args;
                 }
 
-                AddingTransaction?.Invoke(this, args);
+                OnAddingTransaction(args);
                 return args;
             }
 
@@ -101,10 +106,10 @@ namespace Nethermind.Consensus.Processing
                     }
 
                     if (transaction.SupportsBlobs && (
-                        !DataGasCalculator.TryCalculateDataGasPrice(block.Header, transaction, out UInt256 dataGasPrice) ||
-                        senderBalance < (maxFee += dataGasPrice)))
+                        !BlobGasCalculator.TryCalculateBlobGasPrice(block.Header, transaction, out UInt256 blobGasPrice) ||
+                        senderBalance < (maxFee += blobGasPrice)))
                     {
-                        e.Set(TxAction.Skip, $"{maxFee} is higher than sender balance ({senderBalance}), MaxFeePerGas: ({transaction.MaxFeePerGas}), GasLimit {transaction.GasLimit}, DataGasPrice: {dataGasPrice}");
+                        e.Set(TxAction.Skip, $"{maxFee} is higher than sender balance ({senderBalance}), MaxFeePerGas: ({transaction.MaxFeePerGas}), GasLimit {transaction.GasLimit}, BlobGasPrice: {blobGasPrice}");
                         return false;
                     }
                 }

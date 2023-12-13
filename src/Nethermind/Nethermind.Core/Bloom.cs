@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Text.Json.Serialization;
+
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Serialization.Json;
 
 namespace Nethermind.Core
 {
+    [JsonConverter(typeof(BloomConverter))]
     public class Bloom : IEquatable<Bloom>
     {
         public static readonly Bloom Empty = new();
@@ -96,7 +100,7 @@ namespace Nethermind.Core
 
         public bool Equals(Bloom? other)
         {
-            if (ReferenceEquals(null, other)) return false;
+            if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
 
             return Nethermind.Core.Extensions.Bytes.AreEqual(Bytes, other.Bytes);
@@ -104,7 +108,7 @@ namespace Nethermind.Core
 
         public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
             return Equals((Bloom)obj);
@@ -124,7 +128,7 @@ namespace Nethermind.Core
                 Set(addressBytes, blockBloom);
                 for (int topicIndex = 0; topicIndex < logEntry.Topics.Length; topicIndex++)
                 {
-                    Keccak topic = logEntry.Topics[topicIndex];
+                    Hash256 topic = logEntry.Topics[topicIndex];
                     Set(topic.Bytes, blockBloom);
                 }
             }
@@ -174,13 +178,13 @@ namespace Nethermind.Core
 
         public bool Matches(Address address) => Matches(address.Bytes);
 
-        public bool Matches(Keccak topic) => Matches(topic.Bytes);
+        public bool Matches(Hash256 topic) => Matches(topic.Bytes);
 
         public bool Matches(in BloomExtract extract) => Get(extract.Index1) && Get(extract.Index2) && Get(extract.Index3);
 
         public static BloomExtract GetExtract(Address address) => GetExtract(address.Bytes);
 
-        public static BloomExtract GetExtract(Keccak topic) => GetExtract(topic.Bytes);
+        public static BloomExtract GetExtract(Hash256 topic) => GetExtract(topic.Bytes);
 
         private static BloomExtract GetExtract(ReadOnlySpan<byte> sequence)
         {
@@ -280,7 +284,7 @@ namespace Nethermind.Core
 
         public bool Equals(Bloom? other)
         {
-            if (ReferenceEquals(null, other)) return false;
+            if (other is null) return false;
             return Nethermind.Core.Extensions.Bytes.AreEqual(Bytes, other.Bytes);
         }
 
@@ -292,7 +296,7 @@ namespace Nethermind.Core
 
         public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (obj.GetType() != typeof(BloomStructRef)) return false;
             return Equals((Bloom)obj);
         }
@@ -311,7 +315,7 @@ namespace Nethermind.Core
                 Set(addressBytes, blockBloom);
                 for (int topicIndex = 0; topicIndex < logEntry.Topics.Length; topicIndex++)
                 {
-                    Keccak topic = logEntry.Topics[topicIndex];
+                    Hash256 topic = logEntry.Topics[topicIndex];
                     Set(topic.Bytes, blockBloom);
                 }
             }
@@ -356,13 +360,13 @@ namespace Nethermind.Core
 
         public bool Matches(Address address) => Matches(address.Bytes);
 
-        public bool Matches(Keccak topic) => Matches(topic.Bytes);
+        public bool Matches(Hash256 topic) => Matches(topic.Bytes);
 
         public bool Matches(in Bloom.BloomExtract extract) => Get(extract.Index1) && Get(extract.Index2) && Get(extract.Index3);
 
         public static Bloom.BloomExtract GetExtract(Address address) => GetExtract(address.Bytes);
 
-        public static Bloom.BloomExtract GetExtract(Keccak topic) => GetExtract(topic.Bytes);
+        public static Bloom.BloomExtract GetExtract(Hash256 topic) => GetExtract(topic.Bytes);
 
         private static Bloom.BloomExtract GetExtract(ReadOnlySpan<byte> sequence)
         {

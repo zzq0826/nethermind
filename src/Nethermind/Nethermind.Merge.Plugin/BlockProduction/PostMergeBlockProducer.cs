@@ -89,7 +89,7 @@ namespace Nethermind.Merge.Plugin.BlockProduction
         }
 
         // TODO: this seems to me that it should be done in the Eth2 seal engine?
-        private void AmendHeader(BlockHeader blockHeader, BlockHeader parent)
+        protected virtual void AmendHeader(BlockHeader blockHeader, BlockHeader parent)
         {
             blockHeader.ExtraData = _blocksConfig.GetExtraDataBytes();
             blockHeader.IsPostMerge = true;
@@ -97,8 +97,8 @@ namespace Nethermind.Merge.Plugin.BlockProduction
 
             if (spec.IsEip4844Enabled)
             {
-                blockHeader.DataGasUsed = 0;
-                blockHeader.ExcessDataGas = DataGasCalculator.CalculateExcessDataGas(parent, spec);
+                blockHeader.BlobGasUsed = 0;
+                blockHeader.ExcessBlobGas = BlobGasCalculator.CalculateExcessBlobGas(parent, spec);
             }
         }
     }

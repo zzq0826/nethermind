@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Threading.Tasks;
-using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Nethermind.Core.Authentication;
 using Nethermind.JsonRpc.Modules;
@@ -58,7 +57,7 @@ namespace Nethermind.JsonRpc.WebSockets
                 throw new InvalidOperationException($"WebSocket-enabled url not defined for port {port}");
             }
 
-            if (jsonRpcUrl.IsAuthenticated && !_rpcAuthentication.Authenticate(context.Request.Headers["Authorization"]))
+            if (jsonRpcUrl.IsAuthenticated && !_rpcAuthentication.Authenticate(context.Request.Headers.Authorization))
             {
                 throw new InvalidOperationException($"WebSocket connection on port {port} should be authenticated");
             }

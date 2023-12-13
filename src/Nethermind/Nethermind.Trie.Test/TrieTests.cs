@@ -9,12 +9,10 @@ using FluentAssertions;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
-using Nethermind.Serialization.Rlp;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
@@ -51,10 +49,10 @@ namespace Nethermind.Trie.Test
         private static readonly byte[] _longLeaf3
             = Bytes.FromHexString("0000000000000000000000000000000000000000000000000000000000000000000000000000000003");
 
-        private static byte[] _keyA = Bytes.FromHexString("000000000000000aa");
-        private static byte[] _keyB = Bytes.FromHexString("000000000000000bb");
-        private static byte[] _keyC = Bytes.FromHexString("000000000000001aa");
-        private static byte[] _keyD = Bytes.FromHexString("000000000000001bb");
+        private static readonly byte[] _keyA = Bytes.FromHexString("000000000000000aa");
+        private static readonly byte[] _keyB = Bytes.FromHexString("000000000000000bb");
+        private static readonly byte[] _keyC = Bytes.FromHexString("000000000000001aa");
+        private static readonly byte[] _keyD = Bytes.FromHexString("000000000000001bb");
 
         [Test]
         public void Single_leaf()
@@ -240,7 +238,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -251,7 +249,7 @@ namespace Nethermind.Trie.Test
             PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 checkTree.Get(key.Bytes).Should().BeEquivalentTo(value, $@"{i} {j}");
             }
@@ -265,7 +263,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -273,7 +271,7 @@ namespace Nethermind.Trie.Test
             // delete missing
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j + 100];
+                Hash256 key = TestItem.Keccaks[j + 100];
                 patriciaTree.Set(key.Bytes, Array.Empty<byte>());
             }
 
@@ -285,7 +283,7 @@ namespace Nethermind.Trie.Test
             // confirm nothing deleted
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 checkTree.Get(key.Bytes).Should().BeEquivalentTo(value, $@"{i} {j}");
             }
@@ -293,7 +291,7 @@ namespace Nethermind.Trie.Test
             // read missing
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j + 100];
+                Hash256 key = TestItem.Keccaks[j + 100];
                 checkTree.Get(key.Bytes).Should().BeNull();
             }
         }
@@ -306,14 +304,14 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j + 1);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -324,7 +322,7 @@ namespace Nethermind.Trie.Test
             PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j + 1);
                 checkTree.Get(key.Bytes).Should().BeEquivalentTo(value, $@"{i} {j}");
             }
@@ -338,7 +336,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -347,7 +345,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j + 1);
                 patriciaTree.Set(key.Bytes, value);
                 _logger.Trace($"Setting {key.Bytes.ToHexString()} = {value.ToHexString()}");
@@ -359,7 +357,7 @@ namespace Nethermind.Trie.Test
             PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j + 1);
 
                 _logger.Trace($"Checking {key.Bytes.ToHexString()} = {value.ToHexString()}");
@@ -376,7 +374,7 @@ namespace Nethermind.Trie.Test
             for (int j = 0; j < i; j++)
             {
                 _logger.Trace($"  set {j}");
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -384,7 +382,7 @@ namespace Nethermind.Trie.Test
             for (int j = 0; j < i; j++)
             {
                 _logger.Trace($"  delete {j}");
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 patriciaTree.Set(key.Bytes, Array.Empty<byte>());
             }
 
@@ -394,7 +392,7 @@ namespace Nethermind.Trie.Test
             PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 checkTree.Get(key.Bytes).Should().BeNull($@"{i} {j}");
             }
         }
@@ -407,7 +405,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 byte[] value = TestItem.GenerateIndexedAccountRlp(j);
                 patriciaTree.Set(key.Bytes, value);
             }
@@ -416,7 +414,7 @@ namespace Nethermind.Trie.Test
 
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 patriciaTree.Set(key.Bytes, Array.Empty<byte>());
             }
 
@@ -426,7 +424,7 @@ namespace Nethermind.Trie.Test
             PatriciaTree checkTree = CreateCheckTree(memDb, patriciaTree);
             for (int j = 0; j < i; j++)
             {
-                Keccak key = TestItem.Keccaks[j];
+                Hash256 key = TestItem.Keccaks[j];
                 checkTree.Get(key.Bytes).Should().BeNull($@"{i} {j}");
             }
         }
@@ -701,7 +699,7 @@ namespace Nethermind.Trie.Test
             using FileStream fileStream = new(fileName, FileMode.Create);
             using StreamWriter streamWriter = new(fileStream);
 
-            Queue<Keccak> rootQueue = new();
+            Queue<Hash256> rootQueue = new();
 
             MemDb memDb = new();
 
@@ -765,7 +763,7 @@ namespace Nethermind.Trie.Test
 
             int verifiedBlocks = 0;
 
-            while (rootQueue.TryDequeue(out Keccak currentRoot))
+            while (rootQueue.TryDequeue(out Hash256 currentRoot))
             {
                 try
                 {
@@ -818,8 +816,8 @@ namespace Nethermind.Trie.Test
             using FileStream fileStream = new(fileName, FileMode.Create);
             using StreamWriter streamWriter = new(fileStream);
 
-            Queue<Keccak> rootQueue = new();
-            Stack<Keccak> rootStack = new();
+            Queue<Hash256> rootQueue = new();
+            Stack<Hash256> rootStack = new();
 
             MemDb memDb = new();
 
@@ -911,15 +909,15 @@ namespace Nethermind.Trie.Test
             int verifiedBlocks = 0;
 
             rootQueue.Clear();
-            Stack<Keccak> stackCopy = new();
-            while (rootStack.Any())
+            Stack<Hash256> stackCopy = new();
+            while (rootStack.Count != 0)
             {
                 stackCopy.Push(rootStack.Pop());
             }
 
             rootStack = stackCopy;
 
-            while (rootStack.TryPop(out Keccak currentRoot))
+            while (rootStack.TryPop(out Hash256 currentRoot))
             {
                 try
                 {
@@ -973,7 +971,7 @@ namespace Nethermind.Trie.Test
             using FileStream fileStream = new(fileName, FileMode.Create);
             using StreamWriter streamWriter = new(fileStream);
 
-            Queue<Keccak> rootQueue = new();
+            Queue<Hash256> rootQueue = new();
 
             MemDb memDb = new();
 
@@ -1062,7 +1060,7 @@ namespace Nethermind.Trie.Test
 
             int verifiedBlocks = 0;
 
-            while (rootQueue.TryDequeue(out Keccak currentRoot))
+            while (rootQueue.TryDequeue(out Hash256 currentRoot))
             {
                 try
                 {

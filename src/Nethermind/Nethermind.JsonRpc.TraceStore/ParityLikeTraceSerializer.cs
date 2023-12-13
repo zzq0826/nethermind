@@ -1,11 +1,8 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Buffers;
 using System.IO.Compression;
-using Nethermind.Core.Collections;
 using Nethermind.Evm.Tracing.ParityStyle;
-using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 
@@ -23,7 +20,7 @@ public class ParityLikeTraceSerializer : ITraceSerializer<ParityLikeTxTrace>
 
     public ParityLikeTraceSerializer(ILogManager logManager, int maxDepth = 1024, bool verifySerialized = false)
     {
-        _jsonSerializer = new EthereumJsonSerializer(maxDepth, new ParityTraceActionCreationConverter());
+        _jsonSerializer = new EthereumJsonSerializer(maxDepth);
         _maxDepth = maxDepth;
         _verifySerialized = verifySerialized;
         _logger = logManager?.GetClassLogger<ParityLikeTraceSerializer>();

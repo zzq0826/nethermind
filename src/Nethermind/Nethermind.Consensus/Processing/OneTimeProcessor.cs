@@ -3,10 +3,10 @@
 
 using System;
 using System.Threading.Tasks;
-using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Evm.Tracing;
+using Nethermind.State;
 
 namespace Nethermind.Consensus.Processing
 {
@@ -15,13 +15,13 @@ namespace Nethermind.Consensus.Processing
         public ITracerBag Tracers => _processor.Tracers;
 
         private readonly IBlockchainProcessor _processor;
-        private readonly IReadOnlyDbProvider _readOnlyDbProvider;
+        private readonly IWorldState _worldState;
 
-        private object _lock = new();
+        private readonly object _lock = new();
 
-        public OneTimeChainProcessor(IReadOnlyDbProvider readOnlyDbProvider, IBlockchainProcessor processor)
+        public OneTimeChainProcessor(IWorldState worldState, IBlockchainProcessor processor)
         {
-            _readOnlyDbProvider = readOnlyDbProvider ?? throw new ArgumentNullException(nameof(readOnlyDbProvider));
+            _worldState = worldState ?? throw new ArgumentNullException(nameof(worldState));
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
         }
 
@@ -46,7 +46,7 @@ namespace Nethermind.Consensus.Processing
                 }
                 finally
                 {
-                    _readOnlyDbProvider.ClearTempChanges();
+                    _worldState.Reset();
                 }
 
                 return result;
@@ -67,7 +67,6 @@ namespace Nethermind.Consensus.Processing
         public void Dispose()
         {
             _processor?.Dispose();
-            _readOnlyDbProvider?.Dispose();
         }
     }
 }

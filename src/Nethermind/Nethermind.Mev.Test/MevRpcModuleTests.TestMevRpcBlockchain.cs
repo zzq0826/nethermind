@@ -16,11 +16,9 @@ using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Test;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
-using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
-using Nethermind.Core.Test;
 using Nethermind.Core.Test.Blockchain;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Evm.Tracing;
@@ -29,8 +27,6 @@ using Nethermind.JsonRpc;
 using Nethermind.JsonRpc.Test.Modules;
 using Nethermind.Logging;
 using Nethermind.Merge.Plugin.BlockProduction;
-using Nethermind.Merge.Plugin.Data;
-using Nethermind.Merge.Plugin.Handlers;
 using Nethermind.Mev.Data;
 using Nethermind.Mev.Execution;
 using Nethermind.Mev.Source;
@@ -62,7 +58,7 @@ namespace Nethermind.Mev.Test
             private ITracerFactory _tracerFactory = null!;
             public TestBundlePool BundlePool { get; private set; } = null!;
 
-            private MevConfig _mevConfig;
+            private readonly MevConfig _mevConfig;
 
             public TestMevRpcBlockchain(int maxMergedBundles, UInt256? initialBaseFeePerGas, Address[]? relayAddresses)
             {
@@ -96,9 +92,8 @@ namespace Nethermind.Mev.Test
                 SpecProvider.UpdateMergeTransitionInfo(1, 0);
 
                 BlockProducerEnvFactory blockProducerEnvFactory = new(
-                    DbProvider,
+                    WorldStateManager,
                     BlockTree,
-                    ReadOnlyTrieStore,
                     SpecProvider,
                     BlockValidator,
                     NoBlockRewards.Instance,
@@ -151,7 +146,7 @@ namespace Nethermind.Mev.Test
                     return new MevBlockProducer.MevBlockProducerInfo(producer, manualTrigger, new BeneficiaryTracer());
                 }
 
-                int megabundleProducerCount = _relayAddresses.Any() ? 1 : 0;
+                int megabundleProducerCount = _relayAddresses.Length != 0 ? 1 : 0;
                 List<MevBlockProducer.MevBlockProducerInfo> blockProducers =
                     new(_maxMergedBundles + megabundleProducerCount + 1);
 
@@ -209,9 +204,8 @@ namespace Nethermind.Mev.Test
                     LogManager);
 
                 _tracerFactory = new TracerFactory(
-                    DbProvider,
                     BlockTree,
-                    ReadOnlyTrieStore,
+                    WorldStateManager,
                     BlockPreprocessorStep,
                     SpecProvider,
                     LogManager,
@@ -226,7 +220,7 @@ namespace Nethermind.Mev.Test
             }
 
             protected override async Task<TestBlockchain> Build(ISpecProvider? specProvider = null,
-                UInt256? initialValues = null)
+                UInt256? initialValues = null, bool addBlockOnStart = true)
             {
                 TestBlockchain chain = await base.Build(specProvider, initialValues);
                 MevRpcModule = new MevRpcModule(new JsonRpcConfig(),
@@ -257,7 +251,7 @@ namespace Nethermind.Mev.Test
             public MevBundle SendBundle(int blockNumber, params BundleTransaction[] txs)
             {
                 byte[][] bundleBytes = txs.Select(t => Rlp.Encode(t, RlpBehaviors.SkipTypedWrapping).Bytes).ToArray();
-                Keccak[] revertingTxHashes = txs.Where(t => t.CanRevert).Select(t => t.Hash!).ToArray();
+                Hash256[] revertingTxHashes = txs.Where(t => t.CanRevert).Select(t => t.Hash!).ToArray();
                 MevBundleRpc mevBundleRpc = new()
                 {
                     BlockNumber = blockNumber,

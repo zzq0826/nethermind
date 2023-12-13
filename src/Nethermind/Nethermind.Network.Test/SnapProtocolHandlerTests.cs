@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using DotNetty.Buffers;
 using DotNetty.Common.Utilities;
 using FluentAssertions;
-using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
@@ -66,7 +65,7 @@ public class SnapProtocolHandlerTests
 
         public TimeSpan SimulatedLatency { get; set; } = TimeSpan.Zero;
 
-        private List<long> _recordedResponseBytesLength = new();
+        private readonly List<long> _recordedResponseBytesLength = new();
         public Context WithResponseBytesRecorder
         {
             get

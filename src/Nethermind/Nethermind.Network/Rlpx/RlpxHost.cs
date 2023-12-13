@@ -6,8 +6,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using DotNetty.Buffers;
-using DotNetty.Codecs;
 using DotNetty.Common.Concurrency;
 using DotNetty.Handlers.Logging;
 using DotNetty.Transport.Bootstrapping;
@@ -42,8 +40,8 @@ namespace Nethermind.Network.Rlpx
         private readonly ILogger _logger;
         private readonly ISessionMonitor _sessionMonitor;
         private readonly IDisconnectsAnalyzer _disconnectsAnalyzer;
-        private IEventExecutorGroup _group;
-        private TimeSpan _sendLatency;
+        private readonly IEventExecutorGroup _group;
+        private readonly TimeSpan _sendLatency;
         private readonly TimeSpan _connectTimeout;
 
         public RlpxHost(IMessageSerializationService serializationService,
@@ -224,11 +222,7 @@ namespace Nethermind.Network.Rlpx
 
             IChannelPipeline pipeline = channel.Pipeline;
             pipeline.AddLast(new LoggingHandler(session.Direction.ToString().ToUpper(), LogLevel.TRACE));
-
-            if (session.Direction == ConnectionDirection.Out)
-            {
-                pipeline.AddLast("enc-handshake-dec", new OneTimeLengthFieldBasedFrameDecoder());
-            }
+            pipeline.AddLast("enc-handshake-dec", new OneTimeLengthFieldBasedFrameDecoder());
             pipeline.AddLast("enc-handshake-handler", handshakeHandler);
 
             channel.CloseCompletion.ContinueWith(async x =>

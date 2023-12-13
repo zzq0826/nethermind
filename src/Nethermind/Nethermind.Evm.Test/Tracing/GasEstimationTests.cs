@@ -7,7 +7,6 @@ using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
-using Nethermind.Core.Test;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Crypto;
 using Nethermind.Db;
@@ -30,7 +29,7 @@ namespace Nethermind.Evm.Test.Tracing
 
         public GasEstimationTests(bool useCreates)
         {
-            _executionType = useCreates ? ExecutionType.Create : ExecutionType.Call;
+            _executionType = useCreates ? ExecutionType.CREATE : ExecutionType.CALL;
         }
 
         [Test]
@@ -41,9 +40,9 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Call, true);
+                ExecutionType.CALL, true);
             testEnvironment.tracer.ReportActionEnd(400,
                 Array.Empty<byte>()); // this would not happen but we want to ensure that precompiles are ignored
             testEnvironment.tracer.ReportActionEnd(600, Array.Empty<byte>());
@@ -74,7 +73,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportActionEnd(600, Array.Empty<byte>());
 
             testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(0);
@@ -88,7 +87,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
             testEnvironment.tracer.ReportActionEnd(400, Array.Empty<byte>());
@@ -116,7 +115,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
             testEnvironment.tracer.ReportAction(400, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType,
@@ -142,13 +141,13 @@ namespace Nethermind.Evm.Test.Tracing
         public void Handles_well_revert()
         {
             TestEnvironment testEnvironment = new();
-            long gasLimit = 100000000;
-            Transaction tx = Build.A.Transaction.WithGasLimit(100000000).TestObject;
-            Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
+            long gasLimit = 100_000_000;
+            Transaction tx = Build.A.Transaction.WithGasLimit(gasLimit).TestObject;
+            Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).WithGasLimit(gasLimit).TestObject;
 
             long gasLeft = gasLimit - 22000;
             testEnvironment.tracer.ReportAction(gasLeft, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             gasLeft = 63 * gasLeft / 64;
             testEnvironment.tracer.ReportAction(gasLeft, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
@@ -156,19 +155,9 @@ namespace Nethermind.Evm.Test.Tracing
             testEnvironment.tracer.ReportAction(gasLeft, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
 
-            if (_executionType.IsAnyCreate())
-            {
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 96000000);
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 98000000);
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 99000000);
-            }
-            else
-            {
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 96000000);
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 98000000);
-                testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 99000000);
-            }
-
+            testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 96000000);
+            testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 98000000);
+            testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 99000000);
             testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(35146L);
         }
 
@@ -180,7 +169,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(128, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(100, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType,
                 false);
 
@@ -191,6 +180,25 @@ namespace Nethermind.Evm.Test.Tracing
         }
 
         [Test]
+        public void Handles_well_precompile_out_of_gas()
+        {
+            TestEnvironment testEnvironment = new();
+            Transaction tx = Build.A.Transaction.WithGasLimit(128).TestObject;
+            Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
+
+            testEnvironment.tracer.ReportAction(128, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), ExecutionType.TRANSACTION);
+            testEnvironment.tracer.ReportAction(100, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType);
+            testEnvironment.tracer.ReportAction(100, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType, true);
+
+            Action reportError = () => testEnvironment.tracer.ReportActionError(EvmExceptionType.OutOfGas);
+
+            reportError.Should().NotThrow();
+            reportError.Should().NotThrow();
+            reportError.Should().NotThrow();
+        }
+
+
+        [Test]
         public void Handles_well_nested_calls_where_most_nested_defines_excess()
         {
             TestEnvironment testEnvironment = new();
@@ -198,7 +206,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
             testEnvironment.tracer.ReportAction(400, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType,
@@ -228,7 +236,7 @@ namespace Nethermind.Evm.Test.Tracing
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
 
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
-                ExecutionType.Transaction, false);
+                ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportAction(1000, 0, Address.Zero, Address.Zero, Array.Empty<byte>(),
                 _executionType, false);
             testEnvironment.tracer.ReportAction(400, 0, Address.Zero, Address.Zero, Array.Empty<byte>(), _executionType,

@@ -6,7 +6,6 @@ using Nethermind.Abi;
 using Nethermind.Blockchain.Contracts;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Evm;
 using Nethermind.Evm.TransactionProcessing;
 
 namespace Nethermind.Consensus.AuRa.Contracts
@@ -22,7 +21,7 @@ namespace Nethermind.Consensus.AuRa.Contracts
     /// </summary>
     public class RegisterContract : Contract, IRegisterContract
     {
-        private static Address MissingAddress = Address.Zero;
+        private static readonly Address MissingAddress = Address.Zero;
         private static readonly object[] MissingGetAddressResult = { MissingAddress };
 
         /// <summary>

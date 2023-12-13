@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Nethermind.Blockchain;
 using Nethermind.Core;
 using Nethermind.Core.Attributes;
@@ -22,7 +20,7 @@ namespace Nethermind.Network
         private readonly INodeStatsManager _nodeStatsManager;
         private readonly IBlockTree _blockTree;
         private readonly ForkInfo _forkInfo;
-        private ILogger _logger;
+        private readonly ILogger _logger;
 
         public ProtocolValidator(INodeStatsManager nodeStatsManager, IBlockTree blockTree, ForkInfo forkInfo, ILogManager? logManager)
         {

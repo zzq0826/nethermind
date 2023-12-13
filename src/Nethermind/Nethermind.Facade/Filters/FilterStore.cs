@@ -18,7 +18,7 @@ namespace Nethermind.Blockchain.Filters
     public class FilterStore : IFilterStore
     {
         private int _currentFilterId = -1;
-        private object _locker = new object();
+        private readonly object _locker = new object();
 
         private readonly ConcurrentDictionary<int, FilterBase> _filters = new();
 
@@ -191,9 +191,9 @@ namespace Nethermind.Blockchain.Filters
                 case string topic:
                     return new FilterTopic
                     {
-                        Topic = new Keccak(topic)
+                        Topic = new Hash256(topic)
                     };
-                case Keccak keccak:
+                case Hash256 keccak:
                     return new FilterTopic
                     {
                         Topic = keccak
@@ -208,15 +208,15 @@ namespace Nethermind.Blockchain.Filters
             {
                 return new FilterTopic
                 {
-                    Topics = topics.Select(t => new Keccak(t)).ToArray()
+                    Topics = topics.Select(t => new Hash256(t)).ToArray()
                 };
             }
         }
 
         private class FilterTopic
         {
-            public Keccak? Topic { get; set; }
-            public Keccak[]? Topics { get; set; }
+            public Hash256? Topic { get; set; }
+            public Hash256[]? Topics { get; set; }
 
         }
     }

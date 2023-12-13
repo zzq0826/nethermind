@@ -3,8 +3,10 @@
 
 using BenchmarkDotNet.Attributes;
 using Nethermind.Blockchain;
+using Nethermind.Blockchain.Blocks;
 using Nethermind.Blockchain.Filters;
 using Nethermind.Blockchain.Find;
+using Nethermind.Blockchain.Headers;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Rewards;
@@ -31,7 +33,6 @@ using Nethermind.JsonRpc.Modules.Eth.GasPrice;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
 using Nethermind.Wallet;
-using NSubstitute;
 using BlockTree = Nethermind.Blockchain.BlockTree;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Config;
@@ -62,10 +63,21 @@ namespace Nethermind.JsonRpc.Benchmark
             stateProvider.Commit(spec);
             stateProvider.CommitTree(0);
 
+            WorldStateManager stateManager = new WorldStateManager(stateProvider, trieStore, dbProvider, LimboLogs.Instance);
+
             StateReader stateReader = new(trieStore, codeDb, LimboLogs.Instance);
 
             ChainLevelInfoRepository chainLevelInfoRepository = new(blockInfoDb);
-            BlockTree blockTree = new(dbProvider, chainLevelInfoRepository, specProvider, NullBloomStorage.Instance, LimboLogs.Instance);
+            BlockTree blockTree = new(
+                new BlockStore(dbProvider.BlocksDb),
+                new HeaderStore(dbProvider.HeadersDb, dbProvider.BlockNumbersDb),
+                dbProvider.BlockInfosDb,
+                dbProvider.MetadataDb,
+                chainLevelInfoRepository,
+                specProvider,
+                NullBloomStorage.Instance,
+                new SyncConfig(),
+                LimboLogs.Instance);
             _blockhashProvider = new BlockhashProvider(blockTree, LimboLogs.Instance);
             _virtualMachine = new VirtualMachine(_blockhashProvider, specProvider, LimboLogs.Instance);
 
@@ -110,8 +122,7 @@ namespace Nethermind.JsonRpc.Benchmark
 
             BlockchainBridge bridge = new(
                 new ReadOnlyTxProcessingEnv(
-                    new ReadOnlyDbProvider(dbProvider, false),
-                    trieStore.AsReadOnly(),
+                    stateManager,
                     new ReadOnlyBlockTree(blockTree),
                     specProvider,
                     LimboLogs.Instance),
@@ -137,6 +148,7 @@ namespace Nethermind.JsonRpc.Benchmark
                 new JsonRpcConfig(),
                 bridge,
                 blockTree,
+                receiptStorage,
                 stateReader,
                 NullTxPool.Instance,
                 NullTxSender.Instance,

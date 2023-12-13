@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Numerics.BitOperations;
 
@@ -644,7 +643,7 @@ namespace Nethermind.Core.Crypto
         private static class Pool
         {
             private const int MaxPooled = 24;
-            private static ConcurrentQueue<byte[]> s_remainderCache = new();
+            private static readonly ConcurrentQueue<byte[]> s_remainderCache = new();
             public static byte[] RentRemainder() => s_remainderCache.TryDequeue(out byte[]? remainder) ? remainder : new byte[STATE_SIZE];
             public static void ReturnRemainder(ref byte[] remainder)
             {
@@ -659,7 +658,7 @@ namespace Nethermind.Core.Crypto
                 remainder = Array.Empty<byte>();
             }
 
-            private static ConcurrentQueue<ulong[]> s_stateCache = new();
+            private static readonly ConcurrentQueue<ulong[]> s_stateCache = new();
             public static ulong[] RentState() => s_stateCache.TryDequeue(out ulong[]? state) ? state : new ulong[STATE_SIZE / sizeof(ulong)];
             public static void ReturnState(ref ulong[] state)
             {

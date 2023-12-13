@@ -13,29 +13,29 @@ jobs:
       PUB_DIR: pub
     steps:
       - name: Check out Nethermind repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: nethermind
       - name: Check out Nethermind Launcher repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: NethermindEth/nethermind.launcher
           path: launcher
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          global-json-file: nethermind/global.json
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 14
       - name: Install npm packages
-        run: npm i pkg @vercel/ncc -g
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 7
+        run: npm i -g pkg @vercel/ncc
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Build Nethermind.Runner
         id: build-runner
         run: |
@@ -46,14 +46,14 @@ jobs:
           scripts/deployment/build-runner.sh $GITHUB_SHA $build_timestamp
       - name: Build Nethermind.Cli
         run: nethermind/scripts/deployment/build-cli.sh $GITHUB_SHA ${{ steps.build-runner.outputs.build-timestamp }}
-      - name: Build Nethermind.Launcher
+      - name: Build Nethermind launcher
         run: nethermind/scripts/deployment/build-launcher.sh
-      - name: Build Nethermind.Launcher for Linux arm64
+      - name: Build Nethermind launcher for Linux arm64
         run: |
           cd nethermind
           docker buildx build --platform=linux/arm64 -t tmp-launcher -f Dockerfile.launcher . --load
-          docker run --platform=linux/arm64 -v $PWD:/opt/mount --rm tmp-launcher bash -c "cp /nethermind/Nethermind.Launcher /opt/mount/"
-          mv Nethermind.Launcher $GITHUB_WORKSPACE/$PUB_DIR/linux-arm64/Nethermind.Launcher
+          docker run --platform=linux/arm64 -v $PWD:/opt/mount --rm tmp-launcher bash -c "cp /nethermind/nethermind-launcher /opt/mount/"
+          mv nethermind-launcher $GITHUB_WORKSPACE/$PUB_DIR/linux-arm64/nethermind-launcher
       - name: Archive packages
         env:
           PACKAGE_PREFIX: nethermind-preview-${{ steps.build-runner.outputs.commit-hash }}

@@ -10,7 +10,6 @@ using Nethermind.Consensus.Producers;
 using Nethermind.Consensus.Rewards;
 using Nethermind.Consensus.Transactions;
 using Nethermind.Consensus.Validators;
-using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
@@ -42,12 +41,10 @@ namespace Nethermind.Blockchain.Test.Producers
             dbProvider.RegisterDb(DbNames.Code, new MemDb());
             dbProvider.RegisterDb(DbNames.Metadata, new MemDb());
 
-            BlockTree blockTree = new(
-                dbProvider,
-                new ChainLevelInfoRepository(dbProvider),
-                specProvider,
-                NullBloomStorage.Instance,
-                LimboLogs.Instance);
+            BlockTree blockTree = Build.A.BlockTree()
+                .WithoutSettingHead
+                .TestObject;
+
             TrieStore trieStore = new(
                 dbProvider.RegisteredDbs[DbNames.State],
                 NoPruning.Instance,
@@ -99,18 +96,18 @@ namespace Nethermind.Blockchain.Test.Producers
 
             blockchainProcessor.Start();
             devBlockProducer.Start();
-            ProducedBlockSuggester suggester = new ProducedBlockSuggester(blockTree, devBlockProducer);
+            ProducedBlockSuggester _ = new ProducedBlockSuggester(blockTree, devBlockProducer);
 
             AutoResetEvent autoResetEvent = new(false);
 
-            blockTree.NewHeadBlock += (s, e) => autoResetEvent.Set();
+            blockTree.NewHeadBlock += (_, _) => autoResetEvent.Set();
             blockTree.SuggestBlock(Build.A.Block.Genesis.TestObject);
 
             autoResetEvent.WaitOne(1000).Should().BeTrue("genesis");
 
             trigger.BuildBlock();
             autoResetEvent.WaitOne(1000).Should().BeTrue("1");
-            blockTree.Head.Number.Should().Be(1);
+            blockTree.Head!.Number.Should().Be(1);
         }
     }
 }
