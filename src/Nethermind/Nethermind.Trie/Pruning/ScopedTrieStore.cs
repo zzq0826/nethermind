@@ -52,11 +52,6 @@ public class ScopedTrieStore : IScopedTrieStore
         return _trieStoreImplementation.IsPersisted(_address, path, in keccak);
     }
 
-    public IKeyValueStore AsKeyValueStore()
-    {
-        return _trieStoreImplementation.AsKeyValueStore(_address);
-    }
-
     public void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp)
     {
         _trieStoreImplementation.Set(_address, path, keccak, rlp);

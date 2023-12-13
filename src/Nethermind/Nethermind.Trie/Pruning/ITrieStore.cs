@@ -7,19 +7,9 @@ using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie.Pruning
 {
-    public interface IScopedTrieStore : ITrieNodeResolver, IDisposable
-    {
-        void CommitNode(long blockNumber, NodeCommitInfo nodeCommitInfo, WriteFlags writeFlags = WriteFlags.None);
-
-        void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root, WriteFlags writeFlags = WriteFlags.None);
-
-        // Only used by snap provider, so ValueHash instead of Hash
-        bool IsPersisted(in TreePath path, in ValueHash256 keccak);
-
-        // Used for trie node recovery
-        void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp);
-    }
-
+    /// <summary>
+    /// Full traditional trie store.
+    /// </summary>
     public interface ITrieStore : IDisposable
     {
         void CommitNode(long blockNumber, Hash256? address, NodeCommitInfo nodeCommitInfo, WriteFlags writeFlags = WriteFlags.None);
@@ -32,7 +22,8 @@ namespace Nethermind.Trie.Pruning
 
         event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-        IKeyValueStore AsKeyValueStore(Hash256? address);
+        // For hash based server
+        IReadOnlyKeyValueStore AsKeyValueStore();
         IScopedTrieStore GetTrieStore(Hash256? address);
 
         TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash);

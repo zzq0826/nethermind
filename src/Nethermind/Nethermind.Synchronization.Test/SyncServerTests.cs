@@ -645,7 +645,7 @@ namespace Nethermind.Synchronization.Test
             MemDb stateDb = new();
             TrieStore fullTrieStore = new(stateDb, Prune.WhenCacheReaches(10.MB()), NoPersistence.Instance, LimboLogs.Instance);
             ctx.SyncServer = new SyncServer(
-                fullTrieStore.AsKeyValueStore(null),
+                fullTrieStore.AsKeyValueStore(),
                 new MemDb(),
                 localBlockTree,
                 NullReceiptStorage.Instance,

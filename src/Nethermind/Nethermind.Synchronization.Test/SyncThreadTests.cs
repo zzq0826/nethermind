@@ -367,7 +367,7 @@ namespace Nethermind.Synchronization.Test
 
             ISyncModeSelector selector = synchronizer.SyncModeSelector;
             SyncServer syncServer = new(
-                trieStore.AsKeyValueStore(null),
+                trieStore.AsKeyValueStore(),
                 codeDb,
                 tree,
                 receiptStorage,

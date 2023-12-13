@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core;
+using Nethermind.Core.Attributes;
 using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie.Pruning
@@ -24,6 +25,12 @@ namespace Nethermind.Trie.Pruning
         /// <returns></returns>
         byte[]? LoadRlp(in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None);
 
+        /// <summary>
+        /// Got another node resolver for another trie. Used for tree traversal.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        [Todo("Find a way to not have this. PatriciaTrie on its own does not need the concept of storage.")]
         ITrieNodeResolver GetStorageTrieNodeResolver(Hash256? address);
     }
 }

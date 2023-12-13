@@ -48,29 +48,14 @@ namespace Nethermind.Trie.Pruning
             remove { }
         }
 
-        public IKeyValueStore AsKeyValueStore(Hash256? address) => new ReadOnlyValueStore(_trieStore.AsKeyValueStore(address));
+        public IReadOnlyKeyValueStore AsKeyValueStore() => _trieStore.AsKeyValueStore();
+
         public IScopedTrieStore GetTrieStore(Hash256? address)
         {
             return new ReadOnlyStorageTrieStore(this, address);
         }
 
         public void Dispose() { }
-
-        public static void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None) { }
-
-        private class ReadOnlyValueStore : IKeyValueStore
-        {
-            private readonly IKeyValueStore _keyValueStore;
-
-            public ReadOnlyValueStore(IKeyValueStore keyValueStore)
-            {
-                _keyValueStore = keyValueStore;
-            }
-
-            public byte[]? Get(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None) => _keyValueStore.Get(key, flags);
-
-            public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None) { }
-        }
 
         public class ReadOnlyStorageTrieStore : IScopedTrieStore
         {
@@ -113,11 +98,6 @@ namespace Nethermind.Trie.Pruning
             public bool IsPersisted(in TreePath path, in ValueHash256 keccak)
             {
                 return _trieStoreImplementation.IsPersisted(_address, path, in keccak);
-            }
-
-            public IKeyValueStore AsKeyValueStore()
-            {
-                return _trieStoreImplementation.AsKeyValueStore(_address);
             }
 
             public void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp)

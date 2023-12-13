@@ -844,11 +844,11 @@ namespace Nethermind.Trie.Pruning
             });
         }
 
-        private byte[]? Get(Hash256? address, in TreePath path, ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
+        // Used to serve node by hash
+        private byte[]? GetByHash(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
         {
-            // TODO: Who would get from here directly
             return _pruningStrategy.PruningEnabled
-                   && _dirtyNodes.AllNodes.TryGetValue(new PruneKey(address, path, new ValueHash256(key)), out (Hash256?, TreePath, TrieNode) entry)
+                   && _dirtyNodes.AllNodes.TryGetValue(new PruneKey(null, TreePath.Empty, new ValueHash256(key)), out (Hash256?, TreePath, TrieNode) entry)
                    && entry.Item3 is not null
                    && entry.Item3.NodeType != NodeType.Unknown
                    && entry.Item3.FullRlp.IsNotNull
@@ -856,28 +856,21 @@ namespace Nethermind.Trie.Pruning
                 : _nodeStorage.GetByHash(key, flags);
         }
 
-        public IKeyValueStore AsKeyValueStore(Hash256? address)
+        public IReadOnlyKeyValueStore AsKeyValueStore()
         {
-            return new TrieKeyValueStore(this, address);
+            return new TrieKeyValueStore(this);
         }
 
-        private class TrieKeyValueStore : IKeyValueStore
+        private class TrieKeyValueStore : IReadOnlyKeyValueStore
         {
             private readonly TrieStore _trieStore;
-            private readonly Hash256? _address;
 
-            public TrieKeyValueStore(TrieStore trieStore, Hash256? address)
+            public TrieKeyValueStore(TrieStore trieStore)
             {
                 _trieStore = trieStore;
-                _address = address;
             }
 
-            public byte[]? Get(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None) => _trieStore.Get(_address, TreePath.Empty, key, flags);
-
-            public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
-            {
-                throw new Exception("Unsupported");
-            }
+            public byte[]? Get(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None) => _trieStore.GetByHash(key, flags);
         }
     }
 }

@@ -85,7 +85,7 @@ namespace Nethermind.Synchronization.Test
                 stateReader,
                 LimboLogs.Instance);
             _syncServer = new SyncServer(
-                trieStore.AsKeyValueStore(null),
+                trieStore.AsKeyValueStore(),
                 _codeDb,
                 _blockTree,
                 _receiptStorage,
