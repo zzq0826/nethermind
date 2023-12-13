@@ -41,7 +41,7 @@ public class VerkleStateTree : VerkleTree
         key[31] = AccountHeader.CodeSize;
         UInt256 codeSize = new((Get(key) ?? Array.Empty<byte>()).ToArray());
 
-        return new Account(balance, nonce, codeSize, version, Keccak.EmptyTreeHash, new Hash256(codeHash));
+        return new Account(nonce, balance, codeSize, version, Keccak.EmptyTreeHash, new Hash256(codeHash));
     }
 
     public void Set(Address address, Account? account)

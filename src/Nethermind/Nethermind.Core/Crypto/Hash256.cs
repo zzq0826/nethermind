@@ -205,6 +205,11 @@ namespace Nethermind.Core.Crypto
             return _hash256.GetHashCode();
         }
 
+        public static explicit operator Hash256(byte[] bytes)
+        {
+            return new Hash256(bytes);
+        }
+
         public static bool operator ==(Hash256? a, Hash256? b)
         {
             if (a is null)
