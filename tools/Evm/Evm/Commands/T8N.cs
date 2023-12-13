@@ -9,6 +9,13 @@ public class TraceOptions
     public bool ReturnData { get; set; }
 }
 
+public class T8nOutput
+{
+    public bool Alloc { get; set; }
+    public bool Result { get; set; }
+    public bool Body { get; set; }
+}
+
 public class T8N
 {
     public static async Task<int> HandleAsync(
