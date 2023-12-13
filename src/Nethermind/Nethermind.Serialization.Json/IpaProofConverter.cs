@@ -40,7 +40,7 @@ public class IpaProofConverter : System.Text.Json.Serialization.JsonConverter<Ip
         }
         reader.Read();
         ReadOnlySpan<byte> hex = JsonSerializer.Deserialize<byte[]>(ref reader, options);
-        FrE finalEvaluation = FrE.FromBytes(Bytes.FromUtf8HexString(hex), true);
+        FrE finalEvaluation = FrE.FromBytes(hex, true);
         reader.Read();
         return new IpaProofStruct(cl, finalEvaluation, cr);
     }
