@@ -11,7 +11,7 @@ using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Trie.Pruning;
 
-public class NodeStorage: INodeStorage
+public class NodeStorage : INodeStorage
 {
     protected readonly IKeyValueStore _keyValueStore;
     private static byte[] EmptyTreeHashBytes = new byte[] { 128 };
@@ -128,7 +128,7 @@ public interface INodeStorage
     void Flush();
 }
 
-public interface INodeWriteBatch: IDisposable
+public interface INodeWriteBatch : IDisposable
 {
     void Remove(Hash256? address, in TreePath path, in ValueHash256 persistedHash);
     void Set(Hash256? address, in TreePath path, in ValueHash256 currentNodeKeccak, byte[] toArray, WriteFlags writeFlags);

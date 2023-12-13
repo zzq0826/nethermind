@@ -278,7 +278,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                         if (response == null)
                         {
                             // Hack through it
-                            foreach (KeyValuePair<byte[],byte[]?> keyValuePair in _stateDb.GetAll())
+                            foreach (KeyValuePair<byte[], byte[]?> keyValuePair in _stateDb.GetAll())
                             {
                                 if (Bytes.AreEqual(item.Bytes, keyValuePair.Key.AsSpan()[8..]))
                                 {

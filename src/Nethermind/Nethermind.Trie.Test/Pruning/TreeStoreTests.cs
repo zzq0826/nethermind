@@ -291,7 +291,7 @@ namespace Nethermind.Trie.Test.Pruning
             trieStore.FinishBlockCommit(TrieType.State, 4, a);
 
             storage.Get(null, TreePath.Empty, a.Keccak).Should().NotBeNull();
-            fullTrieStore.IsNodeCached(null, TreePath.Empty,a.Keccak).Should().BeTrue();
+            fullTrieStore.IsNodeCached(null, TreePath.Empty, a.Keccak).Should().BeTrue();
         }
 
         [Test]

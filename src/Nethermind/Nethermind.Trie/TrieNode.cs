@@ -529,7 +529,7 @@ namespace Nethermind.Trie
             }
             else
             {
-                return currentPath.Append((byte) childIndex);
+                return currentPath.Append((byte)childIndex);
             }
         }
 
@@ -542,7 +542,7 @@ namespace Nethermind.Trie
             }
             else
             {
-                currentPath.AppendMut((byte) childIndex);
+                currentPath.AppendMut((byte)childIndex);
             }
         }
 
@@ -941,37 +941,37 @@ namespace Nethermind.Trie
                     {
                         case 0:
                         case 128:
-                        {
-                            _data![i] = childOrRef = _nullNode;
-                            break;
-                        }
-                        case 160:
-                        {
-                            rlpStream.Position--;
-                            Hash256 keccak = rlpStream.DecodeKeccak();
-
-                            int currentPathLength = currentPath.Length;
-                            GetChildPathMut(ref currentPath, i);
-                            TrieNode child = tree.FindCachedOrUnknown(currentPath, keccak);
-                            _data![i] = childOrRef = child;
-
-                            if (IsPersisted && !child.IsPersisted)
                             {
-                                child.CallRecursively(_markPersisted, null, ref currentPath, tree, false, NullLogger.Instance);
+                                _data![i] = childOrRef = _nullNode;
+                                break;
                             }
+                        case 160:
+                            {
+                                rlpStream.Position--;
+                                Hash256 keccak = rlpStream.DecodeKeccak();
 
-                            currentPath.TruncateMut(currentPathLength);
-                            break;
-                        }
+                                int currentPathLength = currentPath.Length;
+                                GetChildPathMut(ref currentPath, i);
+                                TrieNode child = tree.FindCachedOrUnknown(currentPath, keccak);
+                                _data![i] = childOrRef = child;
+
+                                if (IsPersisted && !child.IsPersisted)
+                                {
+                                    child.CallRecursively(_markPersisted, null, ref currentPath, tree, false, NullLogger.Instance);
+                                }
+
+                                currentPath.TruncateMut(currentPathLength);
+                                break;
+                            }
                         default:
-                        {
-                            rlpStream.Position--;
-                            Span<byte> fullRlp = rlpStream.PeekNextItem();
+                            {
+                                rlpStream.Position--;
+                                Span<byte> fullRlp = rlpStream.PeekNextItem();
 
-                            TrieNode child = new(NodeType.Unknown, fullRlp.ToArray());
-                            _data![i] = childOrRef = child;
-                            break;
-                        }
+                                TrieNode child = new(NodeType.Unknown, fullRlp.ToArray());
+                                _data![i] = childOrRef = child;
+                                break;
+                            }
                     }
                 }
                 else

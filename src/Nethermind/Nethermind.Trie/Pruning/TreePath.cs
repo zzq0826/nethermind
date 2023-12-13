@@ -82,7 +82,7 @@ public struct TreePath
         for (int i = 0; i < byteLength; i++)
         {
             pathSpan[i + pathSpanStart] = Nibbles.ToByte(nibbles[i * 2], nibbles[i * 2 + 1]);
-            _length+=2;
+            _length += 2;
         }
 
         if (nibbles.Length % 2 == 1)
@@ -146,14 +146,14 @@ public struct TreePath
 
         if (_length % 2 == 1)
         {
-            this[_length-1] = 0;
+            this[_length - 1] = 0;
             _length--;
         }
 
         if (pathLength == _length) return;
 
         int byteClearStart = (pathLength + 1) / 2;
-        Span[byteClearStart..(_length/2)].Clear();
+        Span[byteClearStart..(_length / 2)].Clear();
 
         if (pathLength % 2 == 1)
         {

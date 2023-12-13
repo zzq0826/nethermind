@@ -149,8 +149,8 @@ namespace Nethermind.Trie
                 nibbles[0] = (byte)(input[0] & 0x0f);
                 for (int i = 0; i < input.Length - 1; i++)
                 {
-                    nibbles[2 * i + 1] = (byte)((input[i+1] & 0xf0) >> 4);
-                    nibbles[2 * i + 2] = (byte)(input[i+1] & 0x0f);
+                    nibbles[2 * i + 1] = (byte)((input[i + 1] & 0xf0) >> 4);
+                    nibbles[2 * i + 2] = (byte)(input[i + 1] & 0x0f);
                 }
 
                 return nibbles;
@@ -160,8 +160,8 @@ namespace Nethermind.Trie
                 byte[] nibbles = new byte[input.Length * 2 - 2];
                 for (int i = 0; i < input.Length - 1; i++)
                 {
-                    nibbles[2 * i] = (byte)((input[i+1] & 0xf0) >> 4);
-                    nibbles[2 * i + 1] = (byte)(input[i+1] & 0x0f);
+                    nibbles[2 * i] = (byte)((input[i + 1] & 0xf0) >> 4);
+                    nibbles[2 * i + 1] = (byte)(input[i + 1] & 0x0f);
                 }
 
                 return nibbles;

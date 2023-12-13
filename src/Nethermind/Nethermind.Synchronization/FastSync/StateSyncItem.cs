@@ -57,7 +57,8 @@ namespace Nethermind.Synchronization.FastSync
 
         public bool IsRoot => Level == 0 && NodeDataType == NodeDataType.State;
 
-        public (Hash256 account, TreePath path) AddressAndPath {
+        public (Hash256 account, TreePath path) AddressAndPath
+        {
 
             get
             {
