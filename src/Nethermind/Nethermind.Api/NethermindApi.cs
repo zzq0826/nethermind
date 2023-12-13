@@ -55,6 +55,8 @@ using Nethermind.Wallet;
 using Nethermind.Sockets;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.Blocks;
+using Nethermind.Verkle.Tree.History.V2;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
 {
@@ -194,6 +196,10 @@ namespace Nethermind.Api
         public ITimerFactory TimerFactory { get; } = Core.Timers.TimerFactory.Default;
         public ITransactionProcessor? TransactionProcessor { get; set; }
         public ITrieStore? TrieStore { get; set; }
+        public VerkleStateStore? VerkleTrieStore { get; set; }
+        public ReadOnlyVerkleStateStore? ReadOnlyVerkleTrieStore { get; set; }
+        public VerkleArchiveStore? VerkleArchiveStore { get; set; }
+
         public ITxSender? TxSender { get; set; }
         public INonceManager? NonceManager { get; set; }
         public ITxPool? TxPool { get; set; }

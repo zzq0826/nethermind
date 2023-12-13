@@ -32,6 +32,11 @@ namespace Nethermind.Consensus.Processing
 
             public event EventHandler<TxProcessedEventArgs>? TransactionProcessed;
 
+            public IBlockProcessor.IBlockTransactionsExecutor WithNewStateProvider(IWorldState worldState)
+            {
+                return new BlockValidationTransactionsExecutor(_transactionProcessor, worldState);
+            }
+
             public TxReceipt[] ProcessTransactions(Block block, ProcessingOptions processingOptions, BlockExecutionTracer executionTracer, IReleaseSpec spec)
             {
                 Evm.Metrics.ResetBlockStats();

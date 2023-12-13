@@ -22,6 +22,8 @@ using Nethermind.JsonRpc.Modules.Eth.GasPrice;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
+using Nethermind.Verkle.Tree.History.V2;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Api
 {
@@ -63,6 +65,9 @@ namespace Nethermind.Api
         IWorldStateManager? WorldStateManager { get; set; }
         ITransactionProcessor? TransactionProcessor { get; set; }
         ITrieStore? TrieStore { get; set; }
+        VerkleStateStore? VerkleTrieStore { get; set; }
+        ReadOnlyVerkleStateStore? ReadOnlyVerkleTrieStore { get; set; }
+        VerkleArchiveStore? VerkleArchiveStore { get; set; }
         ITxSender? TxSender { get; set; }
         INonceManager? NonceManager { get; set; }
         ITxPool? TxPool { get; set; }
