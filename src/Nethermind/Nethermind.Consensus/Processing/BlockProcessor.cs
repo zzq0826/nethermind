@@ -43,7 +43,7 @@ public partial class BlockProcessor : IBlockProcessor
     /// We use a single receipt tracer for all blocks. Internally receipt tracer forwards most of the calls
     /// to any block-specific tracers.
     /// </summary>
-    private readonly BlockReceiptsTracer _receiptsTracer;
+    private readonly BlockExecutionTracer _executionTracer;
 
     public BlockProcessor(
         ISpecProvider? specProvider,
@@ -67,7 +67,7 @@ public partial class BlockProcessor : IBlockProcessor
         _blockTransactionsExecutor = blockTransactionsExecutor ?? throw new ArgumentNullException(nameof(blockTransactionsExecutor));
         _beaconBlockRootHandler = new BeaconBlockRootHandler();
 
-        _receiptsTracer = new BlockReceiptsTracer();
+        _executionTracer = new BlockReceiptsTracer();
     }
 
     public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
@@ -226,13 +226,13 @@ public partial class BlockProcessor : IBlockProcessor
     {
         IReleaseSpec spec = _specProvider.GetSpec(block.Header);
 
-        _receiptsTracer.SetOtherTracer(blockTracer);
-        _receiptsTracer.StartNewBlockTrace(block);
+        _executionTracer.SetOtherTracer(blockTracer);
+        _executionTracer.StartNewBlockTrace(block);
 
         _beaconBlockRootHandler.ApplyContractStateChanges(block, spec, _stateProvider);
         _stateProvider.Commit(spec);
 
-        TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
+        TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _executionTracer, spec);
 
         if (spec.IsEip4844Enabled)
         {
@@ -242,7 +242,7 @@ public partial class BlockProcessor : IBlockProcessor
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
         ApplyMinerRewards(block, blockTracer, spec);
         _withdrawalProcessor.ProcessWithdrawals(block, spec);
-        _receiptsTracer.EndBlockTrace();
+        _executionTracer.EndBlockTrace();
 
         _stateProvider.Commit(spec);
 
