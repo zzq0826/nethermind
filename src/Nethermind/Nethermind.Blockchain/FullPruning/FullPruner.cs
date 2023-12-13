@@ -14,6 +14,7 @@ using Nethermind.Db.FullPruning;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Trie;
+using Nethermind.Trie.Pruning;
 
 namespace Nethermind.Blockchain.FullPruning
 {
@@ -217,7 +218,8 @@ namespace Nethermind.Blockchain.FullPruning
                     writeFlags |= WriteFlags.LowPriority;
                 }
 
-                using CopyTreeVisitor copyTreeVisitor = new(pruning, writeFlags, _logManager);
+                NodeStorage nodeStorage = new NodeStorage(pruning);
+                using CopyTreeVisitor copyTreeVisitor = new(nodeStorage, pruning.CancellationTokenSource, writeFlags, _logManager);
                 VisitingOptions visitingOptions = new()
                 {
                     MaxDegreeOfParallelism = _pruningConfig.FullPruningMaxDegreeOfParallelism,
