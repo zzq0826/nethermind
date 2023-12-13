@@ -361,6 +361,11 @@ namespace Nethermind.Trie.Pruning
             return LoadRlp(address, path, hash, null, flags);
         }
 
+        public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] rlp)
+        {
+            _nodeStorage.Set(address, path, keccak, rlp);
+        }
+
         public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak)
         {
             byte[]? rlp = _nodeStorage.Get(address, path, keccak, ReadFlags.None);
@@ -924,6 +929,11 @@ namespace Nethermind.Trie.Pruning
             public IKeyValueStore AsKeyValueStore()
             {
                 return _trieStoreImplementation.AsKeyValueStore(_address);
+            }
+
+            public void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp)
+            {
+                _trieStoreImplementation.Set(_address, path, keccak, rlp);
             }
         }
     }

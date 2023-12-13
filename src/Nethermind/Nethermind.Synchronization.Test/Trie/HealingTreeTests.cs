@@ -82,6 +82,8 @@ public class HealingTreeTests
         trieStore.FindCachedOrUnknown(null, TreePath.Empty, _key).Returns(
             k => throw new MissingTrieNodeException("", new TrieNodeException("", _key), path, 1),
             k => new TrieNode(NodeType.Leaf) { Key = path });
+        trieStore.GetTrieStore(Arg.Any<Hash256?>())
+            .Returns((callInfo) => new TrieStore.StorageTrieStore(trieStore, (Hash256?)callInfo[0]));
         TestMemDb db = new();
         trieStore.AsKeyValueStore(null).Returns(db);
 
@@ -95,7 +97,8 @@ public class HealingTreeTests
         if (isMainThread && successfullyRecovered)
         {
             action.Should().NotThrow();
-            db.KeyWasWritten(kvp => Bytes.AreEqual(kvp.Item1, ValueKeccak.Compute(_rlp).Bytes) && Bytes.AreEqual(kvp.Item2, _rlp));
+            trieStore.Received()
+                .Set(null, TreePath.FromNibble(path), ValueKeccak.Compute(_rlp), _rlp);
         }
         else
         {

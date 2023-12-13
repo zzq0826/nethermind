@@ -17,6 +17,9 @@ namespace Nethermind.Trie.Pruning
         bool IsPersisted(in TreePath path, in ValueHash256 keccak);
 
         IKeyValueStore AsKeyValueStore();
+
+        // Used for trie node recovery
+        void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp);
     }
 
     public interface ITrieStore : IDisposable
@@ -36,5 +39,6 @@ namespace Nethermind.Trie.Pruning
 
         TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash);
         byte[]? LoadRlp(Hash256? address, in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None);
+        void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] rlp);
     }
 }

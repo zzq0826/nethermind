@@ -27,6 +27,10 @@ namespace Nethermind.Trie.Pruning
         public byte[] LoadRlp(Hash256? address, in TreePath treePath, Hash256 hash, ReadFlags flags) =>
             _trieStore.LoadRlp(address, treePath, hash, _readOnlyStore, flags);
 
+        public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] rlp)
+        {
+        }
+
         public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak) => _trieStore.IsPersisted(address, path, keccak);
 
         public IReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore)
@@ -114,6 +118,10 @@ namespace Nethermind.Trie.Pruning
             public IKeyValueStore AsKeyValueStore()
             {
                 return _trieStoreImplementation.AsKeyValueStore(_address);
+            }
+
+            public void Set(in TreePath path, in ValueHash256 keccak, byte[] rlp)
+            {
             }
         }
     }
