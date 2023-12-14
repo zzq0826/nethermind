@@ -167,7 +167,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
-        if (StateRoot == stateRoot) return true;
+        // if (StateRoot == stateRoot) return true;
 
         if (_logger.IsDebug) _logger.Debug($"Trying to move state root from:{StateRoot} to:{stateRoot}");
 
@@ -175,7 +175,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         // this is to handle a edge case and should be removed eventually - this can be potential issue here
         {
             // TODO: this is actually not possible - not sure if return true is correct here
-            if (stateRoot.Equals(new Hash256(Keccak.EmptyTreeHash.Bytes.ToArray())))
+            if (stateRoot.Equals(Keccak.EmptyTreeHash))
             {
                 if (StateRoot.Equals(Pedersen.Zero)) return true;
                 return false;
@@ -203,48 +203,51 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         // stateRoots to have same blockNumbers.
         Debug.Assert(fromBlock != toBlock);
 
-        if (fromBlock > toBlock)
+        if (stateRoot != StateRoot)
         {
-            long noOfBlockToMove = fromBlock - toBlock;
-            if (BlockCache is not null && noOfBlockToMove > BlockCache.Count)
+            if (fromBlock > toBlock)
             {
-                if (_logger.IsDebug)
-                    _logger.Debug(
-                        $"Number of blocks to move:{noOfBlockToMove}. Removing all the diffs from BlockCache ({noOfBlockToMove} > {BlockCache.Count})");
+                long noOfBlockToMove = fromBlock - toBlock;
+                if (BlockCache is not null && noOfBlockToMove > BlockCache.Count)
+                {
+                    if (_logger.IsDebug)
+                        _logger.Debug(
+                            $"Number of blocks to move:{noOfBlockToMove}. Removing all the diffs from BlockCache ({noOfBlockToMove} > {BlockCache.Count})");
 
-                _logger.Error(
-                    $"Cannot more state root back for {noOfBlockToMove} - only {BlockCache.Count} diff to remove");
-                return false;
-                // if (History is null)
-                // {
-                //     if (_logger.IsDebug) _logger.Debug($"History is null and in this case - state cannot be reverted to wanted state root");
-                //     return false;
-                // }
-                // BlockCache.Clear();
-                // fromBlock -= BlockCache.Count;
-                //
-                // if (_logger.IsDebug)
-                //     _logger.Debug($"now using fromBlock:{fromBlock} toBlock:{toBlock}");
-                // BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
-                // ApplyDiffLayer(batchDiff);
-            }
-            if (BlockCache is not null)
-            {
-                BlockCache.RemoveDiffs(noOfBlockToMove);
+                    _logger.Error(
+                        $"Cannot more state root back for {noOfBlockToMove} - only {BlockCache.Count} diff to remove");
+                    return false;
+                    // if (History is null)
+                    // {
+                    //     if (_logger.IsDebug) _logger.Debug($"History is null and in this case - state cannot be reverted to wanted state root");
+                    //     return false;
+                    // }
+                    // BlockCache.Clear();
+                    // fromBlock -= BlockCache.Count;
+                    //
+                    // if (_logger.IsDebug)
+                    //     _logger.Debug($"now using fromBlock:{fromBlock} toBlock:{toBlock}");
+                    // BatchChangeSet batchDiff = History.GetBatchDiff(fromBlock, toBlock);
+                    // ApplyDiffLayer(batchDiff);
+                }
+                if (BlockCache is not null)
+                {
+                    BlockCache.RemoveDiffs(noOfBlockToMove);
+                }
+                else
+                {
+                    if (_logger.IsDebug)
+                        _logger.Debug(
+                            $"BlockCache is null and in this case - state cannot be reverted to wanted state root");
+                    return false;
+                }
             }
             else
             {
                 if (_logger.IsDebug)
-                    _logger.Debug(
-                        $"BlockCache is null and in this case - state cannot be reverted to wanted state root");
+                    _logger.Debug($"Trying to move forward in state - this is not implemented and supported yet");
                 return false;
             }
-        }
-        else
-        {
-            if (_logger.IsDebug)
-                _logger.Debug($"Trying to move forward in state - this is not implemented and supported yet");
-            return false;
         }
 
         Debug.Assert(GetStateRoot().Equals(stateRoot));
