@@ -20,6 +20,7 @@ using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Serialization.Json;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.Verkle.Curve;
@@ -299,13 +300,13 @@ public partial class BlockProcessor : IBlockProcessor
         _executionTracer.EndBlockTrace();
 
         ExecutionWitness? witness = null;
-        if (ShouldGenerateWitness)
+        if (true)
         {
             byte[][] witnessKeys = _executionTracer.WitnessKeys.ToArray();
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
             witness = witnessKeys.Length == 0 ? null : verkleWorldState?.GenerateExecutionWitness(witnessKeys, out _);
-            // IJsonSerializer ser = new EthereumJsonSerializer();
-            // _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
+            IJsonSerializer ser = new EthereumJsonSerializer();
+            _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
             if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled &&
                 !block.IsGenesis) block.Body.ExecutionWitness = witness;
         }
