@@ -306,7 +306,7 @@ public partial class BlockProcessor : IBlockProcessor
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
             witness = witnessKeys.Length == 0 ? null : verkleWorldState?.GenerateExecutionWitness(witnessKeys, out _);
             IJsonSerializer ser = new EthereumJsonSerializer();
-            _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {ser.Serialize(witness)}");
+            _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {witness} {ser.Serialize(witness)}");
             if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled &&
                 !block.IsGenesis) block.Body.ExecutionWitness = witness;
         }
