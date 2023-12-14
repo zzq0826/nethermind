@@ -24,6 +24,7 @@ using Nethermind.Serialization.Json;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.Utils;
 using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing;
@@ -295,6 +296,12 @@ public partial class BlockProcessor : IBlockProcessor
         }
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
+
+        VerkleWitness? gasWitness = null;
+        if (blockTracer.IsTracingAccessWitness) gasWitness = new VerkleWitness();
+        gasWitness?.AccessForGasBeneficiary(block.Header.GasBeneficiary);
+        if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(gasWitness);
+
         ApplyMinerRewards(block, blockTracer, spec);
         _withdrawalProcessor.ProcessWithdrawals(block, _executionTracer, spec);
         _executionTracer.EndBlockTrace();
