@@ -44,7 +44,7 @@ public partial class BlockProcessor : IBlockProcessor
     public IBlockProcessor.IBlockTransactionsExecutor StatelessBlockTransactionsExecutor;
     public bool ShouldVerifyIncomingWitness { get; set; } = false;
     public bool ShouldDoStatelessStuff { get; set; } = false;
-    public bool ShouldGenerateWitness { get; set; } = false;
+    public bool ShouldGenerateWitness { get; set; } = true;
 
     private const int MaxUncommittedBlocks = 64;
 
