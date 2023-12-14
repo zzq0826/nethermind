@@ -601,10 +601,10 @@ namespace Nethermind.Evm.TransactionProcessing
                     statusCode = StatusCode.Success;
                 }
 
-                // if (!env.Witness.AccessAndChargeForGasBeneficiary(header.GasBeneficiary!, ref unspentGas))
-                // {
-                //     throw new OutOfGasException();
-                // }
+                if (!env.Witness.AccessAndChargeForGasBeneficiary(header.GasBeneficiary!, ref unspentGas))
+                {
+                    throw new OutOfGasException();
+                }
 
                 spentGas = Refund(tx, header, spec, opts, substate, unspentGas, env.TxExecutionContext.GasPrice);
             }
