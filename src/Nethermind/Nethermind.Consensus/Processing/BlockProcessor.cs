@@ -297,26 +297,29 @@ public partial class BlockProcessor : IBlockProcessor
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
 
-        VerkleWitness? gasWitness = null;
-        if (blockTracer.IsTracingAccessWitness) gasWitness = new VerkleWitness();
-        gasWitness?.AccessForGasBeneficiary(block.Header.GasBeneficiary);
-        if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(gasWitness);
+        if (!block.IsGenesis)
+        {
+            VerkleWitness? gasWitness = null;
+            if (blockTracer.IsTracingAccessWitness) gasWitness = new VerkleWitness();
+            gasWitness?.AccessForGasBeneficiary(block.Header.GasBeneficiary);
+            // TODO: possibly rename this function to just ReportWitness - can be used for both withdrawal and gasBeneficiary
+            if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(gasWitness);
+        }
 
         ApplyMinerRewards(block, blockTracer, spec);
         _withdrawalProcessor.ProcessWithdrawals(block, _executionTracer, spec);
         _executionTracer.EndBlockTrace();
 
         ExecutionWitness? witness = null;
-        if (true)
+        if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled &&
+            !block.IsGenesis)
         {
             byte[][] witnessKeys = _executionTracer.WitnessKeys.ToArray();
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
             witness = witnessKeys.Length == 0 ? null : verkleWorldState?.GenerateExecutionWitness(witnessKeys, out _);
-            IJsonSerializer ser = new EthereumJsonSerializer();
-            _logger.Info($"BLOCK PROCESSOR WITNESS: {spec.IsVerkleTreeEipEnabled} {!block.IsGenesis} {options} {witness} {ser.Serialize(witness)}");
-            if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled &&
-                !block.IsGenesis) block.Body.ExecutionWitness = witness;
+            block.Body.ExecutionWitness = witness;
         }
+
 
         _stateProvider.Commit(spec);
 
