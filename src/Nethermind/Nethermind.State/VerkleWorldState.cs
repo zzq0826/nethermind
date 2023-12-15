@@ -489,6 +489,7 @@ public class VerkleWorldState : IWorldState
 
         // TODO: is there a case where account is even null - anyways deleting a account is not supported in verkle trees
         if (account != null) _tree.InsertStemBatch(headerTreeKey.Slice(0, 31), account.ToVerkleDict());
+        else throw new StateDeleteNotSupported();
         if (account!.Code is not null) _tree.SetCode(address, account.Code);
     }
 
@@ -732,17 +733,19 @@ public class VerkleWorldState : IWorldState
                 case ChangeType.Touch:
                 case ChangeType.Update:
                     {
-                        if (change.Account != null && releaseSpec.IsEip158Enabled && change.Account.IsEmpty && !isGenesis)
-                        {
-                            if (_logger.IsTrace) _logger.Trace($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
-                            SetState(change.Address, null);
-                            if (isTracing)
-                            {
-                                trace[change.Address] = new ChangeTrace(null);
-                            }
-                        }
-                        else
-                        {
+
+                        // We cannot delete accounts from the state in verkle world
+                        // if (change.Account != null && releaseSpec.IsEip158Enabled && change.Account.IsEmpty && !isGenesis)
+                        // {
+                        //     if (_logger.IsTrace) _logger.Trace($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
+                        //     SetState(change.Address, null);
+                        //     if (isTracing)
+                        //     {
+                        //         trace[change.Address] = new ChangeTrace(null);
+                        //     }
+                        // }
+                        // else
+                        // {
                             if (_logger.IsTrace)
                                 if (change.Account != null)
                                     _logger.Trace($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
@@ -751,7 +754,7 @@ public class VerkleWorldState : IWorldState
                             {
                                 trace[change.Address] = new ChangeTrace(change.Account);
                             }
-                        }
+                        // }
 
                         break;
                     }
