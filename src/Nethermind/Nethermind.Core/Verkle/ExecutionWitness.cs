@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using FastEnumUtility;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Proofs;
@@ -82,6 +83,9 @@ public struct StemStateDiff
 public struct SuffixStateDiff
 {
     public byte Suffix { get; set; }
+    // add null if the values are not there - part of the spec
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public byte[]? CurrentValue { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public byte[]? NewValue { get; set; }
 }
