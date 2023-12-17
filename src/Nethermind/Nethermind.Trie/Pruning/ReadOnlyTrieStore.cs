@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 
@@ -30,6 +31,11 @@ namespace Nethermind.Trie.Pruning
 
         public void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] rlp)
         {
+        }
+
+        public void WarmUp(IList<(Hash256, TreePath)> pathsToWarmup)
+        {
+            _trieStore.WarmUp(pathsToWarmup);
         }
 
         public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak) => _trieStore.IsPersisted(address, path, keccak);

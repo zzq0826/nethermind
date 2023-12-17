@@ -371,6 +371,11 @@ namespace Nethermind.Trie.Pruning
             _nodeStorage.Set(address, path, keccak, rlp);
         }
 
+        public void WarmUp(IList<(Hash256, TreePath)> pathsToWarmup)
+        {
+            _nodeStorage.WarmUp(pathsToWarmup);
+        }
+
         public bool IsPersisted(Hash256? address, in TreePath path, in ValueHash256 keccak)
         {
             byte[]? rlp = _nodeStorage.Get(address, path, keccak, ReadFlags.None);

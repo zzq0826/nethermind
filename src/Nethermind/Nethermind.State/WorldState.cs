@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Eip2930;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -27,6 +30,7 @@ namespace Nethermind.State
         internal readonly StateProvider _stateProvider;
         internal readonly PersistentStorageProvider _persistentStorageProvider;
         private readonly TransientStorageProvider _transientStorageProvider;
+        private readonly ITrieStore _trieStore;
 
         public Hash256 StateRoot
         {
@@ -38,15 +42,17 @@ namespace Nethermind.State
             }
         }
 
-        public WorldState(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager)
+        public WorldState(ITrieStore trieStore, IKeyValueStore codeDb, ILogManager logManager)
         {
+            _trieStore = trieStore;
             _stateProvider = new StateProvider(trieStore.GetTrieStore(null), codeDb, logManager);
             _persistentStorageProvider = new PersistentStorageProvider(trieStore, _stateProvider, logManager);
             _transientStorageProvider = new TransientStorageProvider(logManager);
         }
 
-        internal WorldState(ITrieStore? trieStore, IKeyValueStore? codeDb, ILogManager? logManager, StateTree stateTree, IStorageTreeFactory storageTreeFactory)
+        internal WorldState(ITrieStore trieStore, IKeyValueStore codeDb, ILogManager logManager, StateTree stateTree, IStorageTreeFactory storageTreeFactory)
         {
+            _trieStore = trieStore;
             _stateProvider = new StateProvider(trieStore.GetTrieStore(null), codeDb, logManager, stateTree);
             _persistentStorageProvider = new PersistentStorageProvider(trieStore, _stateProvider, logManager, storageTreeFactory);
             _transientStorageProvider = new TransientStorageProvider(logManager);
@@ -145,6 +151,41 @@ namespace Nethermind.State
         public void TouchCode(Hash256 codeHash)
         {
             _stateProvider.TouchCode(codeHash);
+        }
+
+        public void WarmUp(Block block)
+        {
+            HashSet<(Hash256?, TreePath)> pathsToWarmup = new();
+            Span<byte> key = stackalloc byte[32];
+
+            foreach (Transaction blockTransaction in block.Transactions)
+            {
+                if (blockTransaction.SenderAddress?.ToAccountPath != null)
+                {
+                    Hash256 addressPath = blockTransaction.SenderAddress?.ToAccountPath;
+                    pathsToWarmup.Add((null, new TreePath(addressPath, 64)));
+                    pathsToWarmup.Add((addressPath, TreePath.Empty));
+                }
+
+                if (blockTransaction.AccessList != null)
+                {
+                    foreach ((Address address, AccessList.StorageKeysEnumerable keys) in blockTransaction.AccessList)
+                    {
+                        Hash256 addressPath = address.ToAccountPath;
+                        foreach (UInt256 index in keys)
+                        {
+                            index.ToBigEndian(key);
+
+                            // in situ calculation
+                            ValueHash256 hash = new ValueHash256();
+                            KeccakHash.ComputeHashBytesToSpan(key, hash.BytesAsSpan);
+                            pathsToWarmup.Add((addressPath, new TreePath(hash, 64)));
+                        }
+                    }
+                }
+            }
+
+            _trieStore.WarmUp(pathsToWarmup.ToList());
         }
 
         public UInt256 GetNonce(Address address)

@@ -231,6 +231,7 @@ public partial class BlockProcessor : IBlockProcessor
 
         _beaconBlockRootHandler.ApplyContractStateChanges(block, spec, _stateProvider);
         _stateProvider.Commit(spec);
+        _stateProvider.WarmUp(block);
 
         TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, _receiptsTracer, spec);
 

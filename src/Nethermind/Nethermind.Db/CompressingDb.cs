@@ -122,7 +122,14 @@ namespace Nethermind.Db
 
             public string Name => _wrapped.Name;
 
-            public KeyValuePair<byte[], byte[]?>[] this[byte[][] keys] => throw new NotImplementedException();
+            public KeyValuePair<byte[], byte[]?>[] this[byte[][] keys]
+            {
+                get
+                {
+                    KeyValuePair<byte[], byte[]>[] rawValues = _wrapped[keys];
+                    return rawValues.Select((kvPair) => new KeyValuePair<byte[], byte[]>(kvPair.Key, Decompress(kvPair.Value))).ToArray();
+                }
+            }
 
             public IEnumerable<KeyValuePair<byte[], byte[]>> GetAll(bool ordered = false) => _wrapped.GetAll(ordered)
                 .Select(kvp => new KeyValuePair<byte[], byte[]>(kvp.Key, Decompress(kvp.Value)));

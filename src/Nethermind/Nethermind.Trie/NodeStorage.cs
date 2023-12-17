@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection.Metadata;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
@@ -156,6 +159,20 @@ public class NodeStorage : INodeStorage
             db.Flush();
         }
     }
+
+    public void WarmUp(IList<(Hash256, TreePath)> pathsToWarmup)
+    {
+        if (_scheme == NodeWriteBatch.KeyScheme.Hash) return;
+        if (_keyValueStore is not IDb asDb) return;
+
+        byte[] pathBuffer = new byte[StoragePathLength];
+        ValueHash256 zero = Keccak.Zero;
+
+        byte[][] keys = pathsToWarmup.Select((storageAndPath)
+            => GetExpectedPath(pathBuffer, storageAndPath.Item1, storageAndPath.Item2, zero).ToArray()).ToArray();
+
+        KeyValuePair<byte[], byte[]?>[]? _ = asDb[keys];
+    }
 }
 
 public interface INodeStorage
@@ -168,6 +185,7 @@ public interface INodeStorage
 
     byte[]? GetByHash(ReadOnlySpan<byte> key, ReadFlags flags);
     void Flush();
+    void WarmUp(IList<(Hash256, TreePath)> pathsToWarmup);
 
     public enum KeyScheme
     {

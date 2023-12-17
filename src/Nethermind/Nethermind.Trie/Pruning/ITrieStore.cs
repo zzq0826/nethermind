@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 
@@ -29,6 +30,7 @@ namespace Nethermind.Trie.Pruning
         TrieNode FindCachedOrUnknown(Hash256? address, in TreePath path, Hash256 hash);
         byte[]? LoadRlp(Hash256? address, in TreePath path, Hash256 hash, ReadFlags flags = ReadFlags.None);
         void Set(Hash256? address, in TreePath path, in ValueHash256 keccak, byte[] rlp);
+        void WarmUp(IList<(Hash256, TreePath)> pathsToWarmup);
         INodeStorage.KeyScheme Scheme { get; }
     }
 }
