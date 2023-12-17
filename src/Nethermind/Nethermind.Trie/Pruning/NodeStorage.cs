@@ -15,7 +15,7 @@ public class NodeStorage : INodeStorage
 {
     protected readonly IKeyValueStore _keyValueStore;
     private static byte[] EmptyTreeHashBytes = new byte[] { 128 };
-    public const int StoragePathLength = 40;
+    public const int StoragePathLength = 48;
 
     public NodeStorage(IKeyValueStore keyValueStore)
     {
@@ -34,17 +34,21 @@ public class NodeStorage : INodeStorage
         return GetNodeStoragePathSpan(pathSpan, address, path, keccak);
     }
 
-    private static int _cutLength = int.Parse(Environment.GetEnvironmentVariable("CUT_LENGTH") ?? "5");
-
-    public static Span<byte> GetNodeStoragePathSpan(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
+    private static Span<byte> GetNodeStoragePathSpan(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
         Debug.Assert(pathSpan.Length == StoragePathLength);
-        if (address == null)
-        {
-            path.Path.BytesAsSpan[..7].CopyTo(pathSpan[1..]);
 
-            // Separate the top level tree into its own section. This improve cache hit rate by about a few %.
-            if (path.Length <= _cutLength)
+        if (address == null) {
+            path.Path.BytesAsSpan[..15].CopyTo(pathSpan[1..]);
+
+            // Separate the top level tree into its own section. This improve cache hit rate by about a few %. The idea
+            // being that the top level trie is spread out across the database, leading for a poor cache hit. In practice
+            // its not that much, likely because they are also likely to be at the top of LSM tree.
+            // The total size of node for path length<=4 should be around 40MB making them very cacheable. In practice
+            // whether they get cached or not is seemingly random. This leaves the remaining subtree size of higher depth
+            // to be about 44kB meaning they should take at most 2 iops on 16kB block size. Trying to make this tree
+            // split at depth 5 does not seems to improve things even with more cache.
+            if (path.Length <= 4)
             {
                 pathSpan[0] = 0;
             }
@@ -55,12 +59,15 @@ public class NodeStorage : INodeStorage
         }
         else
         {
+            // Technically, you'll need 9 byte for address and 8 byte for storage on mainnet. But we want to keep
+            // key small at the same time too. If the key are too small, multiple node will be out of order, which
+            // can be slower but as long as they are in the same data block, it should not make a difference.
             pathSpan[0] = 2;
-            address.Bytes[..4].CopyTo(pathSpan[1..]);
-            path.Path.BytesAsSpan[..3].CopyTo(pathSpan[5..]);
+            address.Bytes[..8].CopyTo(pathSpan[1..]);
+            path.Path.BytesAsSpan[..7].CopyTo(pathSpan[9..]);
         }
 
-        keccak.Bytes.CopyTo(pathSpan[8..]);
+        keccak.Bytes.CopyTo(pathSpan[16..]);
 
         return pathSpan;
     }
