@@ -37,9 +37,8 @@ public class NodeStorage : INodeStorage
 
     public static byte[] GetHalfPathNodeStoragePath(Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
-        byte[] bytes = new byte[StoragePathLength];
-        GetHalfPathNodeStoragePathSpan(bytes, address, path, keccak);
-        return bytes;
+        Span<byte> bytes = new byte[StoragePathLength];
+        return GetHalfPathNodeStoragePathSpan(bytes, address, path, keccak).ToArray();
     }
 
     private static Span<byte> GetHalfPathNodeStoragePathSpan(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)

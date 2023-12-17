@@ -112,12 +112,7 @@ namespace Nethermind.Synchronization.Test.FastSync
 
         private static Hash256 HashKey(byte[] k)
         {
-            if (k.Length == 40)
-            {
-                return new Hash256(k[8..]);
-            }
-
-            return new Hash256(k);
+            return new Hash256(k[^32..]);
         }
 
         [Test]

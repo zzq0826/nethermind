@@ -1004,7 +1004,6 @@ namespace Nethermind.Trie.Test
 
             for (int blockNumber = 0; blockNumber < blocksCount; blockNumber++)
             {
-                Console.Out.WriteLine($"Block {blockNumber}");
                 bool isEmptyBlock = _random.Next(5) == 0;
                 if (!isEmptyBlock)
                 {
@@ -1056,7 +1055,11 @@ namespace Nethermind.Trie.Test
                 stateProvider.Commit(MuirGlacier.Instance);
 
                 stateProvider.CommitTree(blockNumber);
-                rootQueue.Enqueue(stateProvider.StateRoot);
+
+                if (blockNumber > blocksCount - Reorganization.MaxDepth)
+                {
+                    rootQueue.Enqueue(stateProvider.StateRoot);
+                }
             }
 
             streamWriter.Flush();
