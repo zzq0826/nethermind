@@ -106,11 +106,11 @@ public struct TreePath
             if (childPathLength >= 64) throw new IndexOutOfRangeException();
             if (childPathLength % 2 == 0)
             {
-                return (byte)(Span[childPathLength / 2] & 0xf0);
+                return (byte)((Span[childPathLength / 2] & 0xf0) >> 4);
             }
             else
             {
-                return (byte)((Span[childPathLength / 2] & 0x0f) << 4);
+                return (byte)(Span[childPathLength / 2] & 0x0f);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
