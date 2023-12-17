@@ -38,7 +38,7 @@ public class HealingTrieStoreTests
     {
         byte[] rlp = { 1, 2 };
         Hash256 hash = TestItem.KeccakA;
-        byte[] key = NodeStorage.GetNodeStoragePath(null, TreePath.Empty, hash);
+        byte[] key = NodeStorage.GetHalfPathNodeStoragePath(null, TreePath.Empty, hash);
 
         TestMemDb db = new();
         HealingTrieStore healingTrieStore = new(new NodeStorage(db), Nethermind.Trie.Pruning.No.Pruning, Persist.EveryBlock, LimboLogs.Instance);

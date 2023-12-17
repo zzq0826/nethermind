@@ -79,7 +79,7 @@ namespace Nethermind.Trie.Test.Pruning
             trieStore.CommitNode(1234, new NodeCommitInfo(trieNode, TreePath.Empty), WriteFlags.LowPriority);
             trieStore.FinishBlockCommit(TrieType.State, 1234, trieNode, WriteFlags.LowPriority);
 
-            testMemDb.KeyWasWrittenWithFlags(NodeStorage.GetNodeStoragePath(null, TreePath.Empty, trieNode.Keccak), WriteFlags.LowPriority);
+            testMemDb.KeyWasWrittenWithFlags(NodeStorage.GetHalfPathNodeStoragePath(null, TreePath.Empty, trieNode.Keccak), WriteFlags.LowPriority);
         }
 
         [Test]
