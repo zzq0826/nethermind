@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection.Metadata;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
 
@@ -16,7 +17,7 @@ public class NodeStorage : INodeStorage
     protected readonly IKeyValueStore _keyValueStore;
     private static byte[] EmptyTreeHashBytes = new byte[] { 128 };
     private readonly NodeWriteBatch.KeyScheme _scheme;
-    public const int StoragePathLength = 48;
+    public const int StoragePathLength = 44;
 
     public NodeStorage(IKeyValueStore keyValueStore, NodeWriteBatch.KeyScheme scheme = NodeWriteBatch.KeyScheme.HalfPath)
     {
@@ -46,8 +47,6 @@ public class NodeStorage : INodeStorage
         Debug.Assert(pathSpan.Length == StoragePathLength);
 
         if (address == null) {
-            path.Path.BytesAsSpan[..15].CopyTo(pathSpan[1..]);
-
             // Separate the top level tree into its own section. This improve cache hit rate by about a few %. The idea
             // being that the top level trie is spread out across the database, leading for a poor cache hit. In practice
             // its not that much, likely because they are also likely to be at the top of LSM tree.
@@ -63,20 +62,26 @@ public class NodeStorage : INodeStorage
             {
                 pathSpan[0] = 1;
             }
+
+            // Keep key small
+            path.Path.BytesAsSpan[..7].CopyTo(pathSpan[1..]);
+            keccak.Bytes.CopyTo(pathSpan[8..]);
+            return pathSpan[..40];
         }
         else
         {
             // Technically, you'll need 9 byte for address and 8 byte for storage on mainnet. But we want to keep
             // key small at the same time too. If the key are too small, multiple node will be out of order, which
             // can be slower but as long as they are in the same data block, it should not make a difference.
+            // On mainnet, the out of order key is around 0.03% for address and 0.07% for storage.
             pathSpan[0] = 2;
-            address.Bytes[..8].CopyTo(pathSpan[1..]);
-            path.Path.BytesAsSpan[..7].CopyTo(pathSpan[9..]);
+            address.Bytes[..6].CopyTo(pathSpan[1..]);
+            path.Path.BytesAsSpan[..5].CopyTo(pathSpan[7..]);
+
+            keccak.Bytes.CopyTo(pathSpan[12..]);
+            return pathSpan;
         }
 
-        keccak.Bytes.CopyTo(pathSpan[16..]);
-
-        return pathSpan;
     }
 
     private static Span<byte> GetHashBasedStoragePath(Span<byte> pathSpan, in ValueHash256 keccak)
