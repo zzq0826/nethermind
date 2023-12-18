@@ -196,7 +196,7 @@ public partial class VerkleTree: IVerkleTree
     public void CommitTree(long blockNumber)
     {
         _verkleStateStore.InsertBatch(blockNumber, _treeCache);
-        _treeCache = new VerkleMemoryDb();
+        Reset();
     }
 
     private void UpdateRootNode(Banderwagon rootDelta)
