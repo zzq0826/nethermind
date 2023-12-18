@@ -32,6 +32,8 @@ public class ScopedTrieStore : IScopedTrieStore
         return new ScopedTrieStore(_trieStoreImplementation, address);
     }
 
+    public INodeStorage.KeyScheme Scheme => _trieStoreImplementation.Scheme;
+
     public void Dispose()
     {
         _trieStoreImplementation.Dispose();

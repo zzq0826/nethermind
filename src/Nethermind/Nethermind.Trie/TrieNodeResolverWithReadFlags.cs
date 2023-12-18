@@ -37,4 +37,6 @@ public class TrieNodeResolverWithReadFlags : ITrieNodeResolver
     {
         return _baseResolver.GetStorageTrieNodeResolver(address);
     }
+
+    public INodeStorage.KeyScheme Scheme => _baseResolver.Scheme;
 }

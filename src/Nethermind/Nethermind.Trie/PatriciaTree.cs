@@ -1114,26 +1114,28 @@ namespace Nethermind.Trie
                 }
             }
 
-            ITrieNodeResolver resolver = TrieStore;
-            if (visitor.IsFullDbScan)
+            visitor.VisitTree(rootHash, trieVisitContext);
+
+            if (!visitor.IsFullDbScan)
             {
-                resolver = new TrieNodeResolverWithReadFlags(TrieStore, ReadFlags.HintCacheMiss);
+                TreePath emptyPath = TreePath.Empty;
+                rootRef?.Accept(visitor, TrieStore, ref emptyPath, trieVisitContext);
+                return;
             }
 
-            visitor.VisitTree(rootHash, trieVisitContext);
-            /*
-            if (visitingOptions.FullScanMemoryBudget != 0)
+            // Full db scan
+            if (TrieStore.Scheme == INodeStorage.KeyScheme.Hash && visitingOptions.FullScanMemoryBudget != 0)
             {
+                ITrieNodeResolver resolver = new TrieNodeResolverWithReadFlags(TrieStore, ReadFlags.HintCacheMiss);
                 BatchedTrieVisitor batchedTrieVisitor = new(visitor, resolver, visitingOptions);
                 batchedTrieVisitor.Start(rootHash, trieVisitContext);
             }
             else
             {
-                rootRef?.Accept(visitor, resolver, TreePath.Empty, trieVisitContext);
+                ITrieNodeResolver resolver = new TrieNodeResolverWithReadFlags(TrieStore, ReadFlags.HintReadAhead);
+                TreePath emptyPath = TreePath.Empty;
+                rootRef?.Accept(visitor, resolver, ref emptyPath, trieVisitContext);
             }
-            */
-            TreePath emptyPath = TreePath.Empty;
-            rootRef?.Accept(visitor, resolver, ref emptyPath, trieVisitContext);
         }
 
         [DoesNotReturn]

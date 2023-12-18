@@ -19,5 +19,7 @@ namespace Nethermind.Trie.Pruning
         {
             return this;
         }
+
+        public INodeStorage.KeyScheme Scheme => INodeStorage.KeyScheme.HalfPath;
     }
 }

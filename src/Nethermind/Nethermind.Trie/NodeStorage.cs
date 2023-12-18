@@ -16,18 +16,18 @@ public class NodeStorage : INodeStorage
 {
     protected readonly IKeyValueStore _keyValueStore;
     private static byte[] EmptyTreeHashBytes = new byte[] { 128 };
-    private readonly NodeWriteBatch.KeyScheme _scheme;
     public const int StoragePathLength = 44;
+    public INodeStorage.KeyScheme Scheme { get; }
 
-    public NodeStorage(IKeyValueStore keyValueStore, NodeWriteBatch.KeyScheme scheme = NodeWriteBatch.KeyScheme.HalfPath)
+    public NodeStorage(IKeyValueStore keyValueStore, INodeStorage.KeyScheme scheme = INodeStorage.KeyScheme.HalfPath)
     {
         _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
-        _scheme = scheme;
+        Scheme = scheme;
     }
 
     public Span<byte> GetExpectedPath(Span<byte> pathSpan, Hash256? address, in TreePath path, in ValueHash256 keccak)
     {
-        if (_scheme == NodeWriteBatch.KeyScheme.HalfPath)
+        if (Scheme == INodeStorage.KeyScheme.HalfPath)
         {
             return GetHalfPathNodeStoragePathSpan(pathSpan, address, path, keccak);
         }
@@ -98,7 +98,7 @@ public class NodeStorage : INodeStorage
         }
 
         Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
-        if (_scheme == NodeWriteBatch.KeyScheme.HalfPath)
+        if (Scheme == INodeStorage.KeyScheme.HalfPath)
         {
             return  _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak), readFlags)
                     ?? _keyValueStore.Get(GetHashBasedStoragePath(storagePathSpan, keccak), readFlags);
@@ -118,7 +118,7 @@ public class NodeStorage : INodeStorage
         }
 
         Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
-        if (_scheme == NodeWriteBatch.KeyScheme.HalfPath)
+        if (Scheme == INodeStorage.KeyScheme.HalfPath)
         {
             return  _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak)) != null
                     || _keyValueStore.Get(GetHashBasedStoragePath(storagePathSpan, keccak)) != null;
@@ -162,6 +162,7 @@ public class NodeStorage : INodeStorage
 
 public interface INodeStorage
 {
+    public KeyScheme Scheme { get; }
     byte[]? Get(Hash256? address, in TreePath path, in ValueHash256 keccak, ReadFlags readFlags = ReadFlags.None);
     void Set(Hash256? address, in TreePath path, in ValueHash256 hash, byte[] toArray, WriteFlags writeFlags = WriteFlags.None);
     bool KeyExists(Hash256? address, in TreePath path, in ValueHash256 hash);
@@ -169,6 +170,12 @@ public interface INodeStorage
 
     byte[]? GetByHash(ReadOnlySpan<byte> key, ReadFlags flags);
     void Flush();
+
+    public enum KeyScheme
+    {
+        Hash,
+        HalfPath
+    }
 }
 
 public interface INodeWriteBatch : IDisposable
@@ -201,11 +208,5 @@ public class NodeWriteBatch : INodeWriteBatch
 
         Span<byte> storagePathSpan = stackalloc byte[NodeStorage.StoragePathLength];
         _writeBatch.Set(_nodeStorage.GetExpectedPath(storagePathSpan, address, path, keccak), toArray, writeFlags);
-    }
-
-    public enum KeyScheme
-    {
-        Hash,
-        HalfPath
     }
 }

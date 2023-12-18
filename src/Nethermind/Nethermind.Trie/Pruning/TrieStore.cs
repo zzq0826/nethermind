@@ -613,6 +613,7 @@ namespace Nethermind.Trie.Pruning
         private bool IsCurrentListSealed => CurrentPackage is null || CurrentPackage.IsSealed;
 
         private long LatestCommittedBlockNumber { get; set; }
+        public INodeStorage.KeyScheme Scheme => _nodeStorage.Scheme;
 
         private void CreateCommitSet(long blockNumber)
         {

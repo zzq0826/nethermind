@@ -32,5 +32,7 @@ namespace Nethermind.Trie.Pruning
         /// <returns></returns>
         [Todo("Find a way to not have this. PatriciaTrie on its own does not need the concept of storage.")]
         ITrieNodeResolver GetStorageTrieNodeResolver(Hash256? address);
+
+        INodeStorage.KeyScheme Scheme { get; }
     }
 }

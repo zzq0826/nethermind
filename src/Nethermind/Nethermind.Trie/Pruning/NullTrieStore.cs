@@ -39,6 +39,8 @@ namespace Nethermind.Trie.Pruning
             return this;
         }
 
+        public INodeStorage.KeyScheme Scheme => INodeStorage.KeyScheme.HalfPath;
+
         public bool IsPersisted(in TreePath path, in ValueHash256 keccak) => true;
 
         public void Dispose() { }
