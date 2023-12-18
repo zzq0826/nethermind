@@ -8,7 +8,7 @@ using Nethermind.Db;
 
 namespace Nethermind.Trie;
 
-public class NodeStorageFactory: INodeStorageFactory
+public class NodeStorageFactory : INodeStorageFactory
 {
     private readonly INodeStorage.KeyScheme _preferredKeyScheme;
 
@@ -33,7 +33,7 @@ public class NodeStorageFactory: INodeStorageFactory
 
         int total = 0;
         int keyOfLength32 = 0;
-        foreach (KeyValuePair<byte[],byte[]?> keyValuePair in asDb.GetAll().Take(20))
+        foreach (KeyValuePair<byte[], byte[]?> keyValuePair in asDb.GetAll().Take(20))
         {
             total++;
             if (keyValuePair.Key.Length == 32)

@@ -138,7 +138,7 @@ public class InitializeStateDb : IStep
             fullPruningDb.PruningStarted += (_, args) =>
             {
                 cachedStateDb?.PersistCache(args.Context);
-                trieStore.PersistCache( _api.NodeStorageFactory.WrapKeyValueStore(args.Context), args.Context.CancellationTokenSource.Token);
+                trieStore.PersistCache(_api.NodeStorageFactory.WrapKeyValueStore(args.Context), args.Context.CancellationTokenSource.Token);
             };
         }
 

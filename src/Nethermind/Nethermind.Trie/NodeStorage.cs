@@ -42,7 +42,8 @@ public class NodeStorage : INodeStorage
     {
         Debug.Assert(pathSpan.Length == StoragePathLength);
 
-        if (address == null) {
+        if (address == null)
+        {
             // Separate the top level tree into its own section. This improve cache hit rate by about a few %. The idea
             // being that the top level trie is spread out across the database, leading for a poor cache hit. In practice
             // its not that much, likely because they are also likely to be at the top of LSM tree.
@@ -97,7 +98,7 @@ public class NodeStorage : INodeStorage
         Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
         if (Scheme == INodeStorage.KeyScheme.HalfPath)
         {
-            return  _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak), readFlags)
+            return _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak), readFlags)
                     ?? _keyValueStore.Get(GetHashBasedStoragePath(storagePathSpan, keccak), readFlags);
         }
         else
@@ -117,7 +118,7 @@ public class NodeStorage : INodeStorage
         Span<byte> storagePathSpan = stackalloc byte[StoragePathLength];
         if (Scheme == INodeStorage.KeyScheme.HalfPath)
         {
-            return  _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak)) != null
+            return _keyValueStore.Get(GetHalfPathNodeStoragePathSpan(storagePathSpan, address, path, keccak)) != null
                     || _keyValueStore.Get(GetHashBasedStoragePath(storagePathSpan, keccak)) != null;
         }
         else

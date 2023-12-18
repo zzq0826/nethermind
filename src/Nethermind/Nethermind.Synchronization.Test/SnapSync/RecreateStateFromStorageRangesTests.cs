@@ -171,7 +171,7 @@ namespace Nethermind.Synchronization.Test.SnapSync
         {
             try
             {
-                IDb _= dbProvider.CodeDb;
+                IDb _ = dbProvider.CodeDb;
             }
             catch (ArgumentException)
             {

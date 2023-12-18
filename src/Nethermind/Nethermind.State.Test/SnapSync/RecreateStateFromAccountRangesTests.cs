@@ -268,7 +268,7 @@ namespace Nethermind.Store.Test
         {
             try
             {
-                IDb _= dbProvider.CodeDb;
+                IDb _ = dbProvider.CodeDb;
             }
             catch (ArgumentException)
             {
