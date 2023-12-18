@@ -123,7 +123,12 @@ public class PivotUpdater
     {
         Hash256? finalizedBlockHash = TryGetFinalizedBlockHashFromCl();
 
-        if (finalizedBlockHash is null || finalizedBlockHash == Keccak.Zero)
+        if (finalizedBlockHash == Keccak.Zero)
+        {
+            return true;
+        }
+
+        if (finalizedBlockHash is null)
         {
             return false;
         }
