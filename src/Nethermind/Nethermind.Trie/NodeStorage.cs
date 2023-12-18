@@ -3,14 +3,11 @@
 
 using System;
 using System.Diagnostics;
-using System.Reflection.Metadata;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Db;
-using Nethermind.Serialization.Rlp;
 
-namespace Nethermind.Trie.Pruning;
+namespace Nethermind.Trie;
 
 public class NodeStorage : INodeStorage
 {

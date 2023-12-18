@@ -17,8 +17,6 @@ using Nethermind.Db;
 using Nethermind.Db.FullPruning;
 using Nethermind.Init.Steps;
 using Nethermind.JsonRpc.Converters;
-using Nethermind.JsonRpc.Modules.DebugModule;
-using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 using Nethermind.State;
@@ -76,12 +74,19 @@ public class InitializeStateDb : IStep
             setApi.WitnessRepository = NullWitnessCollector.Instance;
         }
 
-        CachingStore cachedStateDb = getApi.DbProvider.StateDb
-            .Cached(Trie.MemoryAllowance.TrieNodeCacheCount);
+        IKeyValueStoreWithBatching stateDb = getApi.DbProvider.StateDb;
+        CachingStore? cachedStateDb = null;
+        if (_api.NodeStorageFactory.WrapKeyValueStore(stateDb).Scheme == INodeStorage.KeyScheme.Hash)
+        {
+            cachedStateDb = getApi.DbProvider.StateDb
+                .Cached(Trie.MemoryAllowance.TrieNodeCacheCount);
+            stateDb = cachedStateDb;
+        }
+
         IKeyValueStore codeDb = getApi.DbProvider.CodeDb
             .WitnessedBy(witnessCollector);
 
-        IKeyValueStoreWithBatching stateWitnessedBy = cachedStateDb.WitnessedBy(witnessCollector);
+        IKeyValueStoreWithBatching stateWitnessedBy = stateDb.WitnessedBy(witnessCollector);
         IPersistenceStrategy persistenceStrategy;
         IPruningStrategy pruningStrategy;
         if (pruningConfig.Mode.IsMemory())
@@ -132,7 +137,7 @@ public class InitializeStateDb : IStep
             IFullPruningDb fullPruningDb = (IFullPruningDb)getApi.DbProvider!.StateDb;
             fullPruningDb.PruningStarted += (_, args) =>
             {
-                cachedStateDb.PersistCache(args.Context);
+                cachedStateDb?.PersistCache(args.Context);
                 trieStore.PersistCache( _api.NodeStorageFactory.WrapKeyValueStore(args.Context), args.Context.CancellationTokenSource.Token);
             };
         }
