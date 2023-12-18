@@ -36,7 +36,7 @@ namespace Nethermind.Trie
             Hash256? address,
             ref TreePath path,
             SmallTrieVisitContext trieVisitContext,
-            IList<(Hash256?, TreePath, TrieNode, SmallTrieVisitContext)> nextToVisit
+            IList<(TreePath, TrieNode, SmallTrieVisitContext)> nextToVisit
         )
         {
             int originalPathLength = path.Length;
@@ -59,7 +59,7 @@ namespace Nethermind.Trie
                                     SmallTrieVisitContext childCtx = trieVisitContext; // Copy
                                     childCtx.BranchChildIndex = (byte?)i;
 
-                                    nextToVisit.Add((address, path, child, childCtx));
+                                    nextToVisit.Add((path, child, childCtx));
                                 }
 
                                 if (child.IsPersisted)
@@ -89,7 +89,7 @@ namespace Nethermind.Trie
                             trieVisitContext.Level++;
                             trieVisitContext.BranchChildIndex = null;
 
-                            nextToVisit.Add((address, path, child, trieVisitContext));
+                            nextToVisit.Add((path, child, trieVisitContext));
                         }
                         path.TruncateMut(originalPathLength);
 
@@ -121,7 +121,7 @@ namespace Nethermind.Trie
                                     path.AppendMut(Key);
                                     Hash256 storageAddr = path.Path.ToCommitment();
                                     trieVisitContext.Storage = storageAddr;
-                                    nextToVisit.Add((storageAddr, TreePath.Empty, chStorageRoot!, trieVisitContext));
+                                    nextToVisit.Add((TreePath.Empty, chStorageRoot!, trieVisitContext));
                                     path.TruncateMut(originalPathLength);
                                     trieVisitContext.Storage = null;
                                 }
