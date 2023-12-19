@@ -13,7 +13,7 @@ public partial class VerkleTree
 {
     public bool HasStateForStateRoot(Hash256 stateRoot)
     {
-        return _verkleStateStore.HashStateForBlock(new Hash256(stateRoot.Bytes.ToArray()));
+        return _verkleStateStore.HashStateForBlock(stateRoot);
     }
 
     public void Accept(ITreeVisitor visitor, Hash256 rootHash, VisitingOptions? visitingOptions = null)

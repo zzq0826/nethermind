@@ -56,7 +56,7 @@ public partial class VerkleStateStore
     }
     private long LatestCommittedBlockNumber { get; set; }
 
-    private Hash256? PersistedStateRoot { get;  set; }
+    private Hash256? PersistedStateRoot { get; set; } = Pedersen.Zero;
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
@@ -87,9 +87,20 @@ public partial class VerkleStateStore
         }
         else
         {
-            if (blockNumber <= LatestCommittedBlockNumber)
-                throw new StateFlushException(
-                    $"Invalid block commit, {blockNumber} should be >= {LatestCommittedBlockNumber}");
+            // TODO: this should be handled by the reorg logic itself
+            // if (BlockCache is not null)
+            // {
+            //     if (blockNumber < LatestCommittedBlockNumber)
+            //     {
+            //         long noOfBlockToMove = LatestCommittedBlockNumber - blockNumber;
+            //         if (noOfBlockToMove >= BlockCache.Count) BlockCache.Clear();
+            //         else BlockCache.RemoveDiffs(noOfBlockToMove);
+            //     }
+            //     else if (blockNumber == LatestCommittedBlockNumber)
+            //     {
+            //         if (BlockCache.Count > 0) BlockCache.Pop(out _);
+            //     }
+            // }
 
             // create a sorted set for leaves - for snap sync
             // TODO: create this sorted set while inserting into the batch - will help reducing allocations

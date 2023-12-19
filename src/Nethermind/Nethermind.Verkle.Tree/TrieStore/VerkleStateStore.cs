@@ -31,11 +31,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public bool HashStateForBlock(Hash256 stateRoot)
     {
         if (stateRoot == StateRoot) return true;
-        if (stateRoot.Equals(new Hash256(Keccak.EmptyTreeHash.Bytes.ToArray())))
-        {
-            if (StateRoot.Equals(Pedersen.Zero)) return true;
-            return false;
-        }
+        if (stateRoot.Equals(Keccak.EmptyTreeHash)) return StateRoot.Equals(Pedersen.Zero);
 
         long fromBlock = StateRootToBlocks[StateRoot];
         if (fromBlock == -1)
@@ -175,11 +171,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         // this is to handle a edge case and should be removed eventually - this can be potential issue here
         {
             // TODO: this is actually not possible - not sure if return true is correct here
-            if (stateRoot.Equals(Keccak.EmptyTreeHash))
-            {
-                if (StateRoot.Equals(Pedersen.Zero)) return true;
-                return false;
-            }
+            if (stateRoot.Equals(Keccak.EmptyTreeHash)) return StateRoot.Equals(Pedersen.Zero);
         }
 
         // resolve block numbers
