@@ -289,6 +289,8 @@ namespace Nethermind.Consensus.Producers
 
             header.BaseFeePerGas = BaseFeeCalculator.Calculate(parent, _specProvider.GetSpec(header));
 
+            // ToDo Add Verkle stuff here
+
             return header;
         }
 

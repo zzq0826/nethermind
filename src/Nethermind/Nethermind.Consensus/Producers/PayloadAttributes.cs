@@ -28,6 +28,8 @@ public class PayloadAttributes
 
     public Hash256? ParentBeaconBlockRoot { get; set; }
 
+    // ToDo Add Verkle stuff here
+
     public virtual long? GetGasLimit() => null;
 
     public override string ToString() => ToString(string.Empty);
@@ -48,6 +50,8 @@ public class PayloadAttributes
         {
             sb.Append($", {nameof(ParentBeaconBlockRoot)} : {ParentBeaconBlockRoot}");
         }
+
+        // ToDo Add Verkle stuff here
 
         sb.Append('}');
 
