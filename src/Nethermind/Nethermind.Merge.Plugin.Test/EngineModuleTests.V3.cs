@@ -37,8 +37,6 @@ namespace Nethermind.Merge.Plugin.Test;
 
 public partial class EngineModuleTests
 {
-    // ToDo add engine test that you can create a block with verkle stuff
-
     [Test]
     public async Task NewPayloadV1_should_decline_post_cancun()
     {
