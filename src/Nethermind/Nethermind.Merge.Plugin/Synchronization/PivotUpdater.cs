@@ -125,6 +125,7 @@ public class PivotUpdater
 
         if (finalizedBlockHash == Keccak.Zero)
         {
+            if (_logger.IsInfo) _logger.Info("Received ");
             return true;
         }
 
