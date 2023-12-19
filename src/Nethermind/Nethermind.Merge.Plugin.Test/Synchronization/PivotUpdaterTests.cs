@@ -3,6 +3,7 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using NUnit.Framework;
 using NSubstitute;
 using Nethermind.Blockchain;
@@ -34,6 +35,7 @@ namespace Nethermind.Merge.Plugin.Test.Synchronization
         private IBlockCacheService? _blockCacheService;
         private IBeaconSyncStrategy? _beaconSyncStrategy;
         private IDb? _metadataDb;
+        private IBlockTree? _externalPeerBlockTree;
 
         [SetUp]
         public void Setup()
@@ -41,13 +43,13 @@ namespace Nethermind.Merge.Plugin.Test.Synchronization
             Block genesisBlock = Build.A.Block.WithNumber(0).TestObject;
             TestSpecProvider specProvider = new(Cancun.Instance);
             specProvider.TerminalTotalDifficulty = 0;
-            BlockTree syncedTree = Build.A.BlockTree(genesisBlock, specProvider)
+            _externalPeerBlockTree = Build.A.BlockTree(genesisBlock, specProvider)
                 .WithoutSettingHead
                 .OfChainLength(20)
                 .TestObject;
 
             var fakePeer = Substitute.For<ISyncPeer>();
-            fakePeer.GetHeadBlockHeader(default, default).ReturnsForAnyArgs(x => syncedTree!.Head!.Header);
+            fakePeer.GetHeadBlockHeader(default, default).ReturnsForAnyArgs(x => _externalPeerBlockTree!.Head!.Header);
             NetworkNode node = new(TestItem.PublicKeyA, "127.0.0.1", 30303, 100L);
             fakePeer.Node.Returns(new Node(node));
 
@@ -74,20 +76,22 @@ namespace Nethermind.Merge.Plugin.Test.Synchronization
         }
 
         [Test]
-        public void OnSyncModeChanged_TrySetFreshPivot_SavesFinalizedHashInDb()
+        public void TrySetFreshPivot_SavesFinalizedHashInDb()
         {
             SyncModeChangedEventArgs args = new (SyncMode.FastSync, SyncMode.UpdatingPivot);
-            Hash256 expectedFinalizedHash = TestItem.KeccakF;
+            Hash256 expectedFinalizedHash = _externalPeerBlockTree!.HeadHash;
+            long expectedPivotBlockNumber = _externalPeerBlockTree!.Head!.Number;
             _beaconSyncStrategy!.GetFinalizedHash().Returns(expectedFinalizedHash);
 
             _syncModeSelector!.Changed += Raise.EventWith(args);
 
             byte[] storedData = _metadataDb!.Get(MetadataDbKeys.UpdatedPivotData)!;
             RlpStream pivotStream = new(storedData!);
-            long updatedPivotBlockNumber = pivotStream.DecodeLong();
+            long storedPivotBlockNumber = pivotStream.DecodeLong();
             Hash256 storedFinalizedHash = pivotStream.DecodeKeccak()!;
 
-            Assert.That(storedFinalizedHash, Is.EqualTo(expectedFinalizedHash));
+            storedFinalizedHash.Should().Be(expectedFinalizedHash);
+            expectedPivotBlockNumber.Should().Be(storedPivotBlockNumber);
         }
     }
 }
