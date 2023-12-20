@@ -63,7 +63,7 @@ namespace Nethermind.Merge.Plugin.Test.Synchronization
             _beaconSyncStrategy = Substitute.For<IBeaconSyncStrategy>();
             _metadataDb = new MemDb();
 
-            PivotUpdater pivotUpdater = new (
+            PivotUpdator pivotUpdator = new (
               _blockTree,
               _syncModeSelector,
               _syncPeerPool,
