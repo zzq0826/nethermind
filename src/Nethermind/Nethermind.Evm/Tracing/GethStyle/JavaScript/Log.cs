@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.JavaScript;
+using Nethermind.Logging;
 
 // ReSharper disable InconsistentNaming
 
@@ -49,7 +50,13 @@ namespace Nethermind.Evm.Tracing.GethStyle.JavaScript
             private readonly TraceStack _items;
             public Stack(TraceStack items) => _items = items;
             public int length() => _items.Count;
-            public IJavaScriptObject peek(int index) => new BigInteger(_items[^(index + 1)].Span, true, true).ToBigInteger();
+            public IJavaScriptObject peek(int index)
+            {
+                ILogger logger = ILogManager.LogManager.GetClassLogger<Stack>();
+                BigInteger bigInteger = new BigInteger(_items[^(index + 1)].Span, true, true);
+                logger.Info($"Stack.peek({index}) -> {bigInteger.ToString("x")}");
+                return bigInteger.ToBigInteger();
+            }
         }
 
         public class Memory

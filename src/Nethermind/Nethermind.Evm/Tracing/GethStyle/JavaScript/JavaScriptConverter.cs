@@ -10,6 +10,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Int256;
+using Nethermind.Logging;
 
 namespace Nethermind.Evm.Tracing.GethStyle.JavaScript;
 
@@ -35,11 +36,17 @@ public static class JavaScriptConverter
 
     public static Address ToAddress(this object address) => address switch
     {
-        string hexString => Address.TryParseVariableLength(hexString, out Address parsedAddress)
-            ? parsedAddress
-            : throw new ArgumentException("Not correct address", nameof(address)),
+        string hexString => ParseAddress(hexString),
         _ => new Address(address.ToBytes())
     } ?? throw new ArgumentException("Not correct address", nameof(address));
+
+    private static Address ParseAddress(string hexString)
+    {
+        ILogManager.LogManager.GetClassLogger<Engine>().Info($"toAddress({hexString})");
+        return Address.TryParseVariableLength(hexString, out Address parsedAddress)
+            ? parsedAddress
+            : throw new ArgumentException("Not correct address", "address");
+    }
 
     public static ValueHash256 GetHash(this object index) => new(index.ToBytes());
 

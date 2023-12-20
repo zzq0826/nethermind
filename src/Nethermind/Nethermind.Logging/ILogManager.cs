@@ -13,5 +13,7 @@ namespace Nethermind.Logging
         ILogger GetLogger(string loggerName);
 
         void SetGlobalVariable(string name, object value) { }
+
+        public static ILogManager LogManager { get; set; } = LimboLogs.Instance;
     }
 }
