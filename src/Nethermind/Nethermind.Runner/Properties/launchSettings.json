@@ -86,7 +86,7 @@
     },
     "Holesky": {
       "commandName": "Project",
-      "commandLineArgs": "-c holesky -dd .data --JsonRpc.JwtSecretFile C:/ethereum/jwt.hex",
+      "commandLineArgs": "-c holesky -dd C:/ethereum/nethermind --JsonRpc.JwtSecretFile C:/ethereum/jwt.hex\r\n",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
