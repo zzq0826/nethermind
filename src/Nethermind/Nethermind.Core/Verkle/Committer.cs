@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Nethermind.Core.Crypto;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 
@@ -23,7 +24,7 @@ namespace Nethermind.Core.Verkle
     {
         private FrE? _pointAsField;
 
-        public byte[] ToBytes() => Point.ToBytes();
+        public Hash256 ToBytes() => new Hash256(Point.ToBytes());
 
         public Commitment(Banderwagon point)
         {

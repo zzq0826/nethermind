@@ -15,9 +15,8 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
     Hash256 StateRoot { get; }
-    Hash256 GetStateRoot();
 
-    bool HashStateForBlock(Hash256 stateRoot);
+    bool HasStateForBlock(Hash256 stateRoot);
     bool MoveToStateRoot(Hash256 stateRoot);
 
     byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null);

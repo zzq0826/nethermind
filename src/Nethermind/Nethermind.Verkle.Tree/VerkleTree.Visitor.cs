@@ -13,7 +13,7 @@ public partial class VerkleTree
 {
     public bool HasStateForStateRoot(Hash256 stateRoot)
     {
-        return _verkleStateStore.HashStateForBlock(stateRoot);
+        return _verkleStateStore.HasStateForBlock(stateRoot);
     }
 
     public void Accept(ITreeVisitor visitor, Hash256 rootHash, VisitingOptions? visitingOptions = null)
@@ -46,8 +46,7 @@ public partial class VerkleTree
 
         if (visitor is RootCheckVisitor)
         {
-            _logger.Info($"Using RootCheckVisitor: Want:{rootHash} HaveGetStateRoot:{_verkleStateStore.GetStateRoot()} HaveStateRoot:{_verkleStateStore.StateRoot}");
-            if (!rootHash.Bytes.SequenceEqual(_verkleStateStore.GetStateRoot().Bytes)) visitor.VisitMissingNode(Keccak.Zero, trieVisitContext);
+            throw new Exception("should never use RootCheckVisitor with VerkleTrees");
         }
         else
         {

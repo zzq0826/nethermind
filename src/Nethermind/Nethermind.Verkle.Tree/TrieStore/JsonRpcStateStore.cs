@@ -10,6 +10,10 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
+/// <summary>
+/// This is a state store designed to be used with JsonRpc
+/// this will use the VerkleStateStore and VerkleArchiveStore to provide historical data for JsonRpc calls
+/// </summary>
 public class JsonRpcStateStore
 {
     private readonly VerkleArchiveStore _archiveStore;
@@ -68,10 +72,6 @@ public class JsonRpcStateStore
 
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch) { }
 
-    public Hash256 GetStateRoot()
-    {
-        return _verkleStateStore.GetStateRoot();
-    }
     public void MoveToStateRoot(Hash256 stateRoot)
     {
         StateStoreStateRoot = stateRoot;

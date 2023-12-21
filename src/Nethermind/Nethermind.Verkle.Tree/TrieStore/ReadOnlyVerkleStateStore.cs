@@ -57,14 +57,9 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public void ApplyDiffLayer(BatchChangeSet changeSet) { }
 
-    public Hash256 GetStateRoot()
+    public bool HasStateForBlock(Hash256 stateRoot)
     {
-        return _verkleStateStore.GetStateRoot();
-    }
-
-    public bool HashStateForBlock(Hash256 stateRoot)
-    {
-        return _verkleStateStore.HashStateForBlock(stateRoot);
+        return _verkleStateStore.HasStateForBlock(stateRoot);
     }
 
     public bool MoveToStateRoot(Hash256 stateRoot)

@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
@@ -40,23 +40,6 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 /// </summary>
 public partial class VerkleStateStore
 {
-    private bool _lastPersistedReachedReorgBoundary;
-    private long _latestPersistedBlockNumber;
-    public long LastPersistedBlockNumber
-    {
-        get => _latestPersistedBlockNumber;
-        private set
-        {
-            if (value != _latestPersistedBlockNumber)
-            {
-                _latestPersistedBlockNumber = value;
-                _lastPersistedReachedReorgBoundary = false;
-            }
-        }
-    }
-    private long LatestCommittedBlockNumber { get; set; }
-
-    private Hash256? PersistedStateRoot { get; set; } = Pedersen.Zero;
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
@@ -69,6 +52,11 @@ public partial class VerkleStateStore
     // TODO: do we need to add another approach where we bulk insert into the db - or batching on epochs is fine?
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
     {
+        Hash256 rootToCommit = GetStateRoot(batch.InternalTable) ??
+                               throw new StateFlushException(
+                                   $"Failed InsertBatch:{blockNumber}. StateRoot not found in the batch");
+
+        // TODO: create a sorted set here - we need it for verkleSync serving
         ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
             InternalTable = batch.InternalTable,
@@ -77,56 +65,27 @@ public partial class VerkleStateStore
 
         if (blockNumber == 0)
         {
-            if (_logger.IsDebug) _logger.Debug($"{DebugLogString} Persisting the changes for block 0");
+            if (_logger.IsDebug) _logger.Debug($"Persisting the changes for block 0");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
-            UpdateStateRoot();
+            StateRoot = rootToCommit;
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             StateRootToBlocks[StateRoot] = blockNumber;
         }
         else
         {
-            // TODO: this should be handled by the reorg logic itself
-            // if (BlockCache is not null)
-            // {
-            //     if (blockNumber < LatestCommittedBlockNumber)
-            //     {
-            //         long noOfBlockToMove = LatestCommittedBlockNumber - blockNumber;
-            //         if (noOfBlockToMove >= BlockCache.Count) BlockCache.Clear();
-            //         else BlockCache.RemoveDiffs(noOfBlockToMove);
-            //     }
-            //     else if (blockNumber == LatestCommittedBlockNumber)
-            //     {
-            //         if (BlockCache.Count > 0) BlockCache.Pop(out _);
-            //     }
-            // }
-
-            // create a sorted set for leaves - for snap sync
-            // TODO: create this sorted set while inserting into the batch - will help reducing allocations
-            bool shouldPersistBlock;
-            ReadOnlyVerkleMemoryDb changesToPersist;
-            long blockNumberToPersist;
-            if (BlockCache is null)
-            {
-                shouldPersistBlock = true;
-                changesToPersist = cacheBatch;
-                blockNumberToPersist = blockNumber;
-            }
-            else
-            {
-                shouldPersistBlock = !BlockCache.EnqueueAndReplaceIfFull((blockNumber, cacheBatch),
-                    out (long, ReadOnlyVerkleMemoryDb) element);
-                changesToPersist = element.Item2;
-                blockNumberToPersist = element.Item1;
-            }
+            bool shouldPersistBlock = BlockCache.EnqueueAndReplaceIfFull(blockNumber,
+                rootToCommit, cacheBatch, StateRoot, out BlockBranchNode? element);
 
             if (shouldPersistBlock)
             {
+                ReadOnlyVerkleMemoryDb changesToPersist = element.Data.StateDiff;
+                var blockNumberToPersist = element.Data.BlockNumber;
                 if (_logger.IsDebug)
-                    _logger.Debug($"{DebugLogString} BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+                    _logger.Debug($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 Hash256 root = GetStateRoot(changesToPersist.InternalTable) ?? (new Hash256(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
-                if (_logger.IsDebug) _logger.Debug($"{DebugLogString} StateRoot after persisting forwardDiff: {root}");
+                if (_logger.IsDebug) _logger.Debug($"StateRoot after persisting forwardDiff: {root}");
 
                 PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage, out VerkleMemoryDb reverseDiff);
                 // TODO: handle this properly - while testing this is needed so that this does not fuck up other things
@@ -143,11 +102,12 @@ public partial class VerkleStateStore
                 PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
             }
-            UpdateStateRoot();
+
+            StateRoot = rootToCommit;
             StateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
-                $"{DebugLogString} Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
+                $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");
         }
         AnnounceReorgBoundaries();
     }

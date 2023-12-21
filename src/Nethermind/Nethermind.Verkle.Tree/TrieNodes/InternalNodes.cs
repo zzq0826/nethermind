@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
@@ -19,7 +20,7 @@ public class InternalNode
     public bool IsBranchNode => NodeType == VerkleNodeType.BranchNode;
     public VerkleNodeType NodeType { get; }
     public Commitment InternalCommitment { get; }
-    public byte[] Bytes => InternalCommitment.ToBytes();
+    public Hash256 Bytes => InternalCommitment.ToBytes();
 
     public bool IsStateless { get; set; } = false;
 
