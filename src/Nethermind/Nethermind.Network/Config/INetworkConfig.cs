@@ -88,9 +88,6 @@ namespace Nethermind.Network.Config
 
         [ConfigItem(DefaultValue = "2000", HiddenFromDocs = true, Description = "[TECHNICAL] Outgoing connection timeout in ms. Default is 2 seconds.")]
         int ConnectTimeoutMs { get; set; }
-<<<<<<< HEAD
-=======
-
         [ConfigItem(DefaultValue = "1", HiddenFromDocs = true, Description = "[TECHNICAL] Num of thread in final processing of network packet. Set to more than 1 if you have very fast internet.")]
         int ProcessingThreadCount { get; set; }
 
@@ -99,6 +96,5 @@ namespace Nethermind.Network.Config
 
         [ConfigItem(DefaultValue = "false", HiddenFromDocs = true, Description = "[TECHNICAL] Disable feeding ENR DNS records to discv4 table")]
         bool DisableDiscV4DnsFeeder { get; set; }
->>>>>>> 870323c834 (Unit tests)
     }
 }
