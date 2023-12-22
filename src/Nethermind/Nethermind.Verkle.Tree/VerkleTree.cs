@@ -70,6 +70,8 @@ public partial class VerkleTree: IVerkleTree
         try
         {
             if (_logger.IsTrace) _logger.Trace($"MoveToStateRoot: from: {StateRoot} to: {stateRoot}");
+            _treeCache.LeafTable.Clear();
+            _treeCache.InternalTable.Clear();
             return _verkleStateStore.MoveToStateRoot(stateRoot);
         }
         catch (Exception e)

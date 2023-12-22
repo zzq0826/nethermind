@@ -4,6 +4,7 @@
 using System;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -84,7 +85,7 @@ public class VerkleStateReader : IStateReader
 
     private Account? GetState(Hash256 stateRoot, Address address)
     {
-        if (stateRoot == Keccak.EmptyTreeHash)
+        if (stateRoot == Keccak.EmptyTreeHash || stateRoot == Pedersen.Zero)
         {
             return null;
         }

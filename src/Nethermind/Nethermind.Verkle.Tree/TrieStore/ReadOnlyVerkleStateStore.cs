@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
+using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.Sync;
@@ -17,11 +18,13 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
     private VerkleStateStore _verkleStateStore;
     private VerkleMemoryDb _keyValueStore;
+    private ILogger _logger;
 
     public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
+        _logger = verkleStateStore.LogManager.GetClassLogger<ReadOnlyVerkleStateStore>();
     }
 
     public Hash256 StateRoot
@@ -30,6 +33,13 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         {
             _keyValueStore.GetInternalNode(VerkleStateStore.RootNodeKey, out InternalNode? value);
             return value is null ? _verkleStateStore.StateRoot : new Hash256(value.Bytes);
+        }
+
+        set
+        {
+            _keyValueStore.LeafTable.Clear();
+            _keyValueStore.InternalTable.Clear();
+            MoveToStateRoot(value);
         }
     }
 
@@ -64,6 +74,9 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
+        _logger.Info($"RSS - Trying to move to {stateRoot} from {StateRoot}");
+        _keyValueStore.LeafTable.Clear();
+        _keyValueStore.InternalTable.Clear();
         return _verkleStateStore.MoveToStateRoot(stateRoot);
     }
 

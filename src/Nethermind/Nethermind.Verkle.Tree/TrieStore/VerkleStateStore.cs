@@ -16,6 +16,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public static Span<byte> RootNodeKey => Array.Empty<byte>();
 
     private readonly ILogger _logger;
+    public readonly ILogManager LogManager;
 
     /// <summary>
     ///
@@ -77,6 +78,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
+        LogManager = logManager;
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
         StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
@@ -92,6 +94,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         int blockCacheSize,
         ILogManager? logManager)
     {
+        LogManager = logManager!;
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
