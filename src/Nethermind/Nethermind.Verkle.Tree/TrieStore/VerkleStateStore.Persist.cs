@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
@@ -52,10 +53,6 @@ public partial class VerkleStateStore
     // TODO: do we need to add another approach where we bulk insert into the db - or batching on epochs is fine?
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
     {
-        Hash256 rootToCommit = GetStateRoot(batch.InternalTable) ??
-                               throw new StateFlushException(
-                                   $"Failed InsertBatch:{blockNumber}. StateRoot not found in the batch");
-
         // TODO: create a sorted set here - we need it for verkleSync serving
         ReadOnlyVerkleMemoryDb cacheBatch = new()
         {
@@ -68,20 +65,40 @@ public partial class VerkleStateStore
             if (_logger.IsDebug) _logger.Debug($"Persisting the changes for block 0");
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
-            StateRoot = rootToCommit;
+            Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
+            StateRoot = newRoot?.Bytes ?? Pedersen.Zero;
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             StateRootToBlocks[StateRoot] = blockNumber;
         }
         else
         {
+            if (!BlockCache.IsInitialized)
+            {
+                Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
+                if(newRoot is null) _logger.Error("ERROR newRoot is null - this must be some kind of error");
+                BlockCache.InitCache(blockNumber - 1, newRoot?.Bytes ?? Pedersen.Zero);
+            }
+
+            Hash256? rootToCommit = GetStateRoot(batch.InternalTable);
+            if (rootToCommit is null)
+            {
+                if (!(batch.InternalTable.Count == 0 && batch.LeafTable.Count == 0))
+                {
+                    throw new StateFlushException(
+                        $"Failed InsertBatch:{blockNumber}. StateRoot not found in the batch");
+                }
+                rootToCommit = StateRoot;
+            }
+
+
             bool shouldPersistBlock = BlockCache.EnqueueAndReplaceIfFull(blockNumber,
-                rootToCommit, cacheBatch, StateRoot, out BlockBranchNode? element);
+                rootToCommit, cacheBatch, StateRoot, out StateInfo element);
 
             if (shouldPersistBlock)
             {
-                ReadOnlyVerkleMemoryDb changesToPersist = element.Data.StateDiff;
-                var blockNumberToPersist = element.Data.BlockNumber;
+                ReadOnlyVerkleMemoryDb changesToPersist = element.StateDiff;
+                var blockNumberToPersist = element.BlockNumber;
                 if (_logger.IsDebug)
                     _logger.Debug($"BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
                 Hash256 root = GetStateRoot(changesToPersist.InternalTable) ?? (new Hash256(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException()));
