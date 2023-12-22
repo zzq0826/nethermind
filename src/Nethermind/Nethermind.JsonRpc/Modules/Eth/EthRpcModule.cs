@@ -350,8 +350,7 @@ public partial class EthRpcModule : IEthRpcModule
             .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<AccessListForRpc?> eth_createAccessList(TransactionForRpc transactionCall, BlockParameter? blockParameter = null, bool optimize = true) =>
-        new CreateAccessListTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, optimize)
-            .ExecuteTx(transactionCall, blockParameter);
+        ResultWrapper<AccessListForRpc?>.Fail("eth_createAccessList not supported");
 
     public ResultWrapper<BlockForRpc> eth_getBlockByHash(Hash256 blockHash, bool returnFullTransactionObjects)
     {
