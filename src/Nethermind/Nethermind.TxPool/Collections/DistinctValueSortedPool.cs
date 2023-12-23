@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Nethermind.Logging;
 
 namespace Nethermind.TxPool.Collections
@@ -41,6 +42,14 @@ namespace Nethermind.TxPool.Collections
             _comparer = GetReplacementComparer(comparer ?? throw new ArgumentNullException(nameof(comparer)));
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _distinctDictionary = new Dictionary<TValue, KeyValuePair<TKey, TValue>>(distinctComparer);
+            this.Inserted += (sender, args) =>
+            {
+                _logger.Warn($"{sender!.GetType().FullName} inserted {args.Key}");
+            };
+            this.Removed += (sender, args) =>
+            {
+                _logger.Warn($"{sender!.GetType().FullName} removed {args.Key} from: {new StackFrame().ToString()}");
+            };
         }
 
         protected virtual IComparer<TValue> GetReplacementComparer(IComparer<TValue> comparer) => comparer;
