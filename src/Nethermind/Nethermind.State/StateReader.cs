@@ -33,7 +33,7 @@ namespace Nethermind.State
             return GetState(stateRoot, address);
         }
 
-        public byte[] GetStorage(Hash256 storageRoot, in UInt256 index)
+        private byte[] GetStorage(Hash256 storageRoot, in UInt256 index)
         {
             if (storageRoot == Keccak.EmptyTreeHash)
             {

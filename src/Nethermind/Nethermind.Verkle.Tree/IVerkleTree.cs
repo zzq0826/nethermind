@@ -14,7 +14,7 @@ public interface IVerkleTree
 {
     public Hash256 StateRoot { get; set; }
     public bool MoveToStateRoot(Hash256 stateRoot);
-    public byte[]? Get(Hash256 key);
+    public byte[]? Get(Hash256 key, Hash256? stateRoot = null);
     public void Insert(Hash256 key, ReadOnlySpan<byte> value);
     public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<(byte, byte[])> leafIndexValueMap);
     public void InsertStemBatch(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap);

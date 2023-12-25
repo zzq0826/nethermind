@@ -176,13 +176,9 @@ public partial class EthRpcModule : IEthRpcModule
         }
 
         BlockHeader? header = searchResult.Object;
-        Account account = _stateReader.GetAccount(header!.StateRoot!, address);
-        if (account is null)
-        {
-            return ResultWrapper<byte[]>.Success(Array.Empty<byte>());
-        }
+        byte[]? storage = _stateReader.GetStorage(header!.StateRoot!, new StorageCell(address, positionIndex));
+        if (storage is null) return ResultWrapper<byte[]>.Success(Array.Empty<byte>());
 
-        byte[] storage = _stateReader.GetStorage(account.StorageRoot, positionIndex);
         return ResultWrapper<byte[]>.Success(storage!.PadLeft(32));
     }
 
@@ -350,7 +346,8 @@ public partial class EthRpcModule : IEthRpcModule
             .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<AccessListForRpc?> eth_createAccessList(TransactionForRpc transactionCall, BlockParameter? blockParameter = null, bool optimize = true) =>
-        ResultWrapper<AccessListForRpc?>.Fail("eth_createAccessList not supported");
+        new CreateAccessListTxExecutor(_blockchainBridge, _blockFinder, _rpcConfig, optimize)
+            .ExecuteTx(transactionCall, blockParameter);
 
     public ResultWrapper<BlockForRpc> eth_getBlockByHash(Hash256 blockHash, bool returnFullTransactionObjects)
     {

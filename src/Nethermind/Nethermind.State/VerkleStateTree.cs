@@ -26,20 +26,20 @@ public class VerkleStateTree : VerkleTree
     public VerkleStateTree(IVerkleTrieStore stateStore, ILogManager logManager) : base(stateStore, logManager) { }
 
     [DebuggerStepThrough]
-    public Account? Get(Address address, Hash256? rootHash = null)
+    public Account? Get(Address address, Hash256? stateRoot = null)
     {
         Span<byte> key = AccountHeader.GetTreeKeyPrefix(address.Bytes, 0);
 
         key[31] = AccountHeader.Version;
-        UInt256 version = new((Get(key) ?? Array.Empty<byte>()).ToArray());
+        UInt256 version = new((Get(key, stateRoot) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Balance;
-        UInt256 balance = new((Get(key) ?? Array.Empty<byte>()).ToArray());
+        UInt256 balance = new((Get(key, stateRoot) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.Nonce;
-        UInt256 nonce = new((Get(key) ?? Array.Empty<byte>()).ToArray());
+        UInt256 nonce = new((Get(key, stateRoot) ?? Array.Empty<byte>()).ToArray());
         key[31] = AccountHeader.CodeHash;
-        byte[]? codeHash = (Get(key) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
+        byte[]? codeHash = (Get(key, stateRoot) ?? Keccak.OfAnEmptyString.Bytes).ToArray();
         key[31] = AccountHeader.CodeSize;
-        UInt256 codeSize = new((Get(key) ?? Array.Empty<byte>()).ToArray());
+        UInt256 codeSize = new((Get(key, stateRoot) ?? Array.Empty<byte>()).ToArray());
 
         return new Account(nonce, balance, codeSize, version, Keccak.EmptyTreeHash, new Hash256(codeHash));
     }
@@ -50,10 +50,10 @@ public class VerkleStateTree : VerkleTree
         if (account != null) InsertStemBatch(headerTreeKey.Slice(0, 31), account.ToVerkleDict());
     }
 
-    public byte[] Get(Address address, in UInt256 index, Hash256? storageRoot = null)
+    public byte[] Get(Address address, in UInt256 index, Hash256? stateRoot = null)
     {
         Hash256? key = AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, index);
-        return (Get(key) ?? Array.Empty<byte>()).ToArray();
+        return (Get(key, stateRoot) ?? Array.Empty<byte>()).ToArray();
     }
 
     public void Set(Address address, in UInt256 index, byte[] value)

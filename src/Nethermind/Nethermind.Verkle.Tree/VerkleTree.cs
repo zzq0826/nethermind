@@ -81,17 +81,17 @@ public partial class VerkleTree: IVerkleTree
         }
     }
 
-    public byte[]? Get(Hash256 key)
+    public byte[]? Get(Hash256 key, Hash256? stateRoot = null)
     {
         _treeCache.GetLeaf(key.Bytes, out byte[]? value);
-        value ??= _verkleStateStore.GetLeaf(key.Bytes);
+        value ??= _verkleStateStore.GetLeaf(key.Bytes, stateRoot);
         return value;
     }
 
-    public byte[]? Get(ReadOnlySpan<byte> key)
+    public byte[]? Get(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
         _treeCache.GetLeaf(key, out byte[]? value);
-        value ??= _verkleStateStore.GetLeaf(key);
+        value ??= _verkleStateStore.GetLeaf(key, stateRoot);
         return value;
     }
 

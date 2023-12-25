@@ -40,22 +40,7 @@ public class VerkleStateReader : IStateReader
         return GetState(stateRoot, address);
     }
 
-    public byte[] GetStorage(Address address, in UInt256 index)
-    {
-        return _state.Get(address, index);
-    }
-
-    public byte[] GetStorage(Hash256 storageRoot, in UInt256 index)
-    {
-        throw new NotImplementedException();
-    }
-
-    public byte[]? GetStorage(Hash256 stateRoot, in StorageCell cell) => GetStorage(cell.Address, cell.Index);
-
-    public UInt256 GetBalance(Hash256 stateRoot, Address address)
-    {
-        return GetState(stateRoot, address)?.Balance ?? UInt256.Zero;
-    }
+    public byte[]? GetStorage(Hash256 stateRoot, in StorageCell cell) => _state.Get(cell.Address, cell.Index, stateRoot);
 
     public byte[]? GetCode(Hash256 codeHash)
     {
@@ -75,12 +60,6 @@ public class VerkleStateReader : IStateReader
     public bool HasStateForRoot(Hash256 stateRoot)
     {
         return _state.HasStateForStateRoot(stateRoot);
-    }
-
-    public byte[] GetCode(Hash256 stateRoot, Address address)
-    {
-        Account? account = GetState(stateRoot, address);
-        return account is null ? Array.Empty<byte>() : GetCode(account.CodeHash);
     }
 
     private Account? GetState(Hash256 stateRoot, Address address)
