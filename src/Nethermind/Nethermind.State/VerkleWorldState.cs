@@ -546,6 +546,11 @@ public class VerkleWorldState : IWorldState
             return;
         }
 
+        if (_intraBlockCache[address].Count > 0 && _changes[_intraBlockCache[address].Peek()]?.ChangeType == ChangeType.New)
+        {
+            changeType = ChangeType.New;
+        }
+
         IncrementChangePosition();
         _intraBlockCache[address].Push(_currentPosition);
         _changes[_currentPosition] = new Change(changeType, address, touchedAccount);
