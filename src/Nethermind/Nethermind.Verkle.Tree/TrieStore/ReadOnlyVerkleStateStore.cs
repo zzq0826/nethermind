@@ -74,7 +74,6 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
-        _logger.Info($"RSS - Trying to move to {stateRoot} from {StateRoot}");
         _keyValueStore.LeafTable.Clear();
         _keyValueStore.InternalTable.Clear();
         return _verkleStateStore.MoveToStateRoot(stateRoot);

@@ -590,10 +590,12 @@ namespace Nethermind.Evm.TransactionProcessing
                     {
                         if (Logger.IsTrace)
                             Logger.Trace($"Destroying account {toBeDestroyed}");
-
-                        WorldState.ClearStorage(toBeDestroyed);
-                        WorldState.DeleteAccount(toBeDestroyed);
-
+                        // TODO - handle this in better way - If we disable SelfDestruct - then this should be unreachable
+                        if (!spec.IsVerkleTreeEipEnabled)
+                        {
+                            WorldState.ClearStorage(toBeDestroyed);
+                            WorldState.DeleteAccount(toBeDestroyed);
+                        }
                         if (tracer.IsTracingRefunds)
                             tracer.ReportRefund(RefundOf.Destroy(spec.IsEip3529Enabled));
                     }
