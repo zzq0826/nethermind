@@ -461,5 +461,10 @@ namespace Nethermind.TxPool.Collections
                 change?.Invoke(value);
             }
         }
+
+        public override string ToString()
+        {
+            return $"{string.Join(", ",_cacheMap.Keys)}";
+        }
     }
 }

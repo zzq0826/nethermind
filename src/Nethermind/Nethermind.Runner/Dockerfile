@@ -18,10 +18,10 @@ COPY Nethermind.*/Nethermind.*.csproj Nethermind.*/
 RUN dotnet restore Nethermind.Runner/Nethermind.Runner.csproj
 COPY . .
 WORKDIR /src/Nethermind.Runner
-RUN dotnet build Nethermind.Runner.csproj -c debug -o /app/build
+RUN dotnet build Nethermind.Runner.csproj -c release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish Nethermind.Runner.csproj -c debug -o /app/publish -p:UseAppHost=false
+RUN dotnet publish Nethermind.Runner.csproj -c release -o /app/publish -p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

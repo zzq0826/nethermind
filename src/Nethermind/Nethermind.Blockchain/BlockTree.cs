@@ -173,6 +173,10 @@ namespace Nethermind.Blockchain
             {
                 ThisNodeInfo.AddInfo("Network ID   :", $"{NetworkId}");
             }
+            NewHeadBlock += (sender, args) =>
+            {
+                _logger.Error($"new head block: {args.Block.ToString(Block.Format.Full)}");
+            };
         }
 
         public AddBlockResult Insert(BlockHeader header, BlockTreeInsertHeaderOptions headerOptions = BlockTreeInsertHeaderOptions.None)

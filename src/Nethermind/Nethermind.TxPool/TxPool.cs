@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -150,6 +151,26 @@ namespace Nethermind.TxPool
             }
 
             ProcessNewHeads();
+
+            NewPending += (sender, args) =>
+            {
+                _logger.Error($"NewPending {args.Transaction.Hash}");
+            };
+
+            NewDiscovered += (sender, args) =>
+            {
+                _logger.Error($"NewDiscovered {args.Transaction.Hash}");
+            };
+
+            RemovedPending += (sender, args) =>
+            {
+                _logger.Error($"RemovedPending {args.Transaction.Hash} from {Environment.StackTrace}");
+            };
+
+            EvictedPending += (sender, args) =>
+            {
+                _logger.Error($"EvictedPending {args.Transaction.Hash} from {Environment.StackTrace}");
+            };
         }
 
         public Transaction[] GetPendingTransactions() => _transactions.GetSnapshot();
@@ -202,6 +223,7 @@ namespace Nethermind.TxPool
                             RemoveProcessedTransactions(args.Block.Transactions);
                             UpdateBuckets();
                             _broadcaster.OnNewHead();
+                            _logger.Error($"still in tx pool: {_transactions.ToString()}");
                             Metrics.TransactionCount = _transactions.Count;
                             Metrics.BlobTransactionCount = _blobTransactions.Count;
                         }
