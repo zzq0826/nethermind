@@ -10,15 +10,12 @@ namespace Nethermind.Verkle.Tree.VerkleDb;
 
 public class ReadOnlyVerkleMemoryDb
 {
-    public LeafStoreSorted LeafTable;
     public InternalStore InternalTable;
+    public LeafStoreSorted LeafTable;
 }
 
 public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
 {
-    public LeafStore LeafTable { get; }
-    public InternalStore InternalTable { get; }
-
     public VerkleMemoryDb()
     {
         LeafTable = new LeafStore(Bytes.SpanEqualityComparer);
@@ -31,30 +28,46 @@ public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
         InternalTable = internalTable;
     }
 
-    public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value) => LeafTable.TryGetValue(key, out value);
-    public bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value) => InternalTable.TryGetValue(key, out value);
+    public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value)
+    {
+        return LeafTable.TryGetValue(key, out value);
+    }
 
-    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue) => LeafTable[leafKey] = leafValue;
-    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue) => InternalTable[internalNodeKey] = internalNodeValue;
+    public bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value)
+    {
+        return InternalTable.TryGetValue(key, out value);
+    }
 
-    public void RemoveLeaf(ReadOnlySpan<byte> leafKey) => LeafTable.Remove(leafKey.ToArray(), out _);
-    public void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey) => InternalTable.Remove(internalNodeKey.ToArray(), out _);
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
+    {
+        LeafTable[leafKey] = leafValue;
+    }
+
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
+    {
+        InternalTable[internalNodeKey] = internalNodeValue;
+    }
+
+    public void RemoveLeaf(ReadOnlySpan<byte> leafKey)
+    {
+        LeafTable.Remove(leafKey.ToArray(), out _);
+    }
+
+    public void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey)
+    {
+        InternalTable.Remove(internalNodeKey.ToArray(), out _);
+    }
 
     public void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf)
     {
-        foreach ((byte[] key, byte[]? value) in keyLeaf)
-        {
-            SetLeaf(key, value);
-        }
+        foreach ((var key, var value) in keyLeaf) SetLeaf(key, value);
     }
 
     public void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNodeKey)
     {
-        foreach ((byte[] key, InternalNode? value) in internalNodeKey)
-        {
-            SetInternalNode(key, value);
-        }
+        foreach ((var key, InternalNode? value) in internalNodeKey) SetInternalNode(key, value);
     }
 
-
+    public LeafStore LeafTable { get; }
+    public InternalStore InternalTable { get; }
 }

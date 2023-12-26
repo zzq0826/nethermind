@@ -3,30 +3,18 @@
 
 using System.Linq;
 using Nethermind.Verkle.Tree.TrieNodes;
-using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.Sync;
+namespace Nethermind.Verkle.Tree.Cache;
 
-public class BlockDiffCache: StackQueue<(long, ReadOnlyVerkleMemoryDb)>
+public class BlockDiffCache(int capacity) : StackQueue<(long, ReadOnlyVerkleMemoryDb)>(capacity)
 {
-    public BlockDiffCache(int capacity) : base(capacity) {}
-
-    public void RemoveDiffs(long noOfDiffsToRemove)
-    {
-        for (int i = 0; i < noOfDiffsToRemove; i++)
-        {
-            Pop(out _);
-        }
-    }
-
     public byte[]? GetLeaf(byte[] key)
     {
         using StackEnumerator diffs = GetStackEnumerator();
         while (diffs.MoveNext())
-        {
-            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
-        }
+            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out var node))
+                return node;
         return null;
     }
 
@@ -37,8 +25,9 @@ public class BlockDiffCache: StackQueue<(long, ReadOnlyVerkleMemoryDb)>
         {
             // TODO: find a better way to do this
             if (diffs.Current.Item1 > blockNumber) continue;
-            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
+            if (diffs.Current.Item2.LeafTable.TryGetValue(key.ToArray(), out var node)) return node;
         }
+
         return null;
     }
 
@@ -46,11 +35,11 @@ public class BlockDiffCache: StackQueue<(long, ReadOnlyVerkleMemoryDb)>
     {
         using StackEnumerator diffs = GetStackEnumerator();
         while (diffs.MoveNext())
-        {
-            if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node!.Clone();
-        }
+            if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node))
+                return node!.Clone();
         return null;
     }
+
     public InternalNode? GetInternalNode(byte[] key, long blockNumber)
     {
         using StackEnumerator diffs = GetStackEnumerator();
@@ -60,6 +49,12 @@ public class BlockDiffCache: StackQueue<(long, ReadOnlyVerkleMemoryDb)>
             if (diffs.Current.Item1 > blockNumber) continue;
             if (diffs.Current.Item2.InternalTable.TryGetValue(key, out InternalNode? node)) return node!.Clone();
         }
+
         return null;
+    }
+
+    public void RemoveDiffs(long noOfDiffsToRemove)
+    {
+        for (var i = 0; i < noOfDiffsToRemove; i++) Pop(out _);
     }
 }

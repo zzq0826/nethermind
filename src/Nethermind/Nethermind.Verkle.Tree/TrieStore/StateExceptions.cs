@@ -7,18 +7,33 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public class VerkleStateException : Exception
 {
-    protected VerkleStateException(){}
-    protected VerkleStateException(string message, Exception? inner = null) : base(message, inner) { }
+    protected VerkleStateException()
+    {
+    }
+
+    protected VerkleStateException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
 }
 
 public class StateUnavailableExceptions : VerkleStateException
 {
-    public StateUnavailableExceptions(){}
-    public StateUnavailableExceptions(string message, Exception? inner = null) : base(message, inner) { }
+    public StateUnavailableExceptions()
+    {
+    }
+
+    public StateUnavailableExceptions(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
 }
 
 public class StateFlushException : VerkleStateException
 {
-    public StateFlushException(){}
-    public StateFlushException(string message, Exception? inner = null) : base(message, inner) { }
+    public StateFlushException()
+    {
+    }
+
+    public StateFlushException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
 }

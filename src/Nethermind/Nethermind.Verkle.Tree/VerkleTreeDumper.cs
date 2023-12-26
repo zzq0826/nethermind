@@ -13,49 +13,63 @@ namespace Nethermind.Verkle.Tree;
 
 public class VerkleTreeDumper : IVerkleTreeVisitor
 {
+    private readonly StringBuilder _builder = new();
 
-    private readonly StringBuilder _builder = new StringBuilder();
+    public bool ShouldVisit(byte[] nextNode)
+    {
+        return true;
+    }
+
+    public void VisitTree(Hash256 rootHash, TrieVisitContext trieVisitContext)
+    {
+        if (rootHash.Equals(Pedersen.Zero))
+            _builder.AppendLine("EMPTY TREE");
+        else
+            _builder.AppendLine("STATE TREE");
+    }
+
+    public void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext)
+    {
+        _builder.AppendLine($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeKey}");
+    }
+
+    public void VisitBranchNode(InternalNode node, TrieVisitContext trieVisitContext)
+    {
+        _builder.AppendLine(
+            $"{GetPrefix(trieVisitContext)}InternalNode | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
+    }
+
+    public void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext)
+    {
+        _builder.AppendLine(
+            $"{GetPrefix(trieVisitContext)}STEM | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
+    }
+
+    public void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
+    {
+        _builder.AppendLine(
+            $"{GetPrefix(trieVisitContext)}LEAF | -> Key: {nodeKey.ToHexString()}  Value: {nodeValue.ToHexString()}");
+    }
 
     public void Reset()
     {
         _builder.Clear();
     }
 
-    public bool ShouldVisit(byte[] nextNode)
+    private string GetPrefix(TrieVisitContext context)
     {
-        return true;
-    }
-    public void VisitTree(Hash256 rootHash, TrieVisitContext trieVisitContext)
-    {
-        if (rootHash.Equals(Pedersen.Zero))
-        {
-            _builder.AppendLine("EMPTY TREE");
-        }
-        else
-        {
-            _builder.AppendLine("STATE TREE");
-        }
+        return string.Concat($"{GetIndent(context.Level)}", context.IsStorage ? "STORAGE " : string.Empty,
+            $"{GetChildIndex(context)}");
     }
 
-    private string GetPrefix(TrieVisitContext context) => string.Concat($"{GetIndent(context.Level)}", context.IsStorage ? "STORAGE " : string.Empty, $"{GetChildIndex(context)}");
-    private string GetIndent(int level) => new('+', level * 2);
-    private string GetChildIndex(TrieVisitContext context) => context.BranchChildIndex is null ? string.Empty : $"{context.BranchChildIndex:x2} ";
+    private string GetIndent(int level)
+    {
+        return new string('+', level * 2);
+    }
 
-    public void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext)
+    private string GetChildIndex(TrieVisitContext context)
     {
-        _builder.AppendLine($"{GetIndent(trieVisitContext.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeKey}");
-    }
-    public void VisitBranchNode(InternalNode node, TrieVisitContext trieVisitContext)
-    {
-        _builder.AppendLine($"{GetPrefix(trieVisitContext)}InternalNode | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
-    }
-    public void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext)
-    {
-        _builder.AppendLine($"{GetPrefix(trieVisitContext)}STEM | -> Key: {trieVisitContext.AbsolutePathIndex.ToArray().ToHexString()}");
-    }
-    public void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue)
-    {
-        _builder.AppendLine($"{GetPrefix(trieVisitContext)}LEAF | -> Key: {nodeKey.ToHexString()}  Value: {nodeValue.ToHexString()}");
+        return context.BranchChildIndex is null ? string.Empty : $"{context.BranchChildIndex:x2} ";
     }
 
     public override string ToString()

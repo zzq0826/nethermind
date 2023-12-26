@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.TrieNodes;
@@ -12,7 +10,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public interface IVerkleTrieStore: IStoreWithReorgBoundary, IVerkleSyncTireStore
+public interface IVerkleTrieStore : IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
     Hash256 StateRoot { get; }
 

@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+
 using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
-using Bytes = Nethermind.Core.Extensions.Bytes;
 
-namespace Nethermind.Verkle.Tree.Utils;
+namespace Nethermind.Verkle.Tree.Cache;
 
 public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
@@ -22,47 +23,23 @@ public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, lo
 
 public class BlockBranchNode(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
-    public BlockBranchNode? ParentNode;
     public StateInfo Data = new(stateDiff, stateRoot, blockNumber);
+    public BlockBranchNode? ParentNode;
 }
 
-public class BlockBranchCache(int cacheSize) : BlockBranchLinkedList(cacheSize)
-{
-    public byte[]? GetLeaf(byte[] key, Hash256 stateRoot)
-    {
-        BlockBranchEnumerator diffs = GetEnumerator(stateRoot);
-        while (diffs.MoveNext())
-        {
-            if (diffs.Current.Data.StateDiff!.LeafTable.TryGetValue(key.ToArray(), out byte[]? node)) return node;
-        }
-        return null;
-    }
-
-    public InternalNode? GetInternalNode(byte[] key, Hash256 stateRoot)
-    {
-        BlockBranchEnumerator diffs = GetEnumerator(stateRoot);
-        while (diffs.MoveNext())
-        {
-            if (diffs.Current.Data.StateDiff!.InternalTable.TryGetValue(key, out InternalNode? node)) return node!.Clone();
-        }
-        return null;
-    }
-
-}
-
-public class BlockBranchLinkedList(int cacheSize)
+public class BlockBranchCache(int cacheSize)
 {
     private readonly SpanDictionary<byte, BlockBranchNode> _stateRootToNodeMapping = new(Bytes.SpanEqualityComparer);
-    public bool IsInitialized => _lastNode is not null;
     private BlockBranchNode? _lastNode;
-    private int _version = 0;
+    private int _version;
+    public bool IsInitialized => _lastNode is not null;
 
     /// <summary>
-    /// This is basically used to have a reference to the state that is persisted. The reason for doing this is -
-    /// when the first two blocks inserted in the cache has the same block number, this creates a situation where we
-    /// dont have just one _lastNode and we might need to maintain multiple independent branches and that would be hard.
-    /// Instead maintain at least one block that is finalized (weakly), so that it can act as a pivot from where we can
-    /// create multiple branches without the need to keeping track of independent branches.
+    ///     This is basically used to have a reference to the state that is persisted. The reason for doing this is -
+    ///     when the first two blocks inserted in the cache has the same block number, this creates a situation where we
+    ///     dont have just one _lastNode and we might need to maintain multiple independent branches and that would be hard.
+    ///     Instead maintain at least one block that is finalized (weakly), so that it can act as a pivot from where we can
+    ///     create multiple branches without the need to keeping track of independent branches.
     /// </summary>
     /// <param name="blockNumber"></param>
     /// <param name="stateRoot"></param>
@@ -75,7 +52,8 @@ public class BlockBranchLinkedList(int cacheSize)
         _version++;
     }
 
-    private bool AddNode(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data, Hash256 parentRoot, [MaybeNullWhen(false)]out BlockBranchNode outNode)
+    private bool AddNode(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data, Hash256 parentRoot,
+        [MaybeNullWhen(false)] out BlockBranchNode outNode)
     {
         if (!IsInitialized) throw new Exception("Cache needs to be initialized first");
         var node = new BlockBranchNode(data, stateRoot, blockNumber);
@@ -86,19 +64,17 @@ public class BlockBranchLinkedList(int cacheSize)
         return true;
     }
 
-    public bool EnqueueAndReplaceIfFull(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data, Hash256 parentRoot, [MaybeNullWhen(false)]out StateInfo node)
+    public bool EnqueueAndReplaceIfFull(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data,
+        Hash256 parentRoot, [MaybeNullWhen(false)] out StateInfo node)
     {
-        if (!AddNode(blockNumber, stateRoot, data, parentRoot, out BlockBranchNode insertedNode)) throw new Exception("This is a error");
+        if (!AddNode(blockNumber, stateRoot, data, parentRoot, out BlockBranchNode insertedNode))
+            throw new Exception("This is a error");
 
         if (_lastNode is not null)
-        {
             if (blockNumber - _lastNode.Data.BlockNumber > cacheSize)
             {
                 BlockBranchNode? currentNode = insertedNode;
-                while (currentNode.ParentNode!.ParentNode is not null)
-                {
-                    currentNode = currentNode.ParentNode;
-                }
+                while (currentNode.ParentNode!.ParentNode is not null) currentNode = currentNode.ParentNode;
                 _lastNode = currentNode;
                 node = currentNode.Data;
                 _stateRootToNodeMapping.Remove(currentNode.ParentNode.Data.StateRoot.Bytes);
@@ -106,36 +82,54 @@ public class BlockBranchLinkedList(int cacheSize)
                 currentNode.Data = new StateInfo(null, node.StateRoot, node.BlockNumber);
                 return true;
             }
-        }
 
         node = default;
         return false;
     }
 
-    public bool GetStateRootNode(Hash256 stateRoot, [MaybeNullWhen(false)]out BlockBranchNode node)
+    public bool GetStateRootNode(Hash256 stateRoot, [MaybeNullWhen(false)] out BlockBranchNode node)
     {
         if (_lastNode is null || stateRoot == _lastNode.Data.StateRoot)
         {
             node = default;
             return false;
         }
+
         return _stateRootToNodeMapping.TryGetValue(stateRoot.Bytes, out node);
     }
 
-    public BlockBranchEnumerator GetEnumerator(Hash256 stateRoot)
+    public byte[]? GetLeaf(byte[] key, Hash256 stateRoot)
     {
-        return new BlockBranchEnumerator(this, stateRoot);
+        BranchEnumerator diffs = GetEnumerator(stateRoot);
+        while (diffs.MoveNext())
+            if (diffs.Current.Data.StateDiff!.LeafTable.TryGetValue(key.ToArray(), out var node))
+                return node;
+        return null;
     }
 
-    public struct BlockBranchEnumerator : IEnumerator
+    public InternalNode? GetInternalNode(byte[] key, Hash256 stateRoot)
+    {
+        BranchEnumerator diffs = GetEnumerator(stateRoot);
+        while (diffs.MoveNext())
+            if (diffs.Current.Data.StateDiff!.InternalTable.TryGetValue(key, out InternalNode? node))
+                return node!.Clone();
+        return null;
+    }
+
+    public BranchEnumerator GetEnumerator(Hash256 stateRoot)
+    {
+        return new BranchEnumerator(this, stateRoot);
+    }
+
+    public struct BranchEnumerator : IEnumerator
     {
         private readonly Hash256 _startingStateRoot;
         private BlockBranchNode? _node;
-        private readonly BlockBranchLinkedList _cache;
+        private readonly BlockBranchCache _cache;
         private int _version;
         private BlockBranchNode? _currentElement;
 
-        public BlockBranchEnumerator(BlockBranchLinkedList cache, Hash256 startingStateRoot)
+        public BranchEnumerator(BlockBranchCache cache, Hash256 startingStateRoot)
         {
             _startingStateRoot = startingStateRoot;
             _cache = cache;
@@ -143,6 +137,7 @@ public class BlockBranchLinkedList(int cacheSize)
             _cache.GetStateRootNode(_startingStateRoot, out _node);
             _currentElement = default;
         }
+
         public bool MoveNext()
         {
             if (_version != _cache._version) throw new Exception("Should be same version");
@@ -157,12 +152,9 @@ public class BlockBranchLinkedList(int cacheSize)
             _version = _cache._version;
             _currentElement = default;
             _cache.GetStateRootNode(_startingStateRoot, out _node);
-
         }
+
         public BlockBranchNode Current => _currentElement!;
         object IEnumerator.Current => _currentElement!;
     }
 }
-
-
-

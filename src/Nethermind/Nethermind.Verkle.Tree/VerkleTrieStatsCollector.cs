@@ -5,7 +5,6 @@ using System;
 using System.Threading;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
@@ -14,16 +13,17 @@ using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Verkle.Tree;
 
-public class VerkleTrieStatsCollector: IVerkleTreeVisitor
+public class VerkleTrieStatsCollector : IVerkleTreeVisitor
 {
-    private static InternalNodeSerializer Serializer => InternalNodeSerializer.Instance;
-    private int _lastAccountNodeCount = 0;
-
     private readonly ILogger _logger;
+    private int _lastAccountNodeCount;
+
     public VerkleTrieStatsCollector(IKeyValueStore codeKeyValueStore, ILogManager logManager)
     {
         _logger = logManager.GetClassLogger();
     }
+
+    private static InternalNodeSerializer Serializer => InternalNodeSerializer.Instance;
 
     public VerkleTrieStats Stats { get; } = new();
 
@@ -34,7 +34,9 @@ public class VerkleTrieStatsCollector: IVerkleTreeVisitor
         return true;
     }
 
-    public void VisitTree(Hash256 rootHash, TrieVisitContext trieVisitContext) { }
+    public void VisitTree(Hash256 rootHash, TrieVisitContext trieVisitContext)
+    {
+    }
 
     public void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext)
     {

@@ -4,7 +4,7 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
@@ -13,67 +13,20 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
-    public static Span<byte> RootNodeKey => Array.Empty<byte>();
-
     private readonly ILogger _logger;
     public readonly ILogManager LogManager;
 
     /// <summary>
-    ///
-    /// </summary>
-    private StateInfo? RootNodeData { get; set; }
-    public Hash256 StateRoot { get; private set; } = Pedersen.Zero;
-
-
-    /// <summary>
-    ///
-    /// </summary>
-    private bool _lastPersistedReachedReorgBoundary;
-    private long _latestPersistedBlockNumber;
-
-    private long LastPersistedBlockNumber
-    {
-        get => _latestPersistedBlockNumber;
-        set
-        {
-            if (value != _latestPersistedBlockNumber)
-            {
-                _latestPersistedBlockNumber = value;
-                _lastPersistedReachedReorgBoundary = false;
-            }
-        }
-    }
-    private Hash256? PersistedStateRoot { get; set; } = Pedersen.Zero;
-
-    /// <summary>
-    ///
-    /// </summary>
-    private long LatestCommittedBlockNumber { get; set; }
-
-    /// <summary>
-    ///
     /// </summary>
     public readonly StateRootToBlockMap StateRootToBlocks;
 
 
     /// <summary>
-    ///
+    ///     Keep track of LastPersistedBlock and if the LastPersistedBlock reached the reorg boundary and was marked safe
     /// </summary>
-    public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1;
-    public event EventHandler<InsertBatchCompletedV2>? InsertBatchCompletedV2;
+    private bool _lastPersistedReachedReorgBoundary;
 
-
-    /// <summary>
-    ///  maximum number of blocks that should be stored in cache (not persisted in db)
-    /// </summary>
-    private int BlockCacheSize { get; }
-    private BlockBranchCache BlockCache { get; }
-
-    /// <summary>
-    /// The underlying key value database - to persist the final state
-    /// We try to avoid fetching from this, and we only store at the end of a batch insert
-    /// </summary>
-    private VerkleKeyValueDb Storage { get; }
+    private long _latestPersistedBlockNumber;
 
 
     public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
@@ -82,7 +35,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
         StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
-        BlockCache = new (blockCacheSize);
+        BlockCache = new BlockBranchCache(blockCacheSize);
         BlockCacheSize = blockCacheSize;
         InitRootHash();
     }
@@ -98,31 +51,57 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         _logger = logManager?.GetClassLogger<VerkleStateStore>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
         StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
-        BlockCache = new (blockCacheSize);
+        BlockCache = new BlockBranchCache(blockCacheSize);
         BlockCacheSize = blockCacheSize;
         InitRootHash();
     }
-    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore) => new (this, keyValueStore);
 
-    public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
+    public static Span<byte> RootNodeKey => Array.Empty<byte>();
+    private Hash256? PersistedStateRoot { get; set; } = Pedersen.Zero;
 
-    private void InitRootHash()
+    private long LastPersistedBlockNumber
     {
-        InternalNode? rootNode = GetInternalNode(RootNodeKey);
-        if (rootNode is not null)
+        get => _latestPersistedBlockNumber;
+        set
         {
-            StateRoot = new Hash256(rootNode.InternalCommitment.ToBytes());
-            LastPersistedBlockNumber = StateRootToBlocks[StateRoot];
-            if (LastPersistedBlockNumber == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
-            LatestCommittedBlockNumber = -1;
-        }
-        else
-        {
-            Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
-            StateRoot = Pedersen.Zero;
-            LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
+            if (value != _latestPersistedBlockNumber)
+            {
+                _latestPersistedBlockNumber = value;
+                _lastPersistedReachedReorgBoundary = false;
+            }
         }
     }
+
+    private long LatestCommittedBlockNumber { get; set; }
+
+
+    /// <summary>
+    ///     maximum number of blocks that should be stored in cache (not persisted in db)
+    /// </summary>
+    private int BlockCacheSize { get; }
+
+    /// <summary>
+    ///     Cache used to store state changes for each block - used for serving SnapSync and handling reorgs.
+    /// </summary>
+    private BlockBranchCache BlockCache { get; }
+
+    /// <summary>
+    ///     The underlying key value database - to persist the final state
+    ///     We try to avoid fetching from this, and we only store at the end of a batch insert
+    /// </summary>
+    private VerkleKeyValueDb Storage { get; }
+
+    /// <summary>
+    ///     Keep track of current state root being used for all the operations
+    /// </summary>
+    public Hash256 StateRoot { get; private set; } = Pedersen.Zero;
+
+    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    {
+        return new ReadOnlyVerkleStateStore(this, keyValueStore);
+    }
+
+    public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
@@ -140,11 +119,6 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         return Storage.GetInternalNode(key, out value) ? value : null;
     }
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <param name="stateRoot"></param>
-    /// <returns></returns>
     public bool HasStateForBlock(Hash256 stateRoot)
     {
         Hash256? stateRootToCheck = stateRoot;
@@ -156,31 +130,48 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         return BlockCache.GetStateRootNode(stateRootToCheck, out _) || PersistedStateRoot == stateRootToCheck;
     }
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <param name="stateRoot"></param>
-    /// <returns></returns>
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
         if (BlockCache.GetStateRootNode(stateRoot, out BlockBranchNode? rootNode))
         {
-            RootNodeData = rootNode.Data;
             StateRoot = rootNode.Data.StateRoot;
             return true;
         }
 
-        // TODO: add here to test if state root is equal to persisted root
-        if (StateRootToBlocks[stateRoot] != LastPersistedBlockNumber) return false;
+        if (stateRoot != PersistedStateRoot) return false;
 
-        RootNodeData = null;
         StateRoot = stateRoot;
 
-        return false;
+        return true;
+    }
+
+
+    /// <summary>
+    ///     Events that are used by the VerkleArchiveStore to build the archive index
+    /// </summary>
+    public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1;
+
+    public event EventHandler<InsertBatchCompletedV2>? InsertBatchCompletedV2;
+
+    private void InitRootHash()
+    {
+        if (Storage.GetInternalNode(RootNodeKey, out InternalNode rootNode))
+        {
+            StateRoot = new Hash256(rootNode!.InternalCommitment.ToBytes());
+            LastPersistedBlockNumber = StateRootToBlocks[StateRoot];
+            if (LastPersistedBlockNumber == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
+            LatestCommittedBlockNumber = -1;
+        }
+        else
+        {
+            Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
+            StateRoot = Pedersen.Zero;
+            LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
+        }
     }
 
     private static Hash256? GetStateRoot(InternalStore db)
     {
-        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? node!.Bytes: null;
+        return db.TryGetValue(RootNodeKey, out InternalNode? node) ? node!.Bytes : null;
     }
 }

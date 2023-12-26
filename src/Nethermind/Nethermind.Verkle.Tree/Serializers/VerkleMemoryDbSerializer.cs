@@ -12,7 +12,7 @@ public class VerkleMemoryDbSerializer
 
     public int GetLength(VerkleMemoryDb item, RlpBehaviors rlpBehaviors)
     {
-        int length = 0;
+        var length = 0;
         length += LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None);
         length += InternalStoreSerializer.Instance.GetLength(item.InternalTable, RlpBehaviors.None);
         return length;
@@ -20,7 +20,7 @@ public class VerkleMemoryDbSerializer
 
     public int GetLength(ReadOnlyVerkleMemoryDb item, RlpBehaviors rlpBehaviors)
     {
-        int length = 0;
+        var length = 0;
         length += LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None);
         length += InternalStoreSerializer.Instance.GetLength(item.InternalTable, RlpBehaviors.None);
         return length;
@@ -33,6 +33,7 @@ public class VerkleMemoryDbSerializer
             InternalStoreSerializer.Instance.Decode(rlpStream)
         );
     }
+
     public void Encode(RlpStream stream, VerkleMemoryDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         LeafStoreSerializer.Instance.Encode(stream, item.LeafTable);

@@ -2,15 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using Nethermind.Core.Verkle;
-using Nethermind.Db;
 using Nethermind.Verkle.Tree.History.V1;
-using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
-using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
@@ -22,41 +16,30 @@ public partial class VerkleStateStore
     public void ApplyDiffLayer(BatchChangeSet changeSet)
     {
         if (changeSet.FromBlockNumber != LastPersistedBlockNumber)
-        {
             throw new ArgumentException(
                 $"This case should not be possible. Diff fromBlock should be equal to persisted block number. FullStateBlock:{LastPersistedBlockNumber}!=fromBlock:{changeSet.FromBlockNumber}",
                 nameof(changeSet.FromBlockNumber));
-        }
 
         VerkleMemoryDb reverseDiff = changeSet.DiffLayer;
 
         foreach (KeyValuePair<byte[], byte[]?> entry in reverseDiff.LeafTable)
         {
-            reverseDiff.GetLeaf(entry.Key, out byte[]? node);
+            reverseDiff.GetLeaf(entry.Key, out var node);
             if (node is null)
-            {
                 Storage.RemoveLeaf(entry.Key);
-            }
             else
-            {
                 Storage.SetLeaf(entry.Key, node);
-            }
         }
 
         foreach (KeyValuePair<byte[], InternalNode?> entry in reverseDiff.InternalTable)
         {
             reverseDiff.GetInternalNode(entry.Key, out InternalNode? node);
             if (node is null)
-            {
                 Storage.RemoveInternalNode(entry.Key);
-            }
             else
-            {
                 Storage.SetInternalNode(entry.Key, node);
-            }
         }
+
         LastPersistedBlockNumber = changeSet.ToBlockNumber;
     }
-
-
 }

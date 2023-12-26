@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree.History.V2;
@@ -18,15 +17,9 @@ namespace Nethermind.Verkle.Tree.History.V1;
 
 public class VerkleArchiveStore
 {
-    public int BlockChunks
-    {
-        get => _historyOfAccounts.BlocksChunks;
-        set => _historyOfAccounts.BlocksChunks = value;
-    }
+    private readonly HistoryOfAccounts _historyOfAccounts;
 
     private readonly VerkleStateStore _stateStore;
-    private readonly HistoryOfAccounts _historyOfAccounts;
-    private VerkleHistoryStore History { get; }
 
     public VerkleArchiveStore(VerkleStateStore stateStore, IDbProvider dbProvider, ILogManager logManager)
     {
@@ -36,11 +29,19 @@ public class VerkleArchiveStore
         History = new VerkleHistoryStore(dbProvider, logManager);
     }
 
+    public int BlockChunks
+    {
+        get => _historyOfAccounts.BlocksChunks;
+        set => _historyOfAccounts.BlocksChunks = value;
+    }
+
+    private VerkleHistoryStore History { get; }
+
     private void OnPersistNewBlock(object? sender, InsertBatchCompletedV1 insertBatchCompleted)
     {
         Console.WriteLine(
             $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.ForwardDiff.LeafTable.Count} RD:{insertBatchCompleted.ReverseDiff.LeafTable.Count}");
-        long blockNumber = insertBatchCompleted.BlockNumber;
+        var blockNumber = insertBatchCompleted.BlockNumber;
         VerkleMemoryDb revDiff = insertBatchCompleted.ReverseDiff;
         ReadOnlyVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
         History.InsertDiff(blockNumber, forwardDiff, revDiff);
@@ -51,21 +52,21 @@ public class VerkleArchiveStore
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256 rootHash)
     {
-        ulong blockNumber = (ulong)_stateStore.StateRootToBlocks[rootHash];
+        var blockNumber = (ulong)_stateStore.StateRootToBlocks[rootHash];
         EliasFano? requiredShard = _historyOfAccounts.GetAppropriateShard(new Hash256(key.ToArray()), blockNumber);
         if (requiredShard is null) return null;
 
-        ulong? requiredBlock = requiredShard.Value.Predecessor(blockNumber);
+        var requiredBlock = requiredShard.Value.Predecessor(blockNumber);
 
         VerkleMemoryDb diff = History.GetForwardDiff((long)requiredBlock!.Value);
 
-        diff.GetLeaf(key, out byte[]? value);
+        diff.GetLeaf(key, out var value);
         return value;
     }
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock < toBlock - move forward in time
-    public bool GetForwardMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)]out VerkleMemoryDb diff)
+    public bool GetForwardMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff)
     {
         diff = History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
         return true;
@@ -73,7 +74,7 @@ public class VerkleArchiveStore
 
     // This generates and returns a batchForwardDiff, that can be used to move the full state from fromBlock to toBlock.
     // for this fromBlock > toBlock - move back in time
-    public bool GetReverseMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)]out VerkleMemoryDb diff)
+    public bool GetReverseMergedDiff(long fromBlock, long toBlock, [MaybeNullWhen(false)] out VerkleMemoryDb diff)
     {
         diff = History.GetBatchDiff(fromBlock, toBlock).DiffLayer;
         return true;

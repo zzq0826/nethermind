@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Sync;
 
@@ -16,8 +15,8 @@ public class PathWithSubTree
         SubTree = subTree;
     }
 
-    public Stem  Path { get; set; }
-    public LeafInSubTree[]  SubTree { get; set; }
+    public Stem Path { get; set; }
+    public LeafInSubTree[] SubTree { get; set; }
 }
 
 public readonly struct LeafInSubTree

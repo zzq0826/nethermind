@@ -11,22 +11,25 @@ namespace Nethermind.Verkle.Tree.History.V1;
 public class VerkleHistoryStore
 {
     private readonly ILogger _logger;
-    private DiffLayer ForwardDiff { get; }
-    private DiffLayer ReverseDiff { get; }
 
     public VerkleHistoryStore(IDbProvider dbProvider, ILogManager logManager)
     {
         ForwardDiff = new DiffLayer(dbProvider.ForwardDiff, DiffType.Forward);
         ReverseDiff = new DiffLayer(dbProvider.ReverseDiff, DiffType.Reverse);
-        _logger = logManager?.GetClassLogger<VerkleHistoryStore>() ?? throw new ArgumentNullException(nameof(logManager));
+        _logger = logManager?.GetClassLogger<VerkleHistoryStore>() ??
+                  throw new ArgumentNullException(nameof(logManager));
     }
 
     public VerkleHistoryStore(IDb forwardDiff, IDb reverseDiff, ILogManager logManager)
     {
         ForwardDiff = new DiffLayer(forwardDiff, DiffType.Forward);
         ReverseDiff = new DiffLayer(reverseDiff, DiffType.Reverse);
-        _logger = logManager?.GetClassLogger<VerkleHistoryStore>() ?? throw new ArgumentNullException(nameof(logManager));
+        _logger = logManager?.GetClassLogger<VerkleHistoryStore>() ??
+                  throw new ArgumentNullException(nameof(logManager));
     }
+
+    private DiffLayer ForwardDiff { get; }
+    private DiffLayer ReverseDiff { get; }
 
     public void InsertDiff(long blockNumber, VerkleMemoryDb postState, VerkleMemoryDb preState)
     {
@@ -71,5 +74,4 @@ public class VerkleHistoryStore
     {
         return ForwardDiff.GetLeaf(fromBlock, key);
     }
-
 }

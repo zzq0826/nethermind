@@ -7,27 +7,26 @@ namespace Nethermind.Verkle.Tree.History.V1;
 
 public class ChangeSet
 {
-    public long BlockNumber { get; }
-    public VerkleMemoryDb DiffLayer { get; }
-
     public ChangeSet(long blockNumber, VerkleMemoryDb diffLayer)
     {
         BlockNumber = blockNumber;
         DiffLayer = diffLayer;
     }
+
+    public long BlockNumber { get; }
+    public VerkleMemoryDb DiffLayer { get; }
 }
 
 public class BatchChangeSet
 {
-    public long FromBlockNumber { get; }
-    public long ToBlockNumber { get; }
-    public VerkleMemoryDb DiffLayer { get; }
-
     public BatchChangeSet(long fromBlockNumber, long toBlockNumber, VerkleMemoryDb diffLayer)
     {
         FromBlockNumber = fromBlockNumber;
         ToBlockNumber = toBlockNumber;
         DiffLayer = diffLayer;
     }
-}
 
+    public long FromBlockNumber { get; }
+    public long ToBlockNumber { get; }
+    public VerkleMemoryDb DiffLayer { get; }
+}

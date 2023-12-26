@@ -17,18 +17,20 @@ public static class VerkleUtils
         if (value.Length != 32) throw new ArgumentException();
         UInt256 valueFr = new(value);
         FrE lowFr = FrE.SetElement(valueFr.u0, valueFr.u1) + ValueExistsMarker;
-        FrE highFr = FrE.SetElement(valueFr.u2, valueFr.u3);
+        var highFr = FrE.SetElement(valueFr.u2, valueFr.u3);
         return (lowFr, highFr);
     }
 
-    public static (List<byte>, byte?, byte?) GetPathDifference(IEnumerable<byte> existingNodeKey, IEnumerable<byte> newNodeKey)
+    public static (List<byte>, byte?, byte?) GetPathDifference(IEnumerable<byte> existingNodeKey,
+        IEnumerable<byte> newNodeKey)
     {
-        List<byte> samePathIndices = new List<byte>();
-        foreach ((byte first, byte second) in existingNodeKey.Zip(newNodeKey))
+        var samePathIndices = new List<byte>();
+        foreach ((var first, var second) in existingNodeKey.Zip(newNodeKey))
         {
             if (first != second) return (samePathIndices, first, second);
             samePathIndices.Add(first);
         }
+
         return (samePathIndices, null, null);
     }
 }

@@ -16,44 +16,7 @@ namespace Nethermind.Verkle.Tree.TrieNodes;
 
 public class InternalNode
 {
-    public bool IsStem => NodeType == VerkleNodeType.StemNode;
-    public bool IsBranchNode => NodeType == VerkleNodeType.BranchNode;
-    public VerkleNodeType NodeType { get; }
-    public Commitment InternalCommitment { get; }
-    public Hash256 Bytes => InternalCommitment.ToBytes();
-
-    public bool IsStateless { get; set; } = false;
-
-    public bool ShouldPersist
-    {
-        get
-        {
-            if (IsBranchNode) return true;
-            return C1 is not null && C2 is not null && Stem is not null;
-        }
-    }
-
-
-    /// <summary>
-    ///  C1, C2, InitCommitmentHash - only relevant for stem nodes
-    /// </summary>
-    public Commitment? C1 { get; set; }
-    public Commitment? C2 { get; set; }
-    public FrE? InitCommitmentHash { get; }
-
     private static readonly Banderwagon _initFirstElementCommitment = Committer.ScalarMul(FrE.One, 0);
-
-    public Stem? Stem { get; }
-
-    public InternalNode Clone()
-    {
-        return NodeType switch
-        {
-            VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
-            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, Stem!, C1?.Dup(), C2?.Dup(), InternalCommitment.Dup()),
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
 
     public InternalNode(VerkleNodeType nodeType)
     {
@@ -79,7 +42,8 @@ public class InternalNode
         InitCommitmentHash = InternalCommitment.PointAsField;
     }
 
-    public InternalNode(VerkleNodeType nodeType, Stem stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
+    public InternalNode(VerkleNodeType nodeType, Stem stem, Commitment? c1, Commitment? c2,
+        Commitment internalCommitment)
     {
         NodeType = nodeType;
         Stem = stem;
@@ -88,13 +52,53 @@ public class InternalNode
         InternalCommitment = internalCommitment;
     }
 
-    public InternalNode(VerkleNodeType nodeType, Stem stem, byte[] c1, byte[] c2, byte[] extCommit, bool subGroupCheck=false)
+    public InternalNode(VerkleNodeType nodeType, Stem stem, byte[] c1, byte[] c2, byte[] extCommit,
+        bool subGroupCheck = false)
     {
         NodeType = nodeType;
         Stem = stem;
         C1 = new Commitment(Banderwagon.FromBytes(c1, subGroupCheck)!.Value);
         C2 = new Commitment(Banderwagon.FromBytes(c2, subGroupCheck)!.Value);
         InternalCommitment = new Commitment(Banderwagon.FromBytes(extCommit, subGroupCheck)!.Value);
+    }
+
+    public bool IsStem => NodeType == VerkleNodeType.StemNode;
+    public bool IsBranchNode => NodeType == VerkleNodeType.BranchNode;
+    public VerkleNodeType NodeType { get; }
+    public Commitment InternalCommitment { get; }
+    public Hash256 Bytes => InternalCommitment.ToBytes();
+
+    public bool IsStateless { get; set; } = false;
+
+    public bool ShouldPersist
+    {
+        get
+        {
+            if (IsBranchNode) return true;
+            return C1 is not null && C2 is not null && Stem is not null;
+        }
+    }
+
+
+    /// <summary>
+    ///     C1, C2, InitCommitmentHash - only relevant for stem nodes
+    /// </summary>
+    public Commitment? C1 { get; set; }
+
+    public Commitment? C2 { get; set; }
+    public FrE? InitCommitmentHash { get; }
+
+    public Stem? Stem { get; }
+
+    public InternalNode Clone()
+    {
+        return NodeType switch
+        {
+            VerkleNodeType.BranchNode => new InternalNode(VerkleNodeType.BranchNode, InternalCommitment.Dup()),
+            VerkleNodeType.StemNode => new InternalNode(VerkleNodeType.StemNode, Stem!, C1?.Dup(), C2?.Dup(),
+                InternalCommitment.Dup()),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
     private Banderwagon GetInitialCommitment()
@@ -123,6 +127,7 @@ public class InternalNode
             C1.AddPoint(deltaLeafCommitment.DeltaC1.Value);
             deltaC1Commit = C1.PointAsField - oldC1Value;
         }
+
         if (deltaLeafCommitment.DeltaC2 is not null)
         {
             FrE oldC2Value = C2!.PointAsField;
@@ -138,7 +143,7 @@ public class InternalNode
 
     public override string ToString()
     {
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
         builder.AppendLine($"InternalNode: {InternalCommitment.Point.ToBytes().ToHexString()}");
         builder.AppendLine($"NodeType: {NodeType}");
         if (NodeType == VerkleNodeType.StemNode)

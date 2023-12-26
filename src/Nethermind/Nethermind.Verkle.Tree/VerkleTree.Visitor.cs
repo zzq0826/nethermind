@@ -11,18 +11,13 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    public bool HasStateForStateRoot(Hash256 stateRoot)
-    {
-        return _verkleStateStore.HasStateForBlock(stateRoot);
-    }
-
     public void Accept(ITreeVisitor visitor, Hash256 rootHash, VisitingOptions? visitingOptions = null)
     {
         if (visitor is null) throw new ArgumentNullException(nameof(visitor));
         if (rootHash is null) throw new ArgumentNullException(nameof(rootHash));
         visitingOptions ??= VisitingOptions.Default;
 
-        using TrieVisitContext trieVisitContext = new TrieVisitContext()
+        using var trieVisitContext = new TrieVisitContext
         {
             // hacky but other solutions are not much better, something nicer would require a bit of thinking
             // we introduced a notion of an account on the visit context level which should have no knowledge of account really
@@ -45,14 +40,8 @@ public partial class VerkleTree
         }
 
         if (visitor is RootCheckVisitor)
-        {
             throw new Exception("should never use RootCheckVisitor with VerkleTrees");
-        }
-        else
-        {
-            throw new Exception();
-        }
-
+        throw new Exception();
     }
 
     public void Accept(IVerkleTreeVisitor visitor, Hash256 rootHash, VisitingOptions? visitingOptions = null)
@@ -61,7 +50,7 @@ public partial class VerkleTree
         if (rootHash is null) throw new ArgumentNullException(nameof(rootHash));
         visitingOptions ??= VisitingOptions.Default;
 
-        using TrieVisitContext trieVisitContext = new ()
+        using TrieVisitContext trieVisitContext = new()
         {
             // hacky but other solutions are not much better, something nicer would require a bit of thinking
             // we introduced a notion of an account on the visit context level which should have no knowledge of account really
@@ -72,18 +61,18 @@ public partial class VerkleTree
         };
 
         if (!rootHash.Equals(new Hash256(Keccak.EmptyTreeHash.Bytes.ToArray())))
-        {
             _verkleStateStore.MoveToStateRoot(rootHash);
-        }
         else
-        {
             return;
-        }
 
         visitor.VisitTree(rootHash, trieVisitContext);
 
         RecurseNodes(visitor, _verkleStateStore.GetInternalNode(Array.Empty<byte>()), trieVisitContext);
+    }
 
+    public bool HasStateForStateRoot(Hash256 stateRoot)
+    {
+        return _verkleStateStore.HasStateForBlock(stateRoot);
     }
 
     private void RecurseNodes(IVerkleTreeVisitor visitor, InternalNode node, TrieVisitContext trieVisitContext)
@@ -91,41 +80,40 @@ public partial class VerkleTree
         switch (node.NodeType)
         {
             case VerkleNodeType.BranchNode:
+            {
+                visitor.VisitBranchNode(node, trieVisitContext);
+                trieVisitContext.Level++;
+                for (var i = 0; i < 256; i++)
                 {
-                    visitor.VisitBranchNode(node, trieVisitContext);
-                    trieVisitContext.Level++;
-                    for (int i = 0; i < 256; i++)
-                    {
-                        trieVisitContext.AbsolutePathIndex.Add((byte)i);
-                        InternalNode? childNode = _verkleStateStore.GetInternalNode(trieVisitContext.AbsolutePathIndex.ToArray());
-                        if (childNode is not null && visitor.ShouldVisit(trieVisitContext.AbsolutePathIndex.ToArray()))
-                        {
-                            RecurseNodes(visitor, childNode!, trieVisitContext);
-                        }
-                        trieVisitContext.AbsolutePathIndex.RemoveAt(trieVisitContext.AbsolutePathIndex.Count - 1);
-                    }
-                    trieVisitContext.Level--;
-                    break;
+                    trieVisitContext.AbsolutePathIndex.Add((byte)i);
+                    InternalNode? childNode =
+                        _verkleStateStore.GetInternalNode(trieVisitContext.AbsolutePathIndex.ToArray());
+                    if (childNode is not null && visitor.ShouldVisit(trieVisitContext.AbsolutePathIndex.ToArray()))
+                        RecurseNodes(visitor, childNode!, trieVisitContext);
+                    trieVisitContext.AbsolutePathIndex.RemoveAt(trieVisitContext.AbsolutePathIndex.Count - 1);
                 }
+
+                trieVisitContext.Level--;
+                break;
+            }
             case VerkleNodeType.StemNode:
+            {
+                visitor.VisitStemNode(node, trieVisitContext);
+                Stem stemKey = node.Stem;
+                Span<byte> childKey = stackalloc byte[32];
+                stemKey.Bytes.CopyTo(childKey);
+                trieVisitContext.Level++;
+                for (var i = 0; i < 256; i++)
                 {
-                    visitor.VisitStemNode(node, trieVisitContext);
-                    Stem stemKey = node.Stem;
-                    Span<byte> childKey = stackalloc byte[32];
-                    stemKey.Bytes.CopyTo(childKey);
-                    trieVisitContext.Level++;
-                    for (int i = 0; i < 256; i++)
-                    {
-                        childKey[31] = (byte)i;
-                        byte[]? childNode = _verkleStateStore.GetLeaf(childKey.ToArray());
-                        if (childNode is not null && visitor.ShouldVisit(childKey.ToArray()))
-                        {
-                            visitor.VisitLeafNode(childKey.ToArray(), trieVisitContext, childNode);
-                        }
-                    }
-                    trieVisitContext.Level--;
-                    break;
+                    childKey[31] = (byte)i;
+                    var childNode = _verkleStateStore.GetLeaf(childKey.ToArray());
+                    if (childNode is not null && visitor.ShouldVisit(childKey.ToArray()))
+                        visitor.VisitLeafNode(childKey.ToArray(), trieVisitContext, childNode);
                 }
+
+                trieVisitContext.Level--;
+                break;
+            }
             default:
                 throw new ArgumentOutOfRangeException();
         }

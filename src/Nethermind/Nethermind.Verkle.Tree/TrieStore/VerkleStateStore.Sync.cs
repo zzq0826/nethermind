@@ -8,23 +8,26 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.Utils;
-using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
 public partial class VerkleStateStore
 {
-    public bool IsFullySynced(Hash256 stateRoot) => StateRootToBlocks[new Hash256(stateRoot.Bytes.ToArray())] != -2;
+    public bool IsFullySynced(Hash256 stateRoot)
+    {
+        return StateRootToBlocks[new Hash256(stateRoot.Bytes.ToArray())] != -2;
+    }
 
     // TODO: handle the case where there is no stem between the requested range.
-    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot, long bytes)
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot,
+        long bytes)
     {
-        if(bytes == 0)  yield break;
+        if (bytes == 0) yield break;
 
-        byte[] fromRangeBytes = new byte[32];
-        byte[] toRangeBytes = new byte[32];
+        var fromRangeBytes = new byte[32];
+        var toRangeBytes = new byte[32];
         fromRange.BytesAsSpan.CopyTo(fromRangeBytes);
         toRange.BytesAsSpan.CopyTo(toRangeBytes);
         fromRangeBytes[31] = 0;
@@ -32,7 +35,7 @@ public partial class VerkleStateStore
 
         using LeafEnumerator enumerator = GetLeafRangeIterator(fromRangeBytes, toRangeBytes, stateRoot).GetEnumerator();
 
-        int usedBytes = 0;
+        var usedBytes = 0;
 
         HashSet<Stem> listOfStem = new();
         Stem currentStem = fromRange;
@@ -51,7 +54,7 @@ public partial class VerkleStateStore
             // //       and also perf hit of using unbounded v/s bounded iterator.
             // if (Bytes.Comparer.CompareGreaterThan(current.Key, toRangeBytes) > 0 && listOfStem.Count != 0) break;
 
-            if (listOfStem.Contains(current.Key.Slice(0,31)))
+            if (listOfStem.Contains(current.Key.Slice(0, 31)))
             {
                 subTree.Add(new LeafInSubTree(current.Key[31], current.Value));
                 usedBytes += 31;
@@ -61,18 +64,20 @@ public partial class VerkleStateStore
                 if (subTree.Count != 0) yield return new PathWithSubTree(currentStem, subTree.ToArray());
                 subTree.Clear();
                 if (usedBytes >= bytes) break;
-                currentStem = new Stem(current.Key.Slice(0,31).ToArray());
+                currentStem = new Stem(current.Key.Slice(0, 31).ToArray());
                 listOfStem.Add(currentStem);
                 subTree.Add(new LeafInSubTree(current.Key[31], current.Value));
                 usedBytes += 31 + 33;
             }
         }
+
         if (subTree.Count != 0) yield return new PathWithSubTree(currentStem, subTree.ToArray());
     }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Hash256 stateRoot)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,
+        Hash256 stateRoot)
     {
-        if(BlockCache is null) yield break;
+        if (BlockCache is null) yield break;
 
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
         List<LeafEnumerator> iterators = new();
@@ -86,11 +91,11 @@ public partial class VerkleStateStore
         DictionarySortedSet<byte[], LeafIterator> keyEnumMap = new(Bytes.Comparer);
 
         // TODO: optimize this to start from a specific blockNumber - or better yet get the list of enumerators directly
-        BlockBranchLinkedList.BlockBranchEnumerator blockEnumerator =
+        BlockBranchCache.BranchEnumerator blockEnumerator =
             BlockCache.GetEnumerator(stateRoot);
         try
         {
-            int iteratorPriority = 0;
+            var iteratorPriority = 0;
             while (blockEnumerator.MoveNext())
             {
                 // TODO: here we construct a set from the LeafTable so that we can do the GetViewBetween
@@ -99,61 +104,61 @@ public partial class VerkleStateStore
                 DictionarySortedSet<byte[], byte[]> currentSet = blockEnumerator.Current.Data.StateDiff!.LeafTable;
 
                 // construct the iterators that starts for the specific range using GetViewBetween
-                IEnumerator<KeyValuePair<byte[],byte[]>> enumerator = currentSet
+                IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = currentSet
                     .GetViewBetween(
                         new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes.ToArray()),
                         new KeyValuePair<byte[], byte[]>(toRange, Pedersen.Zero.Bytes.ToArray()))
                     .GetEnumerator();
 
                 // find the first value in iterator that is not already used
-                bool isIteratorUsed = false;
+                var isIteratorUsed = false;
                 while (enumerator.MoveNext())
                 {
                     KeyValuePair<byte[], byte[]> current = enumerator.Current;
                     // add the key and corresponding value
-                    if (kvMap.TryAdd(current.Key, new(iteratorPriority, current.Value)))
+                    if (kvMap.TryAdd(current.Key, new KeyValuePair<int, byte[]>(iteratorPriority, current.Value)))
                     {
                         isIteratorUsed = true;
                         iterators.Add(enumerator);
                         // add the new key and the corresponding enumerator
-                        keyEnumMap.Add(current.Key, new(enumerator, iteratorPriority));
+                        keyEnumMap.Add(current.Key, new LeafIterator(enumerator, iteratorPriority));
                         break;
                     }
                 }
+
                 if (!isIteratorUsed)
                 {
                     enumerator.Dispose();
                     continue;
                 }
+
                 iteratorPriority++;
             }
 
             LeafEnumerator persistentLeafsIterator = Storage.LeafDb.GetIterator(fromRange, toRange).GetEnumerator();
-            bool isPersistentIteratorUsed = false;
+            var isPersistentIteratorUsed = false;
             while (persistentLeafsIterator.MoveNext())
             {
                 KeyValuePair<byte[], byte[]> current = persistentLeafsIterator.Current;
                 // add the key and corresponding value
-                if (kvMap.TryAdd(current.Key, new(iteratorPriority, current.Value)))
+                if (kvMap.TryAdd(current.Key, new KeyValuePair<int, byte[]>(iteratorPriority, current.Value)))
                 {
                     isPersistentIteratorUsed = true;
                     iterators.Add(persistentLeafsIterator);
                     // add the new key and the corresponding enumerator
-                    keyEnumMap.Add(current.Key, new (persistentLeafsIterator, iteratorPriority));
+                    keyEnumMap.Add(current.Key, new LeafIterator(persistentLeafsIterator, iteratorPriority));
                     break;
                 }
             }
-            if (!isPersistentIteratorUsed)
-            {
-                persistentLeafsIterator.Dispose();
-            }
+
+            if (!isPersistentIteratorUsed) persistentLeafsIterator.Dispose();
 
             void InsertAndMoveIteratorRecursive(LeafIterator leafIterator)
             {
                 while (leafIterator.Enumerator.MoveNext())
                 {
                     KeyValuePair<byte[], byte[]> newKeyValuePair = leafIterator.Enumerator.Current;
-                    byte[] newKeyToInsert = newKeyValuePair.Key;
+                    var newKeyToInsert = newKeyValuePair.Key;
                     // now here check if the value already exist and if the priority of value of higher or lower and
                     // update accordingly
                     KeyValuePair<int, byte[]> valueToInsert = new(leafIterator.Priority, newKeyValuePair.Value);
@@ -200,11 +205,11 @@ public partial class VerkleStateStore
                 // get the enumerator and move it to next and insert the corresponding values recursively
                 InsertAndMoveIteratorRecursive(value.Value);
 
-                byte[] returnValue = kvMap[value.Key].Value;
+                var returnValue = kvMap[value.Key].Value;
                 kvMap.Remove(value.Key);
 
                 // return the value
-                yield return new KeyValuePair<byte[], byte[]> (value.Key, returnValue);
+                yield return new KeyValuePair<byte[], byte[]>(value.Key, returnValue);
             }
         }
         finally
@@ -215,7 +220,7 @@ public partial class VerkleStateStore
 
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIteratorUnbounded(byte[] fromRange, Hash256 stateRoot)
     {
-        if(BlockCache is null) yield break;
+        if (BlockCache is null) yield break;
 
         // this will contain all the iterators that we need to fulfill the GetSubTreeRange request
         List<LeafEnumerator> iterators = new();
@@ -229,11 +234,11 @@ public partial class VerkleStateStore
         DictionarySortedSet<byte[], LeafIterator> keyEnumMap = new(Bytes.Comparer);
 
         // TODO: optimize this to start from a specific blockNumber - or better yet get the list of enumerators directly
-        var blockEnumerator =
+        BlockBranchCache.BranchEnumerator blockEnumerator =
             BlockCache.GetEnumerator(stateRoot);
         try
         {
-            int iteratorPriority = 0;
+            var iteratorPriority = 0;
             while (blockEnumerator.MoveNext())
             {
                 // TODO: here we construct a set from the LeafTable so that we can do the GetViewBetween
@@ -242,61 +247,61 @@ public partial class VerkleStateStore
                 DictionarySortedSet<byte[], byte[]> currentSet = blockEnumerator.Current.Data.StateDiff!.LeafTable;
 
                 // construct the iterators that starts for the specific range using GetViewBetween
-                IEnumerator<KeyValuePair<byte[],byte[]>> enumerator = currentSet
+                IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = currentSet
                     .GetViewBetween(
                         new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes.ToArray()),
                         currentSet.Max)
                     .GetEnumerator();
 
                 // find the first value in iterator that is not already used
-                bool isIteratorUsed = false;
+                var isIteratorUsed = false;
                 while (enumerator.MoveNext())
                 {
                     KeyValuePair<byte[], byte[]> current = enumerator.Current;
                     // add the key and corresponding value
-                    if (kvMap.TryAdd(current.Key, new(iteratorPriority, current.Value)))
+                    if (kvMap.TryAdd(current.Key, new KeyValuePair<int, byte[]>(iteratorPriority, current.Value)))
                     {
                         isIteratorUsed = true;
                         iterators.Add(enumerator);
                         // add the new key and the corresponding enumerator
-                        keyEnumMap.Add(current.Key, new(enumerator, iteratorPriority));
+                        keyEnumMap.Add(current.Key, new LeafIterator(enumerator, iteratorPriority));
                         break;
                     }
                 }
+
                 if (!isIteratorUsed)
                 {
                     enumerator.Dispose();
                     continue;
                 }
+
                 iteratorPriority++;
             }
 
             LeafEnumerator persistentLeafsIterator = Storage.LeafDb.GetIterator(fromRange).GetEnumerator();
-            bool isPersistentIteratorUsed = false;
+            var isPersistentIteratorUsed = false;
             while (persistentLeafsIterator.MoveNext())
             {
                 KeyValuePair<byte[], byte[]> current = persistentLeafsIterator.Current;
                 // add the key and corresponding value
-                if (kvMap.TryAdd(current.Key, new(iteratorPriority, current.Value)))
+                if (kvMap.TryAdd(current.Key, new KeyValuePair<int, byte[]>(iteratorPriority, current.Value)))
                 {
                     isPersistentIteratorUsed = true;
                     iterators.Add(persistentLeafsIterator);
                     // add the new key and the corresponding enumerator
-                    keyEnumMap.Add(current.Key, new (persistentLeafsIterator, iteratorPriority));
+                    keyEnumMap.Add(current.Key, new LeafIterator(persistentLeafsIterator, iteratorPriority));
                     break;
                 }
             }
-            if (!isPersistentIteratorUsed)
-            {
-                persistentLeafsIterator.Dispose();
-            }
+
+            if (!isPersistentIteratorUsed) persistentLeafsIterator.Dispose();
 
             void InsertAndMoveIteratorRecursive(LeafIterator leafIterator)
             {
                 while (leafIterator.Enumerator.MoveNext())
                 {
                     KeyValuePair<byte[], byte[]> newKeyValuePair = leafIterator.Enumerator.Current;
-                    byte[] newKeyToInsert = newKeyValuePair.Key;
+                    var newKeyToInsert = newKeyValuePair.Key;
                     // now here check if the value already exist and if the priority of value of higher or lower and
                     // update accordingly
                     KeyValuePair<int, byte[]> valueToInsert = new(leafIterator.Priority, newKeyValuePair.Value);
@@ -343,11 +348,11 @@ public partial class VerkleStateStore
                 // get the enumerator and move it to next and insert the corresponding values recursively
                 InsertAndMoveIteratorRecursive(value.Value);
 
-                byte[] returnValue = kvMap[value.Key].Value;
+                var returnValue = kvMap[value.Key].Value;
                 kvMap.Remove(value.Key);
 
                 // return the value
-                yield return new KeyValuePair<byte[], byte[]> (value.Key, returnValue);
+                yield return new KeyValuePair<byte[], byte[]>(value.Key, returnValue);
             }
         }
         finally
@@ -358,7 +363,8 @@ public partial class VerkleStateStore
 
     public List<PathWithSubTree>? GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Hash256 stateRoot, long bytes)
     {
-        using IEnumerator<KeyValuePair<byte[], byte[]>> ranges = GetLeafRangeIterator(fromRange, toRange, stateRoot).GetEnumerator();
+        using IEnumerator<KeyValuePair<byte[], byte[]>> ranges = GetLeafRangeIterator(fromRange, toRange, stateRoot)
+            .GetEnumerator();
 
         long currentBytes = 0;
 
@@ -373,18 +379,15 @@ public partial class VerkleStateStore
         currentBytes += 64;
 
 
-        bool bytesConsumed = false;
+        var bytesConsumed = false;
         while (ranges.MoveNext())
-        {
             if (currentBytes > bytes)
             {
                 bytesConsumed = true;
                 break;
             }
-        }
 
         if (bytesConsumed)
-        {
             // this means the iterator is not empty but the bytes is consumed, now we need to complete the current
             // subtree we are processing
             while (ranges.MoveNext())
@@ -396,15 +399,13 @@ public partial class VerkleStateStore
                     listOfLeafs.Add(new LeafInSubTree(ranges.Current.Key[31], ranges.Current.Value!));
                     continue;
                 }
+
                 break;
             }
-        }
 
         List<PathWithSubTree> pathWithSubTrees = new(rangesToReturn.Count);
         foreach (KeyValuePair<byte[], List<LeafInSubTree>> keyVal in rangesToReturn)
-        {
             pathWithSubTrees.Add(new PathWithSubTree(keyVal.Key, keyVal.Value.ToArray()));
-        }
 
         return pathWithSubTrees;
     }

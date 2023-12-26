@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Db;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
@@ -23,14 +22,14 @@ public readonly struct StateRootToBlockMap
         get
         {
             // if (Pedersen.Zero.Equals(key)) return -1;
-            byte[]? encodedBlock = _stateRootToBlock[key.Bytes];
+            var encodedBlock = _stateRootToBlock[key.Bytes];
             return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
         }
         set
         {
             Span<byte> encodedBlock = stackalloc byte[8];
             BinaryPrimitives.WriteInt64LittleEndian(encodedBlock, value);
-            if(!_stateRootToBlock.KeyExists(key.Bytes))
+            if (!_stateRootToBlock.KeyExists(key.Bytes))
                 _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
         }
     }

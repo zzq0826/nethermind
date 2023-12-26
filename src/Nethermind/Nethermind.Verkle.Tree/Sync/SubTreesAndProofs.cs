@@ -5,12 +5,12 @@ namespace Nethermind.Verkle.Tree.Sync;
 
 public class SubTreesAndProofs
 {
-    public PathWithSubTree[] SubTrees { get; set; }
-    public byte[] Proofs { get; set; }
-
     public SubTreesAndProofs(PathWithSubTree[] data, byte[] proofs)
     {
         SubTrees = data;
         Proofs = proofs;
     }
+
+    public PathWithSubTree[] SubTrees { get; set; }
+    public byte[] Proofs { get; set; }
 }

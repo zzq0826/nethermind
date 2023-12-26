@@ -16,15 +16,20 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 
 public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 {
-    private VerkleStateStore _verkleStateStore;
-    private VerkleMemoryDb _keyValueStore;
+    private readonly VerkleMemoryDb _keyValueStore;
     private ILogger _logger;
+    private readonly VerkleStateStore _verkleStateStore;
 
     public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
         _logger = verkleStateStore.LogManager.GetClassLogger<ReadOnlyVerkleStateStore>();
+    }
+
+    public bool IsFullySynced(Hash256 stateRoot)
+    {
+        return _verkleStateStore.IsFullySynced(stateRoot);
     }
 
     public Hash256 StateRoot
@@ -45,27 +50,25 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
-        return _keyValueStore.GetLeaf(key, out byte[]? value)
+        return _keyValueStore.GetLeaf(key, out var value)
             ? value
             : _verkleStateStore.GetLeaf(key, stateRoot);
     }
+
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
         return _keyValueStore.GetInternalNode(key, out InternalNode? value)
             ? value
             : _verkleStateStore.GetInternalNode(key, stateRoot);
     }
-    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
-    {
-        _keyValueStore.SetLeaf(leafKey, leafValue);
-    }
-    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
-    {
-        _keyValueStore.SetInternalNode(internalNodeKey, internalNodeValue);
-    }
-    public void InsertBatch(long blockNumber, VerkleMemoryDb batch) { }
 
-    public void ApplyDiffLayer(BatchChangeSet changeSet) { }
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+    }
+
+    public void ApplyDiffLayer(BatchChangeSet changeSet)
+    {
+    }
 
     public bool HasStateForBlock(Hash256 stateRoot)
     {
@@ -87,19 +90,26 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
     }
-    public bool IsFullySynced(Hash256 stateRoot)
-    {
-        return _verkleStateStore.IsFullySynced(stateRoot);
-    }
 
-    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange, Hash256 stateRoot)
+    public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,
+        Hash256 stateRoot)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot);
     }
 
-    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot, long bytes)
+    public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot,
+        long bytes)
     {
         return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }
-}
 
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
+    {
+        _keyValueStore.SetLeaf(leafKey, leafValue);
+    }
+
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
+    {
+        _keyValueStore.SetInternalNode(internalNodeKey, internalNodeValue);
+    }
+}

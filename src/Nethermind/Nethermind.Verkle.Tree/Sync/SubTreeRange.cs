@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.Sync;
 
@@ -21,17 +19,17 @@ public class SubTreeRange
     public long? BlockNumber { get; }
 
     /// <summary>
-    /// State Root of the verkle trie to serve
+    ///     State Root of the verkle trie to serve
     /// </summary>
     public Hash256 RootHash { get; }
 
     /// <summary>
-    /// Stem of the first sub-tree to retrieve
+    ///     Stem of the first sub-tree to retrieve
     /// </summary>
     public Stem StartingStem { get; }
 
     /// <summary>
-    /// Stem after which to stop serving data
+    ///     Stem after which to stop serving data
     /// </summary>
     public Stem? LimitStem { get; }
 

@@ -3,7 +3,6 @@
 
 using System;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
@@ -11,24 +10,25 @@ using Nethermind.Verkle.Tree.VerkleDb;
 namespace Nethermind.Verkle.Tree.TrieStore;
 
 /// <summary>
-/// This is a state store designed to be used with JsonRpc
-/// this will use the VerkleStateStore and VerkleArchiveStore to provide historical data for JsonRpc calls
+///     This is a state store designed to be used with JsonRpc
+///     this will use the VerkleStateStore and VerkleArchiveStore to provide historical data for JsonRpc calls
 /// </summary>
 public class JsonRpcStateStore
 {
     private readonly VerkleArchiveStore _archiveStore;
-    private readonly VerkleStateStore _verkleStateStore;
     private readonly VerkleMemoryDb _keyValueStore;
+    private readonly VerkleStateStore _verkleStateStore;
 
-    private Hash256 StateStoreStateRoot { get; set; }
-
-    public JsonRpcStateStore(VerkleArchiveStore archiveStore, VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
+    public JsonRpcStateStore(VerkleArchiveStore archiveStore, VerkleStateStore verkleStateStore,
+        VerkleMemoryDb keyValueStore)
     {
         _archiveStore = archiveStore;
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
         StateStoreStateRoot = _verkleStateStore.StateRoot;
     }
+
+    private Hash256 StateStoreStateRoot { get; set; }
 
     public Hash256 StateRoot
     {
@@ -43,7 +43,7 @@ public class JsonRpcStateStore
     {
         try
         {
-            if (!_keyValueStore.GetLeaf(key, out byte[]? value))
+            if (!_keyValueStore.GetLeaf(key, out var value))
                 value = _verkleStateStore.GetLeaf(key, stateRoot ?? StateStoreStateRoot);
             return value;
         }
@@ -70,7 +70,9 @@ public class JsonRpcStateStore
         _keyValueStore.SetInternalNode(internalNodeKey, internalNodeValue);
     }
 
-    public void InsertBatch(long blockNumber, VerkleMemoryDb batch) { }
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+    }
 
     public void MoveToStateRoot(Hash256 stateRoot)
     {

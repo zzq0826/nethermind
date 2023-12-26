@@ -21,5 +21,4 @@ public interface IVerkleTreeVisitor
     void VisitStemNode(InternalNode node, TrieVisitContext trieVisitContext);
 
     void VisitLeafNode(ReadOnlySpan<byte> nodeKey, TrieVisitContext trieVisitContext, byte[]? nodeValue);
-
 }

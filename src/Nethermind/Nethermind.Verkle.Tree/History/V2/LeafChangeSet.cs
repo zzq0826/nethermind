@@ -9,16 +9,16 @@ using Nethermind.Logging;
 
 namespace Nethermind.Verkle.Tree.History.V2;
 
-
-public class LeafChangeSet: ILeafChangeSet
+public class LeafChangeSet : ILeafChangeSet
 {
-    private IDb ChangeSet { get; }
     public LeafChangeSet(IDbProvider dbProvider, ILogManager logManager)
     {
         ChangeSet = dbProvider.ForwardDiff;
     }
 
-    public void InsertDiff(long blockNumber,  LeafStoreInterface leafTable)
+    private IDb ChangeSet { get; }
+
+    public void InsertDiff(long blockNumber, LeafStoreInterface leafTable)
     {
         Span<byte> keyFull = stackalloc byte[32 + 8]; // pedersenKey + blockNumber
         BinaryPrimitives.WriteInt64BigEndian(keyFull.Slice(32), blockNumber);
@@ -31,7 +31,8 @@ public class LeafChangeSet: ILeafChangeSet
 
     public byte[]? GetLeaf(long blockNumber, ReadOnlySpan<byte> key)
     {
-        Span<byte> dbKey = stackalloc byte[32 + 8]; // pedersenKey + blockNumber leafEntry.Key.CopyTo(keyFull.Slice(0, 32));
+        Span<byte>
+            dbKey = stackalloc byte[32 + 8]; // pedersenKey + blockNumber leafEntry.Key.CopyTo(keyFull.Slice(0, 32));
         key.CopyTo(dbKey.Slice(0, 32));
         BinaryPrimitives.WriteInt64BigEndian(dbKey.Slice(32), blockNumber);
         return ChangeSet.Get(dbKey);

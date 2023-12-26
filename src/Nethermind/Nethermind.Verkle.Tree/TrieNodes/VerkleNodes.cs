@@ -7,11 +7,11 @@ namespace Nethermind.Verkle.Tree.TrieNodes;
 
 public static class VerkleNodes
 {
-
     public static InternalNode CreateStatelessBranchNode(Commitment commitment)
     {
         return new InternalNode(VerkleNodeType.BranchNode, commitment) { IsStateless = true };
     }
+
     public static InternalNode CreateBranchNode(Commitment commitment)
     {
         return new InternalNode(VerkleNodeType.BranchNode, commitment);
@@ -19,16 +19,17 @@ public static class VerkleNodes
 
     public static InternalNode CreateStatelessStemNode(Stem stem, Commitment internalCommitment)
     {
-        return new(VerkleNodeType.StemNode, stem, null, null, internalCommitment) { IsStateless = true };
+        return new InternalNode(VerkleNodeType.StemNode, stem, null, null, internalCommitment) { IsStateless = true };
     }
 
-    public static InternalNode CreateStatelessStemNode(Stem stem, Commitment? c1, Commitment? c2, Commitment internalCommitment)
+    public static InternalNode CreateStatelessStemNode(Stem stem, Commitment? c1, Commitment? c2,
+        Commitment internalCommitment)
     {
-        return new(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment) { IsStateless = true };
+        return new InternalNode(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment) { IsStateless = true };
     }
 
     public static InternalNode CreateStatelessStemNode(Stem stem)
     {
-        return new(VerkleNodeType.StemNode, stem) { IsStateless = true };
+        return new InternalNode(VerkleNodeType.StemNode, stem) { IsStateless = true };
     }
 }
