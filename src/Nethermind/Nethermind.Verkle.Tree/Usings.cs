@@ -3,7 +3,7 @@
 
 global using InternalStore = Nethermind.Core.Collections.SpanConcurrentDictionary<byte, Nethermind.Verkle.Tree.TrieNodes.InternalNode?>;
 global using LeafStore = Nethermind.Core.Collections.SpanConcurrentDictionary<byte, byte[]?>;
-global using LeafStoreSorted = System.Collections.Generic.SortedDictionary<byte[], byte[]?>;
+global using LeafStoreSorted = Nethermind.Core.Collections.DictionarySortedSet<byte[], byte[]>;
 global using VerkleUtils = Nethermind.Verkle.Tree.Utils.VerkleUtils;
 global using VerkleNodeType = Nethermind.Verkle.Tree.TrieNodes.VerkleNodeType;
 global using InternalStoreInterface = System.Collections.Generic.IDictionary<byte[], Nethermind.Verkle.Tree.TrieNodes.InternalNode?>;

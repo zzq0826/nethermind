@@ -118,7 +118,7 @@ public class TestSyncRangesInAHugeVerkleTree
             tree._verkleStateStore
                 .GetLeafRangeIterator(
                 keysArray[keyLength/4].Bytes.ToArray(),
-                keysArray[(keyLength*2)/3].Bytes.ToArray(), 180)
+                keysArray[(keyLength*2)/3].Bytes.ToArray(), stateRoot180)
                 .GetEnumerator();
 
 
@@ -351,6 +351,7 @@ public class TestSyncRangesInAHugeVerkleTree
         Console.WriteLine($"{block} Insert: {(check1 - start).TotalMilliseconds}");
         Console.WriteLine($"{block} Flush: {(check2 - check1).TotalMilliseconds}");
 
+        Hash256 requiredStateRoot = Pedersen.Zero;
         SortedSet<byte[]> keys = new(Bytes.Comparer);
         for (int i = 10; i < numKeys; i += 10)
         {
@@ -367,6 +368,7 @@ public class TestSyncRangesInAHugeVerkleTree
             }
             DateTime check3 = DateTime.Now;
             tree.Commit();
+            if (block == 180) requiredStateRoot = tree.StateRoot;
             tree.CommitTree(block++);
             DateTime check4 = DateTime.Now;
             Console.WriteLine($"{block} Insert: {(check3 - check5).TotalMilliseconds}");
@@ -379,7 +381,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
         byte[][] keysArray = keys.ToArray();
         using IEnumerator<KeyValuePair<byte[], byte[]>> rangeEnum =
-            tree._verkleStateStore.GetLeafRangeIterator(keysArray[30], keysArray[90], 180).GetEnumerator();
+            tree._verkleStateStore.GetLeafRangeIterator(keysArray[30], keysArray[90], requiredStateRoot).GetEnumerator();
 
         while (rangeEnum.MoveNext())
         {
@@ -414,6 +416,7 @@ public class TestSyncRangesInAHugeVerkleTree
         tree.Commit();
         tree.CommitTree(0);
 
+        Hash256 requiredStateRoot = Pedersen.Zero;
         for (int blockNumber = 1; blockNumber <= 180; blockNumber++)
         {
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
@@ -441,10 +444,14 @@ public class TestSyncRangesInAHugeVerkleTree
 
             tree.Commit();
             tree.CommitTree(blockNumber);
+            if (blockNumber == 180) requiredStateRoot = tree.StateRoot;
+            {
+
+            }
         }
 
         KeyValuePair<byte[], byte[]>[] rangeEnum =
-            tree._verkleStateStore.GetLeafRangeIterator(Pedersen.Zero.Bytes.ToArray(), Pedersen.MaxValue.Bytes.ToArray(), 180)
+            tree._verkleStateStore.GetLeafRangeIterator(Pedersen.Zero.Bytes.ToArray(), Pedersen.MaxValue.Bytes.ToArray(), requiredStateRoot)
                 .ToArray();
 
         int index = 0;

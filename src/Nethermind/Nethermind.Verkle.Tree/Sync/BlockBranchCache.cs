@@ -125,7 +125,7 @@ public class BlockBranchLinkedList(int cacheSize)
         return _stateRootToNodeMapping.TryGetValue(stateRoot.Bytes, out node);
     }
 
-    protected BlockBranchEnumerator GetEnumerator(Hash256 stateRoot)
+    public BlockBranchEnumerator GetEnumerator(Hash256 stateRoot)
     {
         return new BlockBranchEnumerator(this, stateRoot);
     }
