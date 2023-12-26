@@ -3,18 +3,15 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Microsoft.ClearScript.Util.Web;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
-using Org.BouncyCastle.Utilities;
 using Bytes = Nethermind.Core.Extensions.Bytes;
 
-namespace Nethermind.Verkle.Tree.Sync;
+namespace Nethermind.Verkle.Tree.Utils;
 
 public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
