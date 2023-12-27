@@ -164,7 +164,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     {
         if (Storage.GetInternalNode(RootNodeKey, out InternalNode rootNode))
         {
-            StateRoot = new Hash256(rootNode!.InternalCommitment.ToBytes());
+            PersistedStateRoot = StateRoot = new Hash256(rootNode!.InternalCommitment.ToBytes());
             LastPersistedBlockNumber = StateRootToBlocks[StateRoot];
             if (LastPersistedBlockNumber == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
             LatestCommittedBlockNumber = -1;
@@ -172,7 +172,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         else
         {
             Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
-            StateRoot = Pedersen.Zero;
+            PersistedStateRoot = StateRoot = Pedersen.Zero;
             LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
         }
     }
