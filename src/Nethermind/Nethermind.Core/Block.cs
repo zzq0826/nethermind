@@ -158,19 +158,22 @@ public class Block
         {
             builder.AppendLine($"  ExecutionWitness");
             builder.AppendLine($"    StateDiff: {ExecutionWitness.StateDiff.Count}");
-            builder.AppendLine($"    WitnessVerkleProof: {ExecutionWitness.VerkleProof!.D}");
-            builder.AppendLine($"      D: {ExecutionWitness.VerkleProof.D.ToBytes().ToHexString()}");
-            builder.AppendLine(
-                $"      IpaProof: {ExecutionWitness.VerkleProof.IpaProof.Encode().ToHexString()}");
-            builder.AppendLine(
-                $"      ExtensionPresent: {ExecutionWitness.VerkleProof.DepthExtensionPresent.ToHexString()}");
-
-            if (ExecutionWitness.VerkleProof.OtherStems is not null)
+            if (ExecutionWitness.VerkleProof is not null)
+            {
+                builder.AppendLine($"    WitnessVerkleProof: {ExecutionWitness.VerkleProof.D}");
+                builder.AppendLine($"      D: {ExecutionWitness.VerkleProof.D.ToBytes().ToHexString()}");
                 builder.AppendLine(
-                    $"      OtherStems: {string.Join(", ", ExecutionWitness.VerkleProof.OtherStems.Select(x => x.ToString()))}");
+                    $"      IpaProof: {ExecutionWitness.VerkleProof.IpaProof.Encode().ToHexString()}");
+                builder.AppendLine(
+                    $"      ExtensionPresent: {ExecutionWitness.VerkleProof.DepthExtensionPresent.ToHexString()}");
 
-            builder.AppendLine(
-                $"      ExtensionPresent: {string.Join(", ", ExecutionWitness.VerkleProof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
+                if (ExecutionWitness.VerkleProof.OtherStems is not null)
+                    builder.AppendLine(
+                        $"      OtherStems: {string.Join(", ", ExecutionWitness.VerkleProof.OtherStems.Select(x => x.ToString()))}");
+
+                builder.AppendLine(
+                    $"      ExtensionPresent: {string.Join(", ", ExecutionWitness.VerkleProof.CommitmentsByPath.Select(x => x.ToBytes().ToHexString()))}");
+            }
         }
 
         return builder.ToString();

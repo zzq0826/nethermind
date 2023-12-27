@@ -125,6 +125,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
         // just a edge case - to account for empty MPT state root
         if (stateRoot.Equals(Keccak.EmptyTreeHash)) stateRootToCheck = Pedersen.Zero;
+        if (stateRootToCheck == Pedersen.Zero) return true;
 
         // check in cache and then check for the persisted state root
         return BlockCache.GetStateRootNode(stateRootToCheck, out _) || PersistedStateRoot == stateRootToCheck;
@@ -132,6 +133,12 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
+        if (stateRoot == Pedersen.Zero)
+        {
+            StateRoot = Pedersen.Zero;
+            return true;
+        }
+
         if (BlockCache.GetStateRootNode(stateRoot, out BlockBranchNode? rootNode))
         {
             StateRoot = rootNode.Data.StateRoot;
