@@ -264,7 +264,7 @@ public partial class BlockProcessor : IBlockProcessor
     {
         IReleaseSpec spec = _specProvider.GetSpec(block.Header);
 
-        if (ShouldVerifyIncomingWitness)
+        if (!options.ContainsFlag(ProcessingOptions.ProducingBlock))
         {
             if (!block.IsGenesis)
             {
@@ -331,7 +331,7 @@ public partial class BlockProcessor : IBlockProcessor
 
         block.Header.Hash = block.Header.CalculateHash();
 
-        if (ShouldGenerateWitness && ShouldDoStatelessStuff)
+        if (!options.ContainsFlag(ProcessingOptions.ProducingBlock))
         {
             try
             {
@@ -347,6 +347,7 @@ public partial class BlockProcessor : IBlockProcessor
 
                 worldState.Commit(spec);
                 worldState.RecalculateStateRoot();
+                _logger.Info($"StateLess Recalculate StateRoot: {worldState.StateRoot}");
             }
             catch (Exception e)
             {
