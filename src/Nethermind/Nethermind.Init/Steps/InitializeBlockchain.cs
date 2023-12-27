@@ -233,13 +233,12 @@ namespace Nethermind.Init.Steps
                     _api.WitnessCollector,
                     _api.LogManager);
 
-                if (initConfig.StatelessProcessingEnabled)
-                {
-                    processor.StatelessBlockTransactionsExecutor =
-                        new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor,
-                            _api.WorldState!);
-                    processor.ShouldDoStatelessStuff = true;
-                }
+
+                processor.StatelessBlockTransactionsExecutor =
+                    new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor,
+                        _api.WorldState!);
+                processor.ShouldDoStatelessStuff = true;
+
 
                 processor.ShouldGenerateWitness = initConfig.GenerateVerkleProofsForBlock;
                 processor.ShouldVerifyIncomingWitness = initConfig.VerifyProofsInBlock;
