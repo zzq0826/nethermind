@@ -278,6 +278,10 @@ namespace Nethermind.Db.FullPruning
             }
 
             public CancellationTokenSource CancellationTokenSource { get; } = new();
+            public void Tune(IDbMeta.TuneType tune)
+            {
+                CloningDb.Tune(tune);
+            }
 
             /// <inheritdoc />
             public void Dispose()

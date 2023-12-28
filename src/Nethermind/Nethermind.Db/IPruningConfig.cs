@@ -80,6 +80,9 @@ public interface IPruningConfig : IConfig
     [ConfigItem(Description = "The minimum delay, in hours, between full pruning operations not to exhaust disk writes.", DefaultValue = "240")]
     int FullPruningMinimumDelayHours { get; set; }
 
+    [ConfigItem(Description = "[TECHNICAL] Optimize the target database during copy.", DefaultValue = "HeavyWrite")]
+    IDbMeta.TuneType FullPruningTuneDbMode { get; set; }
+
     [ConfigItem(Description = """
             The behavior after pruning completion:
 

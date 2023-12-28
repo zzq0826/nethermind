@@ -51,6 +51,16 @@ namespace Nethermind.Blockchain.Test.FullPruning
             test.ShouldCopyAllValues();
         }
 
+
+        [Test, Timeout(Timeout.MaxTestTime)]
+        public async Task should_tune_db_during_prune()
+        {
+            TestContext test = CreateTest();
+            await test.WaitForPruning();
+            test.CopyDb.WasTunedWith(IDbMeta.TuneType.HeavyWrite);
+            test.CopyDb.CurrentTune.Should().Be(IDbMeta.TuneType.Default);
+        }
+
         [Test, Timeout(Timeout.MaxTestTime)]
         public async Task pruning_deletes_old_db_on_success()
         {
@@ -346,6 +356,10 @@ namespace Nethermind.Blockchain.Test.FullPruning
                 }
 
                 public CancellationTokenSource CancellationTokenSource { get; } = new();
+                public void Tune(IDbMeta.TuneType tune)
+                {
+                    _context.Tune(tune);
+                }
             }
         }
     }

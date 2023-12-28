@@ -30,6 +30,7 @@ namespace Nethermind.Db
         public int FullPruningMemoryBudgetMb { get; set; } = 4000;
         public bool FullPruningDisableLowPriorityWrites { get; set; } = false;
         public int FullPruningMinimumDelayHours { get; set; } = 240;
+        public IDbMeta.TuneType FullPruningTuneDbMode { get; set; } = IDbMeta.TuneType.HeavyWrite;
         public FullPruningCompletionBehavior FullPruningCompletionBehavior { get; set; } = FullPruningCompletionBehavior.None;
         public bool AvailableSpaceCheckEnabled { get; set; } = true;
     }

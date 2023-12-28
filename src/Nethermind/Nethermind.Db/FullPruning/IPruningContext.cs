@@ -26,5 +26,10 @@ namespace Nethermind.Db.FullPruning
         /// Allows cancelling pruning
         /// </summary>
         CancellationTokenSource CancellationTokenSource { get; }
+
+        /// <summary>
+        /// Tune the cloned db
+        /// </summary>
+        void Tune(IDbMeta.TuneType tune);
     }
 }

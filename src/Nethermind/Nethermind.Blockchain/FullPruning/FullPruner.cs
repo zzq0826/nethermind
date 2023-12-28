@@ -210,6 +210,7 @@ namespace Nethermind.Blockchain.FullPruning
             try
             {
                 pruning.MarkStart();
+                pruning.Tune(_pruningConfig.FullPruningTuneDbMode);
 
                 WriteFlags writeFlags = WriteFlags.DisableWAL;
                 if (!_pruningConfig.FullPruningDisableLowPriorityWrites)
@@ -239,6 +240,7 @@ namespace Nethermind.Blockchain.FullPruning
                         // ReSharper restore AccessToDisposedClosure
                     }
 
+                    pruning.Tune(IDbMeta.TuneType.Default);
                     _blockTree.OnUpdateMainChain += CommitOnNewBLock;
                     copyTreeVisitor.Finish();
                 }

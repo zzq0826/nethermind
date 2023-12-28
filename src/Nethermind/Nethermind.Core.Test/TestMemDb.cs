@@ -28,6 +28,8 @@ public class TestMemDb : MemDb
     public bool WasFlushed => FlushCount > 0;
     public int FlushCount { get; set; } = 0;
 
+    public IDbMeta.TuneType CurrentTune { get; set; } = IDbMeta.TuneType.Default;
+
     [MethodImpl(MethodImplOptions.Synchronized)]
     public override byte[]? Get(ReadOnlySpan<byte> key, ReadFlags flags = ReadFlags.None)
     {
@@ -67,6 +69,8 @@ public class TestMemDb : MemDb
     public override void Tune(IDbMeta.TuneType type)
     {
         _tuneTypes.Add(type);
+
+        CurrentTune = type;
     }
 
     public bool WasTunedWith(IDbMeta.TuneType type)
