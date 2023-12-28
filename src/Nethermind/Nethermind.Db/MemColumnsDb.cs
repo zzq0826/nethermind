@@ -35,5 +35,9 @@ namespace Nethermind.Db
         {
             return new InMemoryColumnWriteBatch<TKey>(this);
         }
+
+        public void Tune(IDbMeta.TuneType type)
+        {
+        }
     }
 }

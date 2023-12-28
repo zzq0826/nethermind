@@ -165,7 +165,7 @@ namespace Nethermind.Synchronization
                 StartStateSyncComponents();
             }
 
-            if (_syncConfig.TuneDbMode != ITunableDb.TuneType.Default || _syncConfig.BlocksDbTuneDbMode != ITunableDb.TuneType.Default)
+            if (_syncConfig.TuneDbMode != IDbMeta.TuneType.Default || _syncConfig.BlocksDbTuneDbMode != IDbMeta.TuneType.Default)
             {
                 SetupDbOptimizer();
             }
@@ -212,10 +212,10 @@ namespace Nethermind.Synchronization
                 SnapSyncFeed,
                 BodiesSyncFeed,
                 ReceiptsSyncFeed,
-                _dbProvider.StateDb as ITunableDb,
-                _dbProvider.CodeDb as ITunableDb,
-                _dbProvider.BlocksDb as ITunableDb,
-                _dbProvider.ReceiptsDb as ITunableDb);
+                _dbProvider.StateDb,
+                _dbProvider.CodeDb,
+                _dbProvider.BlocksDb,
+                _dbProvider.ReceiptsDb);
         }
 
         private void StartFullSyncComponents()

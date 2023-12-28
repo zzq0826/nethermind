@@ -29,5 +29,17 @@ namespace Nethermind.Db
         void Flush() { }
         void Clear() { }
         void Compact() { }
+
+        void Tune(TuneType type) { }
+
+        enum TuneType
+        {
+            Default,
+            WriteBias,
+            HeavyWrite,
+            AggressiveHeavyWrite,
+            DisableCompaction,
+            EnableBlobFiles
+        }
     }
 }

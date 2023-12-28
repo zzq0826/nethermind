@@ -143,5 +143,9 @@ namespace Nethermind.Db
             WritesCount++;
             _db[key] = value;
         }
+
+        public virtual void Tune(IDbMeta.TuneType type)
+        {
+        }
     }
 }

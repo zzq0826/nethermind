@@ -120,10 +120,10 @@ public interface ISyncConfig : IConfig
     public bool NonValidatorNode { get; set; }
 
     [ConfigItem(Description = "_Experimental._ Configure the database for write optimizations during sync. Significantly reduces the total number of writes and sync time if you are not network limited.", DefaultValue = "HeavyWrite")]
-    public ITunableDb.TuneType TuneDbMode { get; set; }
+    public IDbMeta.TuneType TuneDbMode { get; set; }
 
     [ConfigItem(Description = "_Experimental._ Configure the blocks database for write optimizations during sync.", DefaultValue = "EnableBlobFiles")]
-    ITunableDb.TuneType BlocksDbTuneDbMode { get; set; }
+    IDbMeta.TuneType BlocksDbTuneDbMode { get; set; }
 
     [ConfigItem(Description = "The max number of threads used for syncing. `0` to use the number of logical processors.", DefaultValue = "0")]
     public int MaxProcessingThreads { get; set; }

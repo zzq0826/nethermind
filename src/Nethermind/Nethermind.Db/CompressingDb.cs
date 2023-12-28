@@ -18,7 +18,7 @@ namespace Nethermind.Db
         /// <returns>A wrapped db.</returns>
         public static IDb WithEOACompressed(this IDb @this) => new EOACompressingDb(@this);
 
-        private class EOACompressingDb : IDb, ITunableDb
+        private class EOACompressingDb : IDb
         {
             private readonly IDb _wrapped;
 
@@ -170,10 +170,9 @@ namespace Nethermind.Db
 
             public bool PreferWriteByArray => _wrapped.PreferWriteByArray;
 
-            public void Tune(ITunableDb.TuneType type)
+            public void Tune(IDbMeta.TuneType type)
             {
-                if (_wrapped is ITunableDb tunable)
-                    tunable.Tune(type);
+                _wrapped.Tune(type);
             }
         }
     }

@@ -11,23 +11,23 @@ namespace Nethermind.Synchronization.DbTuner;
 
 public class SyncDbTuner
 {
-    private readonly ITunableDb? _stateDb;
-    private readonly ITunableDb? _codeDb;
-    private readonly ITunableDb? _blockDb;
-    private readonly ITunableDb? _receiptDb;
+    private readonly IDbMeta? _stateDb;
+    private readonly IDbMeta? _codeDb;
+    private readonly IDbMeta? _blockDb;
+    private readonly IDbMeta? _receiptDb;
 
-    private readonly ITunableDb.TuneType _tuneType;
-    private readonly ITunableDb.TuneType _blocksDbTuneType;
+    private readonly IDbMeta.TuneType _tuneType;
+    private readonly IDbMeta.TuneType _blocksDbTuneType;
 
     public SyncDbTuner(
         ISyncConfig syncConfig,
         ISyncFeed<SnapSyncBatch>? snapSyncFeed,
         ISyncFeed<BodiesSyncBatch>? bodiesSyncFeed,
         ISyncFeed<ReceiptsSyncBatch>? receiptSyncFeed,
-        ITunableDb? stateDb,
-        ITunableDb? codeDb,
-        ITunableDb? blockDb,
-        ITunableDb? receiptDb
+        IDbMeta? stateDb,
+        IDbMeta? codeDb,
+        IDbMeta? blockDb,
+        IDbMeta? receiptDb
     )
     {
         // Only these three make sense as they are write heavy
@@ -66,8 +66,8 @@ public class SyncDbTuner
         }
         else if (e.NewState == SyncFeedState.Finished)
         {
-            _stateDb?.Tune(ITunableDb.TuneType.Default);
-            _codeDb?.Tune(ITunableDb.TuneType.Default);
+            _stateDb?.Tune(IDbMeta.TuneType.Default);
+            _codeDb?.Tune(IDbMeta.TuneType.Default);
         }
     }
 
@@ -79,7 +79,7 @@ public class SyncDbTuner
         }
         else if (e.NewState == SyncFeedState.Finished)
         {
-            _blockDb?.Tune(ITunableDb.TuneType.Default);
+            _blockDb?.Tune(IDbMeta.TuneType.Default);
         }
     }
 
@@ -91,7 +91,7 @@ public class SyncDbTuner
         }
         else if (e.NewState == SyncFeedState.Finished)
         {
-            _receiptDb?.Tune(ITunableDb.TuneType.Default);
+            _receiptDb?.Tune(IDbMeta.TuneType.Default);
         }
     }
 }

@@ -107,15 +107,9 @@ namespace Nethermind.Store.Test
         {
             Context ctx = new();
 
-            if (ctx.Compressed is not ITunableDb tunable)
-            {
-                Assert.Fail("Db must me tunable");
-                return;
-            }
+            ctx.Compressed.Tune(IDb.TuneType.HeavyWrite);
 
-            tunable.Tune(ITunableDb.TuneType.HeavyWrite);
-
-            ctx.Wrapped.WasTunedWith(ITunableDb.TuneType.HeavyWrite).Should().BeTrue();
+            ctx.Wrapped.WasTunedWith(IDb.TuneType.HeavyWrite).Should().BeTrue();
         }
 
         private class Context

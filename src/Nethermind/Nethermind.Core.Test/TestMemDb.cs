@@ -14,12 +14,12 @@ namespace Nethermind.Core.Test;
 /// <summary>
 /// MemDB with additional tools for testing purposes since you can't use NSubstitute with refstruct
 /// </summary>
-public class TestMemDb : MemDb, ITunableDb
+public class TestMemDb : MemDb
 {
     private readonly List<(byte[], ReadFlags)> _readKeys = new();
     private readonly List<((byte[], byte[]?), WriteFlags)> _writes = new();
     private readonly List<byte[]> _removedKeys = new();
-    private readonly List<ITunableDb.TuneType> _tuneTypes = new();
+    private readonly List<IDbMeta.TuneType> _tuneTypes = new();
 
     public Func<byte[], byte[]>? ReadFunc { get; set; }
     public Func<byte[], byte[]?, bool>? WriteFunc { get; set; }
@@ -64,12 +64,12 @@ public class TestMemDb : MemDb, ITunableDb
         base.Remove(key);
     }
 
-    public void Tune(ITunableDb.TuneType type)
+    public override void Tune(IDbMeta.TuneType type)
     {
         _tuneTypes.Add(type);
     }
 
-    public bool WasTunedWith(ITunableDb.TuneType type)
+    public bool WasTunedWith(IDbMeta.TuneType type)
     {
         return _tuneTypes.Contains(type);
     }

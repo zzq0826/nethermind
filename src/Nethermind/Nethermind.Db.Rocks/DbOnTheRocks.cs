@@ -23,7 +23,7 @@ using IWriteBatch = Nethermind.Core.IWriteBatch;
 
 namespace Nethermind.Db.Rocks;
 
-public class DbOnTheRocks : IDb, ITunableDb
+public class DbOnTheRocks : IDb
 {
     private ILogger _logger;
 
@@ -63,7 +63,7 @@ public class DbOnTheRocks : IDb, ITunableDb
 
     protected readonly RocksDbSharp.Native _rocksDbNative;
 
-    private ITunableDb.TuneType _currentTune = ITunableDb.TuneType.Default;
+    private IDbMeta.TuneType _currentTune = IDbMeta.TuneType.Default;
 
     private string CorruptMarkerPath => Path.Join(_fullPath, "corrupt.marker");
 
@@ -1090,7 +1090,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         return version?.ToString(3);
     }
 
-    public virtual void Tune(ITunableDb.TuneType type)
+    public virtual void Tune(IDbMeta.TuneType type)
     {
         if (_currentTune == type) return;
 
@@ -1118,26 +1118,26 @@ public class DbOnTheRocks : IDb, ITunableDb
             // Note, in practice on my machine, the reads does not reach the SSD. Read measured from SSD is much lower
             // than read measured from process. It is likely that most files are cached as I have 128GB of RAM.
             // Also notice that the heavier the tune, the higher the reads.
-            case ITunableDb.TuneType.WriteBias:
+            case IDbMeta.TuneType.WriteBias:
                 // Keep the same l1 size but apply other adjustment which should increase buffer number and make
                 // l0 the same size as l1, but keep the LSM the same. This improve flush parallelization, and
                 // write amplification due to mismatch of l0 and l1 size, but does not reduce compaction from other
                 // levels.
                 ApplyOptions(GetHeavyWriteOptions(_perTableDbConfig.MaxBytesForLevelBase / (ulong)8.MiB()));
                 break;
-            case ITunableDb.TuneType.HeavyWrite:
+            case IDbMeta.TuneType.HeavyWrite:
                 // Compaction spikes are clear at this point. Will definitely affect attestation performance.
                 // Its unclear if it improve or slow down sync time. Seems to be the sweet spot.
                 ApplyOptions(GetHeavyWriteOptions(256));
                 break;
-            case ITunableDb.TuneType.AggressiveHeavyWrite:
+            case IDbMeta.TuneType.AggressiveHeavyWrite:
                 // For when, you are desperate, but don't wanna disable compaction completely, because you don't want
                 // peers to drop. Tend to be faster than disabling compaction completely, except if your ratelimit
                 // is a bit low and your compaction is lagging behind, which will trigger slowdown, so sync will hang
                 // intermittently, but at least peer count is stable.
                 ApplyOptions(GetHeavyWriteOptions(1024));
                 break;
-            case ITunableDb.TuneType.DisableCompaction:
+            case IDbMeta.TuneType.DisableCompaction:
                 // Completely disable compaction. On mainnet, max num of l0 files for state seems to be about 10800.
                 // Blocksdb are way more at 53000. Final compaction for state db need 30 minute, while blocks db need
                 // 13 hour. Receipts db don't show up in metrics likely because its a column db.
@@ -1158,10 +1158,10 @@ public class DbOnTheRocks : IDb, ITunableDb
                 // without changing memory budget. Not recommended for mainnet, unless you are very desperate.
                 ApplyOptions(GetDisableCompactionOptions());
                 break;
-            case ITunableDb.TuneType.EnableBlobFiles:
+            case IDbMeta.TuneType.EnableBlobFiles:
                 ApplyOptions(GetBlobFilesOptions());
                 break;
-            case ITunableDb.TuneType.Default:
+            case IDbMeta.TuneType.Default:
             default:
                 ApplyOptions(GetStandardOptions());
                 break;

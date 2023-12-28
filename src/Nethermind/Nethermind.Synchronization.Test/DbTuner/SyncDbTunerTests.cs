@@ -14,21 +14,21 @@ namespace Nethermind.Synchronization.Test.DbTuner;
 
 public class SyncDbTunerTests
 {
-    private ITunableDb.TuneType _tuneType = ITunableDb.TuneType.HeavyWrite;
-    private readonly ITunableDb.TuneType _blocksTuneType = ITunableDb.TuneType.AggressiveHeavyWrite;
+    private IDbMeta.TuneType _tuneType = IDbMeta.TuneType.HeavyWrite;
+    private readonly IDbMeta.TuneType _blocksTuneType = IDbMeta.TuneType.AggressiveHeavyWrite;
     private SyncConfig _syncConfig = null!;
     private ISyncFeed<SnapSyncBatch> _snapSyncFeed = null!;
     private ISyncFeed<BodiesSyncBatch> _bodiesSyncFeed = null!;
     private ISyncFeed<ReceiptsSyncBatch> _receiptSyncFeed = null!;
-    private ITunableDb _stateDb = null!;
-    private ITunableDb _codeDb = null!;
-    private ITunableDb _blockDb = null!;
-    private ITunableDb _receiptDb = null!;
+    private IDbMeta _stateDb = null!;
+    private IDbMeta _codeDb = null!;
+    private IDbMeta _blockDb = null!;
+    private IDbMeta _receiptDb = null!;
 
     [SetUp]
     public void Setup()
     {
-        _tuneType = ITunableDb.TuneType.HeavyWrite;
+        _tuneType = IDbMeta.TuneType.HeavyWrite;
         _syncConfig = new SyncConfig()
         {
             TuneDbMode = _tuneType,
@@ -37,10 +37,10 @@ public class SyncDbTunerTests
         _snapSyncFeed = Substitute.For<ISyncFeed<SnapSyncBatch>>();
         _bodiesSyncFeed = Substitute.For<ISyncFeed<BodiesSyncBatch>>();
         _receiptSyncFeed = Substitute.For<ISyncFeed<ReceiptsSyncBatch>>();
-        _stateDb = Substitute.For<ITunableDb>();
-        _codeDb = Substitute.For<ITunableDb>();
-        _blockDb = Substitute.For<ITunableDb>();
-        _receiptDb = Substitute.For<ITunableDb>();
+        _stateDb = Substitute.For<IDbMeta>();
+        _codeDb = Substitute.For<IDbMeta>();
+        _blockDb = Substitute.For<IDbMeta>();
+        _receiptDb = Substitute.For<IDbMeta>();
 
         SyncDbTuner _ = new SyncDbTuner(
             _syncConfig,
@@ -51,15 +51,6 @@ public class SyncDbTunerTests
             _codeDb,
             _blockDb,
             _receiptDb);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _blockDb?.Dispose();
-        _codeDb?.Dispose();
-        _receiptDb?.Dispose();
-        _stateDb?.Dispose();
     }
 
     [Test]
@@ -86,7 +77,7 @@ public class SyncDbTunerTests
         TestFeedAndDbTune(_receiptSyncFeed, _receiptDb);
     }
 
-    private void TestFeedAndDbTune<T>(ISyncFeed<T> feed, ITunableDb db, ITunableDb.TuneType? tuneType = null)
+    private void TestFeedAndDbTune<T>(ISyncFeed<T> feed, IDbMeta db, IDbMeta.TuneType? tuneType = null)
     {
         feed.StateChanged += Raise.EventWith(new SyncFeedStateEventArgs(SyncFeedState.Active));
 
@@ -94,6 +85,6 @@ public class SyncDbTunerTests
 
         feed.StateChanged += Raise.EventWith(new SyncFeedStateEventArgs(SyncFeedState.Finished));
 
-        db.Received().Tune(ITunableDb.TuneType.Default);
+        db.Received().Tune(IDb.TuneType.Default);
     }
 }
