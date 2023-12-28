@@ -225,7 +225,7 @@ public class JsonRpcService : IJsonRpcService
 
     private void LogRequest(string methodName, JsonElement providedParameters, ParameterInfo[] expectedParameters)
     {
-        if (_logger.IsDebug && !_methodsLoggingFiltering.Contains(methodName))
+        if (_logger.IsInfo && !_methodsLoggingFiltering.Contains(methodName))
         {
             StringBuilder builder = new StringBuilder();
             builder.Append("Executing JSON RPC call ");
@@ -265,7 +265,7 @@ public class JsonRpcService : IJsonRpcService
             }
             builder.Append(']');
             string log = builder.ToString();
-            _logger.Debug(log);
+            _logger.Info(log);
         }
     }
 
@@ -415,7 +415,7 @@ public class JsonRpcService : IJsonRpcService
         Action? disposableAction = null,
         bool suppressWarning = false)
     {
-        if (_logger.IsDebug) _logger.Debug($"Sending error response, method: {(string.IsNullOrEmpty(methodName) ? "none" : methodName)}, id: {id}, errorType: {errorCode}, message: {errorMessage}, errorData: {errorData}");
+        if (_logger.IsInfo) _logger.Info($"Sending error response, method: {(string.IsNullOrEmpty(methodName) ? "none" : methodName)}, id: {id}, errorType: {errorCode}, message: {errorMessage}, errorData: {errorData}");
         JsonRpcErrorResponse response = new(disposableAction)
         {
             Error = new Error
