@@ -30,27 +30,47 @@ namespace Nethermind.Trie.Pruning
                 _trieStore = trieStore;
             }
 
-            public void SaveInCache(TrieNode node)
-            {
-                Debug.Assert(node.Keccak is not null, "Cannot store in cache nodes without resolved key.");
-                if (_objectsCache.TryAdd(node.Keccak!, node))
-                {
-                    Metrics.CachedNodesCount = Interlocked.Increment(ref _count);
-                    _trieStore.MemoryUsedByDirtyCache += node.GetMemorySize(false);
-                }
-            }
-
             public TrieNode FindCachedOrUnknown(Hash256 hash)
             {
-                if (_objectsCache.TryGetValue(hash, out TrieNode trieNode))
+                bool isNew = false;
+                // TODO: Closure is for metric. Maybe its unnecessary?
+                TrieNode trieNode =  _objectsCache.GetOrAdd(hash, _ =>
+                {
+                    if (_trieStore._logger.IsTrace) _trieStore._logger.Trace($"Creating new node {hash}");
+                    isNew = true;
+                    return new TrieNode(NodeType.Unknown, hash);
+                });
+
+                if (!isNew)
                 {
                     Metrics.LoadedFromCacheNodesCount++;
                 }
                 else
                 {
-                    if (_trieStore._logger.IsTrace) _trieStore._logger.Trace($"Creating new node {trieNode}");
-                    trieNode = new TrieNode(NodeType.Unknown, hash);
-                    SaveInCache(trieNode);
+                    Metrics.CachedNodesCount = Interlocked.Increment(ref _count);
+                    _trieStore.MemoryUsedByDirtyCache += trieNode.GetMemorySize(false);
+                }
+
+                return trieNode;
+            }
+
+            public TrieNode TryGetOrAdd(Hash256 hash, TrieNode node)
+            {
+                bool isNew = false;
+                TrieNode trieNode =  _objectsCache.GetOrAdd(hash, _ =>
+                {
+                    isNew = true;
+                    return node;
+                });
+
+                if (!isNew)
+                {
+                    Metrics.LoadedFromCacheNodesCount++;
+                }
+                else
+                {
+                    Metrics.CachedNodesCount = Interlocked.Increment(ref _count);
+                    _trieStore.MemoryUsedByDirtyCache += trieNode.GetMemorySize(false);
                 }
 
                 return trieNode;
@@ -246,30 +266,23 @@ namespace Nethermind.Trie.Pruning
         {
             if (_pruningStrategy.PruningEnabled)
             {
-                if (IsNodeCached(node.Keccak))
+                TrieNode cachedNodeCopy = _dirtyNodes.TryGetOrAdd(node.Keccak, node);
+                if (!ReferenceEquals(cachedNodeCopy, node))
                 {
-                    TrieNode cachedNodeCopy = FindCachedOrUnknown(node.Keccak);
-                    if (!ReferenceEquals(cachedNodeCopy, node))
+                    if (_logger.IsTrace) _logger.Trace($"Replacing {node} with its cached copy {cachedNodeCopy}.");
+                    cachedNodeCopy.ResolveKey(this, nodeCommitInfo.IsRoot);
+                    if (node.Keccak != cachedNodeCopy.Keccak)
                     {
-                        if (_logger.IsTrace) _logger.Trace($"Replacing {node} with its cached copy {cachedNodeCopy}.");
-                        cachedNodeCopy.ResolveKey(this, nodeCommitInfo.IsRoot);
-                        if (node.Keccak != cachedNodeCopy.Keccak)
-                        {
-                            throw new InvalidOperationException($"The hash of replacement node {cachedNodeCopy} is not the same as the original {node}.");
-                        }
-
-                        if (!nodeCommitInfo.IsRoot)
-                        {
-                            nodeCommitInfo.NodeParent!.ReplaceChildRef(nodeCommitInfo.ChildPositionAtParent, cachedNodeCopy);
-                        }
-
-                        node = cachedNodeCopy;
-                        Metrics.ReplacedNodesCount++;
+                        throw new InvalidOperationException($"The hash of replacement node {cachedNodeCopy} is not the same as the original {node}.");
                     }
-                }
-                else
-                {
-                    _dirtyNodes.SaveInCache(node);
+
+                    if (!nodeCommitInfo.IsRoot)
+                    {
+                        nodeCommitInfo.NodeParent!.ReplaceChildRef(nodeCommitInfo.ChildPositionAtParent, cachedNodeCopy);
+                    }
+
+                    node = cachedNodeCopy;
+                    Metrics.ReplacedNodesCount++;
                 }
             }
 
@@ -309,6 +322,8 @@ namespace Nethermind.Trie.Pruning
                     {
                         Monitor.Exit(_dirtyNodes);
                     }
+
+                    Prune();
                 }
             }
             finally
@@ -316,8 +331,6 @@ namespace Nethermind.Trie.Pruning
                 _currentBatch?.Dispose();
                 _currentBatch = null;
             }
-
-            Prune();
         }
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
