@@ -146,13 +146,13 @@ jobs:
         with:
           payload: |
             {
-              "text": "SYNC FAILED - Chain: ${{ matrix.network }}",
+              "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}"
+                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
                   }
                 }
               ]
