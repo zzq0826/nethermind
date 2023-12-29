@@ -147,13 +147,27 @@ jobs:
         with:
           payload: |
             {
-              "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
+              "text": "Sync Failure Notification",
               "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚨 Sync Failure Detected 🚨"
+                  }
+                },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
+                    "text": "*Chain:* ${{ matrix.network }}\n*URL:* <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|View Run Details>\n*Failure Reason:* Waiting for Forkchoice message found in Docker logs."
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Line on which it was found:*\n`${{ steps.wait.outputs.failure_line }}`"
                   }
                 }
               ]
@@ -161,4 +175,3 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
