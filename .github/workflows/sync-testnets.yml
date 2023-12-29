@@ -160,7 +160,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chain:* ${{ matrix.network }}\n*URL:* <${{ github.repository_owner }}/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}|View Run Details>\n*Failure Reason:* ${{ steps.wait.outputs.bad_log }} found in Docker logs."
+                    "text": "*Chain:* ${{ matrix.network }}\n*URL:* [View Run Details](https://github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }})\n*Failure Reason:* Waiting for Forkchoice message found in Docker logs."
                   }
                 },
                 {
