@@ -107,12 +107,14 @@ public class InitializeStateDb : IStep
                 stateWitnessedBy,
                 pruningStrategy,
                 persistenceStrategy,
-                getApi.LogManager)
+                getApi.LogManager,
+                pruneSynchronously: pruningConfig.PruneSynchronously)
             : new TrieStore(
                 stateWitnessedBy,
                 pruningStrategy,
                 persistenceStrategy,
-                getApi.LogManager);
+                getApi.LogManager,
+                pruneSynchronously: pruningConfig.PruneSynchronously);
 
         // TODO: Needed by node serving. Probably should use `StateReader` instead.
         setApi.TrieStore = trieStore;

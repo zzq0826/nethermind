@@ -23,8 +23,9 @@ public class HealingTrieStore : TrieStore
         IKeyValueStoreWithBatching? keyValueStore,
         IPruningStrategy? pruningStrategy,
         IPersistenceStrategy? persistenceStrategy,
-        ILogManager? logManager)
-        : base(keyValueStore, pruningStrategy, persistenceStrategy, logManager)
+        ILogManager? logManager,
+        bool pruneSynchronously = false)
+        : base(keyValueStore, pruningStrategy, persistenceStrategy, logManager, pruneSynchronously: pruneSynchronously)
     {
     }
 

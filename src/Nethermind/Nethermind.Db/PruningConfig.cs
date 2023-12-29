@@ -32,5 +32,6 @@ namespace Nethermind.Db
         public int FullPruningMinimumDelayHours { get; set; } = 240;
         public FullPruningCompletionBehavior FullPruningCompletionBehavior { get; set; } = FullPruningCompletionBehavior.None;
         public bool AvailableSpaceCheckEnabled { get; set; } = true;
+        public bool PruneSynchronously { get; set; } = false;
     }
 }

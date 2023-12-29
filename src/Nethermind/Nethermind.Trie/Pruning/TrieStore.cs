@@ -153,6 +153,8 @@ namespace Nethermind.Trie.Pruning
         private Task _pruningTask = Task.CompletedTask;
         private readonly CancellationTokenSource _pruningTaskCancellationTokenSource = new();
 
+        private readonly bool _pruneSynchronously = false;
+
         public TrieStore(IKeyValueStoreWithBatching? keyValueStore, ILogManager? logManager)
             : this(keyValueStore, No.Pruning, Pruning.Persist.EveryBlock, logManager)
         {
@@ -162,7 +164,8 @@ namespace Nethermind.Trie.Pruning
             IKeyValueStoreWithBatching? keyValueStore,
             IPruningStrategy? pruningStrategy,
             IPersistenceStrategy? persistenceStrategy,
-            ILogManager? logManager)
+            ILogManager? logManager,
+            bool pruneSynchronously = false)
         {
             _logger = logManager?.GetClassLogger<TrieStore>() ?? throw new ArgumentNullException(nameof(logManager));
             _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
@@ -170,6 +173,7 @@ namespace Nethermind.Trie.Pruning
             _persistenceStrategy = persistenceStrategy ?? throw new ArgumentNullException(nameof(persistenceStrategy));
             _dirtyNodes = new DirtyNodesCache(this);
             _publicStore = new TrieKeyValueStore(this);
+            _pruneSynchronously = pruneSynchronously;
         }
 
         public long LastPersistedBlockNumber
@@ -435,6 +439,11 @@ namespace Nethermind.Trie.Pruning
                         if (_logger.IsError) _logger.Error("Pruning failed with exception.", e);
                     }
                 });
+
+                if (_pruneSynchronously)
+                {
+                    _pruningTask.Wait();
+                }
             }
         }
 

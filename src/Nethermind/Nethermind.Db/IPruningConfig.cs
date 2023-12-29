@@ -92,4 +92,7 @@ public interface IPruningConfig : IConfig
 
     [ConfigItem(Description = "Whether to enables available disk space check.", DefaultValue = "true")]
     bool AvailableSpaceCheckEnabled { get; set; }
+
+    [ConfigItem(Description = "Prune sync", DefaultValue = "false", HiddenFromDocs = true)]
+    bool PruneSynchronously { get; set; }
 }
