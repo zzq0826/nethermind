@@ -144,15 +144,15 @@ jobs:
         if: failure() && steps.wait.conclusion == 'failure'
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          payload: |
+          payload: >
             {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
               "blocks": [
                 {
-                   "type": "section",
+                  "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: $GITHUB_SERVER_URL//$GITHUB_REPOSITORY//actions//runs//$GITHUB_RUN_ID\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
                   }
                 }
               ]
@@ -160,3 +160,4 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
