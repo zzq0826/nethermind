@@ -112,7 +112,7 @@ jobs:
               if [[ "$line" == *"$bad_log"* ]]; then
                 echo "Error: $bad_log found in Docker logs."
                 echo "bad_log=$bad_log" >> $GITHUB_OUTPUT
-                sanitized_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g')
+                sanitized_line=$(echo "$line" | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/[[:space:]]*$//')")
                 echo "failure_line=$sanitized_line" >> $GITHUB_OUTPUT
                 exit 1
               fi
