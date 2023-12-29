@@ -96,7 +96,7 @@ jobs:
           bad_logs["Invalid"]=1
           bad_logs["Exception"]=1
           bad_logs["Corrupted"]=1
-          bad_logs["RockDB"]=1
+          bad_logs["RocksDB"]=1
 
           declare -A good_logs
           good_logs["Synced chain Head"]=0
