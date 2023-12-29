@@ -142,7 +142,7 @@ jobs:
           echo "Node is synced."
           
       - name: Send Slack Notification on failure or cancellation
-        if: steps.wait.conclusion == 'failure' || steps.wait.conclusion == 'cancelled'
+        if: steps.wait.outcome == 'failure' || steps.wait.outcome == 'cancelled'
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
