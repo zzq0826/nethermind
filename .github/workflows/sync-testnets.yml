@@ -141,7 +141,7 @@ jobs:
           echo "Node is synced."
           
       - name: Send Slack Notification on failure
-        if: steps.wait.outcome == 'failure'
+        if: ${{ failure() && steps.wait.conclusion == 'failure' }}
         id: slack
         uses: slackapi/slack-github-action@v1.24.0
         with:
