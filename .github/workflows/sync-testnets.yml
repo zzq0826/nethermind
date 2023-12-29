@@ -142,7 +142,7 @@ jobs:
           echo "Node is synced."
           
       - name: Get Current Job Log URL
-        uses: Tiryoh/gha-jobid-action@v0
+        uses: Tiryoh/gha-jobid-action@v1.1.0
         if: failure() && steps.wait.conclusion == 'failure'
         id: jobs
         with:
