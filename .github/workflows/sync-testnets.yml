@@ -141,23 +141,22 @@ jobs:
           echo "Node is synced."
           
       - name: Send Slack Notification on failure
-				if: failure() && steps.wait.conclusion == 'failure'
-				uses: slackapi/slack-github-action@v1.24.0
-				with:
-					payload: >
-						{
-							"text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
-							"blocks": [
-								{
-									"type": "section",
-									"text": {
-									"type": "mrkdwn",
-									"text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
-									}
-								}
-							]
-						}
-				env:
-					SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-					SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-	
+        if: failure() && steps.wait.conclusion == 'failure'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+            payload: >
+                {
+                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                            "type": "mrkdwn",
+                            "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
+                            }
+                        }
+                    ]
+                }
+        env:
+            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+            SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
