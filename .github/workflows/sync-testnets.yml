@@ -144,7 +144,7 @@ jobs:
         if: failure() && steps.wait.conclusion == 'failure'
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          payload: >
+          payload: |
             {
               "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: ${{ github.runs_url }}/${{ github.run_id }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}",
               "blocks": [
@@ -152,7 +152,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nURL: $GITHUB_SERVER_URL//$GITHUB_REPOSITORY//actions//runs//$GITHUB_RUN_ID\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
+                    "text": "SYNC FAILED - Chain: ${{ matrix.network }}\nFailure Reason: ${{ steps.wait.outputs.bad_log }} found in Docker logs. Line on which it was found: ${{ steps.wait.outputs.failure_line }}"
                   }
                 }
               ]
