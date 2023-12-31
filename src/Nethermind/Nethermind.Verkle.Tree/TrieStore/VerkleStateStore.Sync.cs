@@ -106,8 +106,8 @@ public partial class VerkleStateStore
                 // construct the iterators that starts for the specific range using GetViewBetween
                 IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = currentSet
                     .GetViewBetween(
-                        new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes.ToArray()),
-                        new KeyValuePair<byte[], byte[]>(toRange, Pedersen.Zero.Bytes.ToArray()))
+                        new KeyValuePair<byte[], byte[]>(fromRange, Hash256.Zero.Bytes.ToArray()),
+                        new KeyValuePair<byte[], byte[]>(toRange, Hash256.Zero.Bytes.ToArray()))
                     .GetEnumerator();
 
                 // find the first value in iterator that is not already used
@@ -249,7 +249,7 @@ public partial class VerkleStateStore
                 // construct the iterators that starts for the specific range using GetViewBetween
                 IEnumerator<KeyValuePair<byte[], byte[]>> enumerator = currentSet
                     .GetViewBetween(
-                        new KeyValuePair<byte[], byte[]>(fromRange, Pedersen.Zero.Bytes.ToArray()),
+                        new KeyValuePair<byte[], byte[]>(fromRange, Hash256.Zero.Bytes.ToArray()),
                         currentSet.Max)
                     .GetEnumerator();
 

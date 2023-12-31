@@ -22,10 +22,7 @@ public class VerkleTreeDumper : IVerkleTreeVisitor
 
     public void VisitTree(Hash256 rootHash, TrieVisitContext trieVisitContext)
     {
-        if (rootHash.Equals(Pedersen.Zero))
-            _builder.AppendLine("EMPTY TREE");
-        else
-            _builder.AppendLine("STATE TREE");
+        _builder.AppendLine(rootHash.Equals(Hash256.Zero) ? "EMPTY TREE" : "STATE TREE");
     }
 
     public void VisitMissingNode(byte[] nodeKey, TrieVisitContext trieVisitContext)

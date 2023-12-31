@@ -57,7 +57,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     }
 
     public static Span<byte> RootNodeKey => Array.Empty<byte>();
-    private Hash256? PersistedStateRoot { get; set; } = Pedersen.Zero;
+    private Hash256? PersistedStateRoot { get; set; } = Hash256.Zero;
 
     private long LastPersistedBlockNumber
     {
@@ -94,7 +94,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     /// <summary>
     ///     Keep track of current state root being used for all the operations
     /// </summary>
-    public Hash256 StateRoot { get; private set; } = Pedersen.Zero;
+    public Hash256 StateRoot { get; private set; } = Hash256.Zero;
 
     public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
@@ -124,8 +124,8 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         Hash256? stateRootToCheck = stateRoot;
 
         // just a edge case - to account for empty MPT state root
-        if (stateRoot.Equals(Keccak.EmptyTreeHash)) stateRootToCheck = Pedersen.Zero;
-        if (stateRootToCheck == Pedersen.Zero) return true;
+        if (stateRoot.Equals(Keccak.EmptyTreeHash)) stateRootToCheck = Hash256.Zero;
+        if (stateRootToCheck == Hash256.Zero) return true;
 
         // check in cache and then check for the persisted state root
         return BlockCache.GetStateRootNode(stateRootToCheck, out _) || PersistedStateRoot == stateRootToCheck;
@@ -133,9 +133,9 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
-        if (stateRoot == Pedersen.Zero)
+        if (stateRoot == Hash256.Zero)
         {
-            StateRoot = Pedersen.Zero;
+            StateRoot = Hash256.Zero;
             return true;
         }
 
@@ -172,7 +172,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
         else
         {
             Storage.SetInternalNode(RootNodeKey, new InternalNode(VerkleNodeType.BranchNode));
-            PersistedStateRoot = StateRoot = Pedersen.Zero;
+            PersistedStateRoot = StateRoot = Hash256.Zero;
             LastPersistedBlockNumber = LatestCommittedBlockNumber = -1;
         }
     }

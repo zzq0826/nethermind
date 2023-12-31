@@ -78,7 +78,7 @@ public class TestSyncRangesInAHugeVerkleTree
         tree.CommitTree(0);
 
 
-        Hash256 stateRoot180 = Pedersen.Zero;
+        Hash256 stateRoot180 = Hash256.Zero;
         for (int blockNumber = 1; blockNumber <= numBlocks; blockNumber++)
         {
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
@@ -351,7 +351,7 @@ public class TestSyncRangesInAHugeVerkleTree
         Console.WriteLine($"{block} Insert: {(check1 - start).TotalMilliseconds}");
         Console.WriteLine($"{block} Flush: {(check2 - check1).TotalMilliseconds}");
 
-        Hash256 requiredStateRoot = Pedersen.Zero;
+        Hash256 requiredStateRoot = Hash256.Zero;
         SortedSet<byte[]> keys = new(Bytes.Comparer);
         for (int i = 10; i < numKeys; i += 10)
         {
@@ -416,7 +416,7 @@ public class TestSyncRangesInAHugeVerkleTree
         tree.Commit();
         tree.CommitTree(0);
 
-        Hash256 requiredStateRoot = Pedersen.Zero;
+        Hash256 requiredStateRoot = Hash256.Zero;
         for (int blockNumber = 1; blockNumber <= 180; blockNumber++)
         {
             for (int accountIndex = 0; accountIndex < leafPerBlock; accountIndex++)
@@ -451,7 +451,7 @@ public class TestSyncRangesInAHugeVerkleTree
         }
 
         KeyValuePair<byte[], byte[]>[] rangeEnum =
-            tree._verkleStateStore.GetLeafRangeIterator(Pedersen.Zero.Bytes.ToArray(), Pedersen.MaxValue.Bytes.ToArray(), requiredStateRoot)
+            tree._verkleStateStore.GetLeafRangeIterator(Hash256.Zero.Bytes.ToArray(), Hash256.MaxValue.Bytes.ToArray(), requiredStateRoot)
                 .ToArray();
 
         int index = 0;

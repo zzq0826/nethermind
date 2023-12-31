@@ -66,7 +66,7 @@ public partial class VerkleStateStore
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
             Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
-            StateRoot = newRoot?.Bytes ?? Pedersen.Zero;
+            StateRoot = newRoot?.Bytes ?? Hash256.Zero;
             PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             StateRootToBlocks[StateRoot] = blockNumber;
@@ -77,7 +77,7 @@ public partial class VerkleStateStore
             {
                 Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
                 if (newRoot is null) _logger.Error("ERROR newRoot is null - this must be some kind of error");
-                BlockCache.InitCache(blockNumber - 1, newRoot?.Bytes ?? Pedersen.Zero);
+                BlockCache.InitCache(blockNumber - 1, newRoot?.Bytes ?? Hash256.Zero);
             }
 
             Hash256? rootToCommit = GetStateRoot(batch.InternalTable);

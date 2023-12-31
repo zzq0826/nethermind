@@ -64,7 +64,7 @@ public class VerkleStateReader : IStateReader
 
     private Account? GetState(Hash256 stateRoot, Address address)
     {
-        if (stateRoot == Keccak.EmptyTreeHash || stateRoot == Pedersen.Zero)
+        if (stateRoot == Keccak.EmptyTreeHash || stateRoot == Hash256.Zero)
         {
             return null;
         }
