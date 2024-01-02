@@ -314,6 +314,7 @@ public partial class BlockProcessor : IBlockProcessor
         if (options.ContainsFlag(ProcessingOptions.ProducingBlock) && spec.IsVerkleTreeEipEnabled &&
             !block.IsGenesis)
         {
+            _logger.Info($"generating witness {options} {spec.IsVerkleTreeEipEnabled}");
             byte[][] witnessKeys = _executionTracer.WitnessKeys.ToArray();
             VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
             witness = witnessKeys.Length == 0 ? new ExecutionWitness() : verkleWorldState?.GenerateExecutionWitness(witnessKeys, out _);
