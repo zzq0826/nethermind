@@ -131,12 +131,12 @@ namespace Nethermind.Synchronization
 
             _syncReport = new SyncReport(_syncPeerPool!, nodeStatsManager!, _syncConfig, _pivot, logManager);
 
-            ProgressTracker progressTracker = new(
+            SnapProgressTracker snapProgressTracker = new(
                 blockTree,
                 dbProvider.StateDb,
                 logManager,
                 _syncConfig.SnapSyncAccountRangePartitionCount);
-            SnapProvider = new SnapProvider(progressTracker, dbProvider, logManager);
+            SnapProvider = new SnapProvider(snapProgressTracker, dbProvider, logManager);
         }
 
         public virtual void Start()
