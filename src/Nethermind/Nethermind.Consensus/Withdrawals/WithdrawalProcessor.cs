@@ -29,14 +29,14 @@ public class WithdrawalProcessor : IWithdrawalProcessor
         if (!spec.WithdrawalsEnabled)
             return;
 
-        if (_logger.IsTrace) _logger.Trace($"Applying withdrawals for block {block}");
+        _logger.Info($"Applying withdrawals for block {block}");
         VerkleWitness? witness = null;
         if (blockTracer.IsTracingAccessWitness) witness = new VerkleWitness();
         if (block.Withdrawals != null)
         {
             foreach (var withdrawal in block.Withdrawals)
             {
-                if (_logger.IsTrace) _logger.Trace($"  {withdrawal.AmountInGwei} GWei to account {withdrawal.Address}");
+                _logger.Info($"  {withdrawal.AmountInGwei} GWei to account {withdrawal.Address}");
                 witness?.AccessCompleteAccount(withdrawal.Address);
                 // Consensus clients are using Gwei for withdrawals amount. We need to convert it to Wei before applying state changes https://github.com/ethereum/execution-apis/pull/354
                 if (_stateProvider.AccountExists(withdrawal.Address))
@@ -50,6 +50,6 @@ public class WithdrawalProcessor : IWithdrawalProcessor
             }
         }
         if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(witness);
-        if (_logger.IsTrace) _logger.Trace($"Withdrawals applied for block {block}");
+        _logger.Info($"Withdrawals applied for block {block}");
     }
 }

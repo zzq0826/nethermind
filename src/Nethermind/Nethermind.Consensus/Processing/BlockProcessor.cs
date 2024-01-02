@@ -348,7 +348,7 @@ public partial class BlockProcessor : IBlockProcessor
 
                 worldState.Commit(spec);
                 worldState.RecalculateStateRoot();
-                _logger.Info($"StateLess Recalculate StateRoot: {worldState.StateRoot}");
+                _logger.Info($"StateLess Recalculate StateRoot: {worldState.StateRoot} {receiptsSl.GetReceiptsRoot(spec, block.ReceiptsRoot)}" );
             }
             catch (Exception e)
             {
