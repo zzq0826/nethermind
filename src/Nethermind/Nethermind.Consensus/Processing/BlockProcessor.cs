@@ -336,7 +336,7 @@ public partial class BlockProcessor : IBlockProcessor
             try
             {
                 (IBlockProcessor.IBlockTransactionsExecutor? blockTransactionsExecutor, IWorldState worldState) =
-                    GetOrCreateExecutorAndState(block, witness!);
+                    GetOrCreateExecutorAndState(block, block.ExecutionWitness!);
                 _executionTracer.StartNewBlockTrace(block);
                 TxReceipt[] receiptsSl = blockTransactionsExecutor.ProcessTransactions(block, options, _executionTracer, spec);
 
