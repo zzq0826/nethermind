@@ -207,6 +207,11 @@ public class InitializeNetwork : IStep
             _api.ProtocolsManager!.AddSupportedCapability(new Capability(Protocol.Eth, 67));
             _api.ProtocolsManager!.AddSupportedCapability(new Capability(Protocol.Eth, 68));
         }
+
+        if (_syncConfig.VerkleSync)
+        {
+            _api.ProtocolsManager!.AddSupportedCapability(new Capability(Protocol.Verkle, 1));
+        }
         else if (_logger.IsDebug) _logger.Debug("Skipped enabling eth67 & eth68 capabilities");
 
         if (_syncConfig.SnapSync)

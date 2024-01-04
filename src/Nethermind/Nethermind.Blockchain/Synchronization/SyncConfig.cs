@@ -29,7 +29,7 @@ namespace Nethermind.Blockchain.Synchronization
         public long? FastSyncCatchUpHeightDelta { get; set; } = 8192;
         public bool FastBlocks { get; set; }
         public bool UseGethLimitsInFastBlocks { get; set; } = true;
-        public bool FastSync { get => _fastSync || SnapSync; set => _fastSync = value; }
+        public bool FastSync { get => _fastSync || SnapSync || VerkleSync; set => _fastSync = value; }
         public bool DownloadHeadersInFastSync { get; set; } = true;
         public bool DownloadBodiesInFastSync { get; set; } = true;
         public bool DownloadReceiptsInFastSync { get; set; } = true;

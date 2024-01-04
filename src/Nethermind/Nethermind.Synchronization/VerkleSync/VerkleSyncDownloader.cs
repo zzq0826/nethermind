@@ -20,13 +20,12 @@ public class VerkleSyncDownloader: ISyncDownloader<VerkleSyncBatch>
         Logger = logManager.GetClassLogger();
     }
 
-    public async Task Dispatch(PeerInfo peerInfo, VerkleSyncBatch batch,
-        CancellationToken cancellationToken)
+    public async Task Dispatch(PeerInfo peerInfo, VerkleSyncBatch batch, CancellationToken cancellationToken)
     {
         ISyncPeer peer = peerInfo.SyncPeer;
 
         //TODO: replace with a constant "snap"
-        if (peer.TryGetSatelliteProtocol<IVerkleSyncPeer>("verkle", out IVerkleSyncPeer? handler))
+        if (peer.TryGetSatelliteProtocol("verkle", out IVerkleSyncPeer? handler))
         {
             try
             {
@@ -41,7 +40,7 @@ public class VerkleSyncDownloader: ISyncDownloader<VerkleSyncBatch>
             }
             catch (Exception e)
             {
-                if (Logger.IsDebug)
+                if (Logger.IsError)
                     Logger.Error($"DEBUG/ERROR Error after dispatching the snap sync request. Request: {batch}", e);
             }
         }
