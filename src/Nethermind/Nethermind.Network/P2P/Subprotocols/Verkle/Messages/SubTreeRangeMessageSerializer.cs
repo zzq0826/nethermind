@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotNetty.Buffers;
+using Nethermind.Core.Verkle;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Sync;
 
@@ -13,7 +14,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 {
     public void Serialize(IByteBuffer byteBuffer, SubTreeRangeMessage message)
     {
-        (int contentLength, int pwasLength, int proofsLength) = GetLength(message);
+        (int contentLength, int pwasLength) = GetLength(message);
 
         byteBuffer.EnsureWritable(Rlp.LengthOfSequence(contentLength), true);
 
@@ -35,8 +36,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
                 int subTreeLength = 0;
                 foreach (LeafInSubTree t in pwa.SubTree)
                 {
-                    subTreeLength += Rlp.LengthOf(t.SuffixByte);
-                    subTreeLength += Rlp.LengthOf(t.Leaf);
+                    subTreeLength += Rlp.LengthOfSequence(Rlp.LengthOf(t.SuffixByte) + Rlp.LengthOf(t.Leaf));
                 }
 
                 int pwaLength = Rlp.LengthOf(pwa.Path.Bytes) + Rlp.LengthOfSequence(subTreeLength);
@@ -46,6 +46,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
                 stream.StartSequence(subTreeLength);
                 foreach (LeafInSubTree leaf in pwa.SubTree)
                 {
+                    stream.StartSequence(Rlp.LengthOf(leaf.SuffixByte) + Rlp.LengthOf(leaf.Leaf));
                     stream.Encode(leaf.SuffixByte);
                     stream.Encode(leaf.Leaf);
                 }
@@ -54,15 +55,11 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 
         if (message.Proofs is null || message.Proofs.Length == 0)
         {
-            stream.EncodeNullObject();
+            stream.EncodeEmptyByteArray();
         }
         else
         {
-            stream.StartSequence(proofsLength);
-            for (int i = 0; i < message.Proofs.Length; i++)
-            {
-                stream.Encode(message.Proofs[i]);
-            }
+            stream.Encode(message.Proofs);
         }
     }
 
@@ -91,12 +88,13 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 
     private LeafInSubTree DecodeLeafSubTree(RlpStream stream)
     {
-        byte suffix = stream.ReadByte();
+        stream.ReadSequenceLength();
+        byte suffix = stream.DecodeByte();
         byte[]? leaf = stream.DecodeByteArray();
         return new LeafInSubTree(suffix, leaf);
     }
 
-    private (int contentLength, int pwasLength, int proofsLength) GetLength(SubTreeRangeMessage message)
+    private (int contentLength, int pwasLength) GetLength(SubTreeRangeMessage message)
     {
         int contentLength = Rlp.LengthOf(message.RequestId);
 
@@ -114,8 +112,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
                 int subTreeLength = 0;
                 for (int j = 0; j < pwa.SubTree.Length; j++)
                 {
-                    subTreeLength += Rlp.LengthOf(pwa.SubTree[i].SuffixByte);
-                    subTreeLength += Rlp.LengthOf(pwa.SubTree[i].Leaf);
+                    subTreeLength += Rlp.LengthOfSequence(Rlp.LengthOf(pwa.SubTree[i].SuffixByte) + Rlp.LengthOf(pwa.SubTree[i].Leaf));
                 }
                 itemLength += Rlp.LengthOfSequence(subTreeLength);
 
@@ -127,8 +124,8 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
 
         int proofsLength = (message.Proofs is null || message.Proofs.Length == 0) ? 1 : Rlp.LengthOf(message.Proofs);
 
-        contentLength += Rlp.LengthOfSequence(proofsLength);
+        contentLength += proofsLength;
 
-        return (contentLength, pwasLength, proofsLength);
+        return (contentLength, pwasLength);
     }
 }

@@ -16,7 +16,7 @@ public class SubTreeRangeMessage: VerkleMessageBase
     public PathWithSubTree[] PathsWithSubTrees { get; set; }
 
     /// <summary>
-    /// List of trie nodes proving the account range
+    /// Verkle Proof
     /// </summary>
     public byte[] Proofs { get; set; }
 }

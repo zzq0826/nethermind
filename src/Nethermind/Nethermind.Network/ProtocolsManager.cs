@@ -22,6 +22,7 @@ using Nethermind.Network.P2P.Subprotocols.Eth.V68;
 using Nethermind.Network.P2P.Subprotocols.Les;
 using Nethermind.Network.P2P.Subprotocols.NodeData;
 using Nethermind.Network.P2P.Subprotocols.Snap;
+using Nethermind.Network.P2P.Subprotocols.Verkle;
 using Nethermind.Network.P2P.Subprotocols.Wit;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
@@ -214,6 +215,17 @@ namespace Nethermind.Network
                     {
                         1 => new SnapProtocolHandler(session, _stats, _serializer, _logManager),
                         _ => throw new NotSupportedException($"{Protocol.Snap}.{version} is not supported.")
+                    };
+                    InitSatelliteProtocol(session, handler);
+
+                    return handler;
+                },
+                [Protocol.Verkle] = (session, version) =>
+                {
+                    VerkleProtocolHandler? handler = version switch
+                    {
+                        1 => new VerkleProtocolHandler(session, _stats, _serializer, _logManager),
+                        _ => throw new NotSupportedException($"{Protocol.Verkle}.{version} is not supported.")
                     };
                     InitSatelliteProtocol(session, handler);
 
