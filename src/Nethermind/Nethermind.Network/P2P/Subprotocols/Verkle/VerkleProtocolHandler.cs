@@ -201,7 +201,7 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
         return await SendRequestGeneric(
             requestQueue,
             msg,
-            TransferSpeedType.SnapRanges,
+            TransferSpeedType.VerkleSyncRanges,
             static (request) => request.ToString(),
             token);
     }
