@@ -40,6 +40,7 @@ using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Reporting;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.Trie;
+using Nethermind.Synchronization.VerkleSync;
 using Nethermind.TxPool;
 
 namespace Nethermind.Init.Steps;
@@ -183,6 +184,9 @@ public class InitializeNetwork : IStep
 
         _ = syncServer.BuildCHT();
         _api.DisposeStack.Push(syncServer);
+
+        VerkleSyncServer _verkleSyncServer =
+            _api.VerkleSyncServer = new VerkleSyncServer(_api.ReadOnlyVerkleTrieStore!, _api.LogManager);
 
         InitDiscovery();
         if (cancellationToken.IsCancellationRequested)
@@ -516,6 +520,7 @@ public class InitializeNetwork : IStep
         _api.ProtocolsManager = new ProtocolsManager(
             _api.SyncPeerPool!,
             syncServer,
+            _api.VerkleSyncServer,
             _api.TxPool,
             pooledTxsRequestor,
             _api.DiscoveryApp!,

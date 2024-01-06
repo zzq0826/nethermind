@@ -162,6 +162,7 @@ public class InitializeStateDb : IStep
                 verkleStateStore,
                 getApi.DbProvider,
                 getApi.LogManager);
+            _api.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
         }
         // TODO: Don't forget this
         TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(stateManager, _api.BlockTree!, _api.LogManager);

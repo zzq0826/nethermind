@@ -55,6 +55,7 @@ public class VerkleProtocolHandlerTests
         {
             get => _verkleProtocolHandler ??= new VerkleProtocolHandler(
                 Session,
+                null,
                 NodeStatsManager,
                 MessageSerializationService,
                 LimboLogs.Instance

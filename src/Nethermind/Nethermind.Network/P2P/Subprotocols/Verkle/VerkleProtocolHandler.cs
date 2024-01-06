@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
+using Nethermind.Core.Verkle;
 using Nethermind.Logging;
 using Nethermind.Network.Contract.P2P;
 using Nethermind.Network.P2P.EventArg;
@@ -15,6 +17,7 @@ using Nethermind.Network.P2P.Subprotocols.Verkle.Messages;
 using Nethermind.Network.Rlpx;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
+using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle.Tree.Sync;
 
 namespace Nethermind.Network.P2P.Subprotocols.Verkle;
@@ -45,11 +48,15 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
     private readonly MessageQueue<GetLeafNodesMessage, LeafNodesMessage> _getLeafNodesRequests;
     private static readonly byte[] _emptyBytes = { 0 };
 
+    private VerkleSyncServer? _syncServer;
+
     public VerkleProtocolHandler(ISession session,
+        VerkleSyncServer? server,
         INodeStatsManager nodeStats,
         IMessageSerializationService serializer,
         ILogManager logManager): base(session, nodeStats, serializer, logManager)
     {
+        _syncServer = server;
         _getLeafNodesRequests = new(Send);
         _getSubTreeRangeRequests = new(Send);
     }
@@ -178,6 +185,16 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
 
     protected LeafNodesMessage FulfillLeafNodesMessage(GetLeafNodesMessage getTrieNodesMessage)
     {
+        if (_syncServer is null)
+        {
+            Session.InitiateDisconnect(DisconnectReason.VerkleSyncServerNotImplemented, DisconnectMessage);
+            if (Logger.IsDebug)
+                Logger.Debug(
+                    $"Peer disconnected because of requesting VerkleSync data (LeafNodes). Peer: {Session.Node.ClientId}");
+            return new();
+
+        }
+
         // var trieNodes = SyncServer.GetTrieNodes(getTrieNodesMessage.Paths, getTrieNodesMessage.RootHash);
         Metrics.VerkleLeafNodesSent++;
         return new LeafNodesMessage();
@@ -185,11 +202,22 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
 
     protected SubTreeRangeMessage FulfillSubTreeRangeMessage(GetSubTreeRangeMessage getAccountRangeMessage)
     {
+        if (_syncServer is null)
+        {
+            Session.InitiateDisconnect(DisconnectReason.VerkleSyncServerNotImplemented, DisconnectMessage);
+            if (Logger.IsDebug)
+                Logger.Debug(
+                    $"Peer disconnected because of requesting VerkleSync data (SubTreeRange). Peer: {Session.Node.ClientId}");
+            ;
+            return new();
+        }
 
         SubTreeRange? accountRange = getAccountRangeMessage.SubTreeRange;
-        // (PathWithAccount[]? ranges, byte[][]? proofs) = SyncServer.GetAccountRanges(accountRange.RootHash, accountRange.StartingHash,
-        //     accountRange.LimitHash, getAccountRangeMessage.ResponseBytes);
+        (List<PathWithSubTree>, VerkleProof)  data = _syncServer.GetSubTreeRanges(accountRange.RootHash, accountRange.StartingStem,
+            accountRange.LimitStem, getAccountRangeMessage.ResponseBytes, out _);
         SubTreeRangeMessage? response = new();
+        response.PathsWithSubTrees = data.Item1.ToArray();
+        response.Proofs = data.Item2.Encode();
         Metrics.VerkleSubTreeRangeSent++;
         return response;
     }
