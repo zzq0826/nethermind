@@ -112,7 +112,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
                 int subTreeLength = 0;
                 for (int j = 0; j < pwa.SubTree.Length; j++)
                 {
-                    subTreeLength += Rlp.LengthOfSequence(Rlp.LengthOf(pwa.SubTree[i].SuffixByte) + Rlp.LengthOf(pwa.SubTree[i].Leaf));
+                    subTreeLength += Rlp.LengthOfSequence(Rlp.LengthOf(pwa.SubTree[j].SuffixByte) + Rlp.LengthOf(pwa.SubTree[j].Leaf));
                 }
                 itemLength += Rlp.LengthOfSequence(subTreeLength);
 
