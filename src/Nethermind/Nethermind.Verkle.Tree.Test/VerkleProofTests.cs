@@ -13,7 +13,9 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.Serializers;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -30,6 +32,8 @@ public class VerkleProofTest
         };
         VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys, keys);
         VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
+        TestProofSerialization(proof);
+
 
         bool verified = VerkleTree.VerifyVerkleProof(proof, new List<byte[]>(keys), new List<byte[]?>(keys), root, out _);
         Assert.That(verified, Is.True);
@@ -58,6 +62,8 @@ public class VerkleProofTest
         VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys.ToArray(), values.ToArray());
 
         VerkleProof proof = tree.CreateVerkleProof(keys.ToArray(), out Banderwagon root);
+        TestProofSerialization(proof);
+
         bool verified = VerkleTree.VerifyVerkleProof(proof, keys, values, root, out _);
         Assert.That(verified, Is.True);
     }
@@ -83,6 +89,8 @@ public class VerkleProofTest
         tree.CommitTree(0);
 
         VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
+        TestProofSerialization(proof);
+
 
         const string expectedProof = "00000000040000000a0a0a0a0800000056778fe0bcf12a14820d4c054d85cfcae4bdb7017107b6769cecd42629a3825e38f30e21c" +
                                      "79747190371df99e88b886638be445d44f8f9b56ca7c062ea3299446c650ce85c8b5d3cb5ccef8be82858aa2fa9c2cad512086db5" +
@@ -128,6 +136,7 @@ public class VerkleProofTest
         tree.CommitTree(0);
 
         VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
+        TestProofSerialization(proof);
 
         const string expectedProof = "00000000010000000a020000000b2cd97f2703f0e0030f8356c66ef9cda8587109aab48ebdf02fd49ceefa716d1731296" +
                                      "d27f24eddf8e4576bcf69395373a282be54e0d16966c5ac77f3423b9f05e4ab9d3080bed0f9d2c6eaedb998ae66bd1cda" +
@@ -163,6 +172,8 @@ public class VerkleProofTest
         };
 
         VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
+        TestProofSerialization(proof);
+
 
         const string expectedProof = "000000000100000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000" +
                                      "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" +
@@ -241,9 +252,19 @@ public class VerkleProofTest
         tree.CommitTree(0);
 
         VerkleProof proof = tree.CreateVerkleProof(keys[..500], out Banderwagon root);
+        TestProofSerialization(proof);
         bool verified = VerkleTree.VerifyVerkleProof(proof, new(keys[..500]),
             new(values[..500]), root, out _);
         Assert.That(verified, Is.True);
+    }
+
+    private void TestProofSerialization(VerkleProof proof)
+    {
+        VerkleProofSerializer ser = new();
+        var stream = new RlpStream(Rlp.LengthOfSequence(ser.GetLength(proof, RlpBehaviors.None)));
+        ser.Encode(stream, proof);
+        VerkleProof data = ser.Decode(new RlpStream(stream.Data!));
+        data.ToString().Should().BeEquivalentTo(proof.ToString());
     }
 
 

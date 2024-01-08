@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DotNetty.Buffers;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
@@ -13,7 +15,10 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
+using Nethermind.Network.P2P.Subprotocols.Verkle.Messages;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieStore;
 
@@ -314,6 +319,33 @@ public class TestSyncRangesInAHugeVerkleTree
         Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
     }
 
+    private static void TestSubTreeRangeSerializer(SubTreeRangeMessage message)
+    {
+        IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+        SubTreeRangeMessageSerializer ser = new();
+        ser.Serialize(buffer, message);
+        SubTreeRangeMessage? data = ser.Deserialize(buffer);
+
+        data.Should().BeEquivalentTo(message, options =>
+        {
+            EquivalencyAssertionOptions<SubTreeRangeMessage>? excluded = options.Excluding(c => c.Name == "RlpLength");
+            return excluded
+                .Using<Memory<byte>>((context => context.Subject.AsArray().Should().BeEquivalentTo(context.Expectation.AsArray())))
+                .WhenTypeIs<Memory<byte>>();
+        });
+
+        // data.Should().BeEquivalentTo(message);
+    }
+
+    private static void TestProofSerialization(VerkleProof proof)
+    {
+        VerkleProofSerializer ser = new();
+        var stream = new RlpStream(Rlp.LengthOfSequence(ser.GetLength(proof, RlpBehaviors.None)));
+        ser.Encode(stream, proof);
+        var data = ser.Decode(new RlpStream(stream.Data!));
+        data.ToString().Should().BeEquivalentTo(proof.ToString());
+    }
+
     private static void ProcessSubTreeRange(VerkleTree remoteTree, VerkleTree localTree, int blockNumber, Hash256 stateRoot, PathWithSubTree[] subTrees)
     {
         Stem startingStem = subTrees[0].Path;
@@ -321,6 +353,15 @@ public class TestSyncRangesInAHugeVerkleTree
         // Stem limitHash = Stem.MaxValue;
 
         VerkleProof proof = remoteTree.CreateVerkleRangeProof(startingStem, endStem, out Banderwagon root);
+
+        var message = new SubTreeRangeMessage()
+        {
+            PathsWithSubTrees = subTrees,
+            Proofs = proof.Encode()
+        };
+
+        // TestProofSerialization(proof);
+        // TestSubTreeRangeSerializer(message);
 
         bool isTrue = localTree.CreateStatelessTreeFromRange(proof, root, startingStem, endStem, subTrees);
         Assert.IsTrue(isTrue);
