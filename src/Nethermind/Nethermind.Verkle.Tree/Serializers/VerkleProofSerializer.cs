@@ -12,7 +12,7 @@ namespace Nethermind.Verkle.Tree.Serializers;
 
 public class VerkleProofSerializer: IRlpStreamDecoder<VerkleProof>
 {
-    public VerkleProofSerializer Instance => new VerkleProofSerializer();
+    public static VerkleProofSerializer Instance = new VerkleProofSerializer();
     public int GetLength(VerkleProof item, RlpBehaviors rlpBehaviors)
     {
         int contentLength = 0;

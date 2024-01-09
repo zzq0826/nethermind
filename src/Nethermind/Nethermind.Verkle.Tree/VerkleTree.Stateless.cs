@@ -63,7 +63,11 @@ public partial class VerkleTree
     {
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem);
         stemNode.UpdateCommitment(_leafUpdateCache[stem]);
-        if (stemNode.InternalCommitment.Point != expectedCommitment.Point) return false;
+        if (stemNode.InternalCommitment.Point != expectedCommitment.Point)
+        {
+            _logger.Info($"stem commitment is also wrong: {stemNode.InternalCommitment.Point.ToBytes().ToHexString()} {expectedCommitment.Point.ToBytes().ToHexString()}");
+            return false;
+        }
         SetInternalNode(pathOfStem, stemNode);
         return true;
     }
