@@ -112,7 +112,7 @@ namespace Nethermind.Consensus.Processing
                     Snapshot snapshot = _stateProvider.TakeSnapshot(true);
                     try
                     {
-                        _transactionProcessor.ProcessTransaction(in blkCtx, currentTx, receiptsTracer, processingOptions, _stateProvider);
+                        _transactionProcessor.ProcessTransaction(blkCtx, currentTx, receiptsTracer, processingOptions, _stateProvider);
                     }
                     catch (InvalidOperationException ex)
                     {
