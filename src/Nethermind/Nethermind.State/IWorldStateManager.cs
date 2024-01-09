@@ -15,7 +15,7 @@ public interface IWorldStateManager
     /// Used by read only tasks that need to execute blocks.
     /// </summary>
     /// <returns></returns>
-    IWorldState CreateResettableWorldState();
+    (IWorldState, IStateReader, Action) CreateResettableWorldState();
 
     event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 }

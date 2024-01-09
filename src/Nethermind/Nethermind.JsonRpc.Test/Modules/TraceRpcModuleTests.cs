@@ -64,6 +64,7 @@ public class TraceRpcModuleTests
                 Blockchain.BlockPreprocessorStep,
                 rewardCalculator,
                 Blockchain.ReceiptStorage,
+                txProcessingEnv.ResetDb,
                 Blockchain.SpecProvider,
                 Blockchain.LogManager,
                 transactionsExecutor);

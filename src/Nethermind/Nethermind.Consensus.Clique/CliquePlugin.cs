@@ -119,7 +119,7 @@ namespace Nethermind.Consensus.Clique
                 BlockchainProcessor.Options.NoReceipts);
 
             OneTimeChainProcessor chainProcessor = new(
-                producerEnv.StateProvider,
+                producerEnv.ResetDb,
                 producerChainProcessor);
 
             ITxFilterPipeline txFilterPipeline =

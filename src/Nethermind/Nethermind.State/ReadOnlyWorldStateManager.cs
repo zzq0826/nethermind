@@ -14,11 +14,9 @@ namespace Nethermind.State;
 /// </summary>
 public class ReadOnlyWorldStateManager : IWorldStateManager
 {
-    private readonly IReadOnlyDbProvider _readOnlyDbProvider;
     private readonly IReadOnlyTrieStore? _readOnlyTrieStore;
     private readonly ILogManager _logManager;
     private readonly IDbProvider _dbProvider;
-    private readonly ReadOnlyDb _codeDb;
 
     public ReadOnlyWorldStateManager(
         IDbProvider dbProvider,
@@ -30,18 +28,27 @@ public class ReadOnlyWorldStateManager : IWorldStateManager
         _dbProvider = dbProvider;
         _logManager = logManager;
 
-        _readOnlyDbProvider = _dbProvider.AsReadOnly(false);
-        _codeDb = _readOnlyDbProvider.GetDb<IDb>(DbNames.Code).AsReadOnly(true);
-        GlobalStateReader = new StateReader(_readOnlyTrieStore, _codeDb, _logManager);
+        IKeyValueStore codeDb = _dbProvider.AsReadOnly(false).GetDb<IDb>(DbNames.Code);
+        GlobalStateReader = new StateReader(_readOnlyTrieStore, codeDb, _logManager);
     }
 
     public virtual IWorldState GlobalWorldState => throw new InvalidOperationException("global world state not supported");
 
     public IStateReader GlobalStateReader { get; }
 
-    public IWorldState CreateResettableWorldState()
+    public (IWorldState, IStateReader, Action) CreateResettableWorldState()
     {
-        return new WorldState(_readOnlyTrieStore, _codeDb, _logManager);
+        ReadOnlyDbProvider readOnlyDbProvider = _dbProvider.AsReadOnly(false);
+        ReadOnlyDb codeDb = readOnlyDbProvider.GetDb<IDb>(DbNames.Code).AsReadOnly(true);
+        return (
+            new WorldState(_readOnlyTrieStore, codeDb, _logManager),
+            new StateReader(_readOnlyTrieStore, codeDb, _logManager),
+            () =>
+            {
+                readOnlyDbProvider.ClearTempChanges();
+                codeDb.ClearTempChanges();
+            }
+        );
     }
 
     public virtual event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached

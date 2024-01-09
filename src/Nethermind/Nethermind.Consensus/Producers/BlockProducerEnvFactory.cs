@@ -12,7 +12,6 @@ using Nethermind.Consensus.Validators;
 using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core.Specs;
 using Nethermind.Db;
-using Nethermind.Evm.Tracing.GethStyle.JavaScript;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.TxPool;
@@ -89,7 +88,7 @@ namespace Nethermind.Consensus.Producers
                     BlockchainProcessor.Options.NoReceipts);
 
             OneTimeChainProcessor chainProcessor = new(
-                txProcessingEnv.StateProvider,
+                txProcessingEnv.ResetDb,
                 blockchainProcessor);
 
             return new BlockProducerEnv

@@ -22,6 +22,7 @@ namespace Nethermind.Consensus.Processing
         public IBlockTree BlockTree { get; }
         public IBlockhashProvider BlockhashProvider { get; }
         public IVirtualMachine Machine { get; }
+        public Action ResetDb { get; }
 
         public ReadOnlyTxProcessingEnv(
             IWorldStateManager worldStateManager,
@@ -41,8 +42,10 @@ namespace Nethermind.Consensus.Processing
             ArgumentNullException.ThrowIfNull(specProvider);
             ArgumentNullException.ThrowIfNull(worldStateManager);
 
-            StateReader = worldStateManager.GlobalStateReader;
-            StateProvider = worldStateManager.CreateResettableWorldState();
+            (IWorldState worldState, IStateReader stateReader, Action reset) = worldStateManager.CreateResettableWorldState();
+            StateReader = stateReader;
+            StateProvider = worldState;
+            ResetDb = reset;
 
             BlockTree = readOnlyBlockTree ?? throw new ArgumentNullException(nameof(readOnlyBlockTree));
             BlockhashProvider = new BlockhashProvider(BlockTree, logManager);
