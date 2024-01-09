@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
@@ -89,7 +88,12 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
                 Handle(getSubTreeRangeMessage);
                 break;
             case VerkleMessageCode.SubTreeRange:
+                // Logger.Info($"HandleMessage(ZeroPacket message)|VerkleMessageCode.SubTreeRange");
                 SubTreeRangeMessage subTreeRangeMessage = Deserialize<SubTreeRangeMessage>(message.Content);
+                // IByteBuffer buffer = PooledByteBufferAllocator.Default.Buffer(1024 * 16);
+                // SubTreeRangeMessageSerializer ser = new();
+                // ser.Serialize(buffer, subTreeRangeMessage);
+                // Logger.Info($"{buffer.ReadAllBytesAsArray().ToHexString()}");
                 ReportIn(subTreeRangeMessage, size);
                 Handle(subTreeRangeMessage, size);
                 break;
@@ -217,7 +221,7 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
             accountRange.LimitStem, getAccountRangeMessage.ResponseBytes, out _);
         SubTreeRangeMessage? response = new();
         response.PathsWithSubTrees = data.Item1.ToArray();
-        response.Proofs = data.Item2.Encode();
+        response.Proofs = data.Item2.EncodeRlp();
         Metrics.VerkleSubTreeRangeSent++;
         return response;
     }
