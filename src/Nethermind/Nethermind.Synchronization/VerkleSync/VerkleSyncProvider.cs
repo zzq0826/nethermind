@@ -2,21 +2,18 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.ObjectPool;
-using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieStore;
-using Nethermind.Verkle.Tree.Utils;
 using ILogger = Nethermind.Logging.ILogger;
 
 namespace Nethermind.Synchronization.VerkleSync;
@@ -72,18 +69,28 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         limitStem ??= Keccak.MaxValue.Bytes[..31].ToArray();
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes.ToArray()) ?? throw new Exception("root point invalid");
         IVerkleTrieStore store = _trieStorePool.Get();
-        VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
+        var tree = new VerkleTree(store, LimboLogs.Instance);
         try
         {
-            VerkleProof vProof = VerkleProof.Decode(proofs!);
-            bool correct =
-                tree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, limitStem,
-                    subTrees);
-            if (!correct)
+            VerkleProofSerializer ser = VerkleProofSerializer.Instance;
+            VerkleProof vProof = ser.Decode(new RlpStream(proofs!));
+            try
             {
-                if(_logger.IsTrace) _logger.Trace(
-                    $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem}");
-                return AddRangeResult.DifferentRootHash;
+                bool correct =
+                    tree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path,
+                        subTrees);
+                if (!correct)
+                {
+                    _logger.Error(
+                        $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem}");
+                    return AddRangeResult.DifferentRootHash;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error($"AddSubTreeRange: {blockNumber} {expectedRootHash} {startingStem}");
+                _logger.Error("something broke during sync", e);
+                throw;
             }
 
             _progressTracker.UpdateSubTreePartitionProgress(limitStem, subTrees[^1].Path, true);
