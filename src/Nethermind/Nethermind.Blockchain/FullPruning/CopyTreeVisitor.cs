@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading;
 using Nethermind.Core;
-using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
 using Nethermind.Db.FullPruning;
 using Nethermind.Logging;
@@ -22,6 +22,7 @@ namespace Nethermind.Blockchain.FullPruning
     public class CopyTreeVisitor : ITreeVisitor, IDisposable
     {
         private readonly IPruningContext _pruningContext;
+        private readonly ToBatchWriter _writer;
         private readonly ILogger _logger;
         private readonly Stopwatch _stopwatch;
         private long _persistedNodes = 0;
@@ -36,6 +37,7 @@ namespace Nethermind.Blockchain.FullPruning
             ILogManager logManager)
         {
             _pruningContext = pruningContext;
+            _writer = new ToBatchWriter(_pruningContext);
             _cancellationToken = pruningContext.CancellationTokenSource.Token;
             _writeFlags = writeFlags;
             _logger = logManager.GetClassLogger();
@@ -78,7 +80,7 @@ namespace Nethermind.Blockchain.FullPruning
             if (node.Keccak is not null)
             {
                 // simple copy of nodes RLP
-                _pruningContext.Set(node.Keccak.Bytes, node.FullRlp.ToArray(), _writeFlags);
+                _writer.Set(node.Keccak.Bytes, node.FullRlp.ToArray(), _writeFlags);
                 Interlocked.Increment(ref _persistedNodes);
 
                 // log message every 1 mln nodes
@@ -107,6 +109,47 @@ namespace Nethermind.Blockchain.FullPruning
         {
             _finished = true;
             LogProgress("Finished");
+            _writer.Flush();
+        }
+    }
+
+    public class ToBatchWriter: IWriteOnlyKeyValueStore
+    {
+        private readonly IKeyValueStoreWithBatching _baseStore;
+
+        public ToBatchWriter(IKeyValueStoreWithBatching baseStore)
+        {
+            _baseStore = baseStore;
+        }
+
+        private long _counter = 0;
+        private readonly ConcurrentQueue<IWriteBatch> _batches = new();
+
+        public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None)
+        {
+            if (!_batches.TryDequeue(out IWriteBatch currentBatch))
+            {
+                currentBatch = _baseStore.StartWriteBatch();
+            }
+
+            currentBatch.Set(key, value, flags);
+            long val = Interlocked.Increment(ref _counter);
+            if (val % 10000 == 0)
+            {
+                currentBatch.Dispose();
+            }
+            else
+            {
+                _batches.Enqueue(currentBatch);
+            }
+        }
+
+        public void Flush()
+        {
+            foreach (IWriteBatch batch in _batches)
+            {
+                batch.Dispose();
+            }
         }
     }
 }

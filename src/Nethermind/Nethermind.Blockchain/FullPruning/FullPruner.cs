@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -263,4 +264,5 @@ namespace Nethermind.Blockchain.FullPruning
             _fullPruningDb.PruningFinished -= HandlePruningFinished;
         }
     }
+
 }
