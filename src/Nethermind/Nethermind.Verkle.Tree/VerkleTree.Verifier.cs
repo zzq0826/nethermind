@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -376,6 +377,11 @@ public partial class VerkleTree
             VerkleVerifierQuery query = new(comm, z, y);
             queries.Add(query);
         }
+        // Console.WriteLine("Verifier Query");
+        // foreach (VerkleVerifierQuery query in queries)
+        // {
+        //     Console.WriteLine($"{query.NodeCommitPoint.ToBytes().ToHexString()}:{query.ChildIndex}:{query.ChildHash.ToBytes().ToHexString()}");
+        // }
 
         Transcript proverTranscript = new("vt");
         MultiProof proofVerifier = new(CRS.Instance, PreComputedWeights.Instance);

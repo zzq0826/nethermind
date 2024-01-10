@@ -334,7 +334,7 @@ public partial class VerkleTree
         foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees,
-            startStem.BytesAsSpan, endStem.BytesAsSpan);
+            startStem.BytesAsSpan, endStem.BytesAsSpan, otherStemsByPrefix);
         InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
@@ -403,7 +403,7 @@ public partial class VerkleTree
 
     private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,
         ISet<(List<byte>, byte)> allPathsAndZs, PathWithSubTree[] stems, ReadOnlySpan<byte> startStem,
-        ReadOnlySpan<byte> endStem)
+        ReadOnlySpan<byte> endStem, SortedDictionary<List<byte>, byte[]> otherStemPrefix)
     {
         ISpanEqualityComparer<byte> comparer = Bytes.SpanEqualityComparer;
         HashSet<byte[]> subTreesToCreate = new(Bytes.EqualityComparer);
@@ -416,6 +416,8 @@ public partial class VerkleTree
                 List<byte> prefix = new(subTree.Path.Bytes[..i]);
                 if (allPaths.Contains(prefix))
                 {
+                    // no need to add commitments for otherStem
+                    if(otherStemPrefix.ContainsKey(prefix)) continue;
                     allPathsAndZs.Add((prefix, subTree.Path.Bytes[i]));
                 }
                 else

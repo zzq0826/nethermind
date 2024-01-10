@@ -186,6 +186,7 @@ public partial class VerkleTree
                             if (keyStem == node.Stem)
                             {
                                 neededOpenings[parentPath].Add(0);
+                                neededOpenings[parentPath].Add(1);
                                 extStatus[keyIndex++] = ExtPresent.Present;
                             }
                             else
@@ -247,6 +248,11 @@ public partial class VerkleTree
         MultiProof proofConstructor = new(CRS.Instance, PreComputedWeights.Instance);
 
 
+        // Console.WriteLine("Prover Query");
+        // foreach (VerkleProverQuery query in queries)
+        // {
+        //     Console.WriteLine($"{query.NodeCommitPoint.ToBytes().ToHexString()}:{query.ChildIndex}:{query.ChildHash.ToBytes().ToHexString()}");
+        // }
         Transcript proverTranscript = new("vt");
         VerkleProofStruct proof = proofConstructor.MakeMultiProof(proverTranscript, queries);
 

@@ -45,10 +45,7 @@ public class TestSyncRangesInAHugeVerkleTree
         Hash256[] pathPool = new Hash256[pathPoolCount];
         for (int i = 0; i < pathPoolCount; i++)
         {
-            byte[] key = new byte[32];
-            ((UInt256)i).ToBigEndian(key);
-            Hash256 keccak = new Hash256(key);
-            pathPool[i] = TestItem.GetRandomKeccak();
+            pathPool[i] = TestItem.GetRandomKeccak(Random);
         }
         return pathPool;
     }
@@ -127,6 +124,7 @@ public class TestSyncRangesInAHugeVerkleTree
                 .ToArray();
 
         Stem endStem = range[^1].Path;
+        tree.StateRoot = stateRoot180;
 
         VerkleProof proof = tree.CreateVerkleRangeProof(startStem, endStem, out Banderwagon root);
         IVerkleTrieStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
