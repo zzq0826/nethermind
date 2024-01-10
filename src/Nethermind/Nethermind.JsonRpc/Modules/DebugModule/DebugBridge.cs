@@ -129,6 +129,10 @@ public class DebugBridge : IDebugBridge
     public Transaction? GetTransactionFromHash(Hash256 txHash)
     {
         Hash256 blockHash = _receiptStorage.FindBlockHash(txHash);
+        if (blockHash == null)
+        {
+            throw new ResourceNotFoundException($"blockhash {blockHash} not found");
+        }
         SearchResult<Block> searchResult = _blockTree.SearchForBlock(new BlockParameter(blockHash));
         if (searchResult.IsError)
         {
