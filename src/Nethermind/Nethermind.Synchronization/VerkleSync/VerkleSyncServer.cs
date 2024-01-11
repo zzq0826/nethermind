@@ -6,12 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
+using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieStore;
-using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
@@ -35,13 +35,23 @@ public class VerkleSyncServer
     {
         rootPoint = default;
         if(_logger.IsDebug) _logger.Debug($"Getting SubTreeRanges - RH:{rootHash} S:{startingStem} L:{limitStem} Bytes:{byteLimit}");
-        List<PathWithSubTree> nodes = _store.GetLeafRangeIterator(startingStem, limitStem?? Stem.MaxValue, rootHash, byteLimit).ToList();
+        var nodes = _store.GetLeafRangeIterator(startingStem, limitStem?? Stem.MaxValue, rootHash, byteLimit).ToList();
         if(_logger.IsDebug) _logger.Debug($"Nodes Count - {nodes.Count}");
         if (nodes.Count == 0) return (new List<PathWithSubTree>(), new VerkleProof());
 
         VerkleTree tree = new (_store, _logManager);
-        VerkleProof vProof =
-            tree.CreateVerkleRangeProof(startingStem.Bytes, nodes[^1].Path.Bytes, out rootPoint);
+        VerkleProof vProof = tree.CreateVerkleRangeProof(startingStem.Bytes, nodes[^1].Path.Bytes, out rootPoint, rootHash);
+        TestIsGeneratedProofValid(vProof, rootPoint, startingStem, nodes.ToArray());
         return (nodes, vProof);
+    }
+
+    private void TestIsGeneratedProofValid(VerkleProof vProof, Banderwagon rootPoint, Stem startingStem, PathWithSubTree[] nodes)
+    {
+        VerkleStateStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        VerkleTree localTree = new VerkleTree(stateStore, LimboLogs.Instance);
+        var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, nodes[^1].Path, nodes);
+        _logger.Info(!isCorrect
+            ? $"GetSubTreeRanges: Generated proof is INVALID"
+            : $"GetSubTreeRanges: Generated proof is VALID");
     }
 }
