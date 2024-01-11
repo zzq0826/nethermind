@@ -210,11 +210,11 @@ public partial class VerkleTree : IVerkleTree
         SetInternalNode(RootKey, newRoot);
     }
 
-    private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey)
+    private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey, Hash256? rootHash = null)
     {
         return _treeCache.GetInternalNode(nodeKey, out InternalNode? value)
             ? value
-            : _verkleStateStore.GetInternalNode(nodeKey);
+            : _verkleStateStore.GetInternalNode(nodeKey, rootHash);
     }
 
     private void SetInternalNode(byte[] nodeKey, InternalNode node, bool replace = true)

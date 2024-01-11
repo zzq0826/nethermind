@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using Nethermind.Core.Collections;
+using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Logging;
@@ -85,14 +86,14 @@ public partial class VerkleTree
                     switch (node.NodeType)
                     {
                         case VerkleNodeType.BranchNode:
-                            CreateBranchProofPolynomialIfNotExist(parentPath);
+                            CreateBranchProofPolynomialIfNotExist(parentPath, null);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
                             neededOpenings[parentPath].Add(key[i]);
                             continue;
                         case VerkleNodeType.StemNode:
                             Stem keyStem = key[..31];
                             depthsByStem.TryAdd(keyStem, (byte)i);
-                            CreateStemProofPolynomialIfNotExist(keyStem);
+                            CreateStemProofPolynomialIfNotExist(keyStem, null);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
                             stemList.Add(parentPath);
                             if (keyStem == node.Stem)
@@ -121,14 +122,14 @@ public partial class VerkleTree
                 break;
             }
 
-        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, true, out rootPoint);
+        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, true, out rootPoint, null);
         finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
         finalProof.VerifyHint.ExtensionPresent = extStatus.Values.ToArray();
 
         return finalProof;
     }
 
-    public VerkleProof CreateVerkleRangeProof(Stem startStem, Stem endStem, out Banderwagon rootPoint)
+    public VerkleProof CreateVerkleRangeProof(Stem startStem, Stem endStem, out Banderwagon rootPoint, Hash256? rootHash = null)
     {
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
@@ -153,13 +154,13 @@ public partial class VerkleTree
             {
                 if (keyIndex == 1 && i <= prefixLength) continue;
                 var parentPath = stem.Bytes[..i];
-                InternalNode? node = GetInternalNode(parentPath);
+                InternalNode? node = GetInternalNode(parentPath, rootHash);
                 if (node != null)
                 {
                     switch (node.NodeType)
                     {
                         case VerkleNodeType.BranchNode:
-                            CreateBranchProofPolynomialIfNotExist(parentPath);
+                            CreateBranchProofPolynomialIfNotExist(parentPath, rootHash);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
                             if (i < prefixLength)
                             {
@@ -180,7 +181,7 @@ public partial class VerkleTree
                         case VerkleNodeType.StemNode:
                             Stem keyStem = stem;
                             depthsByStem.TryAdd(keyStem, (byte)i);
-                            CreateStemProofPolynomialIfNotExist(keyStem);
+                            CreateStemProofPolynomialIfNotExist(keyStem, rootHash);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
                             stemList.Add(parentPath);
                             if (keyStem == node.Stem)
@@ -210,7 +211,7 @@ public partial class VerkleTree
                 break;
             }
 
-        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, false, out rootPoint);
+        VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, false, out rootPoint, rootHash);
         finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
         finalProof.VerifyHint.ExtensionPresent = extStatus;
 
@@ -219,7 +220,7 @@ public partial class VerkleTree
 
 
     private VerkleProof CreateProofStruct(IReadOnlySet<byte[]> stemList,
-        Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint)
+        Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint, Hash256? rootHash)
     {
         List<VerkleProverQuery> queries = new();
         HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
@@ -229,13 +230,13 @@ public partial class VerkleTree
         {
             if (stemList.Contains(elem.Key))
             {
-                InternalNode? suffix = GetInternalNode(elem.Key);
-                var stemWithNoProof = AddStemCommitmentsOpenings(suffix, elem.Value, queries, addLeafOpenings);
+                InternalNode? suffix = GetInternalNode(elem.Key, rootHash);
+                var stemWithNoProof = AddStemCommitmentsOpenings(suffix, elem.Value, queries, addLeafOpenings, rootHash);
                 if (stemWithNoProof) stemWithNoProofSet.Add(suffix.Stem.Bytes);
                 continue;
             }
 
-            AddBranchCommitmentsOpening(elem.Key, elem.Value, queries);
+            AddBranchCommitmentsOpening(elem.Key, elem.Value, queries, rootHash);
         }
 
         VerkleProverQuery root = queries.First();
@@ -268,16 +269,16 @@ public partial class VerkleTree
     }
 
     private void AddBranchCommitmentsOpening(byte[] branchPath, IEnumerable<byte> branchChild,
-        List<VerkleProverQuery> queries)
+        List<VerkleProverQuery> queries, Hash256? rootHash)
     {
         if (!ProofBranchPolynomialCache.TryGetValue(branchPath, out FrE[] poly)) throw new EvaluateException();
-        InternalNode? node = GetInternalNode(branchPath);
+        InternalNode? node = GetInternalNode(branchPath, rootHash);
         queries.AddRange(branchChild.Select(childIndex => new VerkleProverQuery(new LagrangeBasis(poly),
             node!.InternalCommitment.Point, childIndex, poly[childIndex])));
     }
 
     private bool AddStemCommitmentsOpenings(InternalNode? suffix, HashSet<byte> stemChild,
-        List<VerkleProverQuery> queries, bool addLeafOpenings)
+        List<VerkleProverQuery> queries, bool addLeafOpenings, Hash256? rootHash)
     {
         var stemPath = suffix!.Stem!.Bytes;
         AddExtensionCommitmentOpenings(stemPath, addLeafOpenings ? stemChild : new byte[] { }, suffix, queries);
@@ -299,7 +300,7 @@ public partial class VerkleTree
             var valueLowerIndex = 2 * (valueIndex % 128);
             var valueUpperIndex = valueLowerIndex + 1;
             key[31] = valueIndex;
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key, rootHash));
 
             var offset = valueIndex < 128 ? 0 : 128;
 
@@ -389,20 +390,20 @@ public partial class VerkleTree
         }
     }
 
-    private void CreateBranchProofPolynomialIfNotExist(byte[] path)
+    private void CreateBranchProofPolynomialIfNotExist(byte[] path, Hash256? rootHash)
     {
         if (ProofBranchPolynomialCache.ContainsKey(path)) return;
         var commitments = new Banderwagon[256];
         for (var i = 0; i < 256; i++)
         {
-            InternalNode? node = GetInternalNode(path.Append((byte)i).ToArray());
+            InternalNode? node = GetInternalNode(path.Append((byte)i).ToArray(), rootHash);
             commitments[i] = node == null ? Banderwagon.Identity : node.InternalCommitment.Point;
         }
 
         ProofBranchPolynomialCache[path] = Banderwagon.BatchMapToScalarField(commitments);
     }
 
-    private void CreateStemProofPolynomialIfNotExist(Stem stem)
+    private void CreateStemProofPolynomialIfNotExist(Stem stem, Hash256? rootHash)
     {
         if (ProofStemPolynomialCache.ContainsKey(stem)) return;
 
@@ -414,7 +415,7 @@ public partial class VerkleTree
         for (var i = 0; i < 128; i++)
         {
             key[31] = (byte)i;
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key, rootHash));
             c1Hashes.Add(valueLow);
             c1Hashes.Add(valueHigh);
         }
@@ -422,7 +423,7 @@ public partial class VerkleTree
         for (var i = 128; i < 256; i++)
         {
             key[31] = (byte)i;
-            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key));
+            (FrE valueLow, FrE valueHigh) = VerkleUtils.BreakValueInLowHigh(Get(key, rootHash));
             c2Hashes.Add(valueLow);
             c2Hashes.Add(valueHigh);
         }
