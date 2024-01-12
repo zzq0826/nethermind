@@ -63,6 +63,7 @@ public partial class VerkleTree
     {
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem);
         stemNode.UpdateCommitment(_leafUpdateCache[stem]);
+        stemNode.IsStateless = false;
         if (stemNode.InternalCommitment.Point != expectedCommitment.Point)
         {
             _logger.Info($"stem commitment is also wrong: {stemNode.InternalCommitment.Point.ToBytes().ToHexString()} {expectedCommitment.Point.ToBytes().ToHexString()}");
@@ -178,7 +179,7 @@ public partial class VerkleTree
             {
                 case ExtPresent.None:
                     stemNode = VerkleNodes.CreateStatelessStemNode(stem, new Commitment(), new Commitment(),
-                        new Commitment());
+                        new Commitment(), true);
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.DifferentStem:
@@ -197,7 +198,7 @@ public partial class VerkleTree
                     pathList[^1] = 3;
                     if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c2B)) c2 = new Commitment(c2B);
 
-                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, c1, c2, internalCommitment);
+                    stemNode = VerkleNodes.CreateStatelessStemNode(stem, c1, c2, internalCommitment, false);
                     pathOfStem = new byte[pathList.Count - 1];
                     pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
                     break;
@@ -417,7 +418,11 @@ public partial class VerkleTree
                 if (allPaths.Contains(prefix))
                 {
                     // no need to add commitments for otherStem
-                    if(otherStemPrefix.ContainsKey(prefix)) continue;
+                    if (otherStemPrefix.TryGetValue(prefix, out _))
+                    {
+                        subTreesToCreate.Add(prefix.ToArray());
+                        break;
+                    }
                     allPathsAndZs.Add((prefix, subTree.Path.Bytes[i]));
                 }
                 else

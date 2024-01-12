@@ -21,7 +21,7 @@ public readonly struct StateRootToBlockMap
     {
         get
         {
-            // if (Hash256.Zero.Equals(key)) return -1;
+            if (Hash256.Zero.Equals(key)) return -1;
             var encodedBlock = _stateRootToBlock[key.Bytes];
             return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
         }

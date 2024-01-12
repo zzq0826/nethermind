@@ -57,13 +57,15 @@ public class TestSyncRangesInAHugeVerkleTree
     [TestCase(DbMode.PersistantDb)]
     public void GetSyncRangeForBigVerkleTree(DbMode dbMode)
     {
-        const int pathPoolCount = 100_000;
+        const int pathPoolCount = 100_0;
         const int numBlocks = 200;
-        const int leafPerBlock = 10;
+        const int leafPerBlock = 2;
         const int blockToGetIteratorFrom = 180;
-        const int initialLeafCount = 10000;
+        const int initialLeafCount = 100;
 
         var provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
+        VerkleStateStore storeTo = new VerkleStateStore(provider, 128, LimboLogs.Instance);
+        VerkleTree treeTo = new VerkleTree(storeTo, LimboLogs.Instance);
         ObjectPool<IVerkleTrieStore> trieStorePool = new DefaultObjectPool<IVerkleTrieStore>(new TrieStorePoolPolicy(provider, SimpleConsoleLogManager.Instance));
 
         IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
@@ -82,15 +84,12 @@ public class TestSyncRangesInAHugeVerkleTree
             Random.NextBytes(value);
             Hash256 path = pathPool[Random.Next(pathPool.Length - 1)];
             tree.Insert(path, value);
-            localTree.Insert(path, value);
             leafs[path] = value;
             leafsForSync[path] = value;
         }
 
         tree.Commit();
         tree.CommitTree(0);
-        localTree.Commit();
-        localTree.CommitTree(0);
         trieStorePool.Return(poolStore);
 
 
@@ -132,13 +131,27 @@ public class TestSyncRangesInAHugeVerkleTree
         poolStore = trieStorePool.Get();
         localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
         Stem startStem = Bytes.FromHexString("0x00000000000000000000000000000000000000000000000000000000000000");
-        Stem limitStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
+        Stem limitStem = Bytes.FromHexString("0x20000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0x20000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
         TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
         trieStorePool.Return(poolStore);
 
         poolStore = trieStorePool.Get();
         localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
         startStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0x60000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0x60000000000000000000000000000000000000000000000000000000000000");
         limitStem = Bytes.FromHexString("0x80000000000000000000000000000000000000000000000000000000000000");
         TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
         trieStorePool.Return(poolStore);
@@ -146,6 +159,13 @@ public class TestSyncRangesInAHugeVerkleTree
         poolStore = trieStorePool.Get();
         localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
         startStem = Bytes.FromHexString("0x80000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0xa0000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0xa0000000000000000000000000000000000000000000000000000000000000");
         limitStem = Bytes.FromHexString("0xc0000000000000000000000000000000000000000000000000000000000000");
         TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
         trieStorePool.Return(poolStore);
@@ -153,14 +173,14 @@ public class TestSyncRangesInAHugeVerkleTree
         poolStore = trieStorePool.Get();
         localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
         startStem = Bytes.FromHexString("0xc0000000000000000000000000000000000000000000000000000000000000");
-        limitStem = Bytes.FromHexString("0xf0000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0xe0000000000000000000000000000000000000000000000000000000000000");
         TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
         trieStorePool.Return(poolStore);
 
         poolStore = trieStorePool.Get();
         localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
-        startStem = Bytes.FromHexString("0xf0000000000000000000000000000000000000000000000000000000000000");
-        limitStem = Stem.MaxValue;
+        startStem = Bytes.FromHexString("0xe0000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
         trieStorePool.Return(poolStore);
 
@@ -175,10 +195,11 @@ public class TestSyncRangesInAHugeVerkleTree
         Console.WriteLine("newTreeDumper");
         Console.WriteLine(newTreeDumper.ToString());
 
-        // TODO: this does not work because we add empty stem nodes for stateLess processing
-        // oldTreeDumper.ToString().Should().BeEquivalentTo(newTreeDumper.ToString());
-        //
-        // Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
+        oldTreeDumper.ToString().Should().BeEquivalentTo(newTreeDumper.ToString());
+        Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
+
+
+        Assert.IsTrue(treeTo.HasStateForStateRoot(tree.StateRoot));
     }
 
     public void TestAndAssertSyncRanges(VerkleTree tree, VerkleTree localTree, Hash256 stateRootToUse, Stem startStem, Stem limitStem)

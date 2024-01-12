@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
-using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.TrieNodes;
@@ -171,8 +170,12 @@ public partial class VerkleStateStore
         foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
             storage.SetLeaf(entry.Key, entry.Value);
 
-        foreach (KeyValuePair<byte[], InternalNode?> entry in internalStore)
-            storage.SetInternalNode(entry.Key, entry.Value);
+        foreach ((var key, InternalNode? node) in internalStore)
+        {
+            if(node.IsStem && node.IsStateless) continue;
+            storage.SetInternalNode(key, node);
+        }
+
 
         storage.LeafDb.Flush();
         storage.InternalNodeDb.Flush();

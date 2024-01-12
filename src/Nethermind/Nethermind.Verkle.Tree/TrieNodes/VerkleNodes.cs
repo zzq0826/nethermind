@@ -23,9 +23,9 @@ public static class VerkleNodes
     }
 
     public static InternalNode CreateStatelessStemNode(Stem stem, Commitment? c1, Commitment? c2,
-        Commitment internalCommitment)
+        Commitment internalCommitment, bool isStateless)
     {
-        return new InternalNode(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment) { IsStateless = true };
+        return new InternalNode(VerkleNodeType.StemNode, stem, c1, c2, internalCommitment) { IsStateless = isStateless };
     }
 
     public static InternalNode CreateStatelessStemNode(Stem stem)
