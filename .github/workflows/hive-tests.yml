@@ -63,7 +63,7 @@ jobs:
         uses: docker/build-push-action@v5
         with: 
           context: nethermind
-          file: nethermind/Dockerfile
+          file: nethermind/Dockerfile.chiseled
           tags: nethermind:test-${{ github.sha }}
           outputs: type=docker,dest=/tmp/image.tar
       - name: Check out Hive repository
