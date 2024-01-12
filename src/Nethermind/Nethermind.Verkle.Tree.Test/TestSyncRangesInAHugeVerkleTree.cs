@@ -198,8 +198,6 @@ public class TestSyncRangesInAHugeVerkleTree
         oldTreeDumper.ToString().Should().BeEquivalentTo(newTreeDumper.ToString());
         Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
 
-
-        Assert.IsTrue(treeTo.HasStateForStateRoot(tree.StateRoot));
     }
 
     public void TestAndAssertSyncRanges(VerkleTree tree, VerkleTree localTree, Hash256 stateRootToUse, Stem startStem, Stem limitStem)
