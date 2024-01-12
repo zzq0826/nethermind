@@ -9,10 +9,12 @@ using System.Linq;
 using DotNetty.Buffers;
 using FluentAssertions;
 using FluentAssertions.Equivalency;
+using Microsoft.Extensions.ObjectPool;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Verkle;
+using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -61,6 +63,9 @@ public class TestSyncRangesInAHugeVerkleTree
         const int blockToGetIteratorFrom = 180;
         const int initialLeafCount = 10000;
 
+        var provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
+        ObjectPool<IVerkleTrieStore> trieStorePool = new DefaultObjectPool<IVerkleTrieStore>(new TrieStorePoolPolicy(provider, SimpleConsoleLogManager.Instance));
+
         IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
@@ -68,18 +73,25 @@ public class TestSyncRangesInAHugeVerkleTree
         SortedDictionary<Hash256, byte[]> leafs = new();
         SortedDictionary<Hash256, byte[]> leafsForSync = new();
 
+        IVerkleTrieStore poolStore = trieStorePool.Get();
+        VerkleTree localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+
         for (int leafIndex = 0; leafIndex < initialLeafCount; leafIndex++)
         {
             byte[] value = new byte[32];
             Random.NextBytes(value);
             Hash256 path = pathPool[Random.Next(pathPool.Length - 1)];
             tree.Insert(path, value);
+            localTree.Insert(path, value);
             leafs[path] = value;
             leafsForSync[path] = value;
         }
 
         tree.Commit();
         tree.CommitTree(0);
+        localTree.Commit();
+        localTree.CommitTree(0);
+        trieStorePool.Return(poolStore);
 
 
         Hash256 stateRoot180 = Hash256.Zero;
@@ -115,20 +127,73 @@ public class TestSyncRangesInAHugeVerkleTree
             if (blockNumber == blockToGetIteratorFrom) stateRoot180 = tree.StateRoot;
         }
 
-        Stem startStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
-        Stem limitStem = Bytes.FromHexString("0x80000000000000000000000000000000000000000000000000000000000000");
+        SimpleConsoleLogger.Instance.Info("THIS IS PROVING");
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        Stem startStem = Bytes.FromHexString("0x00000000000000000000000000000000000000000000000000000000000000");
+        Stem limitStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0x40000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0x80000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0x80000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0xc0000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0xc0000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Bytes.FromHexString("0xf0000000000000000000000000000000000000000000000000000000000000");
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        poolStore = trieStorePool.Get();
+        localTree = new(poolStore,  SimpleConsoleLogManager.Instance);
+        startStem = Bytes.FromHexString("0xf0000000000000000000000000000000000000000000000000000000000000");
+        limitStem = Stem.MaxValue;
+        TestAndAssertSyncRanges(tree, localTree, stateRoot180, startStem, limitStem);
+        trieStorePool.Return(poolStore);
+
+        VerkleTreeDumper oldTreeDumper = new();
+        VerkleTreeDumper newTreeDumper = new();
+
+        localTree.Accept(oldTreeDumper, stateRoot180);
+        tree.Accept(newTreeDumper, stateRoot180);
+
+        Console.WriteLine("oldTreeDumper");
+        Console.WriteLine(oldTreeDumper.ToString());
+        Console.WriteLine("newTreeDumper");
+        Console.WriteLine(newTreeDumper.ToString());
+
+        // TODO: this does not work because we add empty stem nodes for stateLess processing
+        // oldTreeDumper.ToString().Should().BeEquivalentTo(newTreeDumper.ToString());
+        //
+        // Assert.IsTrue(oldTreeDumper.ToString().SequenceEqual(newTreeDumper.ToString()));
+    }
+
+    public void TestAndAssertSyncRanges(VerkleTree tree, VerkleTree localTree, Hash256 stateRootToUse, Stem startStem, Stem limitStem)
+    {
         PathWithSubTree[]? range =
             tree._verkleStateStore
                 .GetLeafRangeIterator(
                     startStem,
-                    limitStem, stateRoot180,10000000)
+                    limitStem, stateRootToUse,10000000)
                 .ToArray();
 
         Stem endStem = range[^1].Path;
 
-        VerkleProof proof = tree.CreateVerkleRangeProof(startStem, endStem, out Banderwagon root, stateRoot180);
-        IVerkleTrieStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
-        VerkleTree localTree = new(localStore, LimboLogs.Instance);
+        VerkleProof proof = tree.CreateVerkleRangeProof(startStem, endStem, out Banderwagon root, stateRootToUse);
+
 
         bool isTrue = localTree.CreateStatelessTreeFromRange(proof, root, startStem, endStem, range);
         Assert.IsTrue(isTrue);
@@ -488,6 +553,28 @@ public class TestSyncRangesInAHugeVerkleTree
             Assert.IsTrue(leaf.Key.Bytes.SequenceEqual(rangeEnum[index].Key));
             Assert.IsTrue(leaf.Value.SequenceEqual(rangeEnum[index].Value));
             index++;
+        }
+    }
+
+    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTrieStore>
+    {
+        private readonly IDbProvider _dbProvider;
+        private readonly ILogManager _logManager;
+
+        public TrieStorePoolPolicy(IDbProvider provider, ILogManager logManager)
+        {
+            _dbProvider = provider;
+            _logManager = logManager;
+        }
+
+        public IVerkleTrieStore Create()
+        {
+            return new VerkleStateStore(_dbProvider, 0, _logManager);
+        }
+
+        public bool Return(IVerkleTrieStore obj)
+        {
+            return true;
         }
     }
 }
