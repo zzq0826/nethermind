@@ -729,10 +729,8 @@ public class DbOnTheRocks : IDb, ITunableDb
     {
         // TODO: another work around for rocksDb not having inclusive range.
         UInt256 x = new (end, true);
-        x += 1;
-        end = x.ToBigEndian();
-
-        Iterator iterator = CreateIterator(start, end, true);
+        if (x == UInt256.MaxValue) return GetIterator(start);
+        Iterator iterator = CreateIterator(start, x.ToBigEndian(), true);
         return GetAllCoreBounded(iterator);
     }
 
