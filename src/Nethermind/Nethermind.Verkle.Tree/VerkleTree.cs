@@ -154,13 +154,6 @@ public partial class VerkleTree : IVerkleTree
         return inTreeCache ? new Hash256(value!.Bytes) : _verkleStateStore.StateRoot;
     }
 
-    public byte[]? Get(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
-    {
-        _treeCache.GetLeaf(key, out var value);
-        value ??= _verkleStateStore.GetLeaf(key, stateRoot);
-        return value;
-    }
-
     private void SetLeafCache(Hash256 key, byte[]? value)
     {
         _treeCache.SetLeaf(key.Bytes, value);
@@ -208,6 +201,11 @@ public partial class VerkleTree : IVerkleTree
         InternalNode newRoot = root.Clone();
         newRoot.InternalCommitment.AddPoint(rootDelta);
         SetInternalNode(RootKey, newRoot);
+    }
+
+    public byte[]? Get(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
+    {
+        return _treeCache.GetLeaf(key, out var value) ? value : _verkleStateStore.GetLeaf(key, stateRoot);
     }
 
     private InternalNode? GetInternalNode(ReadOnlySpan<byte> nodeKey, Hash256? rootHash = null)
