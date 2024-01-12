@@ -69,20 +69,21 @@ public class VerkleSyncProvider: IVerkleSyncProvider
         limitStem ??= Keccak.MaxValue.Bytes[..31].ToArray();
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes.ToArray()) ?? throw new Exception("root point invalid");
         IVerkleTrieStore store = _trieStorePool.Get();
-        var tree = new VerkleTree(store, LimboLogs.Instance);
         try
         {
             VerkleProofSerializer ser = VerkleProofSerializer.Instance;
             VerkleProof vProof = ser.Decode(new RlpStream(proofs!));
             try
             {
-                bool correct =
-                    tree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path,
-                        subTrees);
-                if (!correct)
+                var stateStore = new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), 0, _logManager);
+                var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
+                var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path, subTrees);
+
+                store.InsertBatch(0, localTree._treeCache);
+                if (!isCorrect)
                 {
                     _logger.Error(
-                        $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem}");
+                        $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} {isCorrect}");
                     return AddRangeResult.DifferentRootHash;
                 }
                 _logger.Info($"VERKLE_SYNC - AddSubTreeRange SUCCESS, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} endingHash:{subTrees[^1].Path}");
@@ -94,7 +95,8 @@ public class VerkleSyncProvider: IVerkleSyncProvider
                 throw;
             }
 
-            _progressTracker.UpdateSubTreePartitionProgress(limitStem, subTrees[^1].Path, true);
+            _progressTracker.UpdateSubTreePartitionProgress(limitStem, subTrees[^1].Path,
+                startingStem == subTrees[^1].Path);
             return AddRangeResult.OK;
         }
         finally
