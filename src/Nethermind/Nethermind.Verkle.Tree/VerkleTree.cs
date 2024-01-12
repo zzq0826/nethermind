@@ -37,7 +37,7 @@ public partial class VerkleTree : IVerkleTree
     public readonly IVerkleTrieStore _verkleStateStore;
 
     // cache to maintain recently used or inserted nodes of the tree - should be consistent
-    private VerkleMemoryDb _treeCache = new();
+    public VerkleMemoryDb _treeCache = new();
 
     public VerkleTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
