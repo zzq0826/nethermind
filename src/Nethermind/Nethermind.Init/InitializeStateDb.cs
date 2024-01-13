@@ -154,7 +154,8 @@ public class InitializeStateDb : IStep
         }
         else
         {
-            VerkleStateStore verkleStateStore = setApi.VerkleTrieStore = new VerkleStateStore(getApi.DbProvider, 128, getApi.LogManager);
+            VerkleStateStore verkleStateStore;
+            setApi.VerkleTrieStore = verkleStateStore =  new VerkleStateStore(getApi.DbProvider, 128, getApi.LogManager);
             setApi.VerkleArchiveStore = new (verkleStateStore, getApi.DbProvider, getApi.LogManager);
             worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
             stateManager = setApi.WorldStateManager = new VerkleWorldStateManager(

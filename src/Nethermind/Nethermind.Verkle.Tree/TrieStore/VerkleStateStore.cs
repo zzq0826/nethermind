@@ -1,6 +1,5 @@
 using System;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
@@ -96,7 +95,7 @@ public partial class VerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     /// </summary>
     public Hash256 StateRoot { get; private set; } = Hash256.Zero;
 
-    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }

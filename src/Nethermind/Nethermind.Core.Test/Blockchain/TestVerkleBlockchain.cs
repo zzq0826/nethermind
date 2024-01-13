@@ -102,7 +102,7 @@ public class TestVerkleBlockchain : IDisposable
     public IBlockValidator BlockValidator { get; set; } = null!;
     public BuildBlocksWhenRequested BlockProductionTrigger { get; } = new();
 
-    public ReadOnlyVerkleStateStore ReadOnlyTrieStore { get; private set; } = null!;
+    public IReadOnlyVerkleTrieStore ReadOnlyTrieStore { get; private set; } = null!;
 
     public ManualTimestamper Timestamper { get; protected set; } = null!;
 

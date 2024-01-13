@@ -14,7 +14,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
+public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore, ISyncTrieStore
 {
     private readonly VerkleMemoryDb _keyValueStore;
     private ILogger _logger;
@@ -86,7 +86,7 @@ public class ReadOnlyVerkleStateStore : IVerkleTrieStore, ISyncTrieStore
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 #pragma warning restore 67
 
-    public ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
     }

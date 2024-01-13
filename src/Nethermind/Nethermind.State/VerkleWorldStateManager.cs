@@ -13,11 +13,11 @@ namespace Nethermind.State;
 public class VerkleWorldStateManager: ReadOnlyVerkleWorldStateManager
 {
     private readonly IWorldState _worldState;
-    private readonly VerkleStateStore _trieStore;
+    private readonly IVerkleTrieStore _trieStore;
 
     public VerkleWorldStateManager(
         IWorldState worldState,
-        VerkleStateStore trieStore,
+        IVerkleTrieStore trieStore,
         IDbProvider dbProvider,
         ILogManager logManager
     ) : base(dbProvider, trieStore.AsReadOnly(new VerkleMemoryDb()), logManager)

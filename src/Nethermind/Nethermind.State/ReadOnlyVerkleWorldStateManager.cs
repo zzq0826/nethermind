@@ -12,14 +12,14 @@ namespace Nethermind.State;
 public class ReadOnlyVerkleWorldStateManager: IWorldStateManager
 {
     private IReadOnlyDbProvider _readOnlyDbProvider;
-    private ReadOnlyVerkleStateStore? _readOnlyTrieStore;
+    private IReadOnlyVerkleTrieStore? _readOnlyTrieStore;
     private ILogManager _logManager;
     private readonly IDbProvider _dbProvider;
     private readonly ReadOnlyDb _codeDb;
 
     public ReadOnlyVerkleWorldStateManager(
         IDbProvider dbProvider,
-        ReadOnlyVerkleStateStore? readOnlyTrieStore,
+        IReadOnlyVerkleTrieStore? readOnlyTrieStore,
         ILogManager logManager
     )
     {

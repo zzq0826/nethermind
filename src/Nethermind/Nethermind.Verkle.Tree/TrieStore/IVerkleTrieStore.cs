@@ -10,6 +10,8 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
+public interface IReadOnlyVerkleTrieStore : IVerkleTrieStore { }
+
 public interface IVerkleTrieStore : IStoreWithReorgBoundary, IVerkleSyncTireStore
 {
     Hash256 StateRoot { get; }
@@ -24,5 +26,5 @@ public interface IVerkleTrieStore : IStoreWithReorgBoundary, IVerkleSyncTireStor
 
     void ApplyDiffLayer(BatchChangeSet changeSet);
 
-    ReadOnlyVerkleStateStore AsReadOnly(VerkleMemoryDb keyValueStore);
+    IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore);
 }
