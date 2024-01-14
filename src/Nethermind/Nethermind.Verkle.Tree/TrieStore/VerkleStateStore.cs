@@ -171,14 +171,10 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
 
 
     /// <summary>
-    ///     maximum number of blocks that should be stored in cache (not persisted in db)
-    /// </summary>
-    private int BlockCacheSize { get; }
-
-    /// <summary>
     ///     Cache used to store state changes for each block - used for serving SnapSync and handling reorgs.
     /// </summary>
     private BlockBranchCache BlockCache { get; }
+    private int BlockCacheSize { get; }
 
     /// <summary>
     ///     The underlying key value database - to persist the final state
@@ -195,8 +191,6 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
     {
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }
-
-
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {

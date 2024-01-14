@@ -71,8 +71,6 @@ internal partial class VerkleStateStore<TCache>
             // PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             _stateRootToBlocks[StateRoot] = blockNumber;
-            Storage.LeafDb.Flush();
-            Storage.InternalNodeDb.Flush();
         }
         else
         {
