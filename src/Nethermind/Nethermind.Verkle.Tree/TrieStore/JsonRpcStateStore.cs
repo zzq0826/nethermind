@@ -15,11 +15,12 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 /// </summary>
 public class JsonRpcStateStore
 {
+    public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private readonly VerkleArchiveStore _archiveStore;
     private readonly VerkleMemoryDb _keyValueStore;
-    private readonly VerkleStateStore _verkleStateStore;
+    private readonly IVerkleTrieStore _verkleStateStore;
 
-    public JsonRpcStateStore(VerkleArchiveStore archiveStore, VerkleStateStore verkleStateStore,
+    public JsonRpcStateStore(VerkleArchiveStore archiveStore, IVerkleTrieStore verkleStateStore,
         VerkleMemoryDb keyValueStore)
     {
         _archiveStore = archiveStore;
@@ -34,7 +35,7 @@ public class JsonRpcStateStore
     {
         get
         {
-            _keyValueStore.GetInternalNode(VerkleStateStore.RootNodeKey, out InternalNode? value);
+            _keyValueStore.GetInternalNode(RootNodeKey, out InternalNode? value);
             return value is null ? StateStoreStateRoot : new Hash256(value.Bytes);
         }
     }

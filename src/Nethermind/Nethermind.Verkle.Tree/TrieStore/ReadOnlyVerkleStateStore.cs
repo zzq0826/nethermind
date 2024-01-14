@@ -14,17 +14,16 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore, ISyncTrieStore
+public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
 {
+    public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private readonly VerkleMemoryDb _keyValueStore;
-    private ILogger _logger;
-    private readonly VerkleStateStore _verkleStateStore;
+    private readonly IVerkleTrieStore _verkleStateStore;
 
-    public ReadOnlyVerkleStateStore(VerkleStateStore verkleStateStore, VerkleMemoryDb keyValueStore)
+    public ReadOnlyVerkleStateStore(IVerkleTrieStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
-        _logger = verkleStateStore.LogManager.GetClassLogger<ReadOnlyVerkleStateStore>();
     }
 
     public bool IsFullySynced(Hash256 stateRoot)
@@ -36,7 +35,7 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore, ISyncTrieStore
     {
         get
         {
-            _keyValueStore.GetInternalNode(VerkleStateStore.RootNodeKey, out InternalNode? value);
+            _keyValueStore.GetInternalNode(RootNodeKey, out InternalNode? value);
             return value is null ? _verkleStateStore.StateRoot : new Hash256(value.Bytes);
         }
 
@@ -62,7 +61,7 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore, ISyncTrieStore
             : _verkleStateStore.GetInternalNode(key, stateRoot);
     }
 
-    public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch, bool skipRoot)
     {
     }
 
@@ -89,6 +88,11 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore, ISyncTrieStore
     public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
+    }
+
+    public ulong GetBlockNumber(Hash256 rootHash)
+    {
+        return _verkleStateStore.GetBlockNumber(rootHash);
     }
 
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,

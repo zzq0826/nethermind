@@ -8,29 +8,22 @@ using Nethermind.Db;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public readonly struct StateRootToBlockMap
+public readonly struct StateRootToBlockMap(IDb stateRootToBlock)
 {
-    private readonly IDb _stateRootToBlock;
-
-    public StateRootToBlockMap(IDb stateRootToBlock)
-    {
-        _stateRootToBlock = stateRootToBlock;
-    }
-
     public long this[Hash256 key]
     {
         get
         {
-            if (Hash256.Zero.Equals(key)) return -1;
-            var encodedBlock = _stateRootToBlock[key.Bytes];
+            if (key == Hash256.Zero) return -1;
+            var encodedBlock = stateRootToBlock[key.Bytes];
             return encodedBlock is null ? -2 : BinaryPrimitives.ReadInt64LittleEndian(encodedBlock);
         }
         set
         {
             Span<byte> encodedBlock = stackalloc byte[8];
             BinaryPrimitives.WriteInt64LittleEndian(encodedBlock, value);
-            if (!_stateRootToBlock.KeyExists(key.Bytes))
-                _stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
+            if (!stateRootToBlock.KeyExists(key.Bytes))
+                stateRootToBlock.Set(key.Bytes, encodedBlock.ToArray());
         }
     }
 }

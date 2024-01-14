@@ -17,9 +17,9 @@ public class VerkleArchiveStore
 {
     private readonly HistoryOfAccounts _historyOfAccounts;
 
-    private readonly VerkleStateStore _stateStore;
+    private readonly IVerkleArchiveStore _stateStore;
 
-    public VerkleArchiveStore(VerkleStateStore stateStore, IDbProvider dbProvider, ILogManager logManager)
+    public VerkleArchiveStore(IVerkleArchiveStore stateStore, IDbProvider dbProvider, ILogManager logManager)
     {
         _stateStore = stateStore;
         _historyOfAccounts = new HistoryOfAccounts(dbProvider.HistoryOfAccounts);
@@ -45,7 +45,7 @@ public class VerkleArchiveStore
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256 rootHash)
     {
-        var blockNumber = (ulong)_stateStore.StateRootToBlocks[rootHash];
+        var blockNumber = _stateStore.GetBlockNumber(rootHash);
         EliasFano? requiredShard = _historyOfAccounts.GetAppropriateShard(new Hash256(key.ToArray()), blockNumber + 1);
         if (requiredShard is null) return _stateStore.GetLeaf(key);
         Console.WriteLine($"RequiredShard:{string.Join(",", requiredShard.Value.GetEnumerator(0).ToArray())}");

@@ -70,7 +70,7 @@ public class TestVerkleBlockchain : IDisposable
     public IWorldState State { get; set; } = null!;
     public IReadOnlyStateProvider ReadOnlyState { get; private set; } = null!;
     public IDb StateDb => DbProvider.StateDb;
-    public VerkleStateStore TrieStore { get; set; } = null!;
+    public IVerkleTrieStore TrieStore { get; set; } = null!;
     public IBlockProducer BlockProducer { get; private set; } = null!;
     public IDbProvider DbProvider { get; set; } = null!;
     public ISpecProvider SpecProvider { get; set; } = null!;

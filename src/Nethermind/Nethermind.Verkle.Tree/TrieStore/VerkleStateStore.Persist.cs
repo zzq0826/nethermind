@@ -37,7 +37,7 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 ///     Now these interfaces would be specially designed to work for a specific interface.
 ///     Cases - NewPayload (A) NewPayload(B) FCU(A)
 /// </summary>
-public partial class VerkleStateStore
+internal partial class VerkleStateStore<TCache>
 {
     private int _isFirst;
 
@@ -50,7 +50,7 @@ public partial class VerkleStateStore
 
     // TODO: add a functionality where we only persist to rocksDb when we have a epoch finalization.
     // TODO: do we need to add another approach where we bulk insert into the db - or batching on epochs is fine?
-    public void InsertBatch(long blockNumber, VerkleMemoryDb batch)
+    public void InsertBatch(long blockNumber, VerkleMemoryDb batch, bool skipRoot = false)
     {
         // TODO: create a sorted set here - we need it for verkleSync serving
         ReadOnlyVerkleMemoryDb cacheBatch = new()
@@ -62,50 +62,73 @@ public partial class VerkleStateStore
         if (blockNumber == 0)
         {
             if (_logger.IsDebug) _logger.Debug("Persisting the changes for block 0");
+
+            if(skipRoot) batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
             Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
             StateRoot = newRoot?.Bytes ?? Hash256.Zero;
-            PersistedStateRoot = StateRoot;
+            // PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
             StateRootToBlocks[StateRoot] = blockNumber;
+            Storage.LeafDb.Flush();
+            Storage.InternalNodeDb.Flush();
         }
         else
         {
-            if (!BlockCache.IsInitialized)
+            if (typeof(TCache) == typeof(IsUsingMemCache))
             {
-                Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
-                if (newRoot is null) _logger.Error("ERROR newRoot is null - this must be some kind of error");
-                BlockCache.InitCache(blockNumber - 1, newRoot?.Bytes ?? Hash256.Zero);
+                if (!BlockCache.IsInitialized)
+                {
+                    Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);
+                    if (newRoot is null) _logger.Error("ERROR newRoot is null - this must be some kind of error");
+                    BlockCache.InitCache(blockNumber - 1, newRoot?.Bytes ?? Hash256.Zero);
+                }
             }
+
 
             Hash256? rootToCommit = GetStateRoot(batch.InternalTable);
             if (rootToCommit is null)
             {
-                if (!(batch.InternalTable.Count == 0 && batch.LeafTable.Count == 0))
+                if (!(batch.InternalTable.IsEmpty && batch.LeafTable.IsEmpty))
                     throw new StateFlushException(
                         $"Failed InsertBatch:{blockNumber}. StateRoot not found in the batch");
                 rootToCommit = StateRoot;
             }
 
 
-            var shouldPersistBlock = BlockCache.EnqueueAndReplaceIfFull(blockNumber,
-                rootToCommit, cacheBatch, StateRoot, out StateInfo element);
+            bool shouldPersistBlock;
+            ReadOnlyVerkleMemoryDb changesToPersist;
+            long blockNumberToPersist;
+            if (typeof(TCache) == typeof(IsUsingMemCache))
+            {
+                shouldPersistBlock = BlockCache.EnqueueAndReplaceIfFull(blockNumber,
+                    rootToCommit, cacheBatch, StateRoot, out StateInfo element);
+                changesToPersist = element.StateDiff;
+                blockNumberToPersist = element.BlockNumber;
+            }
+            else
+            {
+                shouldPersistBlock = true;
+                changesToPersist = cacheBatch;
+                blockNumberToPersist = blockNumber;
+            }
+
+
 
             if (shouldPersistBlock)
             {
-                ReadOnlyVerkleMemoryDb changesToPersist = element.StateDiff;
-                var blockNumberToPersist = element.BlockNumber;
+
                 if (_logger.IsDebug)
                     _logger.Debug(
-                        $"BlockCache is full - got forwardDiff BlockNumber:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
-                Hash256 root = GetStateRoot(changesToPersist.InternalTable) ??
-                               new Hash256(Storage.GetInternalNode(RootNodeKey)?.Bytes ??
-                                           throw new ArgumentException());
+                        $"Persisting Changes | BN:{blockNumberToPersist} IN:{changesToPersist.InternalTable.Count} LN:{changesToPersist.LeafTable.Count}");
+
+                Hash256? root = GetStateRoot(changesToPersist.InternalTable);
+                root ??= new Hash256(Storage.GetInternalNode(RootNodeKey)?.Bytes ?? throw new ArgumentException());
                 if (_logger.IsDebug) _logger.Debug($"StateRoot after persisting forwardDiff: {root}");
 
-                PersistBlockChanges(changesToPersist.InternalTable, changesToPersist.LeafTable, Storage,
-                    out VerkleMemoryDb reverseDiff);
+                PersistBlockChanges(changesToPersist, Storage, out VerkleMemoryDb reverseDiff);
+
                 // TODO: handle this properly - while testing this is needed so that this does not fuck up other things
                 try
                 {
@@ -119,7 +142,7 @@ public partial class VerkleStateStore
                     _logger.Error("Error while persisting the history, not propagating forward", e);
                 }
 
-                PersistedStateRoot = root;
+                // PersistedStateRoot = root;
                 LastPersistedBlockNumber = blockNumberToPersist;
             }
 
@@ -133,14 +156,13 @@ public partial class VerkleStateStore
         AnnounceReorgBoundaries();
     }
 
-    private static void PersistBlockChanges(InternalStoreInterface internalStore, LeafStoreInterface leafStore,
-        VerkleKeyValueDb storage, out VerkleMemoryDb reverseDiff)
+    private static void PersistBlockChanges(ReadOnlyVerkleMemoryDb changesToPersist, VerkleKeyValueDb storage, out VerkleMemoryDb reverseDiff)
     {
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         reverseDiff = new VerkleMemoryDb();
 
-        foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
+        foreach (KeyValuePair<byte[], byte[]?> entry in changesToPersist.LeafTable)
         {
             // in stateless tree - anything can be null
             // Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
@@ -150,7 +172,7 @@ public partial class VerkleStateStore
             storage.SetLeaf(entry.Key, entry.Value);
         }
 
-        foreach (KeyValuePair<byte[], InternalNode?> entry in internalStore)
+        foreach (KeyValuePair<byte[], InternalNode?> entry in changesToPersist.InternalTable)
         {
             // in stateless tree - anything can be null
             // Debug.Assert(entry.Value is not null, "nullable value only for reverse diff");
@@ -179,41 +201,5 @@ public partial class VerkleStateStore
 
         storage.LeafDb.Flush();
         storage.InternalNodeDb.Flush();
-    }
-
-    private void AnnounceReorgBoundaries()
-    {
-        if (LatestCommittedBlockNumber < 1) return;
-
-        var shouldAnnounceReorgBoundary = false;
-        var isFirstCommit = Interlocked.Exchange(ref _isFirst, 1) == 0;
-        if (isFirstCommit)
-        {
-            if (_logger.IsDebug)
-                _logger.Debug(
-                    $"Reached first commit - newest {LatestCommittedBlockNumber}, last persisted {LastPersistedBlockNumber}");
-            // this is important when transitioning from fast sync
-            // imagine that we transition at block 1200000
-            // and then we close the app at 1200010
-            // in such case we would try to continue at Head - 1200010
-            // because head is loaded if there is no persistence checkpoint
-            // so we need to force the persistence checkpoint
-            var baseBlock = Math.Max(0, LatestCommittedBlockNumber - 1);
-            LastPersistedBlockNumber = baseBlock;
-            shouldAnnounceReorgBoundary = true;
-        }
-        else if (!_lastPersistedReachedReorgBoundary)
-        {
-            // even after we persist a block we do not really remember it as a safe checkpoint
-            // until max reorgs blocks after
-            if (LatestCommittedBlockNumber >= LastPersistedBlockNumber + BlockCacheSize)
-                shouldAnnounceReorgBoundary = true;
-        }
-
-        if (shouldAnnounceReorgBoundary)
-        {
-            ReorgBoundaryReached?.Invoke(this, new ReorgBoundaryReached(LastPersistedBlockNumber));
-            _lastPersistedReachedReorgBoundary = true;
-        }
     }
 }

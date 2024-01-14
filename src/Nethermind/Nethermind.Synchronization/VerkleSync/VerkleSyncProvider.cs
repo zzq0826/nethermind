@@ -78,14 +78,13 @@ public class VerkleSyncProvider: IVerkleSyncProvider
                 var stateStore = new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), 0, _logManager);
                 var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
                 var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path, subTrees);
-
-                store.InsertBatch(0, localTree._treeCache);
                 if (!isCorrect)
                 {
                     _logger.Error(
                         $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} {isCorrect}");
                     return AddRangeResult.DifferentRootHash;
                 }
+                store.InsertBatch(0, localTree._treeCache, true);
                 _logger.Info($"VERKLE_SYNC - AddSubTreeRange SUCCESS, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} endingHash:{subTrees[^1].Path}");
             }
             catch (Exception e)

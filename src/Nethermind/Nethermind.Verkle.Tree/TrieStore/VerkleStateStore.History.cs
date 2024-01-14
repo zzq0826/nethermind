@@ -9,7 +9,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public partial class VerkleStateStore
+internal partial class VerkleStateStore<TCache>
 {
     [Obsolete("should not be used - can be used in extreme cases to correct state")]
     // use the batch diff to move the full state back in time to access historical state.

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Nethermind.Blockchain;
 using Nethermind.Core;
@@ -13,8 +12,10 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Synchronization.RangeSync;
+using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.Utils;
+using Nethermind.Verkle.Tree.TrieNodes;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
@@ -253,6 +254,15 @@ public class VerkleProgressTracker: IRangeProgressTracker<VerkleSyncBatch>
 
     private void FinishRangePhase()
     {
+        {
+            // TODO: move to VerkleStateStore
+            Banderwagon rootPoint =
+                Banderwagon.FromBytes(_pivot.GetPivotHeader().StateRoot!.BytesToArray(), subgroupCheck: false)!.Value;
+            var rootCommit = new Commitment(rootPoint);
+            var rootNode = new InternalNode(VerkleNodeType.BranchNode, rootCommit);
+            _db.Set(Array.Empty<byte>(), InternalNodeSerializer.Instance.Encode(rootNode).Bytes);
+        }
+
         _db.Set(SYNC_PROGRESS_KEY, Stem.MaxValue.Bytes);
     }
 

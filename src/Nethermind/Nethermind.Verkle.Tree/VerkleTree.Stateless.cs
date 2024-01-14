@@ -397,7 +397,7 @@ public partial class VerkleTree
         InsertStemBatchForSync(stemBatch, commByPath);
         var verification = VerifyVerkleProofStruct(proof.Proof, allPathsAndZs, leafValuesByPathAndZ, commByPath);
         if (!verification) Reset();
-        else CommitTree(0);
+        // else CommitTree(0);
 
         return verification;
     }

@@ -13,7 +13,7 @@ using Nethermind.Verkle.Tree.Sync;
 
 namespace Nethermind.Verkle.Tree.TrieStore;
 
-public partial class VerkleStateStore
+internal partial class VerkleStateStore<TCache>
 {
     public bool IsFullySynced(Hash256 stateRoot)
     {

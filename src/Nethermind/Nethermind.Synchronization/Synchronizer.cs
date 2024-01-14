@@ -143,7 +143,7 @@ namespace Nethermind.Synchronization
             SnapProvider = new SnapProvider(snapProgressTracker, dbProvider, logManager);
             VerkleProgressTracker verkleProgressTracker = new(
                 blockTree,
-                dbProvider.StateDb,
+                dbProvider.InternalNodesDb,
                 logManager,
                 _syncConfig.SnapSyncAccountRangePartitionCount);
             VerkleSyncProvider = new VerkleSyncProvider(verkleProgressTracker, dbProvider, logManager);
