@@ -6,35 +6,27 @@ using Nethermind.Core.Verkle;
 
 namespace Nethermind.Verkle.Tree.Sync;
 
-public class SubTreeRange
+public class SubTreeRange(Hash256 stateRoot, Stem startingStem, Stem? limitStem = null, long? blockNumber = null)
 {
-    public SubTreeRange(Hash256 stateRoot, Stem startingStem, Stem? limitStem = null, long? blockNumber = null)
-    {
-        RootHash = stateRoot;
-        StartingStem = startingStem;
-        BlockNumber = blockNumber;
-        LimitStem = limitStem;
-    }
-
-    public long? BlockNumber { get; }
+    public long? BlockNumber { get; } = blockNumber;
 
     /// <summary>
     ///     State Root of the verkle trie to serve
     /// </summary>
-    public Hash256 RootHash { get; }
+    public Hash256 RootHash { get; } = stateRoot;
 
     /// <summary>
     ///     Stem of the first sub-tree to retrieve
     /// </summary>
-    public Stem StartingStem { get; }
+    public Stem StartingStem { get; } = startingStem;
 
     /// <summary>
     ///     Stem after which to stop serving data
     /// </summary>
-    public Stem? LimitStem { get; }
+    public Stem? LimitStem { get; } = limitStem;
 
     public override string ToString()
     {
-        return $"SubTreeRange: ({BlockNumber}, {RootHash}, {StartingStem}, {LimitStem})";
+        return $"SubTreeRange: (BN:{BlockNumber}.RH:{RootHash}, Stem.S:{StartingStem}.L:{LimitStem})";
     }
 }
