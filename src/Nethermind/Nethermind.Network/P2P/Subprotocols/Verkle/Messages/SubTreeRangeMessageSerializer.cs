@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using DotNetty.Buffers;
-using Nethermind.Core.Verkle;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Sync;
 
@@ -12,6 +10,15 @@ namespace Nethermind.Network.P2P.Subprotocols.Verkle.Messages;
 
 public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeMessage>
 {
+
+    private readonly Func<RlpStream, PathWithSubTree> _decodeSubTree;
+    private readonly Func<RlpStream, LeafInSubTree> _decodeLeaf;
+
+    public SubTreeRangeMessageSerializer()
+    {
+        _decodeSubTree = DecodePathWithRlpData;
+        _decodeLeaf = DecodeLeafSubTree;
+    }
     public void Serialize(IByteBuffer byteBuffer, SubTreeRangeMessage message)
     {
         (int contentLength, int pwasLength) = GetLength(message);
@@ -71,7 +78,7 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
         rlpStream.ReadSequenceLength();
 
         message.RequestId = rlpStream.DecodeLong();
-        message.PathsWithSubTrees = rlpStream.DecodeArray(DecodePathWithRlpData);
+        message.PathsWithSubTrees = rlpStream.DecodeArray(_decodeSubTree);
         message.Proofs = rlpStream.DecodeByteArray();
 
         return message;
@@ -81,12 +88,12 @@ public class SubTreeRangeMessageSerializer: IZeroMessageSerializer<SubTreeRangeM
     {
         stream.ReadSequenceLength();
         byte[] path = stream.DecodeByteArray();
-        LeafInSubTree[]? subTrees = stream.DecodeArray(DecodeLeafSubTree);;
+        LeafInSubTree[]? subTrees = stream.DecodeArray(_decodeLeaf);;
         PathWithSubTree data = new(path, subTrees);
         return data;
     }
 
-    private LeafInSubTree DecodeLeafSubTree(RlpStream stream)
+    private static LeafInSubTree DecodeLeafSubTree(RlpStream stream)
     {
         stream.ReadSequenceLength();
         byte suffix = stream.DecodeByte();
