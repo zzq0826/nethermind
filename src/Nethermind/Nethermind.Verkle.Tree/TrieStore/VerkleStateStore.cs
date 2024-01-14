@@ -130,13 +130,14 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
     /// <summary>
     ///     Mapping to a underlying database that keeps tracks of [StateRoot -> BlockNumber] map
     /// </summary>
-    private readonly StateRootToBlockMap StateRootToBlocks;
+    private readonly StateRootToBlockMap _stateRootToBlocks;
+    public ulong GetBlockNumber(Hash256 rootHash) => (ulong)_stateRootToBlocks[rootHash];
 
     public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
-        StateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
+        _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
         if (typeof(TCache) == typeof(IsUsingMemCache))
         {
             BlockCache = new BlockBranchCache(blockCacheSize);
@@ -154,7 +155,7 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
     {
         _logger = logManager?.GetClassLogger<VerkleStateStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
-        StateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
+        _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         if (typeof(TCache) == typeof(IsUsingMemCache))
         {
             BlockCache = new BlockBranchCache(blockCacheSize);
@@ -195,7 +196,7 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }
 
-    public ulong GetBlockNumber(Hash256 rootHash) => (ulong)StateRootToBlocks[rootHash];
+
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
@@ -276,7 +277,7 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
         if (Storage.GetInternalNode(RootNodeKey, out InternalNode rootNode))
         {
             // PersistedStateRoot = StateRoot = new Hash256(rootNode!.InternalCommitment.ToBytes());
-            LastPersistedBlockNumber = StateRootToBlocks[StateRoot];
+            LastPersistedBlockNumber = _stateRootToBlocks[StateRoot];
             if (LastPersistedBlockNumber == -2) throw new Exception("StateRoot To BlockNumber Cache Corrupted");
             LatestCommittedBlockNumber = -1;
         }

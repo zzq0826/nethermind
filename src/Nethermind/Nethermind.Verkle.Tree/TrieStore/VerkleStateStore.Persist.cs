@@ -70,7 +70,7 @@ internal partial class VerkleStateStore<TCache>
             StateRoot = newRoot?.Bytes ?? Hash256.Zero;
             // PersistedStateRoot = StateRoot;
             LatestCommittedBlockNumber = LastPersistedBlockNumber = 0;
-            StateRootToBlocks[StateRoot] = blockNumber;
+            _stateRootToBlocks[StateRoot] = blockNumber;
             Storage.LeafDb.Flush();
             Storage.InternalNodeDb.Flush();
         }
@@ -147,7 +147,7 @@ internal partial class VerkleStateStore<TCache>
             }
 
             StateRoot = rootToCommit;
-            StateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
+            _stateRootToBlocks[StateRoot] = LatestCommittedBlockNumber = blockNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
                     $"Completed Flush: PersistedStateRoot:{PersistedStateRoot} LastPersistedBlockNumber:{LastPersistedBlockNumber} LatestCommittedBlockNumber:{LatestCommittedBlockNumber} StateRoot:{StateRoot} blockNumber:{blockNumber}");

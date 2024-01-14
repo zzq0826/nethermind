@@ -17,7 +17,7 @@ internal partial class VerkleStateStore<TCache>
 {
     public bool IsFullySynced(Hash256 stateRoot)
     {
-        return StateRootToBlocks[new Hash256(stateRoot.Bytes.ToArray())] != -2;
+        return _stateRootToBlocks[new Hash256(stateRoot.Bytes.ToArray())] != -2;
     }
 
     // TODO: handle the case where there is no stem between the requested range.
