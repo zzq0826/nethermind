@@ -16,6 +16,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TrieStore;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
@@ -47,12 +48,13 @@ public class VerkleProgressTracker: IRangeProgressTracker<VerkleSyncBatch>
 
 
     private readonly RangeSync.Pivot _pivot;
+    private readonly VerkleStateStore _verkleStore;
 
-    public VerkleProgressTracker(IBlockTree blockTree, IDb db, ILogManager logManager, int subTreeRangePartitionCount = 8)
+    public VerkleProgressTracker(IBlockTree blockTree, IDbProvider dbProvider, ILogManager logManager, int subTreeRangePartitionCount = 8)
     {
         _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
-        _db = db ?? throw new ArgumentNullException(nameof(db));
-
+        _db = dbProvider.InternalNodesDb ?? throw new ArgumentNullException(nameof(dbProvider));
+        _verkleStore = new VerkleStateStore(dbProvider, 0, logManager);
         _pivot = new RangeSync.Pivot(blockTree, logManager);
 
         if (subTreeRangePartitionCount < 1 || subTreeRangePartitionCount > 256)
@@ -262,7 +264,8 @@ public class VerkleProgressTracker: IRangeProgressTracker<VerkleSyncBatch>
             var rootNode = new InternalNode(VerkleNodeType.BranchNode, rootCommit);
             _db.Set(Array.Empty<byte>(), InternalNodeSerializer.Instance.Encode(rootNode).Bytes);
         }
-
+        BlockHeader pivot = _pivot.GetPivotHeader();
+        _verkleStore.InsertRootNodeAfterSyncCompletion(pivot.StateRoot.BytesToArray(), pivot.Number);
         _db.Set(SYNC_PROGRESS_KEY, Stem.MaxValue.Bytes);
     }
 

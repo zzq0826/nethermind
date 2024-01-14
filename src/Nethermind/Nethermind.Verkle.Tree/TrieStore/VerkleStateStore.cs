@@ -103,6 +103,16 @@ public class VerkleStateStore : IVerkleArchiveStore
         return _stateStore.GetBlockNumber(rootHash);
     }
 
+    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
+    {
+        _stateStore.InsertRootNodeAfterSyncCompletion(rootHash, blockNumber);
+    }
+
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+        _stateStore.InsertSyncBatch(blockNumber, batch);
+    }
+
     public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1
     {
         add => _stateStore.InsertBatchCompletedV1 += value;
@@ -314,6 +324,7 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
             }
         }
     }
+    private int _isFirst;
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
     private void AnnounceReorgBoundaries()
     {

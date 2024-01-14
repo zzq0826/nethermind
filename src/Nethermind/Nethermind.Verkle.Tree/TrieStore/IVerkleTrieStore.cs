@@ -37,4 +37,6 @@ public interface IVerkleTrieStore : IStoreWithReorgBoundary, IVerkleSyncTireStor
     IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore);
 
     ulong GetBlockNumber(Hash256 rootHash);
+    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber);
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch);
 }

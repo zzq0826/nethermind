@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
+using Nethermind.Core.Verkle;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.TrieNodes;
 using Nethermind.Verkle.Tree.Utils;
@@ -39,7 +41,20 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 /// </summary>
 internal partial class VerkleStateStore<TCache>
 {
-    private int _isFirst;
+    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
+    {
+        Banderwagon rootPoint = Banderwagon.FromBytes(rootHash, subgroupCheck: false)!.Value;
+        var rootCommit = new Commitment(rootPoint);
+        var rootNode = new InternalNode(VerkleNodeType.BranchNode, rootCommit);
+        Storage.SetInternalNode(RootNodeKey, rootNode);
+        _stateRootToBlocks[StateRoot] = blockNumber;
+    }
+
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+        batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
+        PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
+    }
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
@@ -63,7 +78,7 @@ internal partial class VerkleStateStore<TCache>
         {
             if (_logger.IsDebug) _logger.Debug("Persisting the changes for block 0");
 
-            if(skipRoot) batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
+            if (skipRoot) batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
             PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
             InsertBatchCompletedV1?.Invoke(this, new InsertBatchCompletedV1(0, cacheBatch, null));
             Storage.GetInternalNode(RootNodeKey, out InternalNode? newRoot);

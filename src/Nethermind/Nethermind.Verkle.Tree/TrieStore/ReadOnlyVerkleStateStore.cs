@@ -95,6 +95,16 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
         return _verkleStateStore.GetBlockNumber(rootHash);
     }
 
+    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+        throw new NotImplementedException();
+    }
+
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,
         Hash256 stateRoot)
     {

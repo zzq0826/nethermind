@@ -84,7 +84,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
                         $"VERKLE_SYNC - AddSubTreeRange failed, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} {isCorrect}");
                     return AddRangeResult.DifferentRootHash;
                 }
-                store.InsertBatch(0, localTree._treeCache, true);
+                store.InsertSyncBatch(0, localTree._treeCache);
                 _logger.Info($"VERKLE_SYNC - AddSubTreeRange SUCCESS, expected {blockNumber}:{expectedRootHash}, startingHash:{startingStem} endingHash:{subTrees[^1].Path}");
             }
             catch (Exception e)

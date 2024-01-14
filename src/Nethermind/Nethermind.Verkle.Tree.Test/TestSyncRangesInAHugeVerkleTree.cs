@@ -172,6 +172,7 @@ public class TestSyncRangesInAHugeVerkleTree
         startStem = Bytes.FromHexString("0xe0000000000000000000000000000000000000000000000000000000000000");
         limitStem = Bytes.FromHexString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         TestAndAssertSyncRanges(tree, poolStore, stateRoot180, startStem, limitStem);
+        poolStore.InsertRootNodeAfterSyncCompletion(stateRoot180.BytesToArray(), 180);
         trieStorePool.Return(poolStore);
 
         Assert.IsTrue(localTree.HasStateForStateRoot(stateRoot180));
@@ -208,7 +209,7 @@ public class TestSyncRangesInAHugeVerkleTree
         var tempTree = new VerkleTree(stateStore, LimboLogs.Instance);
         bool isTrue = tempTree.CreateStatelessTreeFromRange(proof, root, startStem, endStem, range);
         Assert.IsTrue(isTrue);
-        localStore.InsertBatch(0, tempTree._treeCache);
+        localStore.InsertSyncBatch(0, tempTree._treeCache);
     }
 
     [TestCase(DbMode.MemDb)]

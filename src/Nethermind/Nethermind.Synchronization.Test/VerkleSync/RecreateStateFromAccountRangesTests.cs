@@ -41,7 +41,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
                 _inputTree.CreateVerkleRangeProof(Keccak.Zero.Bytes[..31].ToArray(), TestItem.Tree.stem5, out Banderwagon rootPoint);
 
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
             AddRangeResult result = verkleSyncProvider.AddSubTreeRange(1, rootPoint, Keccak.Zero.Bytes[..31].ToArray(), TestItem.Tree.SubTreesWithPaths, proof, TestItem.Tree.stem5);
             Assert.That(result, Is.EqualTo(AddRangeResult.OK));
@@ -57,7 +57,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
 
 
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
             AddRangeResult result = verkleSyncProvider.AddSubTreeRange(1, rootPoint, TestItem.Tree.stem0, TestItem.Tree.SubTreesWithPaths, proof, TestItem.Tree.stem5);
             Assert.That(result, Is.EqualTo(AddRangeResult.OK));
@@ -67,7 +67,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
         public void RecreateAccountStateFromMultipleRange()
         {
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
 
             PathWithSubTree[] pathWithSubTrees = TestItem.Tree.SubTreesWithPaths;
@@ -93,7 +93,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
         public void RecreateAccountStateFromMultipleRange_InReverseOrder()
         {
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
             PathWithSubTree[] pathWithSubTrees = TestItem.Tree.SubTreesWithPaths;
 
@@ -118,7 +118,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
         public void RecreateAccountStateFromMultipleRange_OutOfOrder()
         {
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
             PathWithSubTree[] pathWithSubTrees = TestItem.Tree.SubTreesWithPaths;
 
@@ -143,7 +143,7 @@ namespace Nethermind.Synchronization.Test.VerkleSync
         public void RecreateAccountStateFromMultipleOverlappingRange()
         {
             IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-            VerkleProgressTracker progressTracker = new(null, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
+            VerkleProgressTracker progressTracker = new(null, dbProvider, LimboLogs.Instance);
             VerkleSyncProvider verkleSyncProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
 
             PathWithSubTree[] pathWithSubTrees = TestItem.Tree.SubTreesWithPaths;

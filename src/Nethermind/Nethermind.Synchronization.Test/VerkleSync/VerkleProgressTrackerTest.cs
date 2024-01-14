@@ -7,6 +7,7 @@ using Nethermind.Core.Test.Builders;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Synchronization.VerkleSync;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Nethermind.Synchronization.Test.VerkleSync;
@@ -16,8 +17,11 @@ public class VerkleProgressTrackerTest
     [Test]
     public void Will_create_multiple_get_address_range_request()
     {
+        var database = new MemDb();
+        IDbProvider dbProvider = Substitute.For<IDbProvider>();
+        dbProvider.InternalNodesDb.Returns(database);
         BlockTree blockTree = Build.A.BlockTree().WithBlocks(Build.A.Block.TestObject).TestObject;
-        VerkleProgressTracker progressTracker = new(blockTree, new MemDb(), LimboLogs.Instance, 4);
+        VerkleProgressTracker progressTracker = new(blockTree, dbProvider, LimboLogs.Instance, 4);
 
         (VerkleSyncBatch request, bool finished) = progressTracker.GetNextRequest();
         request.SubTreeRangeRequest.Should().NotBeNull();
