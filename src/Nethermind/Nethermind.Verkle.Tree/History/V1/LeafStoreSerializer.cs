@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
 
-namespace Nethermind.Verkle.Tree.Serializers;
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public class LeafStoreSerializer
 {

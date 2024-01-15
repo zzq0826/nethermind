@@ -14,14 +14,14 @@ using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 namespace Nethermind.Verkle.Tree.Cache;
 
-public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
+public struct StateInfo(SortedVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
-    public readonly ReadOnlyVerkleMemoryDb? StateDiff = stateDiff;
+    public readonly SortedVerkleMemoryDb? StateDiff = stateDiff;
     public readonly Hash256 StateRoot = stateRoot;
     public readonly long BlockNumber = blockNumber;
 }
 
-public sealed class BlockBranchNode(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
+public sealed class BlockBranchNode(SortedVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
     public StateInfo Data = new(stateDiff, stateRoot, blockNumber);
     public BlockBranchNode? ParentNode;
@@ -52,7 +52,7 @@ public class BlockBranchCache(int cacheSize)
         _version++;
     }
 
-    private bool AddNode(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data, Hash256 parentRoot,
+    private bool AddNode(long blockNumber, Hash256 stateRoot, SortedVerkleMemoryDb data, Hash256 parentRoot,
         [MaybeNullWhen(false)] out BlockBranchNode outNode)
     {
         if (!IsInitialized) throw new Exception("Cache needs to be initialized first");
@@ -64,7 +64,7 @@ public class BlockBranchCache(int cacheSize)
         return true;
     }
 
-    public bool EnqueueAndReplaceIfFull(long blockNumber, Hash256 stateRoot, ReadOnlyVerkleMemoryDb data,
+    public bool EnqueueAndReplaceIfFull(long blockNumber, Hash256 stateRoot, SortedVerkleMemoryDb data,
         Hash256 parentRoot, [MaybeNullWhen(false)] out StateInfo node)
     {
         if (!AddNode(blockNumber, stateRoot, data, parentRoot, out BlockBranchNode insertedNode))

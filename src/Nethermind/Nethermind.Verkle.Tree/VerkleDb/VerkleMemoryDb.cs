@@ -8,24 +8,19 @@ using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 
-public class ReadOnlyVerkleMemoryDb
+public class SortedVerkleMemoryDb(InternalStore internalTable, LeafStore leafTable)
 {
-    public InternalStore InternalTable;
-    public LeafStoreSorted LeafTable;
+    public readonly InternalStore InternalTable = internalTable;
+    public readonly LeafStoreSorted LeafTable = new(leafTable, Bytes.Comparer);
 }
 
-public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
+public class VerkleMemoryDb(LeafStore leafTable, InternalStore internalTable) : IVerkleDb, IVerkleMemDb
 {
-    public VerkleMemoryDb()
-    {
-        LeafTable = new LeafStore(Bytes.SpanEqualityComparer);
-        InternalTable = new InternalStore(Bytes.SpanEqualityComparer);
-    }
+    public LeafStore LeafTable { get; } = leafTable;
+    public InternalStore InternalTable { get; } = internalTable;
 
-    public VerkleMemoryDb(LeafStore leafTable, InternalStore internalTable)
+    public VerkleMemoryDb() : this(new LeafStore(Bytes.SpanEqualityComparer), new InternalStore(Bytes.SpanEqualityComparer))
     {
-        LeafTable = leafTable;
-        InternalTable = internalTable;
     }
 
     public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value)
@@ -58,16 +53,5 @@ public class VerkleMemoryDb : IVerkleDb, IVerkleMemDb
         InternalTable.Remove(internalNodeKey.ToArray(), out _);
     }
 
-    public void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf)
-    {
-        foreach ((var key, var value) in keyLeaf) SetLeaf(key, value);
-    }
-
-    public void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNodeKey)
-    {
-        foreach ((var key, InternalNode? value) in internalNodeKey) SetInternalNode(key, value);
-    }
-
-    public LeafStore LeafTable { get; }
-    public InternalStore InternalTable { get; }
+    public SortedVerkleMemoryDb ToSortedVerkleDb() => new(InternalTable, LeafTable);
 }

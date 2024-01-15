@@ -37,7 +37,7 @@ public class VerkleHistoryStore
         ReverseDiff.InsertDiff(blockNumber, preState);
     }
 
-    public void InsertDiff(long blockNumber, ReadOnlyVerkleMemoryDb postState, VerkleMemoryDb preState)
+    public void InsertDiff(long blockNumber, SortedVerkleMemoryDb postState, VerkleMemoryDb preState)
     {
         ForwardDiff.InsertDiff(blockNumber, postState);
         ReverseDiff.InsertDiff(blockNumber, preState);

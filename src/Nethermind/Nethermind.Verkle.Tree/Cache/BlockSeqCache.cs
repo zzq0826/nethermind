@@ -7,7 +7,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.Cache;
 
-public class BlockDiffCache(int capacity) : StackQueue<(long, ReadOnlyVerkleMemoryDb)>(capacity)
+public class BlockDiffCache(int capacity) : StackQueue<(long, SortedVerkleMemoryDb)>(capacity)
 {
     public byte[]? GetLeaf(byte[] key)
     {

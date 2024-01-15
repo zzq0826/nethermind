@@ -5,16 +5,10 @@ using Nethermind.Verkle.Curve;
 
 namespace Nethermind.Verkle.Tree.Utils;
 
-public struct LeafUpdateDelta
+public struct LeafUpdateDelta()
 {
-    public Banderwagon? DeltaC1 { get; private set; }
-    public Banderwagon? DeltaC2 { get; private set; }
-
-    public LeafUpdateDelta()
-    {
-        DeltaC1 = null;
-        DeltaC2 = null;
-    }
+    public Banderwagon? DeltaC1 { get; private set; } = null;
+    public Banderwagon? DeltaC2 { get; private set; } = null;
 
     public void UpdateDelta(Banderwagon deltaLeafCommitment, byte index)
     {

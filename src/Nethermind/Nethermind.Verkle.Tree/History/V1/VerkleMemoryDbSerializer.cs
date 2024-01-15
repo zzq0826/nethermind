@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.Serializers;
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public class VerkleMemoryDbSerializer
 {
@@ -18,7 +19,7 @@ public class VerkleMemoryDbSerializer
         return length;
     }
 
-    public int GetLength(ReadOnlyVerkleMemoryDb item, RlpBehaviors rlpBehaviors)
+    public int GetLength(SortedVerkleMemoryDb item, RlpBehaviors rlpBehaviors)
     {
         var length = 0;
         length += LeafStoreSerializer.Instance.GetLength(item.LeafTable, RlpBehaviors.None);
@@ -40,7 +41,7 @@ public class VerkleMemoryDbSerializer
         InternalStoreSerializer.Instance.Encode(stream, item.InternalTable);
     }
 
-    public void Encode(RlpStream stream, ReadOnlyVerkleMemoryDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
+    public void Encode(RlpStream stream, SortedVerkleMemoryDb item, RlpBehaviors rlpBehaviors = RlpBehaviors.None)
     {
         LeafStoreSerializer.Instance.Encode(stream, item.LeafTable);
         InternalStoreSerializer.Instance.Encode(stream, item.InternalTable);

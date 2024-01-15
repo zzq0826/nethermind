@@ -8,13 +8,31 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
+using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TreeNodes;
+using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TreeStore;
 
 internal partial class VerkleTreeStore<TCache>
 {
+
+    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
+    {
+        Banderwagon rootPoint = Banderwagon.FromBytes(rootHash, subgroupCheck: false)!.Value;
+        var rootCommit = new Commitment(rootPoint);
+        var rootNode = new InternalNode(VerkleNodeType.BranchNode, rootCommit);
+        Storage.SetInternalNode(RootNodeKey, rootNode);
+        _stateRootToBlocks[StateRoot] = blockNumber;
+    }
+
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
+    {
+        batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
+        PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
+    }
 
     // TODO: handle the case where there is no stem between the requested range.
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot,

@@ -10,18 +10,50 @@ using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 
-public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
+public class VerkleKeyValueBatch(IWriteBatch leafNodeBatch, IWriteBatch internalNodeBatch) : IVerkleWriteOnlyDb, IDisposable
 {
-    public VerkleKeyValueDb(IDbProvider dbProvider)
+    private bool _isDisposed;
+
+    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
     {
-        LeafDb = dbProvider.LeafDb;
-        InternalNodeDb = dbProvider.InternalNodesDb;
+        leafNodeBatch[leafKey] = leafValue;
     }
 
-    public VerkleKeyValueDb(IDb internalNodeDb, IDb leafDb)
+    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
     {
-        LeafDb = leafDb;
-        InternalNodeDb = internalNodeDb;
+        SetInternalNode(internalNodeKey, internalNodeValue, internalNodeBatch);
+    }
+
+    private static void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode? internalNodeValue,
+        IWriteOnlyKeyValueStore db)
+    {
+        if (internalNodeValue != null)
+            db[internalNodeKey] = InternalNodeSerializer.Instance.Encode(internalNodeValue).Bytes;
+    }
+
+    public void RemoveLeaf(ReadOnlySpan<byte> leafKey)
+    {
+        leafNodeBatch.Remove(leafKey);
+    }
+
+    public void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey)
+    {
+        internalNodeBatch.Remove(internalNodeKey);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+        leafNodeBatch.Dispose();
+        internalNodeBatch.Dispose();
+    }
+}
+
+public class VerkleKeyValueDb(IDb internalNodeDb, IDb leafDb) : IVerkleDb, IVerkleKeyValueDb
+{
+    public VerkleKeyValueDb(IDbProvider dbProvider) : this(dbProvider.InternalNodesDb, dbProvider.LeafDb)
+    {
     }
 
     public bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value)
@@ -56,21 +88,13 @@ public class VerkleKeyValueDb : IVerkleDb, IVerkleKeyValueDb
         InternalNodeDb.Remove(internalNodeKey);
     }
 
-
-    public void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf)
+    public VerkleKeyValueBatch StartWriteBatch()
     {
-        using IWriteBatch batch = LeafDb.StartWriteBatch();
-        foreach ((var key, var value) in keyLeaf) batch[key] = value;
+        return new VerkleKeyValueBatch(LeafDb.StartWriteBatch(), InternalNodeDb.StartWriteBatch());
     }
 
-    public void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNode)
-    {
-        using IWriteBatch batch = InternalNodeDb.StartWriteBatch();
-        foreach ((var key, InternalNode? value) in internalNode) SetInternalNode(key, value, batch);
-    }
-
-    public IDb LeafDb { get; }
-    public IDb InternalNodeDb { get; }
+    public IDb LeafDb { get; } = leafDb;
+    public IDb InternalNodeDb { get; } = internalNodeDb;
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key)
     {

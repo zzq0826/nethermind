@@ -6,28 +6,16 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.Utils;
 
-public class InsertBatchCompletedV1 : EventArgs
+public class InsertBatchCompletedV1(long blockNumber, SortedVerkleMemoryDb forwardDiff, VerkleMemoryDb? reverseDiff)
+    : EventArgs
 {
-    public InsertBatchCompletedV1(long blockNumber, ReadOnlyVerkleMemoryDb forwardDiff, VerkleMemoryDb? reverseDiff)
-    {
-        BlockNumber = blockNumber;
-        ReverseDiff = reverseDiff;
-        ForwardDiff = forwardDiff;
-    }
-
-    public VerkleMemoryDb? ReverseDiff { get; }
-    public ReadOnlyVerkleMemoryDb ForwardDiff { get; }
-    public long BlockNumber { get; }
+    public VerkleMemoryDb? ReverseDiff { get; } = reverseDiff;
+    public SortedVerkleMemoryDb ForwardDiff { get; } = forwardDiff;
+    public long BlockNumber { get; } = blockNumber;
 }
 
-public class InsertBatchCompletedV2 : EventArgs
+public class InsertBatchCompletedV2(long blockNumber, LeafStoreInterface leafTable) : EventArgs
 {
-    public InsertBatchCompletedV2(long blockNumber, LeafStoreInterface leafTable)
-    {
-        BlockNumber = blockNumber;
-        LeafTable = leafTable;
-    }
-
-    public LeafStoreInterface LeafTable { get; }
-    public long BlockNumber { get; }
+    public LeafStoreInterface LeafTable { get; } = leafTable;
+    public long BlockNumber { get; } = blockNumber;
 }

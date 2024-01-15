@@ -4,9 +4,10 @@
 using System.Collections.Generic;
 using Nethermind.Core.Extensions;
 using Nethermind.Serialization.Rlp;
+using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.TreeNodes;
 
-namespace Nethermind.Verkle.Tree.Serializers;
+namespace Nethermind.Verkle.Tree.History.V1;
 
 public class InternalStoreSerializer : IRlpStreamDecoder<InternalStore>
 {

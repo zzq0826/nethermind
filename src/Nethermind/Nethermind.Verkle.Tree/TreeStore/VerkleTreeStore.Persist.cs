@@ -4,9 +4,6 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Core.Crypto;
-using Nethermind.Core.Extensions;
-using Nethermind.Core.Verkle;
-using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.Utils;
@@ -39,20 +36,6 @@ namespace Nethermind.Verkle.Tree.TreeStore;
 /// </summary>
 internal partial class VerkleTreeStore<TCache>
 {
-    public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
-    {
-        Banderwagon rootPoint = Banderwagon.FromBytes(rootHash, subgroupCheck: false)!.Value;
-        var rootCommit = new Commitment(rootPoint);
-        var rootNode = new InternalNode(VerkleNodeType.BranchNode, rootCommit);
-        Storage.SetInternalNode(RootNodeKey, rootNode);
-        _stateRootToBlocks[StateRoot] = blockNumber;
-    }
-
-    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
-    {
-        batch.InternalTable.Remove(RootNodeKey.ToArray(), out _);
-        PersistBlockChanges(batch.InternalTable, batch.LeafTable, Storage);
-    }
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
     // this should be called only once per block, right now it does not support multiple calls for the same block number.
@@ -66,11 +49,7 @@ internal partial class VerkleTreeStore<TCache>
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch, bool skipRoot = false)
     {
         // TODO: create a sorted set here - we need it for verkleSync serving
-        ReadOnlyVerkleMemoryDb cacheBatch = new()
-        {
-            InternalTable = batch.InternalTable,
-            LeafTable = new LeafStoreSorted(batch.LeafTable, Bytes.Comparer)
-        };
+        SortedVerkleMemoryDb cacheBatch = batch.ToSortedVerkleDb();
 
         if (blockNumber == 0)
         {
@@ -97,7 +76,6 @@ internal partial class VerkleTreeStore<TCache>
                 }
             }
 
-
             Hash256? rootToCommit = GetStateRoot(batch.InternalTable);
             if (rootToCommit is null)
             {
@@ -107,9 +85,8 @@ internal partial class VerkleTreeStore<TCache>
                 rootToCommit = StateRoot;
             }
 
-
             bool shouldPersistBlock;
-            ReadOnlyVerkleMemoryDb changesToPersist;
+            SortedVerkleMemoryDb changesToPersist;
             long blockNumberToPersist;
             if (typeof(TCache) == typeof(IsUsingMemCache))
             {
@@ -124,8 +101,6 @@ internal partial class VerkleTreeStore<TCache>
                 changesToPersist = cacheBatch;
                 blockNumberToPersist = blockNumber;
             }
-
-
 
             if (shouldPersistBlock)
             {
@@ -167,8 +142,10 @@ internal partial class VerkleTreeStore<TCache>
         AnnounceReorgBoundaries();
     }
 
-    private static void PersistBlockChanges(ReadOnlyVerkleMemoryDb changesToPersist, VerkleKeyValueDb storage, out VerkleMemoryDb reverseDiff)
+    private static void PersistBlockChanges(SortedVerkleMemoryDb changesToPersist, VerkleKeyValueDb storage, out VerkleMemoryDb reverseDiff)
     {
+        using VerkleKeyValueBatch? batch = storage.StartWriteBatch();
+
         // we should not have any null values in the Batch db - because deletion of values from verkle tree is not allowed
         // nullable values are allowed in MemoryStateDb only for reverse diffs.
         reverseDiff = new VerkleMemoryDb();
@@ -180,7 +157,7 @@ internal partial class VerkleTreeStore<TCache>
             if (storage.GetLeaf(entry.Key, out var node)) reverseDiff.LeafTable[entry.Key] = node;
             else reverseDiff.LeafTable[entry.Key] = null;
 
-            storage.SetLeaf(entry.Key, entry.Value);
+            batch.SetLeaf(entry.Key, entry.Value);
         }
 
         foreach (KeyValuePair<byte[], InternalNode?> entry in changesToPersist.InternalTable)
@@ -190,27 +167,21 @@ internal partial class VerkleTreeStore<TCache>
             if (storage.GetInternalNode(entry.Key, out InternalNode? node)) reverseDiff.InternalTable[entry.Key] = node;
             else reverseDiff.InternalTable[entry.Key] = null;
 
-            storage.SetInternalNode(entry.Key, entry.Value);
+            batch.SetInternalNode(entry.Key, entry.Value);
         }
-
-        storage.LeafDb.Flush();
-        storage.InternalNodeDb.Flush();
     }
 
     private static void PersistBlockChanges(InternalStoreInterface internalStore, LeafStoreInterface leafStore,
         VerkleKeyValueDb storage)
     {
+        using VerkleKeyValueBatch? batch = storage.StartWriteBatch();
         foreach (KeyValuePair<byte[], byte[]?> entry in leafStore)
-            storage.SetLeaf(entry.Key, entry.Value);
+            batch.SetLeaf(entry.Key, entry.Value);
 
         foreach ((var key, InternalNode? node) in internalStore)
         {
-            if(node.IsStem && node.IsStateless) continue;
-            storage.SetInternalNode(key, node);
+            if(node!.IsStem && node.IsStateless) continue;
+            batch.SetInternalNode(key, node);
         }
-
-
-        storage.LeafDb.Flush();
-        storage.InternalNodeDb.Flush();
     }
 }

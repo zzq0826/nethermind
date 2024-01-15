@@ -37,7 +37,7 @@ public class DiffLayer
         if (stream.Data != null) DiffDb.Set(blockNumber, stream.Data);
     }
 
-    public void InsertDiff(long blockNumber, ReadOnlyVerkleMemoryDb memory)
+    public void InsertDiff(long blockNumber, SortedVerkleMemoryDb memory)
     {
         RlpStream stream = new(VerkleMemoryDbSerializer.Instance.GetLength(memory, RlpBehaviors.None));
         VerkleMemoryDbSerializer.Instance.Encode(stream, memory);

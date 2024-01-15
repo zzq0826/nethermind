@@ -43,7 +43,7 @@ public class VerkleArchiveStore
             $"Inserting after commit: BN:{insertBatchCompleted.BlockNumber} FD:{insertBatchCompleted.ForwardDiff.LeafTable.Count} RD:{insertBatchCompleted.ReverseDiff.LeafTable.Count}");
         var blockNumber = insertBatchCompleted.BlockNumber;
         VerkleMemoryDb revDiff = insertBatchCompleted.ReverseDiff;
-        ReadOnlyVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
+        SortedVerkleMemoryDb forwardDiff = insertBatchCompleted.ForwardDiff;
         History.InsertDiff(blockNumber, forwardDiff, revDiff);
 
         foreach (KeyValuePair<byte[], byte[]?> keyVal in forwardDiff.LeafTable)

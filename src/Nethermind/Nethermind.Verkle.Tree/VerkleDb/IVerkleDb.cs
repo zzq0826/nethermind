@@ -7,17 +7,26 @@ using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 
-public interface IVerkleDb
+public interface IVerkleDbWithBatching: IVerkleDb
 {
-    bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value);
-    bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value);
+    public VerkleKeyValueBatch StartWriteBatch();
+}
 
+public interface IVerkleDb: IVerkleWriteOnlyDb, IVerkleReadOnlyDb
+{
+}
+
+public interface IVerkleWriteOnlyDb
+{
     void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue);
     void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue);
 
     void RemoveLeaf(ReadOnlySpan<byte> leafKey);
     void RemoveInternalNode(ReadOnlySpan<byte> internalNodeKey);
+}
 
-    void BatchLeafInsert(IEnumerable<KeyValuePair<byte[], byte[]?>> keyLeaf);
-    void BatchInternalNodeInsert(IEnumerable<KeyValuePair<byte[], InternalNode?>> internalNodeLeaf);
+public interface IVerkleReadOnlyDb
+{
+    bool GetLeaf(ReadOnlySpan<byte> key, out byte[]? value);
+    bool GetInternalNode(ReadOnlySpan<byte> key, out InternalNode? value);
 }
