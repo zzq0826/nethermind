@@ -27,9 +27,9 @@ public class VerkleProofTest
     {
         byte[][] keys =
         {
-            VerkleTestUtils._emptyArray,
-            VerkleTestUtils._arrayAll0Last1,
-            VerkleTestUtils._maxValue,
+            VerkleTestUtils.EmptyArray,
+            VerkleTestUtils.ArrayAll0Last1,
+            VerkleTestUtils.MaxValue,
         };
         VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys, keys);
         VerkleProof proof = tree.CreateVerkleProof(keys, out Banderwagon root);
@@ -45,20 +45,20 @@ public class VerkleProofTest
     {
         List<byte[]> keys = new()
         {
-            VerkleTestUtils._keyVersion,
-            VerkleTestUtils._keyBalance,
-            VerkleTestUtils._keyNonce,
-            VerkleTestUtils._keyCodeCommitment,
-            VerkleTestUtils._keyCodeSize
+            VerkleTestUtils.KeyVersion.BytesToArray(),
+            VerkleTestUtils.KeyBalance.BytesToArray(),
+            VerkleTestUtils.KeyNonce.BytesToArray(),
+            VerkleTestUtils.KeyCodeCommitment.BytesToArray(),
+            VerkleTestUtils.KeyCodeSize.BytesToArray()
         };
 
         List<byte[]> values = new()
         {
-            VerkleTestUtils._emptyArray,
-            VerkleTestUtils._emptyArray,
-            VerkleTestUtils._emptyArray,
-            VerkleTestUtils._valueEmptyCodeHashValue,
-            VerkleTestUtils._emptyArray
+            VerkleTestUtils.EmptyArray,
+            VerkleTestUtils.EmptyArray,
+            VerkleTestUtils.EmptyArray,
+            VerkleTestUtils.ValueEmptyCodeHashValue,
+            VerkleTestUtils.EmptyArray
         };
         VerkleTree tree = VerkleTestUtils.CreateVerkleTreeWithKeysAndValues(keys.ToArray(), values.ToArray());
 

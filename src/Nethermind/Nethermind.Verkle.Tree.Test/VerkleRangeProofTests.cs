@@ -7,6 +7,7 @@ using FluentAssertions;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
 using Nethermind.Db.Rocks;
+using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TreeStore;
@@ -21,22 +22,23 @@ public class VerkleRangeProofTests
         VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] stems =
-        {
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
-        };
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4]
+        ];
 
         byte[][] values =
-        {
-            VerkleTestUtils._keyVersion, VerkleTestUtils._keyBalance, VerkleTestUtils._keyNonce,
-            VerkleTestUtils._keyCodeCommitment, VerkleTestUtils._keyCodeSize,
-        };
+        [
+            VerkleTestUtils.KeyVersion.BytesToArray(), VerkleTestUtils.KeyBalance.BytesToArray(),
+            VerkleTestUtils.KeyNonce.BytesToArray(),
+            VerkleTestUtils.KeyCodeCommitment.BytesToArray(), VerkleTestUtils.KeyCodeSize.BytesToArray()
+        ];
 
         foreach (byte[] stem in stems)
         {
-            List<(byte, byte[])> batch = new();
+            List<(byte, byte[])> batch = [];
             for (byte i = 0; i < 5; i++) batch.Add((i, values[0]));
             tree.InsertStemBatch(stem, batch);
         }
@@ -45,10 +47,10 @@ public class VerkleRangeProofTests
 
         VerkleProof proof = tree.CreateVerkleRangeProof(stems[0], stems[^1], out Banderwagon root);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
-        List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
-        List<LeafInSubTree> leafs = new List<LeafInSubTree>();
+
+        var subTrees = new List<PathWithSubTree>();
+        var leafs = new List<LeafInSubTree>();
 
         for (byte i = 0; i < 5; i++) leafs.Add((i, values[0]));
         subTrees.Add(new PathWithSubTree(stems[0], leafs.ToArray()));
@@ -56,11 +58,14 @@ public class VerkleRangeProofTests
         subTrees.Add(new PathWithSubTree(stems[2], leafs.ToArray()));
         subTrees.Add(new PathWithSubTree(stems[3], leafs.ToArray()));
 
-
+        IVerkleTreeStore? newStore = VerkleTestUtils.GetVerkleStoreForTest<PersistEveryBlock>(DbMode.MemDb);
+        var newTree = new VerkleTree(newStore, LimboLogs.Instance);
         bool isTrue =
             newTree.CreateStatelessTreeFromRange(proof, root, stems[0], stems[^1], subTrees.ToArray());
         Assert.That(isTrue, Is.True);
 
+        newStore.InsertSyncBatch(0, newTree._treeCache);
+        newStore.InsertRootNodeAfterSyncCompletion(tree.StateRoot.BytesToArray(), 0);
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
 
@@ -75,16 +80,17 @@ public class VerkleRangeProofTests
     {
         VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
-        byte[] stem = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 };
+        byte[] stem = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
 
         byte[][] values =
-        {
-            VerkleTestUtils._keyVersion, VerkleTestUtils._keyBalance, VerkleTestUtils._keyNonce,
-            VerkleTestUtils._keyCodeCommitment, VerkleTestUtils._keyCodeSize,
-        };
+        [
+            VerkleTestUtils.KeyVersion.BytesToArray(), VerkleTestUtils.KeyBalance.BytesToArray(),
+            VerkleTestUtils.KeyNonce.BytesToArray(),
+            VerkleTestUtils.KeyCodeCommitment.BytesToArray(), VerkleTestUtils.KeyCodeSize.BytesToArray()
+        ];
 
 
-        List<(byte, byte[])> batch = new();
+        List<(byte, byte[])> batch = [];
         for (byte i = 0; i < 5; i++) batch.Add((i, values[0]));
         tree.InsertStemBatch(stem, batch);
         tree.Commit();
@@ -92,19 +98,21 @@ public class VerkleRangeProofTests
 
         VerkleProof proof = tree.CreateVerkleRangeProof(stem, stem, out Banderwagon root);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
-
-        List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
-        List<LeafInSubTree> leafs = new List<LeafInSubTree>();
+        List<PathWithSubTree> subTrees = [];
+        List<LeafInSubTree> leafs = [];
 
         for (byte i = 0; i < 5; i++) leafs.Add((i, values[0]));
         subTrees.Add(new PathWithSubTree(stem, leafs.ToArray()));
 
 
+        IVerkleTreeStore? newStore = VerkleTestUtils.GetVerkleStoreForTest<PersistEveryBlock>(DbMode.MemDb);
+        var newTree = new VerkleTree(newStore, LimboLogs.Instance);
         bool isTrue =
             newTree.CreateStatelessTreeFromRange(proof, root, subTrees[0].Path, subTrees[^1].Path, subTrees.ToArray());
         Assert.That(isTrue, Is.True);
 
+        newStore.InsertSyncBatch(0, newTree._treeCache);
+        newStore.InsertRootNodeAfterSyncCompletion(tree.StateRoot.BytesToArray(), 0);
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
 
@@ -119,22 +127,23 @@ public class VerkleRangeProofTests
         VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] stems =
-        {
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-            new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
-        };
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4]
+        ];
 
         byte[][] values =
-        {
-            VerkleTestUtils._keyVersion, VerkleTestUtils._keyBalance, VerkleTestUtils._keyNonce,
-            VerkleTestUtils._keyCodeCommitment, VerkleTestUtils._keyCodeSize,
-        };
+        [
+            VerkleTestUtils.KeyVersion.BytesToArray(), VerkleTestUtils.KeyBalance.BytesToArray(),
+            VerkleTestUtils.KeyNonce.BytesToArray(),
+            VerkleTestUtils.KeyCodeCommitment.BytesToArray(), VerkleTestUtils.KeyCodeSize.BytesToArray()
+        ];
 
         foreach (byte[] stem in stems)
         {
-            List<(byte, byte[])> batch = new();
+            List<(byte, byte[])> batch = [];
             for (byte i = 0; i < 5; i++) batch.Add((i, values[i]));
             tree.InsertStemBatch(stem, batch);
         }
@@ -146,10 +155,8 @@ public class VerkleRangeProofTests
         // bool verified = VerkleTree.VerifyVerkleRangeProof(proof, stems[0], stems[^1], stems, root, out _);
         // Assert.That(verified, Is.True);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
-
-        List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
-        List<LeafInSubTree> leafs = new List<LeafInSubTree>();
+        List<PathWithSubTree> subTrees = [];
+        List<LeafInSubTree> leafs = [];
 
         for (byte i = 0; i < 5; i++) leafs.Add((i, values[i]));
         subTrees.Add(new PathWithSubTree(stems[0], leafs.ToArray()));
@@ -158,9 +165,14 @@ public class VerkleRangeProofTests
         subTrees.Add(new PathWithSubTree(stems[3], leafs.ToArray()));
 
 
+        IVerkleTreeStore? newStore = VerkleTestUtils.GetVerkleStoreForTest<PersistEveryBlock>(DbMode.MemDb);
+        var newTree = new VerkleTree(newStore, LimboLogs.Instance);
         bool isTrue =
             newTree.CreateStatelessTreeFromRange(proof, root, stems[0], stems[^1], subTrees.ToArray());
         Assert.That(isTrue, Is.True);
+
+        newStore.InsertSyncBatch(0, newTree._treeCache);
+        newStore.InsertRootNodeAfterSyncCompletion(tree.StateRoot.BytesToArray(), 0);
 
         VerkleTreeDumper oldTreeDumper = new();
         VerkleTreeDumper newTreeDumper = new();
