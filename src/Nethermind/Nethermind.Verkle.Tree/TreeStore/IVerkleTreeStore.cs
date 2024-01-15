@@ -22,7 +22,7 @@ public interface IVerkleTreeStore : IStoreWithReorgBoundary, IVerkleSyncTreeStor
 
     void InsertBatch(long blockNumber, VerkleMemoryDb memDb, bool skipRoot = false);
 
-    IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore);
+    IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb tempKeyValueStore);
 
     ulong GetBlockNumber(Hash256 rootHash);
 

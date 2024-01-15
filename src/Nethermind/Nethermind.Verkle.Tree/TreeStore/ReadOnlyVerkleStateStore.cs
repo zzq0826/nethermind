@@ -13,46 +13,34 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TreeStore;
 
-public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTreeStore
+public class ReadOnlyVerkleStateStore(IVerkleTreeStore verkleStateStore, VerkleMemoryDb keyValueStore)
+    : IReadOnlyVerkleTreeStore
 {
-    public static Span<byte> RootNodeKey => Array.Empty<byte>();
-    private readonly VerkleMemoryDb _keyValueStore;
-    private readonly IVerkleTreeStore _verkleStateStore;
-
-    public ReadOnlyVerkleStateStore(IVerkleTreeStore verkleStateStore, VerkleMemoryDb keyValueStore)
-    {
-        _verkleStateStore = verkleStateStore;
-        _keyValueStore = keyValueStore;
-    }
+    private static Span<byte> RootNodeKey => Array.Empty<byte>();
 
     public Hash256 StateRoot
     {
         get
         {
-            _keyValueStore.GetInternalNode(RootNodeKey, out InternalNode? value);
-            return value is null ? _verkleStateStore.StateRoot : new Hash256(value.Bytes);
-        }
-
-        set
-        {
-            _keyValueStore.LeafTable.Clear();
-            _keyValueStore.InternalTable.Clear();
-            MoveToStateRoot(value);
+            keyValueStore.GetInternalNode(RootNodeKey, out InternalNode? value);
+            return value is null ? _stateRoot : new Hash256(value.Bytes);
         }
     }
 
+    private Hash256 _stateRoot;
+
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
-        return _keyValueStore.GetLeaf(key, out var value)
+        return keyValueStore.GetLeaf(key, out var value)
             ? value
-            : _verkleStateStore.GetLeaf(key, stateRoot);
+            : verkleStateStore.GetLeaf(key, stateRoot);
     }
 
     public InternalNode? GetInternalNode(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
     {
-        return _keyValueStore.GetInternalNode(key, out InternalNode? value)
+        return keyValueStore.GetInternalNode(key, out InternalNode? value)
             ? value
-            : _verkleStateStore.GetInternalNode(key, stateRoot);
+            : verkleStateStore.GetInternalNode(key, stateRoot);
     }
 
     public void InsertBatch(long blockNumber, VerkleMemoryDb batch, bool skipRoot)
@@ -61,24 +49,26 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTreeStore
 
     public bool HasStateForBlock(Hash256 stateRoot)
     {
-        return _verkleStateStore.HasStateForBlock(stateRoot);
+        return verkleStateStore.HasStateForBlock(stateRoot);
     }
 
     public bool MoveToStateRoot(Hash256 stateRoot)
     {
-        _keyValueStore.LeafTable.Clear();
-        _keyValueStore.InternalTable.Clear();
-        return _verkleStateStore.MoveToStateRoot(stateRoot);
+        if (!HasStateForBlock(stateRoot)) return false;
+        keyValueStore.LeafTable.Clear();
+        keyValueStore.InternalTable.Clear();
+        _stateRoot = stateRoot;
+        return true;
     }
 
-    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb tempKeyValueStore)
     {
-        return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
+        return new ReadOnlyVerkleStateStore(verkleStateStore, tempKeyValueStore);
     }
 
     public ulong GetBlockNumber(Hash256 rootHash)
     {
-        return _verkleStateStore.GetBlockNumber(rootHash);
+        return verkleStateStore.GetBlockNumber(rootHash);
     }
 
     public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
@@ -86,10 +76,7 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTreeStore
         throw new NotImplementedException();
     }
 
-    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch)
-    {
-        throw new NotImplementedException();
-    }
+    public void InsertSyncBatch(long blockNumber, VerkleMemoryDb batch) { }
 
     public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1
     {
@@ -109,22 +96,12 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTreeStore
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,
         Hash256 stateRoot)
     {
-        return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot);
+        return verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot);
     }
 
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot,
         long bytes)
     {
-        return _verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
-    }
-
-    public void SetLeaf(ReadOnlySpan<byte> leafKey, byte[] leafValue)
-    {
-        _keyValueStore.SetLeaf(leafKey, leafValue);
-    }
-
-    public void SetInternalNode(ReadOnlySpan<byte> internalNodeKey, InternalNode internalNodeValue)
-    {
-        _keyValueStore.SetInternalNode(internalNodeKey, internalNodeValue);
+        return verkleStateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
     }
 }

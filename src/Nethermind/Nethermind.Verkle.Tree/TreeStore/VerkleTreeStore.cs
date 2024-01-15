@@ -81,9 +81,9 @@ public class VerkleTreeStore : IVerkleTreeStore
     {
         _stateStore.InsertBatch(blockNumber, memDb, skipRoot);
     }
-    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb tempKeyValueStore)
     {
-        return _stateStore.AsReadOnly(keyValueStore);
+        return _stateStore.AsReadOnly(tempKeyValueStore);
     }
 
     public ulong GetBlockNumber(Hash256 rootHash)
@@ -185,9 +185,9 @@ internal partial class VerkleTreeStore<TCache> : IVerkleTreeStore
     /// </summary>
     public Hash256 StateRoot { get; private set; } = Hash256.Zero;
 
-    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb tempKeyValueStore)
     {
-        return new ReadOnlyVerkleStateStore(this, keyValueStore);
+        return new ReadOnlyVerkleStateStore(this, tempKeyValueStore);
     }
 
     public byte[]? GetLeaf(ReadOnlySpan<byte> key, Hash256? stateRoot = null)
