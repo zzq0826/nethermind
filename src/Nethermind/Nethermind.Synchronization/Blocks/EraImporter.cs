@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using Nethermind.Era1;
+using Nethermind.Synchronization.FastBlocks;
 
 namespace Nethermind.Synchronization;
 public class EraImporter : IEraImporter
@@ -52,6 +53,11 @@ public class EraImporter : IEraImporter
     public Task ImportAsArchiveSync(string src, CancellationToken cancellation)
     {
         return ImportInternal(src, _blockTree.Head?.Number + 1 ?? 0, true, false, true, cancellation);
+    }
+
+    public Task Import(string src, CancellationToken cancellation)
+    {
+        return ImportInternal(src, _blockTree.Head?.Number + 1 ?? 0, true, true, false, cancellation);
     }
 
     private async Task ImportInternal(
@@ -115,8 +121,24 @@ public class EraImporter : IEraImporter
                 {
                     ValidateReceipts(b, r);
                 }
+
                 cancellation.ThrowIfCancellationRequested();
-                await SuggestBlock(b, r, processBlock);
+
+                if (processBlock)
+                {
+                    await SuggestBlock(b, r);
+                }
+                else
+                {
+                    if (insertBodies)
+                    {
+                        InsertBlock(b);
+                    }
+                    if (insertReceipts)
+                    {
+                        InsertReceipts(b, r);
+                    }
+                }
 
                 blocksProcessed++;
                 txProcessed += b.Transactions.Length;
@@ -132,22 +154,30 @@ public class EraImporter : IEraImporter
         ImportProgressChanged?.Invoke(this, new ImportProgressChangedArgs(DateTime.Now.Subtract(startTime), blocksProcessed, txProcessed, totalblocks, epochProcessed, eraStore.EpochCount));
     }
 
-    private async Task SuggestBlock(Block block, TxReceipt[] receipts, bool processBlock)
+    private void InsertBlock(Block block)
     {
-        var options = processBlock ? BlockTreeSuggestOptions.ShouldProcess: BlockTreeSuggestOptions.None;
+        _blockTree.Insert(block, BlockTreeInsertBlockOptions.SkipCanAcceptNewBlocks | BlockTreeInsertBlockOptions.SaveHeader, bodiesWriteFlags: WriteFlags.DisableWAL);
+    }
+
+    private void InsertReceipts(Block block, TxReceipt[] receipts)
+    {
+        _receiptStorage.Insert(block, receipts, true);
+    }
+
+    private async Task SuggestBlock(Block block, TxReceipt[] receipts)
+    {
+        var options = BlockTreeSuggestOptions.ShouldProcess;
         var addResult = await _blockTree.SuggestBlockAsync(block, options);
         switch (addResult)
         {
-            case AddBlockResult.AlreadyKnown:
-                return;
             case AddBlockResult.CannotAccept:
                 throw new EraImportException("Rejected block in Era1 archive");
             case AddBlockResult.UnknownParent:
                 throw new EraImportException("Unknown parent for block in Era1 archive");
             case AddBlockResult.InvalidBlock:
                 throw new EraImportException("Invalid block in Era1 archive");
+            case AddBlockResult.AlreadyKnown:
             case AddBlockResult.Added:
-                if (!processBlock) _receiptStorage.Insert(block, receipts);
                 break;
             default:
                 throw new NotSupportedException($"Not supported value of {nameof(AddBlockResult)} = {addResult}");
