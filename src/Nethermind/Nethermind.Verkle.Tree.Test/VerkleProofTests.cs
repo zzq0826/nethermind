@@ -16,6 +16,7 @@ using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Serializers;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -71,7 +72,7 @@ public class VerkleProofTest
     [Test]
     public void BasicProofTrue()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] keys =
         {
@@ -118,7 +119,7 @@ public class VerkleProofTest
     [Test]
     public void BasicProofTrueSameStem()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] keys =
         {
@@ -161,7 +162,7 @@ public class VerkleProofTest
     [Test]
     public void ProofOfAbsenceEdgeCase()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] keys =
         {
@@ -198,7 +199,8 @@ public class VerkleProofTest
     public void BenchmarkProofCalculation(int iteration, int warmup)
     {
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new VerkleTree(db, 128, LimboLogs.Instance);
+        IVerkleTreeStore store = new VerkleTreeStore<VerkleSyncCache>(db, LimboLogs.Instance);
+        VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         byte[][] keys = new byte[1000][];
         for (int i = 0; i < 1000; i++)
         {
@@ -232,7 +234,8 @@ public class VerkleProofTest
     {
         Random rand = new(0);
         IDbProvider db = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleTree tree = new(db, 128, LimboLogs.Instance);
+        IVerkleTreeStore store = new VerkleTreeStore<VerkleSyncCache>(db, LimboLogs.Instance);
+        VerkleTree tree = new(store, LimboLogs.Instance);
         byte[][] values = new byte[1000][];
         for (int i = 0; i < 1000; i++) values[i] = Keccak.EmptyTreeHash.Bytes.ToArray();
 

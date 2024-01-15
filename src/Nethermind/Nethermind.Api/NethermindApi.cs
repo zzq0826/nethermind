@@ -198,7 +198,7 @@ namespace Nethermind.Api
         public ITimerFactory TimerFactory { get; } = Core.Timers.TimerFactory.Default;
         public ITransactionProcessor? TransactionProcessor { get; set; }
         public ITrieStore? TrieStore { get; set; }
-        public IVerkleTreeStore? VerkleTrieStore { get; set; }
+        public IVerkleTreeStore? VerkleTreeStore { get; set; }
         public IReadOnlyVerkleTreeStore? ReadOnlyVerkleTrieStore { get; set; }
         public VerkleArchiveStore? VerkleArchiveStore { get; set; }
 

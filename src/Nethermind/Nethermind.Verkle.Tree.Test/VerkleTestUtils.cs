@@ -117,7 +117,8 @@ public static class VerkleTestUtils
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleTreeStore GetVerkleStoreForTest(DbMode dbMode, int blockCacheSize = 128)
+    public static IVerkleTreeStore GetVerkleStoreForTest<TCache>(DbMode dbMode, int blockCacheSize = 128)
+    where TCache: struct, IPersistenceStrategy
     {
         IDbProvider provider;
         switch (dbMode)
@@ -133,20 +134,24 @@ public static class VerkleTestUtils
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleTreeStore(provider, blockCacheSize, LimboLogs.Instance);
+        return new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
     }
 
-    public static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int blockCacheSize = 128)
+    public static VerkleTree GetVerkleTreeForTest<TCache>(DbMode dbMode)
+    where TCache: struct, IPersistenceStrategy
     {
         IDbProvider provider;
+        IVerkleTreeStore store;
         switch (dbMode)
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
+                return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
+                return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
@@ -155,7 +160,7 @@ public static class VerkleTestUtils
 
     public static VerkleTree GetFilledVerkleTreeForTest(DbMode dbMode)
     {
-        VerkleTree tree = GetVerkleTreeForTest(dbMode, 128);
+        VerkleTree tree = GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         tree.Insert((Hash256)_keyVersion, _emptyArray);
         tree.Insert((Hash256)_keyBalance, _emptyArray);
@@ -218,7 +223,7 @@ public static class VerkleTestUtils
 
     public static VerkleTree CreateVerkleTreeWithKeysAndValues(byte[][] keys, byte[][] values)
     {
-        VerkleTree tree = GetVerkleTreeForTest(DbMode.MemDb, 128);
+        VerkleTree tree = GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
         for (int i = 0; i < keys.Length; i++)
         {
             tree.Insert((Hash256)keys[i], values[i]);

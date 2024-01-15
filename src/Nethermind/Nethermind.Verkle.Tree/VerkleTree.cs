@@ -19,7 +19,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree;
 
-public partial class VerkleTree : IVerkleTree
+public partial class VerkleTree(IVerkleTreeStore verkleStateStore, ILogManager logManager) : IVerkleTree
 {
     /// <summary>
     ///     _leafUpdateCache, _treeCache, _verkleStateStore - these are use while inserting and commiting data to the tree
@@ -31,25 +31,13 @@ public partial class VerkleTree : IVerkleTree
     // aggregate the stem commitments here and then update the entire tree when Commit() is called
     private readonly SpanDictionary<byte, LeafUpdateDelta> _leafUpdateCache = new(Bytes.SpanEqualityComparer);
 
-    private readonly ILogger _logger;
+    private readonly ILogger _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
 
     // the store that is responsible to store the tree in a key-value store
-    public readonly IVerkleTreeStore _verkleStateStore;
+    public readonly IVerkleTreeStore _verkleStateStore = verkleStateStore;
 
     // cache to maintain recently used or inserted nodes of the tree - should be consistent
     public VerkleMemoryDb _treeCache = new();
-
-    public VerkleTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
-    {
-        _verkleStateStore = new VerkleTreeStore(dbProvider, blockCacheSize, logManager);
-        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
-    }
-
-    public VerkleTree(IVerkleTreeStore verkleStateStore, ILogManager logManager)
-    {
-        _verkleStateStore = verkleStateStore;
-        _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
-    }
 
     private static byte[] RootKey => Array.Empty<byte>();
 

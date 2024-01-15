@@ -10,6 +10,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TreeStore;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Tree.Test;
@@ -26,17 +27,21 @@ public class InsertHugeTreeTests
         return Path.Combine(tempDir, dbname);
     }
 
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int blockCacheSize = 128)
+    private static VerkleTree GetVerkleTreeForTest<TCache>(DbMode dbMode)
+        where TCache: struct, IPersistenceStrategy
     {
         IDbProvider provider;
+        IVerkleTreeStore store;
         switch (dbMode)
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
+                return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest());
-                return new VerkleTree(provider, blockCacheSize, LimboLogs.Instance);
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
+                return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
@@ -96,7 +101,7 @@ public class InsertHugeTreeTests
     public void InsertHugeTree(DbMode dbMode)
     {
         long block = 0;
-        VerkleTree tree = GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] key = new byte[32];
         byte[] value = new byte[32];
         DateTime start = DateTime.Now;

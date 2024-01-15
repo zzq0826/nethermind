@@ -53,7 +53,8 @@ public static partial class TestItem
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleTreeStore GetVerkleStore(DbMode dbMode, int history = 128)
+    public static IVerkleTreeStore GetVerkleStore<TCache>(DbMode dbMode)
+    where TCache: struct, IPersistenceStrategy
     {
         IDbProvider provider;
         switch (dbMode)
@@ -69,12 +70,12 @@ public static partial class TestItem
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleTreeStore(provider, history, LimboLogs.Instance);
+        return new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
     }
 
     public static VerkleStateTree GetVerkleStateTree(IVerkleTreeStore? store)
     {
-        store ??= GetVerkleStore(DbMode.MemDb);
+        store ??= GetVerkleStore<VerkleSyncCache>(DbMode.MemDb);
         VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);
         FillStateTreeWithTestAccounts(stateTree);
         return stateTree;

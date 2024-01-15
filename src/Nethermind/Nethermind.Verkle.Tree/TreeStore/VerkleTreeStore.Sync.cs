@@ -16,7 +16,7 @@ using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.TreeStore;
 
-internal partial class VerkleTreeStore<TCache>
+public partial class VerkleTreeStore<TPersistence>
 {
 
     public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)

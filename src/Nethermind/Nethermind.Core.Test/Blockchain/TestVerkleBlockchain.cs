@@ -117,7 +117,7 @@ public class TestVerkleBlockchain : IDisposable
         SpecProvider = CreateSpecProvider(specProvider ?? MainnetSpecProvider.Instance);
         EthereumEcdsa = new EthereumEcdsa(SpecProvider.ChainId, LogManager);
         DbProvider = await CreateDbProvider();
-        TrieStore = new VerkleTreeStore(DbProvider, 128,LogManager);
+        TrieStore = new VerkleTreeStore<VerkleSyncCache>(DbProvider, LogManager);
         State = new VerkleWorldState(TrieStore, DbProvider.CodeDb, LogManager);
 
         // Eip4788 precompile state account

@@ -65,8 +65,8 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleTreeStore treeStore = new VerkleTreeStore(provider, 0, LimboLogs.Instance);
-        VerkleTree tree = new VerkleTree(treeStore, LimboLogs.Instance);
+        var treeStore = new VerkleTreeStore<PersistEveryBlock>(provider, LimboLogs.Instance);
+        var tree = new VerkleTree(treeStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore = new VerkleArchiveStore(treeStore, provider, LimboLogs.Instance);
 
@@ -162,7 +162,7 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleTreeStore treeStore = new VerkleTreeStore(provider, 0, LimboLogs.Instance);
+        var treeStore = new VerkleTreeStore<PersistEveryBlock>(provider, LimboLogs.Instance);
         VerkleTree tree = new VerkleTree(treeStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore =

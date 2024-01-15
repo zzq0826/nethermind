@@ -12,6 +12,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.History.V1;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 using NUnit.Framework;
@@ -35,7 +36,7 @@ public class HistoryTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGetMultiBlockReverseState(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode, 3);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<LinkedListCacheTest.PersistWithCacheSize3>(dbMode);
 
         tree.Insert((Hash256)VerkleTestUtils._keyVersion, VerkleTestUtils._emptyArray);
         tree.Insert((Hash256)VerkleTestUtils._keyBalance, VerkleTestUtils._emptyArray);
@@ -163,7 +164,7 @@ public class HistoryTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGetBatchMultiBlockReverseState(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         tree.Insert((Hash256)VerkleTestUtils._keyVersion, VerkleTestUtils._emptyArray);
         tree.Insert((Hash256)VerkleTestUtils._keyBalance, VerkleTestUtils._emptyArray);

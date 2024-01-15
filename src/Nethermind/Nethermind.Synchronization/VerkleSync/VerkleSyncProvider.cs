@@ -75,7 +75,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
             VerkleProof vProof = ser.Decode(new RlpStream(proofs!));
             try
             {
-                var stateStore = new VerkleTreeStore(new MemDb(), new MemDb(), new MemDb(), 0, _logManager);
+                var stateStore = new VerkleTreeStore<PersistEveryBlock>(new MemDb(), new MemDb(), new MemDb(), _logManager);
                 var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
                 var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path, subTrees);
                 if (!isCorrect)
@@ -168,7 +168,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
         public IVerkleTreeStore Create()
         {
-            return new VerkleTreeStore(_dbProvider, 0, _logManager);
+            return new VerkleTreeStore<PersistEveryBlock>(_dbProvider, _logManager);
         }
 
         public bool Return(IVerkleTreeStore obj)

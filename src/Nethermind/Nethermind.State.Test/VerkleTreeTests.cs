@@ -10,6 +10,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Verkle.Tree.TreeStore;
 using NUnit.Framework;
 
 namespace Nethermind.Store.Test;
@@ -22,7 +23,8 @@ public class VerkleTreeTests
     {
         Account account = new(1);
         IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleStateTree stateTree = new VerkleStateTree(dbProvider, 128, LimboLogs.Instance);
+        var store = new VerkleTreeStore<VerkleSyncCache>(dbProvider, LimboLogs.Instance);
+        VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);
         stateTree.Set(TestItem.AddressA, account);
         stateTree.Commit();
         stateTree.CommitTree(0);
@@ -41,7 +43,8 @@ public class VerkleTreeTests
     {
         Account account = new(1);
         IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleStateTree stateTree = new VerkleStateTree(dbProvider, 128, LimboLogs.Instance);
+        var store = new VerkleTreeStore<VerkleSyncCache>(dbProvider, LimboLogs.Instance);
+        VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);
         stateTree.Set(TestItem.AddressA, account);
         stateTree.Set(TestItem.AddressB, account);
         stateTree.Commit();
@@ -61,7 +64,8 @@ public class VerkleTreeTests
     {
         Account account = new(1);
         IDbProvider dbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        VerkleStateTree stateTree = new VerkleStateTree(dbProvider, 128, LimboLogs.Instance);
+        var store = new VerkleTreeStore<VerkleSyncCache>(dbProvider, LimboLogs.Instance);
+        VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);
         stateTree.Set(new Address("0x0000000000000000000000000000000000000000"), account);
         stateTree.Commit();
         stateTree.CommitTree(0);

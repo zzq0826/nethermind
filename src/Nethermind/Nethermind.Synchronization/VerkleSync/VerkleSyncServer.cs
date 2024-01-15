@@ -24,9 +24,9 @@ public class VerkleSyncServer
     private const long HardResponseByteLimit = 2000000;
     private const int HardResponseNodeLimit = 10000;
 
-    public VerkleSyncServer(IVerkleTreeStore trieStore, ILogManager logManager)
+    public VerkleSyncServer(IVerkleTreeStore treeStore, ILogManager logManager)
     {
-        _store = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
+        _store = treeStore ?? throw new ArgumentNullException(nameof(treeStore));
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _logger = logManager.GetClassLogger();
     }
@@ -47,7 +47,7 @@ public class VerkleSyncServer
 
     private void TestIsGeneratedProofValid(VerkleProof vProof, Banderwagon rootPoint, Stem startingStem, PathWithSubTree[] nodes)
     {
-        VerkleTreeStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        VerkleTreeStore<PersistEveryBlock>? stateStore = new (new MemDb(), new MemDb(), new MemDb(), LimboLogs.Instance);
         VerkleTree localTree = new VerkleTree(stateStore, LimboLogs.Instance);
         var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, nodes[^1].Path, nodes);
         _logger.Info(!isCorrect

@@ -7,6 +7,7 @@ using FluentAssertions;
 using Nethermind.Core.Crypto;
 using Nethermind.Db.Rocks;
 using Nethermind.Int256;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -22,11 +23,18 @@ public class LinkedListCacheTest
         }
     }
 
+    public readonly struct PersistWithCacheSize3: IPersistenceStrategy
+    {
+        public static bool IsUsingCache => true;
+        public static int CacheSize => 3;
+    }
+
     [TestCase(DbMode.MemDb)]
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGetMultiBlockReverseState(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode, 3);
+
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<PersistWithCacheSize3>(dbMode);
 
         tree.Insert((Hash256)VerkleTestUtils._keyVersion, VerkleTestUtils._emptyArray);
         tree.Insert((Hash256)VerkleTestUtils._keyBalance, VerkleTestUtils._emptyArray);

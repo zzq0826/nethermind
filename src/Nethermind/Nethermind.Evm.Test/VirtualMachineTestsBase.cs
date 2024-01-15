@@ -20,6 +20,7 @@ using Nethermind.Evm.TransactionProcessing;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
+using Nethermind.Verkle.Tree.TreeStore;
 using NUnit.Framework;
 
 namespace Nethermind.Evm.Test;
@@ -78,7 +79,8 @@ public class VirtualMachineTestsBase
             case StateType.Verkle:
                 IDbProvider provider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
                 _stateDb = provider.StateDb;
-                VerkleStateTree vTree = new VerkleStateTree(provider, 128, LimboLogs.Instance);
+                var store = new VerkleTreeStore<VerkleSyncCache>(provider, LimboLogs.Instance);
+                VerkleStateTree vTree = new VerkleStateTree(store, LimboLogs.Instance);
                 TestState = new VerkleWorldState(vTree, new MemDb(), logManager);
                 break;
             default:

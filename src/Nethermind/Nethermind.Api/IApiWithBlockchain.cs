@@ -65,8 +65,7 @@ namespace Nethermind.Api
         IWorldStateManager? WorldStateManager { get; set; }
         ITransactionProcessor? TransactionProcessor { get; set; }
         ITrieStore? TrieStore { get; set; }
-        IVerkleTreeStore? VerkleTrieStore { get; set; }
-        IReadOnlyVerkleTreeStore? ReadOnlyVerkleTrieStore { get; set; }
+        IVerkleTreeStore? VerkleTreeStore { get; set; }
         VerkleArchiveStore? VerkleArchiveStore { get; set; }
         ITxSender? TxSender { get; set; }
         INonceManager? NonceManager { get; set; }

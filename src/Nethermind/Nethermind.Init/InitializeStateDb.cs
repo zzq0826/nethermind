@@ -29,6 +29,7 @@ using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.VerkleDb;
+using IPersistenceStrategy = Nethermind.Trie.Pruning.IPersistenceStrategy;
 
 namespace Nethermind.Init;
 
@@ -154,8 +155,8 @@ public class InitializeStateDb : IStep
         }
         else
         {
-            VerkleTreeStore verkleTreeStore;
-            setApi.VerkleTrieStore = verkleTreeStore =  new VerkleTreeStore(getApi.DbProvider, 128, getApi.LogManager);
+            VerkleTreeStore<VerkleSyncCache> verkleTreeStore;
+            setApi.VerkleTreeStore = verkleTreeStore =  new VerkleTreeStore<VerkleSyncCache>(getApi.DbProvider, getApi.LogManager);
             setApi.VerkleArchiveStore = new (verkleTreeStore, getApi.DbProvider, getApi.LogManager);
             worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleTreeStore, getApi.LogManager), codeDb, getApi.LogManager);
             stateManager = setApi.WorldStateManager = new VerkleWorldStateManager(
@@ -163,9 +164,8 @@ public class InitializeStateDb : IStep
                 verkleTreeStore,
                 getApi.DbProvider,
                 getApi.LogManager);
-            _api.ReadOnlyVerkleTrieStore = verkleTreeStore.AsReadOnly(new VerkleMemoryDb());
         }
-        // TODO: Don't forget this
+
         TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(stateManager, _api.BlockTree!, _api.LogManager);
         getApi.DisposeStack.Push(trieStoreBoundaryWatcher);
 

@@ -19,12 +19,8 @@ using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.State;
 
-public class VerkleStateTree : VerkleTree
+public class VerkleStateTree(IVerkleTreeStore stateStore, ILogManager logManager) : VerkleTree(stateStore, logManager)
 {
-    public VerkleStateTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager) : base(dbProvider, blockCacheSize, logManager) { }
-
-    public VerkleStateTree(IVerkleTreeStore stateStore, ILogManager logManager) : base(stateStore, logManager) { }
-
     [DebuggerStepThrough]
     public Account? Get(Address address, Hash256? stateRoot = null)
     {
@@ -82,7 +78,7 @@ public class VerkleStateTree : VerkleTree
 
     public static VerkleStateTree CreateStatelessTreeFromExecutionWitness(ExecutionWitness? execWitness, Banderwagon root, ILogManager logManager)
     {
-        VerkleTreeStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), 0, logManager);
+        VerkleTreeStore<PersistEveryBlock>? stateStore = new (new MemDb(), new MemDb(), new MemDb(), logManager);
         VerkleStateTree? tree = new (stateStore, logManager);
         if (!tree.InsertIntoStatelessTree(execWitness, root))
         {

@@ -12,6 +12,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -41,7 +42,7 @@ public class StatelessTreeTest
     [TestCase(DbMode.MemDb, 1000, 2000, 3000)]
     public void CreateStatelessTreeAndThenBuildStateOverThat(DbMode dbMode, int start, int end, int pathCount)
     {
-        VerkleTree initTree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree initTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         Hash256[] pathPool = new Hash256[pathCount];
         byte[][] leaf1 = new  byte[pathCount][];
@@ -83,7 +84,7 @@ public class StatelessTreeTest
 
 
 
-        VerkleTree statelessTree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree statelessTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         Console.WriteLine($"init stateless tree");
         statelessTree.InsertIntoStatelessTree(execWitness, rootPoint).Should().BeTrue();
         Console.WriteLine($"create stateless tree and now insert block 1");

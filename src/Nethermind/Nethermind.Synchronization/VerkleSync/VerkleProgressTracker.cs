@@ -48,13 +48,13 @@ public class VerkleProgressTracker: IRangeProgressTracker<VerkleSyncBatch>
 
 
     private readonly RangeSync.Pivot _pivot;
-    private readonly VerkleTreeStore _verkleStore;
+    private readonly IVerkleTreeStore _verkleStore;
 
     public VerkleProgressTracker(IBlockTree blockTree, IDbProvider dbProvider, ILogManager logManager, int subTreeRangePartitionCount = 8)
     {
         _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         _db = dbProvider.InternalNodesDb ?? throw new ArgumentNullException(nameof(dbProvider));
-        _verkleStore = new VerkleTreeStore(dbProvider, 0, logManager);
+        _verkleStore = new VerkleTreeStore<PersistEveryBlock>(dbProvider, logManager);
         _pivot = new RangeSync.Pivot(blockTree, logManager);
 
         if (subTreeRangePartitionCount < 1 || subTreeRangePartitionCount > 256)

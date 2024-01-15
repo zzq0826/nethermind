@@ -9,6 +9,7 @@ using Nethermind.Core.Verkle;
 using Nethermind.Db.Rocks;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Sync;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -17,7 +18,7 @@ public class VerkleRangeProofTests
     [Test]
     public void TestSyncProofCreationAndVerification()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] stems =
         {
@@ -44,7 +45,7 @@ public class VerkleRangeProofTests
 
         VerkleProof proof = tree.CreateVerkleRangeProof(stems[0], stems[^1], out Banderwagon root);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
         List<LeafInSubTree> leafs = new List<LeafInSubTree>();
@@ -72,7 +73,7 @@ public class VerkleRangeProofTests
     [Test]
     public void TestSyncProofCreationAndVerificationEdgeCase()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[] stem = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 };
 
@@ -91,7 +92,7 @@ public class VerkleRangeProofTests
 
         VerkleProof proof = tree.CreateVerkleRangeProof(stem, stem, out Banderwagon root);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
         List<LeafInSubTree> leafs = new List<LeafInSubTree>();
@@ -115,7 +116,7 @@ public class VerkleRangeProofTests
     [Test]
     public void TestSyncProofCreationAndVerificationLastBytesDiffering()
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         byte[][] stems =
         {
@@ -145,7 +146,7 @@ public class VerkleRangeProofTests
         // bool verified = VerkleTree.VerifyVerkleRangeProof(proof, stems[0], stems[^1], stems, root, out _);
         // Assert.That(verified, Is.True);
 
-        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest(DbMode.MemDb);
+        VerkleTree newTree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(DbMode.MemDb);
 
         List<PathWithSubTree> subTrees = new List<PathWithSubTree>();
         List<LeafInSubTree> leafs = new List<LeafInSubTree>();

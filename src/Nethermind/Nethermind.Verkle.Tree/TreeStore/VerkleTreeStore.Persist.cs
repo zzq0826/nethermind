@@ -34,7 +34,7 @@ namespace Nethermind.Verkle.Tree.TreeStore;
 ///     Now these interfaces would be specially designed to work for a specific interface.
 ///     Cases - NewPayload (A) NewPayload(B) FCU(A)
 /// </summary>
-internal partial class VerkleTreeStore<TCache>
+public partial class VerkleTreeStore<TPersistence>
 {
 
     // This method is called at the end of each block to flush the batch changes to the storage and generate forward and reverse diffs.
@@ -66,7 +66,7 @@ internal partial class VerkleTreeStore<TCache>
         }
         else
         {
-            if (typeof(TCache) == typeof(IsUsingMemCache))
+            if (TPersistence.IsUsingCache)
             {
                 if (!BlockCache.IsInitialized)
                 {
@@ -88,7 +88,7 @@ internal partial class VerkleTreeStore<TCache>
             bool shouldPersistBlock;
             SortedVerkleMemoryDb changesToPersist;
             long blockNumberToPersist;
-            if (typeof(TCache) == typeof(IsUsingMemCache))
+            if (TPersistence.IsUsingCache)
             {
                 shouldPersistBlock = BlockCache.EnqueueAndReplaceIfFull(blockNumber,
                     rootToCommit, cacheBatch, StateRoot, out StateInfo element);

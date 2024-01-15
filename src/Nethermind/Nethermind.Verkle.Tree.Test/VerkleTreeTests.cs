@@ -11,6 +11,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Logging;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
@@ -98,7 +99,7 @@ public class VerkleTreeTests
 
     private VerkleTree GetFilledVerkleTreeForTest(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Insert(_keyBalance, _emptyArray);
@@ -174,7 +175,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey0Value0(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] key = _emptyArray;
 
         tree.Insert((Hash256)key, key);
@@ -189,7 +190,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey1Value1(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] key = _array1To32;
 
         tree.Insert((Hash256)key, key);
@@ -204,7 +205,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertSameStemTwoLeaves(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] keyA = _array1To32;
 
         byte[] keyB = _array1To32Last128;
@@ -226,7 +227,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertKey1Val1Key2Val2(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] keyA = _emptyArray;
         byte[] keyB = _arrayAll1;
 
@@ -247,7 +248,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertLongestPath(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] keyA = _emptyArray;
         byte[] keyB = (byte[])_emptyArray.Clone();
         keyB[30] = 1;
@@ -269,7 +270,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertAndTraverseLongestPath(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] keyA = _emptyArray;
         tree.Insert((Hash256)keyA, keyA);
         tree.Commit();
@@ -299,7 +300,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestEmptyTrie(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         tree.Commit();
         tree.StateRoot.Bytes.ToArray().Should().BeEquivalentTo(FrE.Zero.ToBytes().ToArray());
     }
@@ -308,7 +309,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestSimpleUpdate(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[] key = _array1To32;
         byte[] value = _emptyArray;
         tree.Insert((Hash256)key, value);
@@ -328,7 +329,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGet(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Commit();
@@ -366,7 +367,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestValueSameBeforeAndAfterFlush(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
 
         tree.Insert(_keyVersion, _emptyArray);
@@ -395,7 +396,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestInsertGetMultiBlock(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
 
         tree.Insert(_keyVersion, _emptyArray);
         tree.Insert(_keyBalance, _emptyArray);
@@ -432,7 +433,7 @@ public class VerkleTreeTests
     [TestCase(DbMode.PersistantDb)]
     public void TestBeverlyHillGenesis(DbMode dbMode)
     {
-        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest(dbMode);
+        VerkleTree tree = VerkleTestUtils.GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
         byte[][] keys =
         {
             new byte[]

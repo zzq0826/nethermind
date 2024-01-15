@@ -248,7 +248,7 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
         subTreeRangeMessageSerializer.Serialize(buffer, response);
         SubTreeRangeMessage? decode = subTreeRangeMessageSerializer.Deserialize(buffer);
 
-        var stateStore = new VerkleTreeStore(new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        var stateStore = new VerkleTreeStore<PersistEveryBlock>(new MemDb(), new MemDb(), new MemDb(), LimboLogs.Instance);
         var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
         var isCorrect = localTree.CreateStatelessTreeFromRange(
             verkleProofSerializer.Decode(new RlpStream(decode.Proofs)), rootPoint, startingStem,

@@ -34,19 +34,20 @@ public class InMemoryDiffTests
         }
     }
 
-    private static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int maxBlockInHistory)
+    private static VerkleTree GetVerkleTreeForTest<TCache>(DbMode dbMode)
+    where TCache: struct, IPersistenceStrategy
     {
         IDbProvider provider;
-        VerkleTreeStore store;
+        IVerkleTreeStore store;
         switch (dbMode)
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                store = new VerkleTreeStore(provider, maxBlockInHistory, LimboLogs.Instance);
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.PersistantDb:
-                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest() + maxBlockInHistory);
-                store = new VerkleTreeStore(provider, maxBlockInHistory, LimboLogs.Instance);
+                provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest() + typeof(TCache));
+                store = new VerkleTreeStore<TCache>(provider, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:
@@ -59,8 +60,8 @@ public class InMemoryDiffTests
     {
         long block = 0;
 
-        VerkleTree treeWithH = GetVerkleTreeForTest(dbMode, 128);
-        VerkleTree treeWithoutH = GetVerkleTreeForTest(dbMode, 0);
+        VerkleTree treeWithH = GetVerkleTreeForTest<VerkleSyncCache>(dbMode);
+        VerkleTree treeWithoutH = GetVerkleTreeForTest<PersistEveryBlock>(dbMode);
 
         byte[] key = new byte[32];
         byte[] value = new byte[32];
