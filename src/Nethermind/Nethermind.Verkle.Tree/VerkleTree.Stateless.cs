@@ -12,7 +12,7 @@ using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree;

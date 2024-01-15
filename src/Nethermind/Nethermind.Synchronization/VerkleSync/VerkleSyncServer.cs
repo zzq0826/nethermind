@@ -11,20 +11,20 @@ using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
 public class VerkleSyncServer
 {
-    private readonly IVerkleTrieStore _store;
+    private readonly IVerkleTreeStore _store;
     private readonly ILogManager _logManager;
     private readonly ILogger _logger;
 
     private const long HardResponseByteLimit = 2000000;
     private const int HardResponseNodeLimit = 10000;
 
-    public VerkleSyncServer(IVerkleTrieStore trieStore, ILogManager logManager)
+    public VerkleSyncServer(IVerkleTreeStore trieStore, ILogManager logManager)
     {
         _store = trieStore ?? throw new ArgumentNullException(nameof(trieStore));
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
@@ -47,7 +47,7 @@ public class VerkleSyncServer
 
     private void TestIsGeneratedProofValid(VerkleProof vProof, Banderwagon rootPoint, Stem startingStem, PathWithSubTree[] nodes)
     {
-        VerkleStateStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        VerkleTreeStore? stateStore = new (new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
         VerkleTree localTree = new VerkleTree(stateStore, LimboLogs.Instance);
         var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, nodes[^1].Path, nodes);
         _logger.Info(!isCorrect

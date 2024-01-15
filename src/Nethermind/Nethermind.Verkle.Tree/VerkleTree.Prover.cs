@@ -14,7 +14,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Polynomial;
 using Nethermind.Verkle.Proofs;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree;
 

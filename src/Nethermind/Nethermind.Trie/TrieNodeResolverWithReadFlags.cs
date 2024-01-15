@@ -32,6 +32,4 @@ public class TrieNodeResolverWithReadFlags : ITrieNodeResolver
 
         return _baseResolver.LoadRlp(hash, _defaultFlags);
     }
-
-    public bool IsFullySynced(Hash256 stateRoot) => _baseResolver.IsFullySynced(stateRoot);
 }

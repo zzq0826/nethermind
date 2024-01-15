@@ -3,7 +3,7 @@
 
 using Nethermind.Core.Verkle;
 
-namespace Nethermind.Verkle.Tree.TrieNodes;
+namespace Nethermind.Verkle.Tree.TreeNodes;
 
 public static class VerkleNodes
 {

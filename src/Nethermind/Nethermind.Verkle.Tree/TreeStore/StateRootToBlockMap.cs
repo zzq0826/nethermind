@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
 public readonly struct StateRootToBlockMap(IDb stateRootToBlock)
 {

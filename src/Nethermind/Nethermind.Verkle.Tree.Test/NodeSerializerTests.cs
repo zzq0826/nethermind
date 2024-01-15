@@ -5,7 +5,7 @@ using System;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Serializers;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree.Test;
 

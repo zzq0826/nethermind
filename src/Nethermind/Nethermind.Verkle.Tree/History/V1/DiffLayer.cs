@@ -7,7 +7,7 @@ using System.Diagnostics;
 using Nethermind.Db;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Verkle.Tree.Serializers;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Verkle.Tree.History.V1;

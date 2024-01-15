@@ -1,4 +1,4 @@
-namespace Nethermind.Verkle.Tree.TrieNodes;
+namespace Nethermind.Verkle.Tree.TreeNodes;
 
 public enum VerkleNodeType : byte
 {

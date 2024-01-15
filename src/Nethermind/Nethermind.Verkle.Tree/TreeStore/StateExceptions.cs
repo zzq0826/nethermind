@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
 public class VerkleStateException : Exception
 {

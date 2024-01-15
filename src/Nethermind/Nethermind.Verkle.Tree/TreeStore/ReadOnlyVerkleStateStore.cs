@@ -5,30 +5,24 @@ using System;
 using System.Collections.Generic;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Verkle;
-using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
+using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
-public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
+public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTreeStore
 {
     public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private readonly VerkleMemoryDb _keyValueStore;
-    private readonly IVerkleTrieStore _verkleStateStore;
+    private readonly IVerkleTreeStore _verkleStateStore;
 
-    public ReadOnlyVerkleStateStore(IVerkleTrieStore verkleStateStore, VerkleMemoryDb keyValueStore)
+    public ReadOnlyVerkleStateStore(IVerkleTreeStore verkleStateStore, VerkleMemoryDb keyValueStore)
     {
         _verkleStateStore = verkleStateStore;
         _keyValueStore = keyValueStore;
-    }
-
-    public bool IsFullySynced(Hash256 stateRoot)
-    {
-        return _verkleStateStore.IsFullySynced(stateRoot);
     }
 
     public Hash256 StateRoot
@@ -65,10 +59,6 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
     {
     }
 
-    public void ApplyDiffLayer(BatchChangeSet changeSet)
-    {
-    }
-
     public bool HasStateForBlock(Hash256 stateRoot)
     {
         return _verkleStateStore.HasStateForBlock(stateRoot);
@@ -81,11 +71,7 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
         return _verkleStateStore.MoveToStateRoot(stateRoot);
     }
 
-#pragma warning disable 67
-    public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
-#pragma warning restore 67
-
-    public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(_verkleStateStore, keyValueStore);
     }
@@ -105,6 +91,21 @@ public class ReadOnlyVerkleStateStore : IReadOnlyVerkleTrieStore
         throw new NotImplementedException();
     }
 
+    public event EventHandler<InsertBatchCompletedV1>? InsertBatchCompletedV1
+    {
+        add { }
+        remove { }
+    }
+    public event EventHandler<InsertBatchCompletedV2>? InsertBatchCompletedV2
+    {
+        add { }
+        remove { }
+    }
+    public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached
+    {
+        add { }
+        remove { }
+    }
     public IEnumerable<KeyValuePair<byte[], byte[]>> GetLeafRangeIterator(byte[] fromRange, byte[] toRange,
         Hash256 stateRoot)
     {

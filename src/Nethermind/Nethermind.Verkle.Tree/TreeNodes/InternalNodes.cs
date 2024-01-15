@@ -12,7 +12,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Utils;
 
-namespace Nethermind.Verkle.Tree.TrieNodes;
+namespace Nethermind.Verkle.Tree.TreeNodes;
 
 public class InternalNode
 {

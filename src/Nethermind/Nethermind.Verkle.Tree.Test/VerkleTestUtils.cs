@@ -9,7 +9,7 @@ using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using NUnit.Framework;
 
 namespace Nethermind.Verkle.Tree.Test;
@@ -117,7 +117,7 @@ public static class VerkleTestUtils
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleTrieStore GetVerkleStoreForTest(DbMode dbMode, int blockCacheSize = 128)
+    public static IVerkleTreeStore GetVerkleStoreForTest(DbMode dbMode, int blockCacheSize = 128)
     {
         IDbProvider provider;
         switch (dbMode)
@@ -133,7 +133,7 @@ public static class VerkleTestUtils
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleStateStore(provider, blockCacheSize, LimboLogs.Instance);
+        return new VerkleTreeStore(provider, blockCacheSize, LimboLogs.Instance);
     }
 
     public static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int blockCacheSize = 128)

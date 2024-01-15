@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using Nethermind.Core;
 using Nethermind.Db;
 using Nethermind.Verkle.Tree.Serializers;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree.VerkleDb;
 

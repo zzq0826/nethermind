@@ -23,7 +23,7 @@ using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -63,11 +63,11 @@ public class TestSyncRangesInAHugeVerkleTree
         const int initialLeafCount = 100;
 
         var localDbProvider = VerkleDbFactory.InitDatabase(DbMode.MemDb, null);
-        var localStore = new VerkleStateStore(localDbProvider, 128, LimboLogs.Instance);
+        var localStore = new VerkleTreeStore(localDbProvider, 128, LimboLogs.Instance);
         var localTree = new VerkleTree(localStore, LimboLogs.Instance);
-        ObjectPool<IVerkleTrieStore> trieStorePool = new DefaultObjectPool<IVerkleTrieStore>(new TrieStorePoolPolicy(localDbProvider, SimpleConsoleLogManager.Instance));
+        ObjectPool<IVerkleTreeStore> trieStorePool = new DefaultObjectPool<IVerkleTreeStore>(new TrieStorePoolPolicy(localDbProvider, SimpleConsoleLogManager.Instance));
 
-        IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
+        IVerkleTreeStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
         Hash256[] pathPool = GetPedersenPathPool(pathPoolCount);
@@ -126,7 +126,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
         SimpleConsoleLogger.Instance.Info("THIS IS PROVING");
 
-        IVerkleTrieStore? poolStore = trieStorePool.Get();
+        IVerkleTreeStore? poolStore = trieStorePool.Get();
         Stem startStem = Bytes.FromHexString("0x00000000000000000000000000000000000000000000000000000000000000");
         Stem limitStem = Bytes.FromHexString("0x20000000000000000000000000000000000000000000000000000000000000");
         TestAndAssertSyncRanges(tree, poolStore, stateRoot180, startStem, limitStem);
@@ -193,7 +193,7 @@ public class TestSyncRangesInAHugeVerkleTree
 
     }
 
-    public void TestAndAssertSyncRanges(VerkleTree tree, IVerkleTrieStore localStore, Hash256 stateRootToUse, Stem startStem, Stem limitStem)
+    public void TestAndAssertSyncRanges(VerkleTree tree, IVerkleTreeStore localStore, Hash256 stateRootToUse, Stem startStem, Stem limitStem)
     {
         PathWithSubTree[]? range =
             tree._verkleStateStore
@@ -205,7 +205,7 @@ public class TestSyncRangesInAHugeVerkleTree
         Stem endStem = range[^1].Path;
 
         VerkleProof proof = tree.CreateVerkleRangeProof(startStem, endStem, out Banderwagon root, stateRootToUse);
-        var stateStore = new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        var stateStore = new VerkleTreeStore(new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
         var tempTree = new VerkleTree(stateStore, LimboLogs.Instance);
         bool isTrue = tempTree.CreateStatelessTreeFromRange(proof, root, startStem, endStem, range);
         Assert.IsTrue(isTrue);
@@ -225,10 +225,10 @@ public class TestSyncRangesInAHugeVerkleTree
         const int healingLoop = 5;
         const int numPathInOneHealingLoop = pathPoolCount / (healingLoop * blockJump);
 
-        IVerkleTrieStore remoteStore = TestItem.GetVerkleStore(dbMode);
+        IVerkleTreeStore remoteStore = TestItem.GetVerkleStore(dbMode);
         VerkleTree remoteTree = new(remoteStore, LimboLogs.Instance);
 
-        IVerkleTrieStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
+        IVerkleTreeStore localStore = TestItem.GetVerkleStore(DbMode.MemDb);
         VerkleTree localTree = new(localStore, LimboLogs.Instance);
 
         Hash256[] pathPool = GetPedersenPathPool(pathPoolCount);
@@ -501,7 +501,7 @@ public class TestSyncRangesInAHugeVerkleTree
         const int pathPoolCount = 100_000;
         const int leafPerBlock = 10;
 
-        IVerkleTrieStore store = TestItem.GetVerkleStore(dbMode);
+        IVerkleTreeStore store = TestItem.GetVerkleStore(dbMode);
         VerkleTree tree = new(store, LimboLogs.Instance);
 
         Hash256[] pathPool = GetPedersenPathPool(pathPoolCount);
@@ -569,7 +569,7 @@ public class TestSyncRangesInAHugeVerkleTree
         }
     }
 
-    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTrieStore>
+    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTreeStore>
     {
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
@@ -580,12 +580,12 @@ public class TestSyncRangesInAHugeVerkleTree
             _logManager = logManager;
         }
 
-        public IVerkleTrieStore Create()
+        public IVerkleTreeStore Create()
         {
-            return new VerkleStateStore(_dbProvider, 0, _logManager);
+            return new VerkleTreeStore(_dbProvider, 0, _logManager);
         }
 
-        public bool Return(IVerkleTrieStore obj)
+        public bool Return(IVerkleTreeStore obj)
         {
             return true;
         }

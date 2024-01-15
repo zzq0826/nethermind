@@ -57,7 +57,7 @@ using Nethermind.Synchronization.SnapSync;
 using Nethermind.Synchronization.Blocks;
 using Nethermind.Synchronization.VerkleSync;
 using Nethermind.Verkle.Tree.History.V2;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Api
 {
@@ -198,8 +198,8 @@ namespace Nethermind.Api
         public ITimerFactory TimerFactory { get; } = Core.Timers.TimerFactory.Default;
         public ITransactionProcessor? TransactionProcessor { get; set; }
         public ITrieStore? TrieStore { get; set; }
-        public IVerkleTrieStore? VerkleTrieStore { get; set; }
-        public IReadOnlyVerkleTrieStore? ReadOnlyVerkleTrieStore { get; set; }
+        public IVerkleTreeStore? VerkleTrieStore { get; set; }
+        public IReadOnlyVerkleTreeStore? ReadOnlyVerkleTrieStore { get; set; }
         public VerkleArchiveStore? VerkleArchiveStore { get; set; }
 
         public ITxSender? TxSender { get; set; }

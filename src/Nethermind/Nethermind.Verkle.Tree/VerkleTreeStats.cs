@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Nethermind.Verkle.Tree;
 #pragma warning disable 0649
-public class VerkleTrieStats
+public class VerkleTreeStats
 {
     private const int Levels = 128;
     internal readonly int[] _stateLevels = new int[Levels];

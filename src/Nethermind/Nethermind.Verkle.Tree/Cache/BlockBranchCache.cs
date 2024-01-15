@@ -4,14 +4,14 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
-
 namespace Nethermind.Verkle.Tree.Cache;
 
 public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
@@ -21,7 +21,7 @@ public struct StateInfo(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, lo
     public readonly long BlockNumber = blockNumber;
 }
 
-public class BlockBranchNode(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
+public sealed class BlockBranchNode(ReadOnlyVerkleMemoryDb? stateDiff, Hash256 stateRoot, long blockNumber)
 {
     public StateInfo Data = new(stateDiff, stateRoot, blockNumber);
     public BlockBranchNode? ParentNode;

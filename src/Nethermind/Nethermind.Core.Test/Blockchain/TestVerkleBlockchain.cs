@@ -34,7 +34,7 @@ using Nethermind.Specs.Test;
 using Nethermind.State;
 using Nethermind.Trie.Pruning;
 using Nethermind.TxPool;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Core.Test.Blockchain;
@@ -70,7 +70,7 @@ public class TestVerkleBlockchain : IDisposable
     public IWorldState State { get; set; } = null!;
     public IReadOnlyStateProvider ReadOnlyState { get; private set; } = null!;
     public IDb StateDb => DbProvider.StateDb;
-    public IVerkleTrieStore TrieStore { get; set; } = null!;
+    public IVerkleTreeStore TrieStore { get; set; } = null!;
     public IBlockProducer BlockProducer { get; private set; } = null!;
     public IDbProvider DbProvider { get; set; } = null!;
     public ISpecProvider SpecProvider { get; set; } = null!;
@@ -102,7 +102,7 @@ public class TestVerkleBlockchain : IDisposable
     public IBlockValidator BlockValidator { get; set; } = null!;
     public BuildBlocksWhenRequested BlockProductionTrigger { get; } = new();
 
-    public IReadOnlyVerkleTrieStore ReadOnlyTrieStore { get; private set; } = null!;
+    public IReadOnlyVerkleTreeStore ReadOnlyTrieStore { get; private set; } = null!;
 
     public ManualTimestamper Timestamper { get; protected set; } = null!;
 
@@ -117,7 +117,7 @@ public class TestVerkleBlockchain : IDisposable
         SpecProvider = CreateSpecProvider(specProvider ?? MainnetSpecProvider.Instance);
         EthereumEcdsa = new EthereumEcdsa(SpecProvider.ChainId, LogManager);
         DbProvider = await CreateDbProvider();
-        TrieStore = new VerkleStateStore(DbProvider, 128,LogManager);
+        TrieStore = new VerkleTreeStore(DbProvider, 128,LogManager);
         State = new VerkleWorldState(TrieStore, DbProvider.CodeDb, LogManager);
 
         // Eip4788 precompile state account

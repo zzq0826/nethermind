@@ -9,7 +9,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree.History.V2;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
@@ -19,9 +19,9 @@ public class VerkleArchiveStore
 {
     private readonly HistoryOfAccounts _historyOfAccounts;
 
-    private readonly IVerkleArchiveStore _stateStore;
+    private readonly IVerkleTreeStore _stateStore;
 
-    public VerkleArchiveStore(IVerkleArchiveStore stateStore, IDbProvider dbProvider, ILogManager logManager)
+    public VerkleArchiveStore(IVerkleTreeStore stateStore, IDbProvider dbProvider, ILogManager logManager)
     {
         _stateStore = stateStore;
         _historyOfAccounts = new HistoryOfAccounts(dbProvider.HistoryOfAccounts);

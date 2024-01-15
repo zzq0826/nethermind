@@ -3,18 +3,16 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree.Cache;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
 /// <summary>
 ///     Now the persisting and state access also have many issues, there are multiple cases to account for
@@ -39,7 +37,7 @@ namespace Nethermind.Verkle.Tree.TrieStore;
 ///     Now these interfaces would be specially designed to work for a specific interface.
 ///     Cases - NewPayload (A) NewPayload(B) FCU(A)
 /// </summary>
-internal partial class VerkleStateStore<TCache>
+internal partial class VerkleTreeStore<TCache>
 {
     public void InsertRootNodeAfterSyncCompletion(byte[] rootHash, long blockNumber)
     {

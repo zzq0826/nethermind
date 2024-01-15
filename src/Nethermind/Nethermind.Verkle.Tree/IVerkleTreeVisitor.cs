@@ -4,7 +4,7 @@
 using System;
 using Nethermind.Core.Crypto;
 using Nethermind.Trie;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree;
 

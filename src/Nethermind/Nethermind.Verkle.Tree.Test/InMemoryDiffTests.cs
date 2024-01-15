@@ -8,7 +8,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Db.Rocks;
 using Nethermind.Logging;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -37,16 +37,16 @@ public class InMemoryDiffTests
     private static VerkleTree GetVerkleTreeForTest(DbMode dbMode, int maxBlockInHistory)
     {
         IDbProvider provider;
-        VerkleStateStore store;
+        VerkleTreeStore store;
         switch (dbMode)
         {
             case DbMode.MemDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, null);
-                store = new VerkleStateStore(provider, maxBlockInHistory, LimboLogs.Instance);
+                store = new VerkleTreeStore(provider, maxBlockInHistory, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.PersistantDb:
                 provider = VerkleDbFactory.InitDatabase(dbMode, GetDbPathForTest() + maxBlockInHistory);
-                store = new VerkleStateStore(provider, maxBlockInHistory, LimboLogs.Instance);
+                store = new VerkleTreeStore(provider, maxBlockInHistory, LimboLogs.Instance);
                 return new VerkleTree(store, LimboLogs.Instance);
             case DbMode.ReadOnlyDb:
             default:

@@ -4,10 +4,10 @@
 using System;
 using Nethermind.Core.Crypto;
 using Nethermind.Verkle.Tree.History.V1;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
 /// <summary>
 ///     This is a state store designed to be used with JsonRpc
@@ -18,9 +18,9 @@ public class JsonRpcStateStore
     public static Span<byte> RootNodeKey => Array.Empty<byte>();
     private readonly VerkleArchiveStore _archiveStore;
     private readonly VerkleMemoryDb _keyValueStore;
-    private readonly IVerkleTrieStore _verkleStateStore;
+    private readonly IVerkleTreeStore _verkleStateStore;
 
-    public JsonRpcStateStore(VerkleArchiveStore archiveStore, IVerkleTrieStore verkleStateStore,
+    public JsonRpcStateStore(VerkleArchiveStore archiveStore, IVerkleTreeStore verkleStateStore,
         VerkleMemoryDb keyValueStore)
     {
         _archiveStore = archiveStore;

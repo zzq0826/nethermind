@@ -12,8 +12,8 @@ using Nethermind.Logging;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieNodes;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeNodes;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
@@ -34,18 +34,18 @@ public partial class VerkleTree : IVerkleTree
     private readonly ILogger _logger;
 
     // the store that is responsible to store the tree in a key-value store
-    public readonly IVerkleTrieStore _verkleStateStore;
+    public readonly IVerkleTreeStore _verkleStateStore;
 
     // cache to maintain recently used or inserted nodes of the tree - should be consistent
     public VerkleMemoryDb _treeCache = new();
 
     public VerkleTree(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
-        _verkleStateStore = new VerkleStateStore(dbProvider, blockCacheSize, logManager);
+        _verkleStateStore = new VerkleTreeStore(dbProvider, blockCacheSize, logManager);
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));
     }
 
-    public VerkleTree(IVerkleTrieStore verkleStateStore, ILogManager logManager)
+    public VerkleTree(IVerkleTreeStore verkleStateStore, ILogManager logManager)
     {
         _verkleStateStore = verkleStateStore;
         _logger = logManager?.GetClassLogger<VerkleTree>() ?? throw new ArgumentNullException(nameof(logManager));

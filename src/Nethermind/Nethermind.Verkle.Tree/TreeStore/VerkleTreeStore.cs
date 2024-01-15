@@ -7,27 +7,26 @@ using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Cache;
-using Nethermind.Verkle.Tree.History.V1;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 using Nethermind.Verkle.Tree.Utils;
 using Nethermind.Verkle.Tree.VerkleDb;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
 
-public class VerkleStateStore : IVerkleArchiveStore
+public class VerkleTreeStore : IVerkleTreeStore
 {
-    private readonly IVerkleArchiveStore _stateStore;
-    public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
+    private readonly IVerkleTreeStore _stateStore;
+    public VerkleTreeStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
         if (blockCacheSize == 0)
-            _stateStore = new VerkleStateStore<NotUsingMemCache>(dbProvider, 0, logManager);
+            _stateStore = new VerkleTreeStore<NotUsingMemCache>(dbProvider, 0, logManager);
         else
-            _stateStore = new VerkleStateStore<IsUsingMemCache>(dbProvider, blockCacheSize, logManager);
+            _stateStore = new VerkleTreeStore<IsUsingMemCache>(dbProvider, blockCacheSize, logManager);
     }
 
-    public VerkleStateStore(
+    public VerkleTreeStore(
         IDb leafDb,
         IDb internalDb,
         IDb stateRootToBlocks,
@@ -35,9 +34,9 @@ public class VerkleStateStore : IVerkleArchiveStore
         ILogManager? logManager)
     {
         if (blockCacheSize == 0)
-            _stateStore = new VerkleStateStore<NotUsingMemCache>(leafDb, internalDb, stateRootToBlocks, 0, logManager);
+            _stateStore = new VerkleTreeStore<NotUsingMemCache>(leafDb, internalDb, stateRootToBlocks, 0, logManager);
         else
-            _stateStore = new VerkleStateStore<IsUsingMemCache>(leafDb, internalDb, stateRootToBlocks, blockCacheSize, logManager);
+            _stateStore = new VerkleTreeStore<IsUsingMemCache>(leafDb, internalDb, stateRootToBlocks, blockCacheSize, logManager);
     }
 
     public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached
@@ -54,11 +53,6 @@ public class VerkleStateStore : IVerkleArchiveStore
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot, long bytes)
     {
         return _stateStore.GetLeafRangeIterator(fromRange, toRange, stateRoot, bytes);
-    }
-
-    public bool IsFullySynced(Hash256 stateRoot)
-    {
-        return _stateStore.IsFullySynced(stateRoot);
     }
 
     public Hash256 StateRoot => _stateStore.StateRoot;
@@ -87,13 +81,7 @@ public class VerkleStateStore : IVerkleArchiveStore
     {
         _stateStore.InsertBatch(blockNumber, memDb, skipRoot);
     }
-
-    public void ApplyDiffLayer(BatchChangeSet changeSet)
-    {
-        _stateStore.ApplyDiffLayer(changeSet);
-    }
-
-    public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return _stateStore.AsReadOnly(keyValueStore);
     }
@@ -131,7 +119,7 @@ public readonly struct IsUsingMemCache: IIsUsingMemCache { }
 public readonly struct NotUsingMemCache: IIsUsingMemCache { }
 
 
-internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
+internal partial class VerkleTreeStore<TCache> : IVerkleTreeStore
     where TCache: struct, IIsUsingMemCache
 {
     private static Span<byte> RootNodeKey => Array.Empty<byte>();
@@ -143,9 +131,9 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
     private readonly StateRootToBlockMap _stateRootToBlocks;
     public ulong GetBlockNumber(Hash256 rootHash) => (ulong)_stateRootToBlocks[rootHash];
 
-    public VerkleStateStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
+    public VerkleTreeStore(IDbProvider dbProvider, int blockCacheSize, ILogManager logManager)
     {
-        _logger = logManager?.GetClassLogger<VerkleStateStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
+        _logger = logManager?.GetClassLogger<VerkleTreeStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(dbProvider);
         _stateRootToBlocks = new StateRootToBlockMap(dbProvider.StateRootToBlocks);
         if (typeof(TCache) == typeof(IsUsingMemCache))
@@ -156,14 +144,14 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
         InitRootHash();
     }
 
-    public VerkleStateStore(
+    public VerkleTreeStore(
         IDb leafDb,
         IDb internalDb,
         IDb stateRootToBlocks,
         int blockCacheSize,
         ILogManager? logManager)
     {
-        _logger = logManager?.GetClassLogger<VerkleStateStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
+        _logger = logManager?.GetClassLogger<VerkleTreeStore<TCache>>() ?? throw new ArgumentNullException(nameof(logManager));
         Storage = new VerkleKeyValueDb(internalDb, leafDb);
         _stateRootToBlocks = new StateRootToBlockMap(stateRootToBlocks);
         if (typeof(TCache) == typeof(IsUsingMemCache))
@@ -197,7 +185,7 @@ internal partial class VerkleStateStore<TCache> : IVerkleArchiveStore
     /// </summary>
     public Hash256 StateRoot { get; private set; } = Hash256.Zero;
 
-    public IReadOnlyVerkleTrieStore AsReadOnly(VerkleMemoryDb keyValueStore)
+    public IReadOnlyVerkleTreeStore AsReadOnly(VerkleMemoryDb keyValueStore)
     {
         return new ReadOnlyVerkleStateStore(this, keyValueStore);
     }

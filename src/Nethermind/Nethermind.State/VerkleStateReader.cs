@@ -10,7 +10,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Metrics = Nethermind.Db.Metrics;
 
 namespace Nethermind.State;
@@ -28,7 +28,7 @@ public class VerkleStateReader : IStateReader
         _state = verkleTree;
     }
 
-    public VerkleStateReader(IReadOnlyVerkleTrieStore verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
+    public VerkleStateReader(IReadOnlyVerkleTreeStore verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<StateReader>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));

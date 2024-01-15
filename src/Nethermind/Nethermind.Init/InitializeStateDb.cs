@@ -27,7 +27,7 @@ using Nethermind.Synchronization.Trie;
 using Nethermind.Synchronization.Witness;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.Init;
@@ -154,16 +154,16 @@ public class InitializeStateDb : IStep
         }
         else
         {
-            VerkleStateStore verkleStateStore;
-            setApi.VerkleTrieStore = verkleStateStore =  new VerkleStateStore(getApi.DbProvider, 128, getApi.LogManager);
-            setApi.VerkleArchiveStore = new (verkleStateStore, getApi.DbProvider, getApi.LogManager);
-            worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleStateStore, getApi.LogManager), codeDb, getApi.LogManager);
+            VerkleTreeStore verkleTreeStore;
+            setApi.VerkleTrieStore = verkleTreeStore =  new VerkleTreeStore(getApi.DbProvider, 128, getApi.LogManager);
+            setApi.VerkleArchiveStore = new (verkleTreeStore, getApi.DbProvider, getApi.LogManager);
+            worldState = setApi.WorldState = new VerkleWorldState(new VerkleStateTree(verkleTreeStore, getApi.LogManager), codeDb, getApi.LogManager);
             stateManager = setApi.WorldStateManager = new VerkleWorldStateManager(
                 worldState,
-                verkleStateStore,
+                verkleTreeStore,
                 getApi.DbProvider,
                 getApi.LogManager);
-            _api.ReadOnlyVerkleTrieStore = verkleStateStore.AsReadOnly(new VerkleMemoryDb());
+            _api.ReadOnlyVerkleTrieStore = verkleTreeStore.AsReadOnly(new VerkleMemoryDb());
         }
         // TODO: Don't forget this
         TrieStoreBoundaryWatcher trieStoreBoundaryWatcher = new(stateManager, _api.BlockTree!, _api.LogManager);

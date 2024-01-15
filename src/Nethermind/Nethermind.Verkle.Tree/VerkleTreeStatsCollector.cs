@@ -9,23 +9,23 @@ using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
 using Nethermind.Verkle.Tree.Serializers;
-using Nethermind.Verkle.Tree.TrieNodes;
+using Nethermind.Verkle.Tree.TreeNodes;
 
 namespace Nethermind.Verkle.Tree;
 
-public class VerkleTrieStatsCollector : IVerkleTreeVisitor
+public class VerkleTreeStatsCollector : IVerkleTreeVisitor
 {
     private readonly ILogger _logger;
     private int _lastAccountNodeCount;
 
-    public VerkleTrieStatsCollector(IKeyValueStore codeKeyValueStore, ILogManager logManager)
+    public VerkleTreeStatsCollector(IKeyValueStore codeKeyValueStore, ILogManager logManager)
     {
         _logger = logManager.GetClassLogger();
     }
 
     private static InternalNodeSerializer Serializer => InternalNodeSerializer.Instance;
 
-    public VerkleTrieStats Stats { get; } = new();
+    public VerkleTreeStats Stats { get; } = new();
 
     public bool IsFullDbScan => true;
 

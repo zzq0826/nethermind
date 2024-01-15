@@ -12,7 +12,7 @@ using Nethermind.State;
 using Nethermind.State.Snap;
 using Nethermind.Trie.Pruning;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Core.Test.Builders
@@ -61,9 +61,9 @@ namespace Nethermind.Core.Test.Builders
                 return stateTree;
             }
 
-            public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)
+            public static VerkleStateTree GetVerkleStateTree(IVerkleTreeStore? store)
             {
-                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
+                store ??= new VerkleTreeStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
 
                 var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 
@@ -72,9 +72,9 @@ namespace Nethermind.Core.Test.Builders
                 return stateTree;
             }
 
-            public static VerkleStateTree GetVerkleStateTreeForSync(IVerkleTrieStore? store)
+            public static VerkleStateTree GetVerkleStateTreeForSync(IVerkleTreeStore? store)
             {
-                store ??= new VerkleStateStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
+                store ??= new VerkleTreeStore(VerkleDbFactory.InitDatabase(DbMode.MemDb, null), 128, LimboLogs.Instance);
 
                 var stateTree = new VerkleStateTree(store, LimboLogs.Instance);
 

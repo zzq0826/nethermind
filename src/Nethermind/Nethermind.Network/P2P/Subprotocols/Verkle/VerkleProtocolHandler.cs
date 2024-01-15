@@ -25,7 +25,7 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Network.P2P.Subprotocols.Verkle;
 
@@ -248,7 +248,7 @@ public class VerkleProtocolHandler: ZeroProtocolHandlerBase, IVerkleSyncPeer
         subTreeRangeMessageSerializer.Serialize(buffer, response);
         SubTreeRangeMessage? decode = subTreeRangeMessageSerializer.Deserialize(buffer);
 
-        var stateStore = new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
+        var stateStore = new VerkleTreeStore(new MemDb(), new MemDb(), new MemDb(), 0, LimboLogs.Instance);
         var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
         var isCorrect = localTree.CreateStatelessTreeFromRange(
             verkleProofSerializer.Decode(new RlpStream(decode.Proofs)), rootPoint, startingStem,

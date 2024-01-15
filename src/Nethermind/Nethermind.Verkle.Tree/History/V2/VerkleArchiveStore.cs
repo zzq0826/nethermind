@@ -8,7 +8,7 @@ using Nethermind.Core.Collections.EliasFano;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Logging;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.Verkle.Tree.History.V2;
@@ -17,9 +17,9 @@ public class VerkleArchiveStore
 {
     private readonly HistoryOfAccounts _historyOfAccounts;
 
-    private readonly IVerkleArchiveStore _stateStore;
+    private readonly IVerkleTreeStore _stateStore;
 
-    public VerkleArchiveStore(IVerkleArchiveStore stateStore, IDbProvider dbProvider, ILogManager logManager)
+    public VerkleArchiveStore(IVerkleTreeStore stateStore, IDbProvider dbProvider, ILogManager logManager)
     {
         _stateStore = stateStore;
         _historyOfAccounts = new HistoryOfAccounts(dbProvider.HistoryOfAccounts);

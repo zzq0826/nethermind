@@ -13,7 +13,7 @@ using Nethermind.Db.Rocks;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Verkle.Tree.History.V2;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Verkle.Tree.Test;
 
@@ -65,10 +65,10 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleStateStore stateStore = new VerkleStateStore(provider, 0, LimboLogs.Instance);
-        VerkleTree tree = new VerkleTree(stateStore, LimboLogs.Instance);
+        VerkleTreeStore treeStore = new VerkleTreeStore(provider, 0, LimboLogs.Instance);
+        VerkleTree tree = new VerkleTree(treeStore, LimboLogs.Instance);
 
-        VerkleArchiveStore archiveStore = new VerkleArchiveStore(stateStore, provider, LimboLogs.Instance);
+        VerkleArchiveStore archiveStore = new VerkleArchiveStore(treeStore, provider, LimboLogs.Instance);
 
         tree.Insert((Hash256)VerkleTestUtils._keyVersion, VerkleTestUtils._emptyArray);
         tree.Insert((Hash256)VerkleTestUtils._keyBalance, VerkleTestUtils._emptyArray);
@@ -162,11 +162,11 @@ public class ArchiveStoreTests
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        VerkleStateStore stateStore = new VerkleStateStore(provider, 0, LimboLogs.Instance);
-        VerkleTree tree = new VerkleTree(stateStore, LimboLogs.Instance);
+        VerkleTreeStore treeStore = new VerkleTreeStore(provider, 0, LimboLogs.Instance);
+        VerkleTree tree = new VerkleTree(treeStore, LimboLogs.Instance);
 
         VerkleArchiveStore archiveStore =
-            new VerkleArchiveStore(stateStore, provider, LimboLogs.Instance) { BlockChunks = blockChunks };
+            new VerkleArchiveStore(treeStore, provider, LimboLogs.Instance) { BlockChunks = blockChunks };
 
         Hash256[] keys =
         {

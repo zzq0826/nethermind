@@ -5,7 +5,7 @@ using System;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Trie.Pruning;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.VerkleDb;
 
 namespace Nethermind.State;
@@ -13,11 +13,11 @@ namespace Nethermind.State;
 public class VerkleWorldStateManager: ReadOnlyVerkleWorldStateManager
 {
     private readonly IWorldState _worldState;
-    private readonly IVerkleTrieStore _trieStore;
+    private readonly IVerkleTreeStore _trieStore;
 
     public VerkleWorldStateManager(
         IWorldState worldState,
-        IVerkleTrieStore trieStore,
+        IVerkleTreeStore trieStore,
         IDbProvider dbProvider,
         ILogManager logManager
     ) : base(dbProvider, trieStore.AsReadOnly(new VerkleMemoryDb()), logManager)

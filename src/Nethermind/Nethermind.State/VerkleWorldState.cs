@@ -18,7 +18,7 @@ using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 
 namespace Nethermind.State;
@@ -60,7 +60,7 @@ public class VerkleWorldState : IWorldState
         _storageProvider = new VerkleStorageProvider(storageProvider, new VerkleTransientStorageProvider(logManager));
     }
 
-    public VerkleWorldState(IVerkleTrieStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
+    public VerkleWorldState(IVerkleTreeStore verkleStateStore, IKeyValueStore? codeDb, ILogManager? logManager)
     {
         _logger = logManager?.GetClassLogger<WorldState>() ?? throw new ArgumentNullException(nameof(logManager));
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));

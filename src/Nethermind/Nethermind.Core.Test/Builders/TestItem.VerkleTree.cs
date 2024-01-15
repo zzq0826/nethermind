@@ -14,7 +14,7 @@ using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
@@ -53,7 +53,7 @@ public static partial class TestItem
         return Path.Combine(tempDir, dbname);
     }
 
-    public static IVerkleTrieStore GetVerkleStore(DbMode dbMode, int history = 128)
+    public static IVerkleTreeStore GetVerkleStore(DbMode dbMode, int history = 128)
     {
         IDbProvider provider;
         switch (dbMode)
@@ -69,10 +69,10 @@ public static partial class TestItem
                 throw new ArgumentOutOfRangeException(nameof(dbMode), dbMode, null);
         }
 
-        return new VerkleStateStore(provider, history, LimboLogs.Instance);
+        return new VerkleTreeStore(provider, history, LimboLogs.Instance);
     }
 
-    public static VerkleStateTree GetVerkleStateTree(IVerkleTrieStore? store)
+    public static VerkleStateTree GetVerkleStateTree(IVerkleTreeStore? store)
     {
         store ??= GetVerkleStore(DbMode.MemDb);
         VerkleStateTree stateTree = new VerkleStateTree(store, LimboLogs.Instance);

@@ -11,14 +11,10 @@ using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Tree.Cache;
 using Nethermind.Verkle.Tree.Sync;
 
-namespace Nethermind.Verkle.Tree.TrieStore;
+namespace Nethermind.Verkle.Tree.TreeStore;
 
-internal partial class VerkleStateStore<TCache>
+internal partial class VerkleTreeStore<TCache>
 {
-    public bool IsFullySynced(Hash256 stateRoot)
-    {
-        return _stateRootToBlocks[new Hash256(stateRoot.Bytes.ToArray())] != -2;
-    }
 
     // TODO: handle the case where there is no stem between the requested range.
     public IEnumerable<PathWithSubTree> GetLeafRangeIterator(Stem fromRange, Stem toRange, Hash256 stateRoot,

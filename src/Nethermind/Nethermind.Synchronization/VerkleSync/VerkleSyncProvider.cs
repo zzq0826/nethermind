@@ -13,14 +13,14 @@ using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
 using Nethermind.Verkle.Tree.Serializers;
 using Nethermind.Verkle.Tree.Sync;
-using Nethermind.Verkle.Tree.TrieStore;
+using Nethermind.Verkle.Tree.TreeStore;
 using ILogger = Nethermind.Logging.ILogger;
 
 namespace Nethermind.Synchronization.VerkleSync;
 
 public class VerkleSyncProvider: IVerkleSyncProvider
 {
-    private readonly ObjectPool<IVerkleTrieStore> _trieStorePool;
+    private readonly ObjectPool<IVerkleTreeStore> _trieStorePool;
     private readonly ILogManager _logManager;
     private readonly ILogger _logger;
 
@@ -30,7 +30,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     {
         IDbProvider dbProvider1 = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
-        _trieStorePool = new DefaultObjectPool<IVerkleTrieStore>(new TrieStorePoolPolicy(dbProvider1, logManager));
+        _trieStorePool = new DefaultObjectPool<IVerkleTreeStore>(new TrieStorePoolPolicy(dbProvider1, logManager));
 
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         _logger = logManager.GetClassLogger();
@@ -68,14 +68,14 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     {
         limitStem ??= Keccak.MaxValue.Bytes[..31].ToArray();
         Banderwagon rootPoint = Banderwagon.FromBytes(expectedRootHash.Bytes.ToArray()) ?? throw new Exception("root point invalid");
-        IVerkleTrieStore store = _trieStorePool.Get();
+        IVerkleTreeStore store = _trieStorePool.Get();
         try
         {
             VerkleProofSerializer ser = VerkleProofSerializer.Instance;
             VerkleProof vProof = ser.Decode(new RlpStream(proofs!));
             try
             {
-                var stateStore = new VerkleStateStore(new MemDb(), new MemDb(), new MemDb(), 0, _logManager);
+                var stateStore = new VerkleTreeStore(new MemDb(), new MemDb(), new MemDb(), 0, _logManager);
                 var localTree = new VerkleTree(stateStore, LimboLogs.Instance);
                 var isCorrect = localTree.CreateStatelessTreeFromRange(vProof, rootPoint, startingStem, subTrees[^1].Path, subTrees);
                 if (!isCorrect)
@@ -108,7 +108,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
     public AddRangeResult AddSubTreeRange(long blockNumber, Banderwagon rootPoint, byte[] startingStem,
         PathWithSubTree[] subTrees, VerkleProof proof, byte[] limitStem)
     {
-        IVerkleTrieStore store = _trieStorePool.Get();
+        IVerkleTreeStore store = _trieStorePool.Get();
         VerkleTree tree = new VerkleTree(store, LimboLogs.Instance);
         bool correct =
             tree.CreateStatelessTreeFromRange(proof, rootPoint, startingStem, limitStem,
@@ -119,7 +119,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public bool HealTheTreeFromExecutionWitness(ExecutionWitness execWitness, Banderwagon root)
     {
-        IVerkleTrieStore store = _trieStorePool.Get();
+        IVerkleTreeStore store = _trieStorePool.Get();
         VerkleTree tree = new (store, LimboLogs.Instance);
         return tree.InsertIntoStatelessTree(execWitness, root, false);
     }
@@ -155,7 +155,7 @@ public class VerkleSyncProvider: IVerkleSyncProvider
 
     public (VerkleSyncBatch request, bool finished) GetNextRequest() => _progressTracker.GetNextRequest();
 
-    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTrieStore>
+    private class TrieStorePoolPolicy : IPooledObjectPolicy<IVerkleTreeStore>
     {
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
@@ -166,12 +166,12 @@ public class VerkleSyncProvider: IVerkleSyncProvider
             _logManager = logManager;
         }
 
-        public IVerkleTrieStore Create()
+        public IVerkleTreeStore Create()
         {
-            return new VerkleStateStore(_dbProvider, 0, _logManager);
+            return new VerkleTreeStore(_dbProvider, 0, _logManager);
         }
 
-        public bool Return(IVerkleTrieStore obj)
+        public bool Return(IVerkleTreeStore obj)
         {
             return true;
         }
