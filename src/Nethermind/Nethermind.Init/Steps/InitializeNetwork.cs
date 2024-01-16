@@ -41,6 +41,7 @@ using Nethermind.Synchronization.Peers;
 using Nethermind.Synchronization.Trie;
 using Nethermind.TxPool;
 using System.Linq;
+using Nethermind.Blockchain;
 
 namespace Nethermind.Init.Steps;
 
@@ -279,17 +280,22 @@ public class InitializeNetwork : IStep
         if (api.ReceiptStorage is null)
             throw new StepDependencyException(nameof(_api.ReceiptStorage));
         if (api.SpecProvider is null)
-            throw new StepDependencyException(nameof(_api.SpecProvider));
+            throw new StepDependencyException(nameof(_api.SpecProvider));        
 
         ISyncConfig syncConfig = api.Config<ISyncConfig>();
         if (string.IsNullOrEmpty(syncConfig.ImportDirectory))
         {
             return;
-        }
+        }       
         if (!api.FileSystem.Directory.Exists(syncConfig.ImportDirectory))
         {
             _logger.Warn($"The directory given for import '{syncConfig.ImportDirectory}' does not exist.");
             return;
+        }
+        IBlockTree blockTree = _api.BlockTree!;
+        if (blockTree.LowestInsertedHeader != null || blockTree.LowestInsertedBeaconHeader != null)
+        {
+            _logger.Info($"Era1 import is only supported starting from genesis.");
         }
 
         var networkName = BlockchainIds.GetBlockchainName(api.SpecProvider.NetworkId);
@@ -308,20 +314,21 @@ public class InitializeNetwork : IStep
          api.BlockValidator,
          api.ReceiptStorage,
          api.SpecProvider,
+         syncConfig,
          networkName);
 
         try
         {
+            eraImport.ImportProgressChanged += (s, args) =>
+            {
+                _logger.Info($"Era1 import | {args.EpochProcessed,5}/{args.TotalEpochs} archives | elapsed {args.Elapsed,7:hh\\:mm\\:ss} | {args.TotalBlocksProcessed / args.Elapsed.TotalSeconds,7:F2} Blks/s | {args.TxProcessed / args.Elapsed.TotalSeconds,7:F2} Tx/s");
+            };
             if (_syncConfig.FastSync)
             {
-                return;
+                await eraImport.Import(syncConfig.ImportDirectory, cancellation);
             }
             else
             {
-                eraImport.ImportProgressChanged += (s, args) =>
-                {
-                    _logger.Info($"Era1 import | elapsed {args.Elapsed,7:hh\\:mm\\:ss} | {args.TotalBlocksProcessed / args.Elapsed.TotalSeconds,7:F2} Blks/s | {args.TxProcessed / args.Elapsed.TotalSeconds,7:F2} Tx/s");
-                };
                 //Import as a full archive
                 _logger.Info($"Starting full archive import from '{syncConfig.ImportDirectory}'");
                 await eraImport.ImportAsArchiveSync(syncConfig.ImportDirectory, cancellation);

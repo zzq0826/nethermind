@@ -46,8 +46,12 @@ public class EraStore: IEraStore
     
     public Task<EraReader> GetReader(long epoch, CancellationToken cancellation = default)
     {
+        return GetReader(epoch, false, cancellation);
+    }
+    public Task<EraReader> GetReader(long epoch, bool descendingOrder, CancellationToken cancellation = default)
+    {
         GuardMissingEpoch(epoch);
-        return EraReader.Create(_epochs[epoch], _fileSystem, cancellation);
+        return EraReader.Create(_epochs[epoch], descendingOrder, _fileSystem, cancellation);
     }
 
     public string GetReaderPath(long epoch)

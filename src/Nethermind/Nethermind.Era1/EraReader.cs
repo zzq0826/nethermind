@@ -28,6 +28,7 @@ public class EraReader : IAsyncEnumerable<(Block, TxReceipt[], UInt256)>, IDispo
 
     public long CurrentBlockNumber => _currentBlockNumber;
     public EraMetadata EraMetadata => _store.Metadata;
+    public bool DescendingOrder { get; set; } = false;
 
     private static readonly char[] separator = new char[] { '-' };
 
@@ -40,19 +41,25 @@ public class EraReader : IAsyncEnumerable<(Block, TxReceipt[], UInt256)>, IDispo
     }
     public static Task<EraReader> Create(string file, in CancellationToken token = default)
     {
-        return Create(file, new FileSystem(), token);
+        return Create(file, null, false, null, token);
     }
-    public static Task<EraReader> Create(string file, IFileSystem fileSystem, in CancellationToken token = default)
+    public static Task<EraReader> Create(string file, bool descendingOrder, in CancellationToken token = default)
     {
-        return Create(file, fileSystem, false, null, token);
+        return Create(file, null, descendingOrder, null, token);
     }
-    public static Task<EraReader> Create(string file, IFileSystem? fileSystem, bool descendingOrder = false, IByteBufferAllocator? allocator = null, in CancellationToken token = default)
+    public static Task<EraReader> Create(string file, bool descendingOrder, IFileSystem fileSystem, in CancellationToken token = default)
+    {
+        return Create(file, fileSystem, descendingOrder, null, token);
+    }
+
+    private static Task<EraReader> Create(string file, IFileSystem? fileSystem, bool descendingOrder = false, IByteBufferAllocator? allocator = null, in CancellationToken token = default)
     {
         if (string.IsNullOrEmpty(file)) throw new ArgumentException("Cannot be null or empty.", nameof(file));
         if (fileSystem == null)
             fileSystem = new FileSystem();
         return Create(fileSystem.File.OpenRead(file), descendingOrder, allocator, token);
     }
+
     public static Task<EraReader> Create(Stream stream, CancellationToken token = default)
     {
         return Create(stream, false, null, token);

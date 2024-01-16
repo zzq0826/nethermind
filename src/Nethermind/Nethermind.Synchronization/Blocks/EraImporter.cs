@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Nethermind.Era1;
 using Nethermind.Synchronization.FastBlocks;
+using Nethermind.Blockchain.Synchronization;
 
 namespace Nethermind.Synchronization;
 public class EraImporter : IEraImporter
@@ -28,6 +29,10 @@ public class EraImporter : IEraImporter
     private readonly ISpecProvider _specProvider;
     private readonly int _epochSize;
     private readonly string _networkName;
+    private readonly long _bodyBarrier;
+    private readonly long _receiptBarrier;
+    private readonly bool _insertBodies;
+    private readonly bool _insertReceipts;
 
     public event EventHandler<ImportProgressChangedArgs> ImportProgressChanged;
 
@@ -37,6 +42,7 @@ public class EraImporter : IEraImporter
         IBlockValidator blockValidator,
         IReceiptStorage receiptStorage,
         ISpecProvider specProvider,
+        ISyncConfig syncConfig,
         string networkName,
         int epochSize = EraWriter.MaxEra1Size)
     {
@@ -48,24 +54,41 @@ public class EraImporter : IEraImporter
         this._epochSize = epochSize;
         if (string.IsNullOrWhiteSpace(networkName)) throw new ArgumentException("Cannot be null or whitespace.", nameof(specProvider));
         _networkName = networkName.Trim().ToLower();
+        _bodyBarrier = syncConfig.AncientBodiesBarrierCalc;
+        _receiptBarrier = syncConfig.AncientReceiptsBarrierCalc;
+        _insertBodies = syncConfig.DownloadBodiesInFastSync;
+        _insertReceipts = syncConfig.DownloadReceiptsInFastSync;
     }
 
     public Task ImportAsArchiveSync(string src, CancellationToken cancellation)
     {
-        return ImportInternal(src, _blockTree.Head?.Number + 1 ?? 0, true, false, true, cancellation);
+        Hash256 header = _blockTree.Head.Hash;
+        return ImportFull(
+            src: src,
+            startNumber: _blockTree.Head?.Number + 1 ?? 0,
+            insertBodies: true,
+            insertReceipts: false,
+            expectedHeader: header,
+            cancellation: cancellation);
     }
 
     public Task Import(string src, CancellationToken cancellation)
     {
-        return ImportInternal(src, _blockTree.Head?.Number + 1 ?? 0, true, true, false, cancellation);
+        return ImportBackfill(
+            src: src,
+            bodyBarrier: _bodyBarrier,
+            receiptsBarrier: _receiptBarrier,
+            insertBodies: _insertBodies,
+            insertReceipts: _insertReceipts,
+            cancellation: cancellation);
     }
 
-    private async Task ImportInternal(
+    private async Task ImportFull(
         string src,
         long startNumber,
         bool insertBodies,
         bool insertReceipts,
-        bool processBlock,
+        Hash256 expectedHeader,
         CancellationToken cancellation)
     {
         var eraFiles = EraReader.GetAllEraFiles(src, _networkName, _fileSystem).ToArray();
@@ -98,10 +121,13 @@ public class EraImporter : IEraImporter
                 {
                     continue;
                 }
-
                 if (b.Number < startNumber)
                 {
                     continue;
+                }
+                if (b.Header.ParentHash != expectedHeader)
+                {
+                    throw new EraImportException($"Expected header '{expectedHeader}' in block number {b.Number} in Era1 archive '{eraStore.GetReaderPath(i)}', but got {b.Header.ParentHash}.");
                 }
 
                 if (insertBodies)
@@ -124,21 +150,9 @@ public class EraImporter : IEraImporter
 
                 cancellation.ThrowIfCancellationRequested();
 
-                if (processBlock)
-                {
-                    await SuggestBlock(b, r);
-                }
-                else
-                {
-                    if (insertBodies)
-                    {
-                        InsertBlock(b);
-                    }
-                    if (insertReceipts)
-                    {
-                        InsertReceipts(b, r);
-                    }
-                }
+                await SuggestBlock(b, r);
+
+                expectedHeader = b.Header.Hash;
 
                 blocksProcessed++;
                 txProcessed += b.Transactions.Length;
@@ -154,9 +168,112 @@ public class EraImporter : IEraImporter
         ImportProgressChanged?.Invoke(this, new ImportProgressChangedArgs(DateTime.Now.Subtract(startTime), blocksProcessed, txProcessed, totalblocks, epochProcessed, eraStore.EpochCount));
     }
 
+
+    private async Task ImportBackfill(
+    string src,
+    long bodyBarrier,
+    long receiptsBarrier,
+    bool insertBodies,
+    bool insertReceipts,
+    CancellationToken cancellation)
+    {
+        var eraFiles = EraReader.GetAllEraFiles(src, _networkName, _fileSystem).ToArray();
+
+        EraStore eraStore = new(eraFiles, _fileSystem);
+
+        long startEpoch = eraStore.BiggestEpoch;
+
+        DateTime lastProgress = DateTime.Now;
+        long epochProcessed = 0;
+        DateTime startTime = DateTime.Now;
+        long txProcessed = 0;
+        long totalblocks = 0;
+        int blocksProcessed = 0;
+        Hash256 expectedHeader = Keccak.Zero;
+
+        for (long i = startEpoch; eraStore.HasEpoch(i); i--)
+        {
+            using EraReader eraReader = await eraStore.GetReader(i, true, cancellation);
+
+            await foreach ((Block b, TxReceipt[] r, UInt256 td) in eraReader)
+            {
+                cancellation.ThrowIfCancellationRequested();
+
+                if (b.IsGenesis)
+                {
+                    continue;
+                }
+
+                if (expectedHeader != Keccak.Zero && b.Header.Hash != expectedHeader)
+                {
+                    throw new EraImportException($"Expected header '{expectedHeader}' in block number {b.Number} in Era1 archive '{eraStore.GetReaderPath(i)}', but got {b.Header.ParentHash}.");
+                }
+
+                if (insertBodies)
+                {
+                    if (b.IsBodyMissing)
+                    {
+                        throw new EraImportException($"Unexpected block without a body found in '{eraStore.GetReaderPath(i)}'. Archive might be corrupted.");
+                    }
+
+                    if (!BlockValidator.ValidateBodyAgainstHeader(b.Header, b.Body))
+                    {
+                        throw new EraImportException($"Era1 archive '{eraStore.GetReaderPath(i)}' contains an invalid block {b.ToString(Block.Format.Short)}.");
+                    }
+                }
+
+                if (insertReceipts)
+                {
+                    ValidateReceipts(b, r);
+                }
+
+                cancellation.ThrowIfCancellationRequested();
+
+                if (b.Header.TotalDifficulty == null)
+                    b.Header.TotalDifficulty = td;
+
+                InsertInBlockTree(b, r, insertBodies, insertReceipts, bodyBarrier, receiptsBarrier);
+
+                expectedHeader = b.Header.ParentHash;
+
+                blocksProcessed++;
+                txProcessed += b.Transactions.Length;
+                TimeSpan elapsed = DateTime.Now.Subtract(lastProgress);
+                if (elapsed.TotalSeconds > TimeSpan.FromSeconds(10).TotalSeconds)
+                {
+                    ImportProgressChanged?.Invoke(this, new ImportProgressChangedArgs(DateTime.Now.Subtract(startTime), blocksProcessed, txProcessed, totalblocks, epochProcessed, eraStore.EpochCount));
+                    lastProgress = DateTime.Now;
+                }
+            }
+            epochProcessed++;
+        }
+        ImportProgressChanged?.Invoke(this, new ImportProgressChangedArgs(DateTime.Now.Subtract(startTime), blocksProcessed, txProcessed, totalblocks, epochProcessed, eraStore.EpochCount));
+    }
+
+    private void InsertInBlockTree(Block b, TxReceipt[] r, bool insertBodies, bool insertReceipts, long bodyBarrier, long receiptBarrier)
+    {
+        InsertHeader(b.Header);
+
+        if (insertBodies && bodyBarrier < b.Number)
+        {
+            InsertBlock(b);
+            _blockTree.LowestInsertedBodyNumber = b.Number;
+        }
+        if (insertReceipts && receiptBarrier < b.Number)
+        {
+            InsertReceipts(b, r);
+        }
+    }
+
+    private void InsertHeader(BlockHeader header)
+    {
+        AddBlockResult result = _blockTree.Insert(header, BlockTreeInsertHeaderOptions.TotalDifficultyNotNeeded);
+        EnsureAddResult(result, typeof(BlockHeader));
+    }
     private void InsertBlock(Block block)
     {
-        _blockTree.Insert(block, BlockTreeInsertBlockOptions.SkipCanAcceptNewBlocks | BlockTreeInsertBlockOptions.SaveHeader, bodiesWriteFlags: WriteFlags.DisableWAL);
+        AddBlockResult result = _blockTree.Insert(block, BlockTreeInsertBlockOptions.SkipCanAcceptNewBlocks, bodiesWriteFlags: WriteFlags.DisableWAL);
+        EnsureAddResult(result, typeof(BlockBody));
     }
 
     private void InsertReceipts(Block block, TxReceipt[] receipts)
@@ -168,19 +285,23 @@ public class EraImporter : IEraImporter
     {
         var options = BlockTreeSuggestOptions.ShouldProcess;
         var addResult = await _blockTree.SuggestBlockAsync(block, options);
-        switch (addResult)
+        EnsureAddResult(addResult, typeof(Block));
+    }
+    private void EnsureAddResult(AddBlockResult result, Type added)
+    {
+        switch (result)
         {
             case AddBlockResult.CannotAccept:
-                throw new EraImportException("Rejected block in Era1 archive");
+                throw new EraImportException($"Rejected {added.Name} in Era1 archive");
             case AddBlockResult.UnknownParent:
-                throw new EraImportException("Unknown parent for block in Era1 archive");
+                throw new EraImportException($"Unknown parent for {added.Name} in Era1 archive");
             case AddBlockResult.InvalidBlock:
                 throw new EraImportException("Invalid block in Era1 archive");
             case AddBlockResult.AlreadyKnown:
             case AddBlockResult.Added:
                 break;
             default:
-                throw new NotSupportedException($"Not supported value of {nameof(AddBlockResult)} = {addResult}");
+                throw new NotSupportedException($"Not supported value of {nameof(AddBlockResult)} = {result}");
         }
     }
 
