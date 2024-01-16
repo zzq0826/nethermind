@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Eip2930;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Evm.CodeAnalysis;
@@ -28,7 +32,7 @@ namespace Nethermind.Evm.TransactionProcessing
         protected ILogger Logger { get; private init; }
         protected ISpecProvider SpecProvider { get; private init; }
         protected IWorldState WorldState { get; private init; }
-        protected IVirtualMachine VirtualMachine { get; private init; }
+        public IVirtualMachine VirtualMachine { get; private init; }
 
         [Flags]
         protected enum ExecutionOptions
@@ -496,6 +500,16 @@ namespace Nethermind.Evm.TransactionProcessing
                 {
                     if (spec.UseTxAccessLists)
                     {
+                        //if (tx.AccessList is not null)
+                        //{
+                        //    //Parallel.ForEach(FlattenAccessList(tx.AccessList), (storage) =>
+                        //    //{
+                        //        foreach (var storage in FlattenAccessList(tx.AccessList))
+                        //        {
+                        //            WorldState.CacheFromTree(storage.tree, in storage.cell);
+                        //        }
+                        //    //});
+                        //}
                         state.WarmUp(tx.AccessList); // eip-2930
                     }
 
@@ -585,6 +599,21 @@ namespace Nethermind.Evm.TransactionProcessing
                 header.GasUsed += spentGas;
 
             return true;
+        }
+        
+        private List<(StorageTree tree, StorageCell cell)> FlattenAccessList(AccessList accessList)
+        {
+            var list = new List<(StorageTree tree, StorageCell cell)>();
+            foreach (var group in accessList.GroupBy(ask => ask.Address))
+            {
+                StorageTree tree = WorldState.GetOrCreateStorage(group.Key);
+                foreach (UInt256 storage in group.SelectMany(x => x.StorageKeys))
+                {
+                    list.Add((tree, new StorageCell(group.Key, storage)));
+                }
+            }
+
+            return list;
         }
 
         protected virtual bool PayFees(Transaction tx, BlockHeader header, IReleaseSpec spec, ITxTracer tracer, in TransactionSubstate substate, in long spentGas, in UInt256 premiumPerGas, in byte statusCode)

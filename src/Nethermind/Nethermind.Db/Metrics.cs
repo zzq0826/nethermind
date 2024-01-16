@@ -60,6 +60,10 @@ namespace Nethermind.Db
 
         [CounterMetric]
         [Description("Number of State Trie reads.")]
+        public static int StateTreeCacheHits;
+
+        [CounterMetric]
+        [Description("Number of State Trie reads.")]
         public static long StateTreeReads { get; set; }
 
         [CounterMetric]

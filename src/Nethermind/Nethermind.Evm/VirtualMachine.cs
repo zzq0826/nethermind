@@ -63,6 +63,11 @@ public class VirtualMachine : IVirtualMachine
         where TTracingActions : struct, IIsTracing
         => _evm.Run<TTracingActions>(state, worldState, txTracer);
 
+    public void CacheCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec vmSpec)
+    {
+        _evm.CacheCodeInfo(worldState, codeSource, vmSpec);
+    }
+
     internal readonly ref struct CallResult
     {
         public static CallResult InvalidSubroutineEntry => new(EvmExceptionType.InvalidSubroutineEntry);
@@ -472,6 +477,27 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             }
 
             _parityTouchBugAccount.ShouldDelete = false;
+        }
+    }
+
+    public void CacheCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec vmSpec)
+    {
+        if (codeSource.IsPrecompile(vmSpec)) return;
+
+        Account? account = worldState.CacheFromTree(codeSource);
+        Hash256 codeHash = account is not null ? account.CodeHash : Keccak.OfAnEmptyString;
+        CodeInfo cachedCodeInfo = _codeCache.Get(codeHash);
+        if (cachedCodeInfo is null)
+        {
+            byte[] code = worldState.GetCode(codeHash);
+
+            if (code is null)
+            {
+                throw new NullReferenceException($"Code {codeHash} missing in the state for address {codeSource}");
+            }
+
+            cachedCodeInfo = new CodeInfo(code);
+            _codeCache.Set(codeHash, cachedCodeInfo);
         }
     }
 
@@ -1619,34 +1645,13 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                     }
                 case Instruction.SLOAD:
                     {
-                        Metrics.SloadOpcode++;
-                        gasAvailable -= spec.GetSLoadCost();
-
-                        if (!stack.PopUInt256(out result)) goto StackUnderflow;
-                        storageCell = new(env.ExecutingAccount, result);
-                        if (!ChargeStorageAccessGas(
-                            ref gasAvailable,
-                            vmState,
-                            in storageCell,
-                            StorageAccessType.SLOAD,
-                            spec)) goto OutOfGas;
-
-                        byte[] value = _state.Get(in storageCell);
-                        stack.PushBytes(value);
-
-                        if (typeof(TTracingStorage) == typeof(IsTracing))
-                        {
-                            _txTracer.LoadOperationStorage(storageCell.Address, result, value);
-                        }
+                        exceptionType = InstructionSLoad<TTracingInstructions, TTracingStorage>(vmState, ref stack, ref gasAvailable, spec);
+                        if (exceptionType != EvmExceptionType.None) goto ReturnFailure;
 
                         break;
                     }
                 case Instruction.SSTORE:
                     {
-                        Metrics.SstoreOpcode++;
-
-                        if (vmState.IsStatic) goto StaticCallViolation;
-
                         exceptionType = InstructionSStore<TTracingInstructions, TTracingRefunds, TTracingStorage>(vmState, ref stack, ref gasAvailable, spec);
                         if (exceptionType != EvmExceptionType.None) goto ReturnFailure;
 
@@ -2590,11 +2595,46 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
     }
 
     [SkipLocalsInit]
+    private EvmExceptionType InstructionSLoad<TTracingInstructions, TTracingStorage>(EvmState vmState, ref EvmStack<TTracingInstructions> stack, ref long gasAvailable, IReleaseSpec spec)
+        where TTracingInstructions : struct, IIsTracing
+        where TTracingStorage : struct, IIsTracing
+    {
+        // fail fast before the first storage read if gas is not enough even for reset
+        if (!spec.UseNetGasMetering && !UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return EvmExceptionType.OutOfGas;
+
+        Metrics.SloadOpcode++;
+        gasAvailable -= spec.GetSLoadCost();
+
+        if (!stack.PopUInt256(out UInt256 result)) return EvmExceptionType.StackUnderflow;
+        StorageCell storageCell = new(vmState.Env.ExecutingAccount, result);
+        if (!ChargeStorageAccessGas(
+            ref gasAvailable,
+            vmState,
+            in storageCell,
+            StorageAccessType.SLOAD,
+            spec)) return EvmExceptionType.OutOfGas;
+
+        byte[] value = _state.Get(in storageCell);
+        stack.PushBytes(value);
+
+        if (typeof(TTracingStorage) == typeof(IsTracing))
+        {
+            _txTracer.LoadOperationStorage(storageCell.Address, result, value);
+        }
+
+        return EvmExceptionType.None;
+    }
+
+    [SkipLocalsInit]
     private EvmExceptionType InstructionSStore<TTracingInstructions, TTracingRefunds, TTracingStorage>(EvmState vmState, ref EvmStack<TTracingInstructions> stack, ref long gasAvailable, IReleaseSpec spec)
         where TTracingInstructions : struct, IIsTracing
         where TTracingRefunds : struct, IIsTracing
         where TTracingStorage : struct, IIsTracing
     {
+        Metrics.SstoreOpcode++;
+
+        if (vmState.IsStatic) return EvmExceptionType.StaticCallViolation;
+
         // fail fast before the first storage read if gas is not enough even for reset
         if (!spec.UseNetGasMetering && !UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return EvmExceptionType.OutOfGas;
 
@@ -2626,7 +2666,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 StorageAccessType.SSTORE,
                 spec)) return EvmExceptionType.OutOfGas;
 
-        Span<byte> currentValue = _state.Get(in storageCell);
+        Span<byte> currentValue = _state.Get(in storageCell).AsSpan();
         // Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
         bool currentIsZero = currentValue.IsZero();
 
@@ -2656,7 +2696,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             }
             else // net metered, C != N
             {
-                Span<byte> originalValue = _state.GetOriginal(in storageCell);
+                Span<byte> originalValue = _state.GetOriginal(in storageCell).AsSpan();
                 bool originalIsZero = originalValue.IsZero();
 
                 bool currentSameAsOriginal = Bytes.AreEqual(originalValue, currentValue);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Net;
 using System.Runtime.CompilerServices;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
@@ -87,6 +88,12 @@ namespace Nethermind.State
             _stateProvider.Reset();
             _persistentStorageProvider.Reset();
             _transientStorageProvider.Reset();
+        }
+
+        public void ResetBaseCache()
+        {
+            _stateProvider.ResetBaseCache();
+            _persistentStorageProvider.ResetBaseCache();
         }
 
         public void ClearStorage(Address address)
@@ -186,6 +193,21 @@ namespace Nethermind.State
         public bool IsEmptyAccount(Address address)
         {
             return _stateProvider.IsEmptyAccount(address);
+        }
+
+        public StorageTree GetOrCreateStorage(Address address)
+        {
+            return _persistentStorageProvider.GetOrCreateStorage(address);
+        }
+
+        public Account? CacheFromTree(Address address)
+        {
+            return _stateProvider.GetStateFromTree(address);
+        }
+
+        public void CacheFromTree(StorageTree tree, in StorageCell storageCell)
+        {
+            _persistentStorageProvider.CacheFromTree(tree, in storageCell);
         }
 
         public bool HasStateForRoot(Hash256 stateRoot)

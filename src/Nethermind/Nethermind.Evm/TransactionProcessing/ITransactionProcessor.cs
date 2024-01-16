@@ -8,6 +8,7 @@ namespace Nethermind.Evm.TransactionProcessing;
 
 public interface ITransactionProcessor
 {
+    IVirtualMachine VirtualMachine { get; }
     /// <summary>
     /// Execute transaction, commit state
     /// </summary>

@@ -97,6 +97,11 @@ public interface IWorldState : IJournal<Snapshot>, IReadOnlyStateProvider
 
     void DecrementNonce(Address address);
 
+    StorageTree GetOrCreateStorage(Address address);
+
+    Account? CacheFromTree(Address address);
+    void CacheFromTree(StorageTree tree, in StorageCell storageCell);
+
     /* snapshots */
 
     void Commit(IReleaseSpec releaseSpec, bool isGenesis = false);
@@ -110,4 +115,5 @@ public interface IWorldState : IJournal<Snapshot>, IReadOnlyStateProvider
     /// </summary>
     /// <param name="codeHash"></param>
     void TouchCode(Hash256 codeHash);
+    void ResetBaseCache();
 }

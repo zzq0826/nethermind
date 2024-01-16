@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Core;
+using Nethermind.Core.Caching;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -25,6 +26,8 @@ namespace Nethermind.State
         private readonly ILogManager? _logManager;
         internal readonly IStorageTreeFactory _storageTreeFactory;
         private readonly ResettableDictionary<Address, StorageTree> _storages = new();
+        
+        private readonly LruCache<StorageCell, byte[]> _baseCache = new(4096, "Base cache");
 
         /// <summary>
         /// EIP-1283
@@ -170,6 +173,7 @@ namespace Nethermind.State
                         Db.Metrics.StorageTreeWrites++;
                         toUpdateRoots.Add(change.StorageCell.Address);
                         tree.Set(change.StorageCell.Index, change.Value);
+                        _baseCache.Set(change.StorageCell, change.Value);
                         if (isTracing)
                         {
                             trace![change.StorageCell] = new ChangeTrace(change.Value);
@@ -222,20 +226,40 @@ namespace Nethermind.State
             _storages.Reset();
         }
 
-        private StorageTree GetOrCreateStorage(Address address)
+        public StorageTree GetOrCreateStorage(Address address)
         {
             ref StorageTree? value = ref _storages.GetValueRefOrAddDefault(address, out bool exists);
             if (!exists)
             {
-                value = _storageTreeFactory.Create(address, _trieStore, _stateProvider.GetStorageRoot(address), StateRoot, _logManager);
+                value = _storageTreeFactory.Create(address, _trieStore, _stateProvider.GetAccount(address).StorageRoot, StateRoot, _logManager);
                 return value;
             }
 
             return value;
         }
 
+        public void CacheFromTree(StorageTree tree, in StorageCell storageCell)
+        {
+            Db.Metrics.StorageTreeReads++;
+
+            if (!storageCell.IsHash)
+            {
+                byte[] value = (tree.RootHash == Keccak.EmptyTreeHash) ? null : tree.Get(storageCell.Index);
+                _baseCache.Set(storageCell, value);
+            }
+        }
+
         private byte[] LoadFromTree(in StorageCell storageCell)
         {
+            if (!storageCell.IsHash)
+            {
+                if (_baseCache.TryGet(storageCell, out byte[] value))
+                {
+                    PushToRegistryOnly(storageCell, value);
+                    return value;
+                }
+            }
+
             StorageTree tree = GetOrCreateStorage(storageCell.Address);
 
             Db.Metrics.StorageTreeReads++;
@@ -293,6 +317,11 @@ namespace Nethermind.State
             // touched in this block, hence were not zeroed above
             // TODO: how does it work with pruning?
             _storages[address] = new StorageTree(_trieStore, Keccak.EmptyTreeHash, _logManager);
+        }
+
+        public void ResetBaseCache()
+        {
+            _baseCache.Clear();
         }
 
         private class StorageTreeFactory : IStorageTreeFactory

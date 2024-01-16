@@ -11,6 +11,7 @@ using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using Nethermind.State.Proofs;
 
 namespace Nethermind.State
 {

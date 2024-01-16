@@ -35,6 +35,7 @@ namespace Nethermind.Evm.TransactionProcessing
         public void Trace(Transaction transaction, in BlockExecutionContext blCtx, ITxTracer txTracer) =>
             _transactionProcessor.Trace(transaction, in blCtx, txTracer);
 
+        IVirtualMachine ITransactionProcessor.VirtualMachine => _transactionProcessor.VirtualMachine;
 
         public bool IsContractDeployed(Address address) => _stateProvider.IsContract(address);
 

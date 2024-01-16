@@ -10,6 +10,7 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Resettables;
 using Nethermind.Core.Specs;
+using Nethermind.Core.Threading;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -23,7 +24,7 @@ namespace Nethermind.State
 {
     internal class StateProvider
     {
-        private const int StartCapacity = Resettable.StartCapacity;
+        private const int StartCapacity = 2048;
         private readonly ResettableDictionary<Address, Stack<int>> _intraBlockCache = new();
         private readonly ResettableHashSet<Address> _committedThisRound = new();
         private readonly HashSet<Address> _nullAccountReads = new();
@@ -32,6 +33,7 @@ namespace Nethermind.State
         // False negatives are fine as they will just result in a overwrite set
         // False positives would be problematic as the code _must_ be persisted
         private readonly LruKeyCache<Hash256> _codeInsertFilter = new(2048, "Code Insert Filter");
+        private readonly LruCache<Address, Account?> _baseCache = new(65_536, "Base cache");
 
         private readonly List<Change> _keptInCache = new();
         private readonly ILogger _logger;
@@ -674,10 +676,17 @@ namespace Nethermind.State
             }
         }
 
-        private Account? GetState(Address address)
+        public Account? GetStateFromTree(Address address)
         {
+            if (_baseCache.TryGet(address, out Account? account))
+            {
+                Metrics.StateTreeCacheHits++;
+                return account;
+            }
+
             Metrics.StateTreeReads++;
-            Account? account = _tree.Get(address);
+            account = _tree.Get(address);
+            _baseCache.Set(address, account);
             return account;
         }
 
@@ -686,13 +695,15 @@ namespace Nethermind.State
             _needsStateRootUpdate = true;
             Metrics.StateTreeWrites++;
             _tree.Set(address, account);
+            _baseCache.Set(address, account);
         }
 
         private Account? GetAndAddToCache(Address address)
         {
             if (_nullAccountReads.Contains(address)) return null;
 
-            Account? account = GetState(address);
+            Account? account = GetStateFromTree(address);
+
             if (account is not null)
             {
                 PushJustCache(address, account);
@@ -838,6 +849,11 @@ namespace Nethermind.State
             Account changedAccount = account.WithChangedNonce(nonce);
             if (_logger.IsTrace) _logger.Trace($"  Update {address} N {account.Nonce} -> {changedAccount.Nonce}");
             PushUpdate(address, changedAccount);
+        }
+
+        public void ResetBaseCache()
+        {
+            _baseCache.Clear();
         }
     }
 }
