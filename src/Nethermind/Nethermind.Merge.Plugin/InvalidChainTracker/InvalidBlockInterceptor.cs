@@ -134,6 +134,6 @@ public class InvalidBlockInterceptor : IBlockValidator
         if (!BlockValidator.ValidateUnclesHashMatches(block, out Keccak _))
             return true;
 
-        return !BlockValidator.ValidateWithdrawalsHashMatches(block, out Keccak _);
+        return !BlockValidator.ValidateWithdrawalsHashMatches(block, out _);
     }
 }
