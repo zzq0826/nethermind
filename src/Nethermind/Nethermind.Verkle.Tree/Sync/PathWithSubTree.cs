@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Linq;
 using System.Numerics;
 using Nethermind.Core.Verkle;
 
@@ -15,7 +16,7 @@ public readonly struct PathWithSubTree(Stem stem, LeafInSubTree[] subTree)
 
     public bool Equals(in PathWithSubTree other)
     {
-        return Path == other.Path && SubTree == other.SubTree;
+        return Path == other.Path && SubTree.SequenceEqual(other.SubTree);
     }
 
     public bool Equals(PathWithSubTree other) => Equals(in other);

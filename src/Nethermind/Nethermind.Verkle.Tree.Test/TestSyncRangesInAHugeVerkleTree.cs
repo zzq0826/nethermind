@@ -292,7 +292,7 @@ public class TestSyncRangesInAHugeVerkleTree
                             pathPool[endHashIndex].Bytes.Slice(0,31).ToArray(),
                             remoteTree.StateRoot, 10000000)
                         .ToArray();
-                ProcessSubTreeRange(remoteTree, localTree, blockNumber, remoteTree.StateRoot, range);
+                ProcessSubTreeRange(remoteTree, localStore, blockNumber, remoteTree.StateRoot, range);
 
                 startingHashIndex = endHashIndex + 1;
             }
@@ -347,7 +347,7 @@ public class TestSyncRangesInAHugeVerkleTree
                 pathPool[startingHashIndex].Bytes.Slice(0,31).ToArray(),
                 pathPool[endHashIndex].Bytes.Slice(0,31).ToArray(),
                 remoteTree.StateRoot, 100000000).ToArray();
-            ProcessSubTreeRange(remoteTree, localTree, numBlocks1 + numBlocks2, remoteTree.StateRoot, range);
+            ProcessSubTreeRange(remoteTree, localStore, numBlocks1 + numBlocks2, remoteTree.StateRoot, range);
 
             startingHashIndex += 1000;
         }
@@ -409,7 +409,7 @@ public class TestSyncRangesInAHugeVerkleTree
         return data;
     }
 
-    private static void ProcessSubTreeRange(VerkleTree remoteTree, VerkleTree localTree, int blockNumber, Hash256 stateRoot, PathWithSubTree[] subTrees)
+    private static void ProcessSubTreeRange(VerkleTree remoteTree, IVerkleTreeStore localStore, int blockNumber, Hash256 stateRoot, PathWithSubTree[] subTrees)
     {
         Stem startingStem = subTrees[0].Path;
         Stem endStem = subTrees[^1].Path;
@@ -425,9 +425,14 @@ public class TestSyncRangesInAHugeVerkleTree
 
         VerkleProof newProof = TestProofSerialization(proof);
         SubTreeRangeMessage? newMessage = TestSubTreeRangeSerializer(message);
+        var newStore =
+            new VerkleTreeStore<PersistEveryBlock>(new MemDb(), new MemDb(), new MemDb(), LimboLogs.Instance);
 
+        var localTree = new VerkleTree(newStore, LimboLogs.Instance);
         bool isTrue = localTree.CreateStatelessTreeFromRange(newProof, root, startingStem, endStem, newMessage.PathsWithSubTrees);
-        Assert.IsTrue(isTrue);
+        Assert.That(isTrue, Is.True);
+        localStore.InsertSyncBatch(0, localTree._treeCache);
+        localStore.InsertRootNodeAfterSyncCompletion(stateRoot.BytesToArray(), 0);
     }
 
 
