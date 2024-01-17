@@ -2,13 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System.Buffers;
-using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using DotNetty.Buffers;
 using Nethermind.Core.Collections;
-using Org.BouncyCastle.Asn1.Cms;
 using Snappier;
 namespace Nethermind.Era1;
 
@@ -16,11 +13,6 @@ internal class E2Store : IDisposable
 {
     internal const int HeaderSize = 8;
     internal const int ValueSizeLimit = 1024 * 1024 * 50;
-
-    private static ReadOnlySpan<byte> SnappyHeader => new byte[]
-      {
-            0xff, 0x06, 0x00, 0x00, 0x73, 0x4e, 0x61, 0x50, 0x70, 0x59
-      };
 
     private readonly Stream _stream;
     private BlockIndex? _blockIndex;
@@ -84,12 +76,12 @@ internal class E2Store : IDisposable
         {
             //TODO find a way to write directly to file, and still return the number of bytes written
             EnsureCompressedStream(bytes.Length);
-            
+
             using SnappyStream compressor = new(_compressedData!, CompressionMode.Compress, true);
-            
+
             await compressor!.WriteAsync(bytes, cancellation);
             await compressor.FlushAsync();
-            
+
             bytes = _compressedData!.ToArray();
         }
 
