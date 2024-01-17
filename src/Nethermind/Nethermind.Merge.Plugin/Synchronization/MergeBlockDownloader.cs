@@ -130,7 +130,13 @@ namespace Nethermind.Merge.Plugin.Synchronization
             long currentNumber = _blockTree.BestKnownNumber;
             if (_logger.IsDebug)
                 _logger.Debug(
-                    $"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, BestSuggestedBody: {_blockTree.BestSuggestedBody?.Number}, BestKnownNumber: {_blockTree.BestKnownNumber}, BestPeer: {bestPeer}, BestKnownBeaconNumber {_blockTree.BestKnownBeaconNumber}");
+                    $"MergeBlockDownloader GetCurrentNumber: currentNumber {currentNumber}, " +
+                    $"beaconPivotExists: {_beaconPivot.BeaconPivotExists()}, " +
+                    $"BestSuggestedBody: {_blockTree.BestSuggestedBody?.Number}, " +
+                    $"BestKnownNumber: {_blockTree.BestKnownNumber}, BestPeer: {bestPeer}, " +
+                    $"BestKnownBeaconNumber {_blockTree.BestKnownBeaconNumber}, " +
+                    $"Opts: {blocksRequest.Options} {blocksRequest.NumberOfLatestBlocksToBeIgnored}" +
+                    $"CS: {new StackTrace()}");
 
             bool HasMoreToSync(out BlockHeader[]? headers, out int headersToRequest)
             {
