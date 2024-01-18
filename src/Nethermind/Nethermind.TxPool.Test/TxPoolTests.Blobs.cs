@@ -231,6 +231,47 @@ namespace Nethermind.TxPool.Test
         }
 
         [Test]
+        public async Task should_keep_blob_pool_capacity([Values(2, 4, 8, 16)] int size)
+        {
+            void SendTxs(PrivateKey privateKey)
+            {
+                EnsureSenderBalance(privateKey.Address, UInt256.MaxValue);
+
+                for (int i = 0; i < size; i++)
+                // for (int i = 0; i < 16; i++)
+                {
+                    Transaction tx = Build.A.Transaction
+                        .WithShardBlobTxTypeAndFields()
+                        .WithMaxFeePerGas(1.GWei())
+                        .WithMaxPriorityFeePerGas(1.GWei())
+                        .WithNonce((UInt256)i)
+                        .SignedAndResolved(_ethereumEcdsa, privateKey).TestObject;
+
+                    if (i == 8)
+                    {
+                        string txs = "dawaaaaj";
+                        if (txs.Length == 2) continue;
+                    }
+                    _txPool.SubmitTx(tx, TxHandlingOptions.None);
+                }
+            }
+
+            _txPool = CreatePool(new TxPoolConfig() { BlobsSupport = BlobsSupportMode.StorageWithReorgs, PersistentBlobStorageSize = size }, GetCancunSpecProvider());
+
+            var firstTask = Task.Run(() => SendTxs(TestItem.PrivateKeyA));
+            var secondTask = Task.Run(() => SendTxs(TestItem.PrivateKeyB));
+            var thirdTask = Task.Run(() => SendTxs(TestItem.PrivateKeyC));
+            var fourthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyD));
+            var fifthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyE));
+            var sixthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyF));
+
+            await Task.WhenAll(firstTask, secondTask, thirdTask, fourthTask, fifthTask, sixthTask);
+
+            // await firstTask;
+            _txPool.GetPendingBlobTransactionsCount().Should().Be(size);
+        }
+
+        [Test]
         public void should_not_allow_to_have_pending_transactions_of_both_blob_type_and_other([Values(true, false)] bool firstIsBlob, [Values(true, false)] bool secondIsBlob)
         {
             Transaction GetTx(bool isBlob, UInt256 nonce)
