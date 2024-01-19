@@ -69,6 +69,10 @@ namespace Nethermind.Db
         [CounterMetric]
         [Description("Number of Blocks Trie writes.")]
         public static long StateTreeWrites { get; set; }
+        
+        [CounterMetric]
+        [Description("Number of readonly (txPool) State DB reads.")]
+        public static int ReadOnlyStateTreeReads;
 
         [CounterMetric]
         [Description("Number of State DB reads.")]
