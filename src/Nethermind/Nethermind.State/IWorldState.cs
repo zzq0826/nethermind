@@ -110,4 +110,5 @@ public interface IWorldState : IJournal<Snapshot>, IReadOnlyStateProvider
     /// </summary>
     /// <param name="codeHash"></param>
     void TouchCode(Hash256 codeHash);
+    void ResetInterBlockCache();
 }
