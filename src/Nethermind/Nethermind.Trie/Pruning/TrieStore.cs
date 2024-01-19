@@ -395,6 +395,9 @@ namespace Nethermind.Trie.Pruning
             {
                 _pruningTask = Task.Run(() =>
                 {
+                    // Delay pruning by about 2 second so that it does not execute during block processing or block
+                    // production
+                    Thread.Sleep(2000);
                     try
                     {
                         lock (_dirtyNodes)
