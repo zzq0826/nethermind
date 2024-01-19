@@ -83,6 +83,10 @@ namespace Nethermind.Db
         public static long StateDbReads { get; set; }
 
         [CounterMetric]
+        [Description("Number of State DB cache hits.")]
+        public static long StorageTreeCacheHits;
+
+        [CounterMetric]
         [Description("Number of State DB writes.")]
         public static long StateDbWrites { get; set; }
 
