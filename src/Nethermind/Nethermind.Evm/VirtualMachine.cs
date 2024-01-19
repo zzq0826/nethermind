@@ -1647,26 +1647,8 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
                     }
                 case Instruction.SLOAD:
                     {
-                        Metrics.SloadOpcode++;
-                        gasAvailable -= spec.GetSLoadCost();
-
-                        if (!stack.PopUInt256(out result)) goto StackUnderflow;
-                        storageCell = new(env.ExecutingAccount, result);
-                        if (!ChargeStorageAccessGas(
-                            ref gasAvailable,
-                            vmState,
-                            in storageCell,
-                            StorageAccessType.SLOAD,
-                            spec)) goto OutOfGas;
-
-                        byte[] value = _state.Get(in storageCell);
-                        stack.PushBytes(value);
-
-                        if (typeof(TTracingStorage) == typeof(IsTracing))
-                        {
-                            _txTracer.LoadOperationStorage(storageCell.Address, result, value);
-                        }
-
+                        exceptionType = InstructionSLoad<TTracingInstructions, TTracingRefunds, TTracingStorage>(vmState, ref stack, ref gasAvailable, spec);
+                        if (exceptionType != EvmExceptionType.None) goto ReturnFailure;
                         break;
                     }
                 case Instruction.SSTORE:
@@ -2605,6 +2587,36 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
             data.ToArray(),
             topics);
         vmState.Logs.Add(logEntry);
+
+        return EvmExceptionType.None;
+    }
+
+
+    [SkipLocalsInit]
+    private EvmExceptionType InstructionSLoad<TTracingInstructions, TTracingRefunds, TTracingStorage>(EvmState vmState, ref EvmStack<TTracingInstructions> stack, ref long gasAvailable, IReleaseSpec spec)
+        where TTracingInstructions : struct, IIsTracing
+        where TTracingRefunds : struct, IIsTracing
+        where TTracingStorage : struct, IIsTracing
+    {
+        Metrics.SloadOpcode++;
+        gasAvailable -= spec.GetSLoadCost();
+
+        if (!stack.PopUInt256(out UInt256 result)) return EvmExceptionType.StackUnderflow;
+        StorageCell storageCell = new(vmState.Env.ExecutingAccount, result);
+        if (!ChargeStorageAccessGas(
+            ref gasAvailable,
+            vmState,
+            in storageCell,
+            StorageAccessType.SLOAD,
+            spec)) return EvmExceptionType.OutOfGas;
+
+        byte[] value = _state.Get(in storageCell);
+        stack.PushBytes(value);
+
+        if (typeof(TTracingStorage) == typeof(IsTracing))
+        {
+            _txTracer.LoadOperationStorage(storageCell.Address, result, value);
+        }
 
         return EvmExceptionType.None;
     }
