@@ -22,12 +22,7 @@ public class RocksDbFactory : IDbFactory
 
     static RocksDbFactory()
     {
-        // Pre-load rocksdb from the internal location
-        string? rocksDbLocation = NativeLibraryHelpers.GetLibraryLocation(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? "", "rocksdb");
-        if (rocksDbLocation is not null)
-        {
-            NativeLibrary.Load(rocksDbLocation);
-        }
+       
     }
 
     public RocksDbFactory(IDbConfig dbConfig, ILogManager logManager, string basePath)

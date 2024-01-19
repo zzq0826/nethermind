@@ -57,6 +57,13 @@ public static class Program
 
     public static void Main(string[] args)
     {
+        // Pre-load rocksdb from the internal location
+        string? rocksDbLocation = NativeLibraryHelpers.GetLibraryLocation(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? "", "rocksdb");
+        if (rocksDbLocation is not null)
+        {
+            NativeLibrary.Load(rocksDbLocation);
+        }
+
         // Increase regex cache size as more added in log coloring matches
         Regex.CacheSize = 128;
 #if !DEBUG

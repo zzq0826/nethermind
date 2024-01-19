@@ -5,7 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Nethermind.Db.Rocks;
-internal class NativeLibraryHelpers
+public class NativeLibraryHelpers
 {
     public static string? GetLibraryLocation(string runtimesDirectoryLocation, string libraryName)
     {
