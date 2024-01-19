@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Nethermind.Core;
+using Nethermind.Core.Caching;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -25,6 +26,7 @@ namespace Nethermind.State
         private readonly ILogManager? _logManager;
         internal readonly IStorageTreeFactory _storageTreeFactory;
         private readonly ResettableDictionary<Address, StorageTree> _storages = new();
+        private readonly LruCache<StorageCell, byte[]> _interBlockCache = new(65_536, "Base cache");
 
         /// <summary>
         /// EIP-1283
@@ -170,6 +172,7 @@ namespace Nethermind.State
                         Db.Metrics.StorageTreeWrites++;
                         toUpdateRoots.Add(change.StorageCell.Address);
                         tree.Set(change.StorageCell.Index, change.Value);
+                        _interBlockCache.Set(change.StorageCell, change.Value);
                         if (isTracing)
                         {
                             trace![change.StorageCell] = new ChangeTrace(change.Value);
@@ -236,6 +239,16 @@ namespace Nethermind.State
 
         private byte[] LoadFromTree(in StorageCell storageCell)
         {
+            if (!storageCell.IsHash)
+            {
+                if (_interBlockCache.TryGet(storageCell, out byte[] value))
+                {
+                    Db.Metrics.StorageTreeCacheHits++;
+                    PushToRegistryOnly(storageCell, value);
+                    return value;
+                }
+            }
+
             StorageTree tree = GetOrCreateStorage(storageCell.Address);
 
             Db.Metrics.StorageTreeReads++;
@@ -297,6 +310,7 @@ namespace Nethermind.State
 
         public void ResetInterBlockCache()
         {
+            _interBlockCache.Clear();
         }
 
         private class StorageTreeFactory : IStorageTreeFactory
