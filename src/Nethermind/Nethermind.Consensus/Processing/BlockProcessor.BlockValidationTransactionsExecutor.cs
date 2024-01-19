@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+
 using Nethermind.Core;
 using Nethermind.Core.Specs;
 using Nethermind.Evm;
@@ -36,11 +39,32 @@ namespace Nethermind.Consensus.Processing
             {
                 Evm.Metrics.ResetBlockStats();
                 BlockExecutionContext blkCtx = new(block.Header);
-                for (int i = 0; i < block.Transactions.Length; i++)
+                var txs = block.Transactions;
+
+                IVirtualMachine virtualMachine = _transactionProcessor.VirtualMachine;
+                IEnumerable<(Address address, bool eao)> addresses = txs.Select(tx => (address: tx.SenderAddress, eao: true))
+                    .Concat(txs.Select(t => (address: t.To, eao: false)))
+                    .Concat(txs.Where(tx => tx.AccessList is not null && !tx.AccessList.IsEmpty).SelectMany(tx => tx.AccessList).Select(al => (address: al.Address, eao: false)))
+                    .Where(a => a.address is not null)
+                    .OrderBy(a => a.address)
+                    .DistinctBy(a => a.address);
+
+                Parallel.ForEach(addresses, (data) =>
                 {
-                    Transaction currentTx = block.Transactions[i];
+                    var account = _stateProvider.GetStateFromTreeAndCache(data.address);
+                    if (account is not null && !data.eao)
+                    {
+                        var codeInfo = virtualMachine.CacheCodeInfo(_stateProvider, data.address, account.CodeHash, spec);
+                        codeInfo?.Execute();
+                    }
+                });
+
+                for (int i = 0; i < txs.Length; i++)
+                {
+                    Transaction currentTx = txs[i];
                     ProcessTransaction(in blkCtx, currentTx, i, receiptsTracer, processingOptions);
                 }
+
                 return receiptsTracer.TxReceipts.ToArray();
             }
 

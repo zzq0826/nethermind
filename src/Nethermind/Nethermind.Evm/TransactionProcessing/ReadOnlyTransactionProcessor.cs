@@ -15,6 +15,8 @@ namespace Nethermind.Evm.TransactionProcessing
         private readonly IWorldState _stateProvider;
         private readonly Hash256 _stateBefore;
 
+        public IVirtualMachine VirtualMachine => _transactionProcessor.VirtualMachine;
+
         public ReadOnlyTransactionProcessor(ITransactionProcessor transactionProcessor, IWorldState stateProvider, Hash256 startState)
         {
             _transactionProcessor = transactionProcessor ?? throw new ArgumentNullException(nameof(transactionProcessor));

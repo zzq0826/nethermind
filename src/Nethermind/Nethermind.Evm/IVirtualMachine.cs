@@ -19,5 +19,6 @@ namespace Nethermind.Evm
 
         CodeInfo GetCachedCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec spec);
         void InsertCode(byte[] code, Address codeOwner, IReleaseSpec spec);
+        CodeInfo? CacheCodeInfo(IWorldState stateProvider, Address address, Hash256 codeHash, IReleaseSpec spec);
     }
 }

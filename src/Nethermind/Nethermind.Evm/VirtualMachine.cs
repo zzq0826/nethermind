@@ -126,6 +126,11 @@ public class VirtualMachine : IVirtualMachine
         }.ToFrozenDictionary();
     }
 
+    public CodeInfo? CacheCodeInfo(IWorldState stateProvider, Address address, Hash256 codeHash, IReleaseSpec spec)
+    {
+        return _evm.CacheCodeInfo(stateProvider, address, codeHash, spec);
+    }
+
     internal readonly ref struct CallResult
     {
         public static CallResult InvalidSubroutineEntry => new(EvmExceptionType.InvalidSubroutineEntry);
@@ -522,6 +527,40 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
 
             _parityTouchBugAccount.ShouldDelete = false;
         }
+    }
+
+    public CodeInfo? CacheCodeInfo(IWorldState worldState, Address codeSource, Hash256 codeHash, IReleaseSpec vmSpec)
+    {
+        if (codeSource.IsPrecompile(vmSpec))
+        {
+            return null;
+        }
+
+        CodeInfo cachedCodeInfo = null;
+        if (ReferenceEquals(codeHash, Keccak.OfAnEmptyString))
+        {
+            cachedCodeInfo = CodeInfo.Empty;
+        }
+
+        cachedCodeInfo ??= CodeCache.Get(codeHash);
+        if (cachedCodeInfo is null)
+        {
+            byte[] code = worldState.GetCode(codeHash);
+
+            if (code is null)
+            {
+                return null;
+            }
+
+            cachedCodeInfo = new CodeInfo(code);
+            CodeCache.Set(codeHash, cachedCodeInfo);
+        }
+        else
+        {
+            Db.Metrics.CodeDbCache++;
+        }
+
+        return cachedCodeInfo;
     }
 
     public CodeInfo GetCachedCodeInfo(IWorldState worldState, Address codeSource, IReleaseSpec vmSpec)

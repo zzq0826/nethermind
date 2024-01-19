@@ -296,22 +296,26 @@ namespace Nethermind.Trie
         {
             try
             {
+                CappedArray<byte> fullRlp = FullRlp;
+                var keccak = Keccak;
                 if (NodeType == NodeType.Unknown)
                 {
-                    if (FullRlp.IsNull)
+                    if (fullRlp.IsNull)
                     {
-                        if (Keccak is null)
+                        if (keccak is null)
                         {
                             ThrowMissingKeccak();
                         }
 
-                        FullRlp = tree.LoadRlp(Keccak, readFlags);
+                        fullRlp = tree.LoadRlp(keccak, readFlags);
                         IsPersisted = true;
 
-                        if (FullRlp.IsNull)
+                        if (fullRlp.IsNull)
                         {
                             ThrowNullRlp();
                         }
+
+                        FullRlp = fullRlp;
                     }
                 }
                 else
@@ -319,12 +323,14 @@ namespace Nethermind.Trie
                     return;
                 }
 
-                _rlpStream = FullRlp.AsRlpStream();
-                if (_rlpStream is null)
+                var rlpStream = fullRlp.AsRlpStream();
+                if (rlpStream is null)
                 {
                     ThrowInvalidStateException();
                     return;
                 }
+
+                _rlpStream = rlpStream;
 
                 if (!DecodeRlp(bufferPool, out int numberOfItems))
                 {

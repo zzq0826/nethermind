@@ -674,7 +674,7 @@ namespace Nethermind.State
             }
         }
 
-        private Account? GetState(Address address)
+        public Account? GetStateFromTreeAndCache(Address address)
         {
             if (_interBlockCache.TryGet(address, out Account? account))
             {
@@ -700,7 +700,7 @@ namespace Nethermind.State
         {
             if (_nullAccountReads.Contains(address)) return null;
 
-            Account? account = GetState(address);
+            Account? account = GetStateFromTreeAndCache(address);
             if (account is not null)
             {
                 PushJustCache(address, account);

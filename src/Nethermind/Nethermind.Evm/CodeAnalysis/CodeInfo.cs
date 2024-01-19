@@ -42,7 +42,7 @@ namespace Nethermind.Evm.CodeAnalysis
             return _analyzer.ValidateJump(destination, isSubroutine);
         }
 
-        void IThreadPoolWorkItem.Execute()
+        public void Execute()
         {
             _analyzer.Execute();
         }

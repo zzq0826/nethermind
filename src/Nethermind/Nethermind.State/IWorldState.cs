@@ -111,4 +111,5 @@ public interface IWorldState : IJournal<Snapshot>, IReadOnlyStateProvider
     /// <param name="codeHash"></param>
     void TouchCode(Hash256 codeHash);
     void ResetInterBlockCache();
+    Account? GetStateFromTreeAndCache(Address address);
 }

@@ -30,7 +30,7 @@ namespace Nethermind.Evm.TransactionProcessing
         protected ILogger Logger { get; private init; }
         protected ISpecProvider SpecProvider { get; private init; }
         protected IWorldState WorldState { get; private init; }
-        protected IVirtualMachine VirtualMachine { get; private init; }
+        public IVirtualMachine VirtualMachine { get; private init; }
 
         [Flags]
         protected enum ExecutionOptions

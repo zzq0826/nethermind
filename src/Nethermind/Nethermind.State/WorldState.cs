@@ -246,5 +246,10 @@ namespace Nethermind.State
         {
             _stateProvider.CreateAccountIfNotExists(address, balance, nonce);
         }
+
+        public Account? GetStateFromTreeAndCache(Address address)
+        {
+            return _stateProvider.GetStateFromTreeAndCache(address);
+        }
     }
 }

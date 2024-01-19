@@ -26,5 +26,7 @@ namespace Nethermind.Evm.TransactionProcessing
         {
             CurrentAdapter.Execute(transaction, in blkCtx, txTracer);
         }
+
+        public IVirtualMachine VirtualMachine => CurrentAdapter.VirtualMachine;
     }
 }
