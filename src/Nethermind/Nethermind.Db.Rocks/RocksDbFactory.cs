@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Nethermind.Db.Rocks.Config;
 using Nethermind.Logging;
 
@@ -16,6 +19,16 @@ public class RocksDbFactory : IDbFactory
     private readonly string _basePath;
 
     private readonly IntPtr _sharedCache;
+
+    static RocksDbFactory()
+    {
+        // Pre-load rocksdb from the internal location
+        string? rocksDbLocation = NativeLibraryHelpers.GetLibraryLocation(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? "", "rocksdb");
+        if (rocksDbLocation is not null)
+        {
+            NativeLibrary.Load(rocksDbLocation);
+        }
+    }
 
     public RocksDbFactory(IDbConfig dbConfig, ILogManager logManager, string basePath)
     {
