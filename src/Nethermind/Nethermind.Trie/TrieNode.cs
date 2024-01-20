@@ -285,7 +285,6 @@ namespace Nethermind.Trie
         /// </summary>
         public void Seal()
         {
-
             if (Interlocked.Exchange(ref _isDirty, 0) == 0)
             {
                 ThrowAlreadySealed();
