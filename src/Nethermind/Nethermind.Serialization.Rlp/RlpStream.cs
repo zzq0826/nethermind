@@ -54,7 +54,7 @@ namespace Nethermind.Serialization.Rlp
 
         public RlpStream Clone()
         {
-            return new (_data);
+            return new(_data);
         }
 
         public void Encode(Block value)

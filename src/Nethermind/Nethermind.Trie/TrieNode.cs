@@ -285,7 +285,7 @@ namespace Nethermind.Trie
         /// </summary>
         public void Seal()
         {
-            
+
             if (Interlocked.Exchange(ref _isDirty, 0) == 0)
             {
                 ThrowAlreadySealed();
@@ -298,7 +298,7 @@ namespace Nethermind.Trie
                 throw new InvalidOperationException($"{nameof(TrieNode)} {this} is already sealed.");
             }
         }
-        
+
         public void ResolveNode(ITrieNodeResolver tree, ReadFlags readFlags = ReadFlags.None, ICappedArrayPool? bufferPool = null)
         {
             if (NodeType != NodeType.Unknown) return;
@@ -451,7 +451,7 @@ namespace Nethermind.Trie
                     NodeType = NodeType.Extension;
                     Key = key;
                 }
-                
+
                 Volatile.Write(ref _isDirty, isDirtyActual);
             }
             else
@@ -575,8 +575,8 @@ namespace Nethermind.Trie
                 return false;
             }
 
-            rlpStream= rlpStream.Clone();
-            SeekChild(rlpStream,i);
+            rlpStream = rlpStream.Clone();
+            SeekChild(rlpStream, i);
             (_, int length) = rlpStream.PeekPrefixAndContentLength();
             if (length == 32 && rlpStream.DecodeValueKeccak(out keccak))
             {
@@ -592,7 +592,7 @@ namespace Nethermind.Trie
             {
                 ThrowNotABranch();
             }
-            
+
             RlpStream rlpStream = _rlpStream;
             if (rlpStream is not null && _data?[i] is null)
             {
