@@ -91,7 +91,7 @@ namespace Nethermind.Trie.Pruning
                 return trieNode;
             }
 
-            private readonly ConcurrentDictionary<Key, TrieNode> _byKeyObjectCache = new();
+            private readonly ShardedDictionary<Key, TrieNode> _byKeyObjectCache = new(1028);
             private readonly ConcurrentDictionary<ValueHash256, TrieNode> _byHashObjectCache = new();
 
             public bool IsNodeCached(in Key key)
@@ -225,7 +225,7 @@ namespace Nethermind.Trie.Pruning
             {
                 public bool _storeByHash;
                 public ConcurrentDictionaryLock<ValueHash256, TrieNode>.Lock _byHashLock;
-                public ConcurrentDictionaryLock<Key, TrieNode>.Lock _byKeyLock;
+                public ShardedDictionary<Key, TrieNode>.GlobalLock _byKeyLock;
 
                 public void Dispose()
                 {
