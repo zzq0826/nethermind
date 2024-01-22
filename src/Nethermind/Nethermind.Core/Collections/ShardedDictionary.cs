@@ -19,7 +19,7 @@ public class ShardedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TV
     public ShardedDictionary(int shardCount)
     {
         _shardCount = shardCount;
-        _globalLock = new ReaderWriterLockSlim();
+        _globalLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         _locks = new McsLock[shardCount];
         _dictionaries = new Dictionary<TKey, TValue>[shardCount];
         for (int i = 0; i < shardCount; i++)
