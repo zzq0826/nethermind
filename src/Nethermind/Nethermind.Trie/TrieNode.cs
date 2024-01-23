@@ -487,11 +487,7 @@ namespace Nethermind.Trie
 
         public Hash256? GenerateKey(ITrieNodeResolver tree, bool isRoot, ICappedArrayPool? bufferPool = null)
         {
-            Hash256? keccak = Keccak;
-            if (keccak is not null)
-            {
-                return keccak;
-            }
+            Debug.Assert(Keccak is not null); // Already checked in calling method
 
             RlpFactory rlp = _rlp;
             if (rlp is null || IsDirty)

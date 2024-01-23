@@ -182,6 +182,7 @@ namespace Nethermind.Core.Crypto
 
         public bool Equals(Hash256? other)
         {
+            if (ReferenceEquals(this, other)) return true;
             if (other is null)
             {
                 return false;
@@ -207,6 +208,7 @@ namespace Nethermind.Core.Crypto
 
         public static bool operator ==(Hash256? a, Hash256? b)
         {
+            if (ReferenceEquals(a, b)) return true;
             if (a is null)
             {
                 return b is null;
