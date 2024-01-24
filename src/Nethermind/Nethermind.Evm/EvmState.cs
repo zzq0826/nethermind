@@ -28,10 +28,12 @@ namespace Nethermind.Evm
             public StackPool(int maxCallStackDepth = VirtualMachine.MaxCallDepth * 2)
             {
                 _maxCallStackDepth = maxCallStackDepth;
+                _dataStackPool = new(_maxCallStackDepth);
+                _returnStackPool = new(_maxCallStackDepth);
             }
 
-            private readonly ConcurrentStack<byte[]> _dataStackPool = new();
-            private readonly ConcurrentStack<int[]> _returnStackPool = new();
+            private readonly Stack<byte[]> _dataStackPool;
+            private readonly Stack<int[]> _returnStackPool;
 
             private int _dataStackPoolDepth;
             private int _returnStackPoolDepth;
