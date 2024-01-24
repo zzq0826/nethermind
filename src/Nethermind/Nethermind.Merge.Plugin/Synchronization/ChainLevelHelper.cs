@@ -176,6 +176,7 @@ public class ChainLevelHelper : IChainLevelHelper
     private long? GetStartingPoint()
     {
         long startingPoint = Math.Min(_blockTree.BestKnownNumber + 1, _beaconPivot.ProcessDestination?.Number ?? long.MaxValue);
+        startingPoint = Math.Max(startingPoint, _syncConfig.PivotNumberParsed);
         bool shouldContinue;
 
         if (_logger.IsTrace) _logger.Trace($"ChainLevelHelper. starting point's starting point is {startingPoint}. Best known number: {_blockTree.BestKnownNumber}, Process destination: {_beaconPivot.ProcessDestination?.Number}");
