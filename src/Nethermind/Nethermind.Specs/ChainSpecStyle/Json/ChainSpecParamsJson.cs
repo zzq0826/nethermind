@@ -148,4 +148,5 @@ internal class ChainSpecParamsJson
     public UInt256? Eip4844MinBlobGasPrice { get; set; }
     public ulong? Eip4844TargetBlobGasPerBlock { get; set; }
     public ulong? Eip6800TransitionTimestamp { get; set; }
+    public ulong? Eip2935TransitionTimestamp { get; set; }
 }

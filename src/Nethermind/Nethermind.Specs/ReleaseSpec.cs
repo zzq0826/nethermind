@@ -65,6 +65,14 @@ namespace Nethermind.Specs
         public bool IsEip3529Enabled { get; set; }
         public bool IsEip3607Enabled { get; set; }
         public bool IsEip3541Enabled { get; set; }
+        public bool IsEip2935Enabled { get; set; }
+
+        private Address _eip2935ContractAddress;
+        public Address Eip2935ContractAddress
+        {
+            get => IsEip2935Enabled ? _eip2935ContractAddress : null;
+            set => _eip2935ContractAddress = value;
+        }
         public bool ValidateChainId { get; set; }
         public bool ValidateReceipts { get; set; }
         public long Eip1559TransitionBlock { get; set; }

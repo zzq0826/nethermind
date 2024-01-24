@@ -283,6 +283,9 @@ namespace Nethermind.Core.Specs
         /// </summary>
         bool IsVerkleTreeEipEnabled { get; }
 
+        bool IsEip2935Enabled { get; }
+        Address Eip2935ContractAddress { get; }
+
         /// <summary>
         /// Should transactions be validated against chainId.
         /// </summary>
