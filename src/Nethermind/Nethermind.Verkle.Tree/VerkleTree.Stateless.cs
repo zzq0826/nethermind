@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -19,19 +20,19 @@ namespace Nethermind.Verkle.Tree;
 
 public partial class VerkleTree
 {
-    private void InsertStemBatchStateless(in Stem stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    private void InsertStemBatchStateless(in Stem stem, List<SuffixStateDiff> leafIndexValueMap)
     {
         InsertStemBatchStateless(stem.BytesAsSpan, leafIndexValueMap);
     }
 
-    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, IEnumerable<LeafInSubTree> leafIndexValueMap)
+    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, List<SuffixStateDiff> leafIndexValueMap)
     {
         Span<byte> key = new byte[32];
         stem.CopyTo(key);
-        foreach (LeafInSubTree leaf in leafIndexValueMap)
+        foreach (SuffixStateDiff leaf in leafIndexValueMap)
         {
-            key[31] = leaf.SuffixByte;
-            SetLeafCache(new Hash256(key.ToArray()), leaf.Leaf);
+            key[31] = leaf.Suffix;
+            SetLeafCache(new Hash256(key.ToArray()), leaf.CurrentValue);
         }
     }
 
@@ -80,7 +81,7 @@ public partial class VerkleTree
     }
 
     private void InsertStemBatchForSync(Dictionary<byte[], List<byte[]>> stemBatch,
-        IDictionary<List<byte>, Banderwagon> commByPath)
+        IDictionary<byte[], Banderwagon> commByPath)
     {
         foreach (KeyValuePair<byte[], List<byte[]>> prefixWithStem in stemBatch)
         {
@@ -94,7 +95,7 @@ public partial class VerkleTree
                 TraverseBranch(context);
             }
 
-            commByPath[new List<byte>(prefixWithStem.Key)] = GetInternalNode(prefixWithStem.Key)!
+            commByPath[prefixWithStem.Key] = GetInternalNode(prefixWithStem.Key)!
                 .InternalCommitment.Point;
         }
     }
@@ -128,7 +129,8 @@ public partial class VerkleTree
 
     public bool InsertIntoStatelessTree(ExecutionWitness? execWitness, Banderwagon root, bool skipRoot = false)
     {
-        if (execWitness is null || execWitness.VerkleProof is null)
+        // when witness or proof is null that means there is no access values and just save the root
+        if (execWitness?.VerkleProof is null)
         {
             if (!skipRoot)
             {
@@ -151,8 +153,7 @@ public partial class VerkleTree
         AddStatelessInternalNodes(updateHint.Value);
 
         foreach (StemStateDiff stemStateDiff in execWitness.StateDiff)
-            InsertStemBatchStateless(stemStateDiff.Stem,
-                stemStateDiff.SuffixDiffs.Select(x => new LeafInSubTree(x.Suffix, x.CurrentValue)));
+            InsertStemBatchStateless(stemStateDiff.Stem, stemStateDiff.SuffixDiffs);
 
         CommitTree(0);
         return true;
@@ -167,7 +168,7 @@ public partial class VerkleTree
             for (var i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem.Bytes[i]);
-                InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList]));
+                InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList.ToArray()]));
                 SetInternalNode(pathList.ToArray(), node);
             }
 
@@ -183,20 +184,20 @@ public partial class VerkleTree
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.DifferentStem:
-                    Stem otherStem = hint.DifferentStemNoProof[pathList];
-                    Commitment otherInternalCommitment = new(hint.CommByPath[pathList]);
+                    Stem otherStem = hint.DifferentStemNoProof[pathList.ToArray()];
+                    Commitment otherInternalCommitment = new(hint.CommByPath[pathList.ToArray()]);
                     stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.Present:
-                    Commitment internalCommitment = new(hint.CommByPath[pathList]);
+                    Commitment internalCommitment = new(hint.CommByPath[pathList.ToArray()]);
                     Commitment? c1 = null;
                     Commitment? c2 = null;
 
                     pathList.Add(2);
-                    if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c1B)) c1 = new Commitment(c1B);
+                    if (hint.CommByPath.TryGetValue(pathList.ToArray(), out Banderwagon c1B)) c1 = new Commitment(c1B);
                     pathList[^1] = 3;
-                    if (hint.CommByPath.TryGetValue(pathList, out Banderwagon c2B)) c2 = new Commitment(c2B);
+                    if (hint.CommByPath.TryGetValue(pathList.ToArray(), out Banderwagon c2B)) c2 = new Commitment(c2B);
 
                     stemNode = VerkleNodes.CreateStatelessStemNode(stem, c1, c2, internalCommitment, false);
                     pathOfStem = new byte[pathList.Count - 1];
@@ -233,10 +234,10 @@ public partial class VerkleTree
             if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i].Bytes);
         }
 
-        SortedSet<List<byte>> allPaths = new(new ListComparer());
-        SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
-        Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
-        SortedDictionary<List<byte>, byte[]> otherStemsByPrefix = new(new ListComparer());
+        SortedSet<byte[]> allPaths = new(new ByteListComparer());
+        SortedSet<(byte[], byte)> allPathsAndZs = new(new ListWithByteComparer());
+        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
+        SortedDictionary<byte[], byte[]> otherStemsByPrefix = new(new ByteListComparer());
 
         var prefixLength = 0;
         while (prefixLength < Stem.Size)
@@ -252,10 +253,10 @@ public partial class VerkleTree
 
             for (var i = 0; i < depth; i++)
             {
-                allPaths.Add(new List<byte>(stem.Bytes[..i]));
+                allPaths.Add(stem.Bytes[..i]);
                 if (i < prefixLength)
                 {
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..i]), stem.Bytes[i]));
+                    allPathsAndZs.Add((stem.Bytes[..i], stem.Bytes[i]));
                     continue;
                 }
 
@@ -268,16 +269,16 @@ public partial class VerkleTree
                 }
 
                 for (var j = startIndex; j <= endIndex; j++)
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..i]), (byte)j));
+                    allPathsAndZs.Add((stem.Bytes[..i], (byte)j));
             }
 
             switch (extPres)
             {
                 case ExtPresent.DifferentStem:
 
-                    allPaths.Add(new List<byte>(stem.Bytes[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 1));
+                    allPaths.Add(stem.Bytes[..depth]);
+                    allPathsAndZs.Add((stem.Bytes[..depth], 0));
+                    allPathsAndZs.Add((stem.Bytes[..depth], 1));
 
                     byte[] otherStem;
 
@@ -295,8 +296,8 @@ public partial class VerkleTree
                             otherStem = encounteredStem;
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
-                            leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 0)] = FrE.One;
-                            leafValuesByPathAndZ.Add((new List<byte>(stem.Bytes[..depth]), 1),
+                            leafValuesByPathAndZ[(stem.Bytes[..depth], 0)] = FrE.One;
+                            leafValuesByPathAndZ.Add((stem.Bytes[..depth], 1),
                                 FrE.FromBytesReduced(encounteredStem.Reverse().ToArray()));
                             break;
                         case 1:
@@ -307,22 +308,22 @@ public partial class VerkleTree
                                 $"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
                     }
 
-                    otherStemsByPrefix.Add(stem.Bytes[..depth].ToList(), otherStem);
+                    otherStemsByPrefix.Add(stem.Bytes[..depth], otherStem);
                     break;
                 case ExtPresent.Present:
-                    allPaths.Add(new List<byte>(stem.Bytes[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 1));
+                    allPaths.Add(stem.Bytes[..depth]);
+                    allPathsAndZs.Add((stem.Bytes[..depth], 0));
+                    allPathsAndZs.Add((stem.Bytes[..depth], 1));
 
-                    leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 0)] = FrE.One;
-                    leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 1)] =
+                    leafValuesByPathAndZ[(stem.Bytes[..depth], 0)] = FrE.One;
+                    leafValuesByPathAndZ[(stem.Bytes[..depth], 1)] =
                         FrE.FromBytesReduced(stem.Bytes.Reverse().ToArray());
                     break;
                 case ExtPresent.None:
                     leafValuesByPathAndZ[
                         depth == 1
-                            ? (new List<byte>(), stem.Bytes[depth - 1])
-                            : (stem.Bytes[..depth].ToList(), stem.Bytes[depth - 1])] = FrE.Zero;
+                            ? (Array.Empty<byte>(), stem.Bytes[depth - 1])
+                            : (stem.Bytes[..depth], stem.Bytes[depth - 1])] = FrE.Zero;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -331,22 +332,22 @@ public partial class VerkleTree
             keyIndex++;
         }
 
-        Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
-        foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
+        Dictionary<byte[], Banderwagon> commByPath = new(new ListEqualityComparer());
+        foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees,
             startStem.BytesAsSpan, endStem.BytesAsSpan, otherStemsByPrefix);
         InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
-        InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
+        InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList.ToArray()]));
         foreach ((var stem, (ExtPresent extStatus, var depth)) in depthsAndExtByStem)
         {
             pathList.Clear();
             for (var i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem[i]);
-                InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList]));
+                InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList.ToArray()]));
             }
 
             pathList.Add(stem[depth - 1]);
@@ -357,12 +358,12 @@ public partial class VerkleTree
                     InsertPlaceholderForNotPresentStem(stem, pathList.ToArray(), new Commitment());
                     break;
                 case ExtPresent.DifferentStem:
-                    var otherStem = otherStemsByPrefix[pathList];
+                    var otherStem = otherStemsByPrefix[pathList.ToArray()];
                     InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(),
-                        new Commitment(commByPath[pathList]));
+                        new Commitment(commByPath[pathList.ToArray()]));
                     break;
                 case ExtPresent.Present:
-                    Commitment internalCommitment = new(commByPath[pathList]);
+                    Commitment internalCommitment = new(commByPath[pathList.ToArray()]);
                     if (!VerifyCommitmentThenInsertStem(pathList.ToArray(), stem, internalCommitment))
                         return false;
                     break;
@@ -402,9 +403,9 @@ public partial class VerkleTree
         return verification;
     }
 
-    private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<List<byte>> allPaths,
-        ISet<(List<byte>, byte)> allPathsAndZs, PathWithSubTree[] stems, ReadOnlySpan<byte> startStem,
-        ReadOnlySpan<byte> endStem, SortedDictionary<List<byte>, byte[]> otherStemPrefix)
+    private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<byte[]> allPaths,
+        ISet<(byte[], byte)> allPathsAndZs, PathWithSubTree[] stems, ReadOnlySpan<byte> startStem,
+        ReadOnlySpan<byte> endStem, SortedDictionary<byte[], byte[]> otherStemPrefix)
     {
         ISpanEqualityComparer<byte> comparer = Bytes.SpanEqualityComparer;
         HashSet<byte[]> subTreesToCreate = new(Bytes.EqualityComparer);
@@ -414,7 +415,7 @@ public partial class VerkleTree
             if (comparer.Equals(subTree.Path.Bytes, endStem)) continue;
             for (var i = 0; i < 32; i++)
             {
-                List<byte> prefix = new(subTree.Path.Bytes[..i]);
+                byte[] prefix = subTree.Path.Bytes[..i];
                 if (allPaths.Contains(prefix))
                 {
                     // no need to add commitments for otherStem

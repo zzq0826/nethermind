@@ -110,8 +110,8 @@ public struct VerificationHint
 public struct UpdateHint
 {
     public Dictionary<Stem, (ExtPresent, byte)> DepthAndExtByStem { get; set; }
-    public Dictionary<List<byte>, Banderwagon> CommByPath { get; set; }
-    public SortedDictionary<List<byte>, Stem> DifferentStemNoProof { get; set; }
+    public Dictionary<byte[], Banderwagon> CommByPath { get; set; }
+    public SortedDictionary<byte[], Stem> DifferentStemNoProof { get; set; }
 }
 
 public struct SuffixPoly

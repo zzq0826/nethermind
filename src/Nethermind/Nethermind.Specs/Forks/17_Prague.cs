@@ -14,6 +14,7 @@ public class Prague: Cancun
     {
         Name = "Prague";
         IsVerkleTreeEipEnabled = true;
+        IsEip2935Enabled = true;
     }
 
     public static new IReleaseSpec Instance => LazyInitializer.EnsureInitialized(ref _instance, () => new Prague());

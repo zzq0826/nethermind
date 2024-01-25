@@ -43,35 +43,36 @@ public partial class VerkleTree
         return stems;
     }
 
-    public static bool VerifyVerkleProof(ExecutionWitness execWitness, Banderwagon root,
+    private static bool VerifyVerkleProof(ExecutionWitness execWitness, Banderwagon root,
         [NotNullWhen(true)] out UpdateHint? updateHint)
     {
         // var logg = SimpleConsoleLogger.Instance;
         updateHint = null;
-        var numberOfStems = execWitness.VerkleProof.DepthExtensionPresent.Length;
+        WitnessVerkleProof verkleProof = execWitness.VerkleProof!;
+        var numberOfStems = verkleProof.DepthExtensionPresent.Length;
 
         // sorted commitments including root
-        var commSortedByPath = new Banderwagon[execWitness.VerkleProof.CommitmentsByPath.Length + 1];
+        var commSortedByPath = new Banderwagon[verkleProof.CommitmentsByPath.Length + 1];
         commSortedByPath[0] = root;
-        execWitness.VerkleProof.CommitmentsByPath.CopyTo(commSortedByPath, 1);
+        verkleProof.CommitmentsByPath.CopyTo(commSortedByPath, 1);
 
         Stem[] stems = GetStemsFromStemStateDiff(execWitness.StateDiff);
 
         Dictionary<Stem, (ExtPresent, byte)> depthsAndExtByStem = new();
-        HashSet<Stem> stemsWithExtension = new();
+        HashSet<Stem> stemsWithExtension = [];
         for (var i = 0; i < numberOfStems; i++)
         {
-            var extAndDepth = execWitness.VerkleProof.DepthExtensionPresent[i];
+            var extAndDepth = verkleProof.DepthExtensionPresent[i];
             var depth = (byte)(extAndDepth >> 3);
             var extPresent = (ExtPresent)(extAndDepth & 3);
             depthsAndExtByStem.Add(stems[i], (extPresent, depth));
             if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
         }
 
-        SortedSet<List<byte>> allPaths = new(new ListComparer());
-        SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
-        Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
-        SortedDictionary<List<byte>, Stem> otherStemsByPrefix = new(new ListComparer());
+        SortedSet<byte[]> allPaths = new(new ByteListComparer());
+        SortedSet<(byte[], byte)> allPathsAndZs = new(new ListWithByteComparer());
+        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
+        SortedDictionary<byte[], Stem> otherStemsByPrefix = new(new ByteListComparer());
 
         foreach (StemStateDiff stemStateDiff in execWitness.StateDiff)
         {
@@ -80,16 +81,16 @@ public partial class VerkleTree
 
             for (var i = 0; i < depth; i++)
             {
-                allPaths.Add(new List<byte>(stem.Bytes[..i]));
-                allPathsAndZs.Add((new List<byte>(stem.Bytes[..i]), stem.Bytes[i]));
+                allPaths.Add(stem.Bytes[..i]);
+                allPathsAndZs.Add((stem.Bytes[..i], stem.Bytes[i]));
             }
 
             switch (extPres)
             {
                 case ExtPresent.DifferentStem:
-                    allPaths.Add(new List<byte>(stem.Bytes[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 1));
+                    allPaths.Add(stem.Bytes[..depth]);
+                    allPathsAndZs.Add((stem.Bytes[..depth], 0));
+                    allPathsAndZs.Add((stem.Bytes[..depth], 1));
 
                     Stem otherStem;
 
@@ -102,14 +103,14 @@ public partial class VerkleTree
                     switch (found.Length)
                     {
                         case 0:
-                            found = execWitness.VerkleProof.OtherStems
+                            found = verkleProof.OtherStems
                                 .Where(x => x.BytesAsSpan[..depth].SequenceEqual(stem.Bytes[..depth])).ToArray();
                             Stem encounteredStem = found[^1];
                             otherStem = encounteredStem;
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
-                            leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 0)] = FrE.One;
-                            leafValuesByPathAndZ.TryAdd((new List<byte>(stem.Bytes[..depth]), 1),
+                            leafValuesByPathAndZ[(stem.Bytes[..depth], 0)] = FrE.One;
+                            leafValuesByPathAndZ.TryAdd((stem.Bytes[..depth], 1),
                                 FrE.FromBytesReduced(encounteredStem.Bytes.Reverse().ToArray()));
                             break;
                         case 1:
@@ -120,16 +121,16 @@ public partial class VerkleTree
                                 $"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
                     }
 
-                    otherStemsByPrefix.TryAdd(stem.Bytes[..depth].ToList(), otherStem);
+                    otherStemsByPrefix.TryAdd(stem.Bytes[..depth], otherStem);
 
                     break;
                 case ExtPresent.Present:
-                    allPaths.Add(new List<byte>(stem.Bytes[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), 1));
+                    allPaths.Add(stem.Bytes[..depth]);
+                    allPathsAndZs.Add((stem.Bytes[..depth], 0));
+                    allPathsAndZs.Add((stem.Bytes[..depth], 1));
 
-                    leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 0)] = FrE.One;
-                    leafValuesByPathAndZ[(new List<byte>(stem.Bytes[..depth]), 1)] =
+                    leafValuesByPathAndZ[(stem.Bytes[..depth], 0)] = FrE.One;
+                    leafValuesByPathAndZ[(stem.Bytes[..depth], 1)] =
                         FrE.FromBytesReduced(stem.Bytes.Reverse().ToArray());
 
                     foreach (SuffixStateDiff suffixDiff in stemStateDiff.SuffixDiffs)
@@ -137,7 +138,7 @@ public partial class VerkleTree
                         var suffix = suffixDiff.Suffix;
                         var openingIndex = suffix < 128 ? (byte)2 : (byte)3;
 
-                        allPathsAndZs.Add((new List<byte>(stem.Bytes[..depth]), openingIndex));
+                        allPathsAndZs.Add((stem.Bytes[..depth], openingIndex));
 
 
                         // this should definitely be the stem + openingIndex, but the path is just used for sorting
@@ -145,36 +146,36 @@ public partial class VerkleTree
                         // so it is a good idea to used values as small as possible without the issues of collision
                         List<byte> suffixTreePath = new(stem.Bytes[..depth]) { openingIndex };
 
-                        allPaths.Add(new List<byte>(suffixTreePath.ToArray()));
+                        allPaths.Add(suffixTreePath.ToArray());
                         var valLowerIndex = (byte)(2 * (suffix % 128));
                         var valUpperIndex = (byte)(valLowerIndex + 1);
 
-                        allPathsAndZs.Add((new List<byte>(suffixTreePath.ToArray()), valLowerIndex));
-                        allPathsAndZs.Add((new List<byte>(suffixTreePath.ToArray()), valUpperIndex));
+                        allPathsAndZs.Add((suffixTreePath.ToArray(), valLowerIndex));
+                        allPathsAndZs.Add((suffixTreePath.ToArray(), valUpperIndex));
 
                         (FrE valLow, FrE valHigh) = VerkleUtils.BreakValueInLowHigh(suffixDiff.CurrentValue);
 
-                        leafValuesByPathAndZ[(new List<byte>(suffixTreePath.ToArray()), valLowerIndex)] = valLow;
-                        leafValuesByPathAndZ[(new List<byte>(suffixTreePath.ToArray()), valUpperIndex)] = valHigh;
+                        leafValuesByPathAndZ[(suffixTreePath.ToArray(), valLowerIndex)] = valLow;
+                        leafValuesByPathAndZ[(suffixTreePath.ToArray(), valUpperIndex)] = valHigh;
                     }
 
                     break;
                 case ExtPresent.None:
                     leafValuesByPathAndZ[
                         depth == 1
-                            ? (new List<byte>(), stem.Bytes[depth - 1])
-                            : (stem.Bytes[..depth].ToList(), stem.Bytes[depth - 1])] = FrE.Zero;
+                            ? (Array.Empty<byte>(), stem.Bytes[depth - 1])
+                            : (stem.Bytes[..depth], stem.Bytes[depth - 1])] = FrE.Zero;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
-        foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
+        Dictionary<byte[], Banderwagon> commByPath = new(Bytes.EqualityComparer);
+        foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         var isTrue = VerifyVerkleProofStruct(
-            new VerkleProofStruct(execWitness.VerkleProof.IpaProof, execWitness.VerkleProof.D),
+            new VerkleProofStruct(verkleProof.IpaProof, verkleProof.D),
             allPathsAndZs, leafValuesByPathAndZ, commByPath);
 
         updateHint = new UpdateHint
@@ -220,10 +221,10 @@ public partial class VerkleTree
             if (extPresent == ExtPresent.Present) stemsWithExtension.Add(stems[i]);
         }
 
-        SortedSet<List<byte>> allPaths = new(new ListComparer());
-        SortedSet<(List<byte>, byte)> allPathsAndZs = new(new ListWithByteComparer());
-        Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
-        SortedDictionary<List<byte>, Stem> otherStemsByPrefix = new(new ListComparer());
+        SortedSet<byte[]> allPaths = new(new ByteListComparer());
+        SortedSet<(byte[], byte)> allPathsAndZs = new(new ListWithByteComparer());
+        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
+        SortedDictionary<byte[], Stem> otherStemsByPrefix = new(new ByteListComparer());
         foreach ((var key, var value) in keys.Zip(values))
         {
             var stem = key[..31];
@@ -231,17 +232,17 @@ public partial class VerkleTree
 
             for (var i = 0; i < depth; i++)
             {
-                allPaths.Add(new List<byte>(stem[..i]));
-                allPathsAndZs.Add((new List<byte>(stem[..i]), stem[i]));
+                allPaths.Add(stem[..i]);
+                allPathsAndZs.Add((stem[..i], stem[i]));
             }
 
             switch (extPres)
             {
                 case ExtPresent.DifferentStem:
 
-                    allPaths.Add(new List<byte>(stem[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
+                    allPaths.Add(stem[..depth]);
+                    allPathsAndZs.Add((stem[..depth], 0));
+                    allPathsAndZs.Add((stem[..depth], 1));
 
                     // since the stem was different - value should not have been set
                     if (value != null) return false;
@@ -265,8 +266,8 @@ public partial class VerkleTree
                             otherStem = encounteredStem;
 
                             // Add extension node to proof in particular, we only want to open at (1, stem)
-                            leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
-                            leafValuesByPathAndZ.Add((new List<byte>(stem[..depth]), 1),
+                            leafValuesByPathAndZ[(stem[..depth], 0)] = FrE.One;
+                            leafValuesByPathAndZ.Add((stem[..depth], 1),
                                 FrE.FromBytesReduced(encounteredStem.Bytes.Reverse().ToArray()));
                             break;
                         case 1:
@@ -277,21 +278,21 @@ public partial class VerkleTree
                                 $"found more than one instance of stem_with_extension at depth {depth}, see: {string.Join(" | ", found.Select(x => string.Join(", ", x)))}");
                     }
 
-                    otherStemsByPrefix.Add(stem[..depth].ToList(), otherStem);
+                    otherStemsByPrefix.Add(stem[..depth], otherStem);
                     break;
                 case ExtPresent.Present:
-                    allPaths.Add(new List<byte>(stem[..depth]));
-                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 0));
-                    allPathsAndZs.Add((new List<byte>(stem[..depth]), 1));
+                    allPaths.Add(stem[..depth]);
+                    allPathsAndZs.Add((stem[..depth], 0));
+                    allPathsAndZs.Add((stem[..depth], 1));
 
-                    leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 0)] = FrE.One;
-                    leafValuesByPathAndZ[(new List<byte>(stem[..depth]), 1)] =
+                    leafValuesByPathAndZ[(stem[..depth], 0)] = FrE.One;
+                    leafValuesByPathAndZ[(stem[..depth], 1)] =
                         FrE.FromBytesReduced(stem.Reverse().ToArray());
 
                     var suffix = key[31];
                     var openingIndex = suffix < 128 ? (byte)2 : (byte)3;
 
-                    allPathsAndZs.Add((new List<byte>(stem[..depth]), openingIndex));
+                    allPathsAndZs.Add((stem[..depth], openingIndex));
 
 
                     // this should definitely be the stem + openingIndex, but the path is just used for sorting
@@ -299,17 +300,17 @@ public partial class VerkleTree
                     // so it is a good idea to used values as small as possible without the issues of collision
                     List<byte> suffixTreePath = new(stem[..depth]) { openingIndex };
 
-                    allPaths.Add(new List<byte>(suffixTreePath.ToArray()));
+                    allPaths.Add(suffixTreePath.ToArray());
                     var valLowerIndex = (byte)(2 * (suffix % 128));
                     var valUpperIndex = (byte)(valLowerIndex + 1);
 
-                    allPathsAndZs.Add((new List<byte>(suffixTreePath.ToArray()), valLowerIndex));
-                    allPathsAndZs.Add((new List<byte>(suffixTreePath.ToArray()), valUpperIndex));
+                    allPathsAndZs.Add((suffixTreePath.ToArray(), valLowerIndex));
+                    allPathsAndZs.Add((suffixTreePath.ToArray(), valUpperIndex));
 
                     (FrE valLow, FrE valHigh) = VerkleUtils.BreakValueInLowHigh(value);
 
-                    leafValuesByPathAndZ[(new List<byte>(suffixTreePath.ToArray()), valLowerIndex)] = valLow;
-                    leafValuesByPathAndZ[(new List<byte>(suffixTreePath.ToArray()), valUpperIndex)] = valHigh;
+                    leafValuesByPathAndZ[(suffixTreePath.ToArray(), valLowerIndex)] = valLow;
+                    leafValuesByPathAndZ[(suffixTreePath.ToArray(), valUpperIndex)] = valHigh;
                     break;
                 case ExtPresent.None:
                     // If the extension was not present, then the value should be None
@@ -317,8 +318,8 @@ public partial class VerkleTree
 
                     leafValuesByPathAndZ[
                             depth == 1
-                                ? (new List<byte>(), stem[depth - 1])
-                                : (stem[..depth].ToList(), stem[depth - 1])] =
+                                ? (Array.Empty<byte>(), stem[depth - 1])
+                                : (stem[..depth], stem[depth - 1])] =
                         FrE.Zero;
                     break;
                 default:
@@ -326,8 +327,8 @@ public partial class VerkleTree
             }
         }
 
-        Dictionary<List<byte>, Banderwagon> commByPath = new(new ListEqualityComparer());
-        foreach ((List<byte> path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
+        Dictionary<byte[], Banderwagon> commByPath = new(new ListEqualityComparer());
+        foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         var isTrue = VerifyVerkleProofStruct(new VerkleProofStruct(ipaProof, d), allPathsAndZs, leafValuesByPathAndZ,
             commByPath);
@@ -350,25 +351,25 @@ public partial class VerkleTree
             out updateHint);
     }
 
-    private static bool VerifyVerkleProofStruct(VerkleProofStruct proof, SortedSet<(List<byte>, byte)> allPathsAndZs,
-        Dictionary<(List<byte>, byte), FrE> leafValuesByPathAndZ, Dictionary<List<byte>, Banderwagon> commByPath)
+    private static bool VerifyVerkleProofStruct(VerkleProofStruct proof, SortedSet<(byte[], byte)> allPathsAndZs,
+        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ, Dictionary<byte[], Banderwagon> commByPath)
     {
         var comms = new Banderwagon[allPathsAndZs.Count];
         var index = 0;
-        foreach ((List<byte> path, var z) in allPathsAndZs) comms[index++] = commByPath[path];
+        foreach ((byte[] path, var z) in allPathsAndZs) comms[index++] = commByPath[path];
 
-        SortedDictionary<(List<byte>, byte), FrE> ysByPathAndZ = new(new ListWithByteComparer());
-        foreach ((List<byte> path, var z) in allPathsAndZs)
+        SortedDictionary<(byte[], byte), FrE> ysByPathAndZ = new(new ListWithByteComparer());
+        foreach ((byte[] path, var z) in allPathsAndZs)
         {
-            List<byte> childPath = new(path.ToArray()) { z };
+            byte[] childPath = [..path.ToArray(), z];
 
             if (!leafValuesByPathAndZ.TryGetValue((path, z), out FrE y))
                 y = !commByPath.TryGetValue(childPath, out Banderwagon yPoint) ? FrE.Zero : yPoint.MapToScalarField();
-            ysByPathAndZ.Add((new List<byte>(path.ToArray()), z), y);
+            ysByPathAndZ.Add((path.ToArray(), z), y);
         }
 
         IEnumerable<byte> zs = allPathsAndZs.Select(elem => elem.Item2);
-        SortedDictionary<(List<byte>, byte), FrE>.ValueCollection ys = ysByPathAndZ.Values;
+        SortedDictionary<(byte[], byte), FrE>.ValueCollection ys = ysByPathAndZ.Values;
 
         List<VerkleVerifierQuery> queries = new(comms.Length);
 
