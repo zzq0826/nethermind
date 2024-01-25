@@ -64,7 +64,7 @@ namespace Nethermind.Runner.JsonRpc
                 logging.FileSizeLimit = 5 * 1024 * 1024;
                 logging.RetainedFileCountLimit = 2;
                 logging.FileName = "MyLogFile";
-                logging.LogDirectory = @"C:\logs";
+                logging.LogDirectory = @".";
                 logging.FlushInterval = TimeSpan.FromSeconds(2);
             });
 
