@@ -114,7 +114,7 @@ public class JsonRpcProcessor : IJsonRpcProcessor
     private ArrayPoolList<JsonRpcRequest> DeserializeArray(JsonElement element) =>
         new(element.GetArrayLength(), element.EnumerateArray().Select(DeserializeObject));
 
-    public async IAsyncEnumerable<JsonRpcResult> ProcessAsync(PipeReader reader, JsonRpcContext context)
+    public async IAsyncEnumerable<JsonRpcResult> ProcessAsync(HttpRequest http, PipeReader reader, JsonRpcContext context)
     {
         reader = await RecordRequest(reader);
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -184,7 +184,7 @@ public class JsonRpcProcessor : IJsonRpcProcessor
                             if (_logger.IsDebug) _logger.Debug($"JSON RPC request {model}");
 
                             // Processes the individual request.
-                            JsonRpcResult.Entry result = await HandleSingleRequest(model, context);
+                            JsonRpcResult.Entry result = await HandleSingleRequest(http, model, context);
                             result.Response.AddDisposable(() => jsonDocument.Dispose());
 
                             // Returns the result of the processed request.
@@ -210,7 +210,7 @@ public class JsonRpcProcessor : IJsonRpcProcessor
 
                             // Stops the stopwatch and yields the batch processing result.
                             stopwatch.Stop();
-                            yield return JsonRpcResult.Collection(new JsonRpcBatchResult((e, c) => IterateRequest(collection, context, e).GetAsyncEnumerator(c)));
+                            yield return JsonRpcResult.Collection(new JsonRpcBatchResult((e, c) => IterateRequest(http, collection, context, e).GetAsyncEnumerator(c)));
                         }
 
                         // Handles invalid requests.
@@ -275,6 +275,7 @@ public class JsonRpcProcessor : IJsonRpcProcessor
     private static ReadOnlySpan<byte> WhiteSpace() => " \n\r\t"u8;
 
     private async IAsyncEnumerable<JsonRpcResult.Entry> IterateRequest(
+        HttpRequest http, 
         ArrayPoolList<JsonRpcRequest> requests,
         JsonRpcContext context,
         JsonRpcBatchResultAsyncEnumerator enumerator)
@@ -295,7 +296,7 @@ public class JsonRpcProcessor : IJsonRpcProcessor
                             jsonRpcRequest.Id,
                             $"{nameof(IJsonRpcConfig.MaxBatchResponseBodySize)} of {_jsonRpcConfig.MaxBatchResponseBodySize / 1.KB()}KB exceeded"),
                         RpcReport.Error)
-                    : await HandleSingleRequest(jsonRpcRequest, context);
+                    : await HandleSingleRequest(http, jsonRpcRequest, context);
 
                 if (_logger.IsDebug) _logger.Debug($"  {++requestIndex}/{requests.Count} JSON RPC request - {jsonRpcRequest} handled after {response.Report.HandlingTimeMicroseconds}");
                 TraceResult(response);
@@ -310,8 +311,13 @@ public class JsonRpcProcessor : IJsonRpcProcessor
         }
     }
 
-    private async Task<JsonRpcResult.Entry> HandleSingleRequest(JsonRpcRequest request, JsonRpcContext context)
+    private async Task<JsonRpcResult.Entry> HandleSingleRequest(HttpRequest http, JsonRpcRequest request, JsonRpcContext context)
     {
+        var connection = http?.HttpContext?.Connection;
+        if (_logger.IsInfo && request.Method == "engine_newPayloadV2")
+        {
+            _logger.Info($" {connection?.Id}| from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} received.");
+        }
         Metrics.JsonRpcRequests++;
         Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -334,6 +340,10 @@ public class JsonRpcProcessor : IJsonRpcProcessor
 
         stopwatch.Stop();
 
+        if (_logger.IsInfo && request.Method == "engine_newPayloadV2")
+        {
+            _logger.Info($" {connection?.Id}| from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} handled in {stopwatch.Elapsed.TotalMilliseconds}ms");
+        }
         if (_logger.IsDebug) _logger.Debug($"  {request} handled in {stopwatch.Elapsed.TotalMilliseconds}ms");
 
         JsonRpcResult.Entry result = new(response, new RpcReport(request.Method, stopwatch.ElapsedMicroseconds(), isSuccess));

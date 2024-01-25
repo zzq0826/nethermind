@@ -121,7 +121,7 @@ namespace Nethermind.Sockets.Test
             WebSocketMock mock = new(receiveResult);
 
             var processor = Substitute.For<IJsonRpcProcessor>();
-            processor.ProcessAsync(default, default).ReturnsForAnyArgs((x) => new List<JsonRpcResult>()
+            processor.ProcessAsync(null, default, default).ReturnsForAnyArgs((x) => new List<JsonRpcResult>()
             {
                 (JsonRpcResult.Single((new JsonRpcResponse()), new RpcReport())),
                 (JsonRpcResult.Collection(new JsonRpcBatchResult((e, c) =>

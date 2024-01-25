@@ -11,6 +11,6 @@ namespace Nethermind.JsonRpc.Test
 {
     public static class JsonRpcProcessorExtensions
     {
-        public static IAsyncEnumerable<JsonRpcResult> ProcessAsync(this IJsonRpcProcessor processor, string request, JsonRpcContext context) => processor.ProcessAsync(PipeReader.Create(new MemoryStream(Encoding.UTF8.GetBytes(request))), context);
+        public static IAsyncEnumerable<JsonRpcResult> ProcessAsync(this IJsonRpcProcessor processor, string request, JsonRpcContext context) => processor.ProcessAsync(null, PipeReader.Create(new MemoryStream(Encoding.UTF8.GetBytes(request))), context);
     }
 }
