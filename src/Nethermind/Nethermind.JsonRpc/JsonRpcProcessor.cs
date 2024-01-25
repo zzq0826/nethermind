@@ -10,6 +10,7 @@ using System.IO.Abstractions;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Nethermind.Core.Collections;
@@ -311,12 +312,15 @@ public class JsonRpcProcessor : IJsonRpcProcessor
         }
     }
 
+    private long _count;
     private async Task<JsonRpcResult.Entry> HandleSingleRequest(HttpRequest http, JsonRpcRequest request, JsonRpcContext context)
     {
+        var count = 0L;
         var connection = http?.HttpContext?.Connection;
         if (_logger.IsInfo && request.Method == "engine_newPayloadV2")
         {
-            _logger.Info($" {connection?.Id}| from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} received.");
+            count = Interlocked.Increment(ref _count);
+            _logger.Info($" {connection?.Id}| #{count,8} from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} received.");
         }
         Metrics.JsonRpcRequests++;
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -340,9 +344,9 @@ public class JsonRpcProcessor : IJsonRpcProcessor
 
         stopwatch.Stop();
 
-        if (_logger.IsInfo && request.Method == "engine_newPayloadV2")
+        if (count > 0)
         {
-            _logger.Info($" {connection?.Id}| from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} handled in {stopwatch.Elapsed.TotalMilliseconds}ms");
+            _logger.Info($" {connection?.Id}| #{count,8} from {connection?.RemoteIpAddress}:{connection?.RemotePort} by {http?.Headers?.UserAgent} {request.Method} handled in {stopwatch.Elapsed.TotalMilliseconds}ms");
         }
         if (_logger.IsDebug) _logger.Debug($"  {request} handled in {stopwatch.Elapsed.TotalMilliseconds}ms");
 
