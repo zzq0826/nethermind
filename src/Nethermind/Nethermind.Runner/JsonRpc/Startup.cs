@@ -17,7 +17,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,22 +50,6 @@ namespace Nethermind.Runner.JsonRpc
             {
                 throw new ApplicationException($"{nameof(IConfigProvider)} could not be resolved");
             }
-
-            services.AddW3CLogging(logging =>
-            {
-                // Log all W3C fields
-                logging.LoggingFields = W3CLoggingFields.All;
-                // Drop UserName and Cookie fields (Always empty plus are PII)
-                logging.LoggingFields &= ~(W3CLoggingFields.UserName | W3CLoggingFields.Cookie);
-
-                logging.AdditionalRequestHeaders.Add("x-forwarded-for");
-                logging.AdditionalRequestHeaders.Add("x-client-ssl-protocol");
-                logging.FileSizeLimit = 5 * 1024 * 1024;
-                logging.RetainedFileCountLimit = 2;
-                logging.FileName = "MyLogFile";
-                logging.LogDirectory = @"C:\logs";
-                logging.FlushInterval = TimeSpan.FromSeconds(2);
-            });
 
             IJsonRpcConfig jsonRpcConfig = configProvider.GetConfig<IJsonRpcConfig>();
 
@@ -105,7 +88,6 @@ namespace Nethermind.Runner.JsonRpc
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseW3CLogging();
             app.UseCors("Cors");
             app.UseRouting();
             app.UseResponseCompression();
