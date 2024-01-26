@@ -203,7 +203,7 @@ public partial class VerkleTree(IVerkleTreeStore verkleStateStore, ILogManager l
             : _verkleStateStore.GetInternalNode(nodeKey, rootHash);
     }
 
-    private void SetInternalNode(byte[] nodeKey, InternalNode node, bool replace = true)
+    private void SetInternalNode(in ReadOnlySpan<byte> nodeKey, InternalNode node, bool replace = true)
     {
         if (replace || !_treeCache.InternalTable.TryGetValue(nodeKey, out InternalNode? prevNode))
         {

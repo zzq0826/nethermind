@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
@@ -22,13 +23,8 @@ public partial class VerkleTree
 {
     private void InsertStemBatchStateless(in Stem stem, List<SuffixStateDiff> leafIndexValueMap)
     {
-        InsertStemBatchStateless(stem.BytesAsSpan, leafIndexValueMap);
-    }
-
-    private void InsertStemBatchStateless(ReadOnlySpan<byte> stem, List<SuffixStateDiff> leafIndexValueMap)
-    {
         Span<byte> key = new byte[32];
-        stem.CopyTo(key);
+        stem.Bytes.CopyTo(key);
         foreach (SuffixStateDiff leaf in leafIndexValueMap)
         {
             key[31] = leaf.Suffix;
@@ -36,7 +32,7 @@ public partial class VerkleTree
         }
     }
 
-    private void InsertBranchNodeForSync(byte[] path, Commitment commitment)
+    private void InsertBranchNodeForSync(in ReadOnlySpan<byte> path, Commitment commitment)
     {
         InternalNode node = VerkleNodes.CreateStatelessBranchNode(commitment);
         SetInternalNode(path, node);
@@ -60,7 +56,7 @@ public partial class VerkleTree
         }
     }
 
-    private bool VerifyCommitmentThenInsertStem(byte[] pathOfStem, byte[] stem, Commitment expectedCommitment)
+    private bool VerifyCommitmentThenInsertStem(in ReadOnlySpan<byte> pathOfStem, byte[] stem, Commitment expectedCommitment)
     {
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem);
         stemNode.UpdateCommitment(_leafUpdateCache[stem]);
@@ -74,7 +70,7 @@ public partial class VerkleTree
         return true;
     }
 
-    private void InsertPlaceholderForNotPresentStem(Span<byte> stem, byte[] pathOfStem, Commitment stemCommitment)
+    private void InsertPlaceholderForNotPresentStem(in ReadOnlySpan<byte> stem, in ReadOnlySpan<byte> pathOfStem, Commitment stemCommitment)
     {
         InternalNode stemNode = VerkleNodes.CreateStatelessStemNode(stem.ToArray(), stemCommitment);
         SetInternalNode(pathOfStem, stemNode);
@@ -161,7 +157,7 @@ public partial class VerkleTree
 
     private void AddStatelessInternalNodes(UpdateHint hint)
     {
-        List<byte> pathList = new();
+        List<byte> pathList = [];
         foreach ((Stem stem, (ExtPresent extStatus, var depth)) in hint.DepthAndExtByStem)
         {
             pathList.Clear();
@@ -169,7 +165,7 @@ public partial class VerkleTree
             {
                 pathList.Add(stem.Bytes[i]);
                 InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList.ToArray()]));
-                SetInternalNode(pathList.ToArray(), node);
+                SetInternalNode(CollectionsMarshal.AsSpan(pathList), node);
             }
 
             pathList.Add(stem.Bytes[depth - 1]);
@@ -340,14 +336,14 @@ public partial class VerkleTree
         InsertSubTreesForSync(subTrees);
 
         List<byte> pathList = new();
-        InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList.ToArray()]));
+        InsertBranchNodeForSync(CollectionsMarshal.AsSpan(pathList), new Commitment(commByPath[pathList.ToArray()]));
         foreach ((var stem, (ExtPresent extStatus, var depth)) in depthsAndExtByStem)
         {
             pathList.Clear();
             for (var i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem[i]);
-                InsertBranchNodeForSync(pathList.ToArray(), new Commitment(commByPath[pathList.ToArray()]));
+                InsertBranchNodeForSync(CollectionsMarshal.AsSpan(pathList), new Commitment(commByPath[pathList.ToArray()]));
             }
 
             pathList.Add(stem[depth - 1]);
@@ -355,16 +351,16 @@ public partial class VerkleTree
             switch (extStatus)
             {
                 case ExtPresent.None:
-                    InsertPlaceholderForNotPresentStem(stem, pathList.ToArray(), new Commitment());
+                    InsertPlaceholderForNotPresentStem(stem, CollectionsMarshal.AsSpan(pathList), new Commitment());
                     break;
                 case ExtPresent.DifferentStem:
                     var otherStem = otherStemsByPrefix[pathList.ToArray()];
-                    InsertPlaceholderForNotPresentStem(otherStem, pathList.ToArray(),
+                    InsertPlaceholderForNotPresentStem(otherStem, CollectionsMarshal.AsSpan(pathList),
                         new Commitment(commByPath[pathList.ToArray()]));
                     break;
                 case ExtPresent.Present:
                     Commitment internalCommitment = new(commByPath[pathList.ToArray()]);
-                    if (!VerifyCommitmentThenInsertStem(pathList.ToArray(), stem, internalCommitment))
+                    if (!VerifyCommitmentThenInsertStem(CollectionsMarshal.AsSpan(pathList), stem, internalCommitment))
                         return false;
                     break;
                 default:
@@ -403,9 +399,14 @@ public partial class VerkleTree
         return verification;
     }
 
-    private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(IReadOnlySet<byte[]> allPaths,
-        ISet<(byte[], byte)> allPathsAndZs, PathWithSubTree[] stems, ReadOnlySpan<byte> startStem,
-        ReadOnlySpan<byte> endStem, SortedDictionary<byte[], byte[]> otherStemPrefix)
+    private static HashSet<byte[]> UpdatePathsAndReturnSubTreesToCreate(
+        SortedSet<byte[]> allPaths,
+        SortedSet<(byte[], byte)> allPathsAndZs,
+        in ReadOnlySpan<PathWithSubTree> stems,
+        in ReadOnlySpan<byte> startStem,
+        in ReadOnlySpan<byte> endStem,
+        SortedDictionary<byte[], byte[]> otherStemPrefix
+    )
     {
         ISpanEqualityComparer<byte> comparer = Bytes.SpanEqualityComparer;
         HashSet<byte[]> subTreesToCreate = new(Bytes.EqualityComparer);
@@ -424,6 +425,7 @@ public partial class VerkleTree
                         subTreesToCreate.Add(prefix.ToArray());
                         break;
                     }
+
                     allPathsAndZs.Add((prefix, subTree.Path.Bytes[i]));
                 }
                 else
