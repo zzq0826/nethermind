@@ -38,7 +38,7 @@ public partial class VerkleTree
         SetInternalNode(path, node);
     }
 
-    private void InsertSubTreesForSync(PathWithSubTree[] subTrees)
+    private void InsertSubTreesForSync(in ReadOnlySpan<PathWithSubTree> subTrees)
     {
         Span<byte> key = new byte[32];
         foreach (PathWithSubTree subTree in subTrees)
@@ -164,14 +164,14 @@ public partial class VerkleTree
             for (var i = 0; i < depth - 1; i++)
             {
                 pathList.Add(stem.Bytes[i]);
-                InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList.ToArray()]));
-                SetInternalNode(CollectionsMarshal.AsSpan(pathList), node);
+                InternalNode node = VerkleNodes.CreateStatelessBranchNode(new Commitment(hint.CommByPath[pathList.AsSpan()]));
+                SetInternalNode(pathList.AsSpan(), node);
             }
 
             pathList.Add(stem.Bytes[depth - 1]);
 
             InternalNode stemNode;
-            byte[] pathOfStem;
+            Span<byte> pathOfStem;
             switch (extStatus)
             {
                 case ExtPresent.None:
@@ -181,23 +181,23 @@ public partial class VerkleTree
                     break;
                 case ExtPresent.DifferentStem:
                     Stem otherStem = hint.DifferentStemNoProof[pathList.ToArray()];
-                    Commitment otherInternalCommitment = new(hint.CommByPath[pathList.ToArray()]);
+                    Commitment otherInternalCommitment = new(hint.CommByPath[pathList.AsSpan()]);
                     stemNode = VerkleNodes.CreateStatelessStemNode(otherStem, otherInternalCommitment);
                     pathOfStem = pathList.ToArray();
                     break;
                 case ExtPresent.Present:
-                    Commitment internalCommitment = new(hint.CommByPath[pathList.ToArray()]);
+                    Commitment internalCommitment = new(hint.CommByPath[pathList.AsSpan()]);
                     Commitment? c1 = null;
                     Commitment? c2 = null;
 
                     pathList.Add(2);
-                    if (hint.CommByPath.TryGetValue(pathList.ToArray(), out Banderwagon c1B)) c1 = new Commitment(c1B);
+                    if (hint.CommByPath.TryGetValue(pathList.AsSpan(), out Banderwagon c1B)) c1 = new Commitment(c1B);
                     pathList[^1] = 3;
-                    if (hint.CommByPath.TryGetValue(pathList.ToArray(), out Banderwagon c2B)) c2 = new Commitment(c2B);
+                    if (hint.CommByPath.TryGetValue(pathList.AsSpan(), out Banderwagon c2B)) c2 = new Commitment(c2B);
 
                     stemNode = VerkleNodes.CreateStatelessStemNode(stem, c1, c2, internalCommitment, false);
                     pathOfStem = new byte[pathList.Count - 1];
-                    pathList.CopyTo(0, pathOfStem, 0, pathList.Count - 1);
+                    pathList.AsSpan()[..(pathList.Count - 1)].CopyTo(pathOfStem);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -207,18 +207,18 @@ public partial class VerkleTree
         }
     }
 
-    // TODO: have to handle the case where there is only one subtree included.
     public bool CreateStatelessTreeFromRange(VerkleProof proof, Banderwagon rootPoint, Stem startStem, Stem endStem,
-        PathWithSubTree[] subTrees)
+        in ReadOnlySpan<PathWithSubTree> subTrees)
     {
         var numberOfStems = 2;
-        if (subTrees.Length == 1) numberOfStems = 1;
+        if (subTrees.Length == 0 || (subTrees.Length == 1 && endStem == startStem)) numberOfStems = 1;
+        Stem[] stems = [startStem, endStem];
+        if (numberOfStems == 1) stems = [startStem];
+
+        // create a array of sorted commitments including root commitment
         var commSortedByPath = new Banderwagon[proof.CommsSorted.Length + 1];
         commSortedByPath[0] = rootPoint;
         proof.CommsSorted.CopyTo(commSortedByPath.AsSpan(1));
-
-        Stem[] stems = { startStem, endStem };
-        if (numberOfStems == 1) stems = new[] { startStem };
 
         // map stems to depth and extension status and create a list of stem with extension present
         Dictionary<byte[], (ExtPresent, byte)> depthsAndExtByStem = new(Bytes.EqualityComparer);
@@ -328,7 +328,7 @@ public partial class VerkleTree
             keyIndex++;
         }
 
-        Dictionary<byte[], Banderwagon> commByPath = new(new ListEqualityComparer());
+        SpanDictionary<byte, Banderwagon> commByPath = new(Bytes.SpanEqualityComparer);
         foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         HashSet<byte[]> subTreesToCreate = UpdatePathsAndReturnSubTreesToCreate(allPaths, allPathsAndZs, subTrees,
@@ -368,17 +368,21 @@ public partial class VerkleTree
             }
         }
 
-        var allStemsWithoutStartAndEndStems =
-            subTrees.Where(x =>
-                    !x.Path.Bytes.SequenceEqual(startStem.Bytes) && !x.Path.Bytes.SequenceEqual(endStem.Bytes))
-                .Select(x => x.Path.Bytes).ToArray();
+        List<byte[]> allStemsWithoutStartAndEndStems = new(subTrees.Length);
+        foreach (PathWithSubTree x in subTrees)
+        {
+            if (!x.Path.Bytes.SequenceEqual(startStem.Bytes) && !x.Path.Bytes.SequenceEqual(endStem.Bytes))
+            {
+                allStemsWithoutStartAndEndStems.Add(x.Path.Bytes);
+            }
+        }
 
         var stemIndex = 0;
         Dictionary<byte[], List<byte[]>> stemBatch = new(Bytes.EqualityComparer);
         foreach (var stemPrefix in subTreesToCreate)
         {
             stemBatch.Add(stemPrefix, new List<byte[]>());
-            while (stemIndex < allStemsWithoutStartAndEndStems.Length)
+            while (stemIndex < allStemsWithoutStartAndEndStems.Count)
                 if (Bytes.EqualityComparer.Equals(stemPrefix,
                         allStemsWithoutStartAndEndStems[stemIndex][..stemPrefix.Length]))
                 {

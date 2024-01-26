@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
 using Nethermind.Verkle.Curve;
@@ -28,7 +29,7 @@ public partial class VerkleTree
         var stemIndex = 1;
         for (var i = 1; i < keys.Length; i++)
         {
-            var currentStem = keys[i][..31];
+            Stem currentStem = keys[i][..31];
             if (stems[stemIndex - 1].Equals(currentStem)) continue;
             stems[stemIndex++] = currentStem;
         }
@@ -43,7 +44,9 @@ public partial class VerkleTree
         return stems;
     }
 
-    private static bool VerifyVerkleProof(ExecutionWitness execWitness, Banderwagon root,
+    private static bool VerifyVerkleProof(
+        ExecutionWitness execWitness,
+        Banderwagon root,
         [NotNullWhen(true)] out UpdateHint? updateHint)
     {
         // var logg = SimpleConsoleLogger.Instance;
@@ -171,12 +174,12 @@ public partial class VerkleTree
             }
         }
 
-        Dictionary<byte[], Banderwagon> commByPath = new(Bytes.EqualityComparer);
-        foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
+        SpanDictionary<byte, Banderwagon> commByPath = new(Bytes.SpanEqualityComparer);
+        int idx = 0;
+        foreach (var path in allPaths) commByPath[path] = commSortedByPath[idx++];
 
-        var isTrue = VerifyVerkleProofStruct(
-            new VerkleProofStruct(verkleProof.IpaProof, verkleProof.D),
-            allPathsAndZs, leafValuesByPathAndZ, commByPath);
+        var proofStruct = new VerkleProofStruct(verkleProof.IpaProof, verkleProof.D);
+        var isTrue = VerifyVerkleProofStruct(proofStruct, allPathsAndZs, leafValuesByPathAndZ, commByPath);
 
         updateHint = new UpdateHint
         {
@@ -192,7 +195,7 @@ public partial class VerkleTree
     public static bool VerifyVerkleProof(
         IpaProofStruct ipaProof,
         Banderwagon d,
-        Banderwagon[] commsSorted,
+        Banderwagon[] commitmentsSorted,
         byte[] depths,
         ExtPresent[] extensionPresent,
         Stem[] differentStemNoProof,
@@ -206,8 +209,8 @@ public partial class VerkleTree
         var numberOfStems = depths.Length;
 
         // sorted commitments including root
-        List<Banderwagon> commSortedByPath = new(commsSorted.Length + 1) { root };
-        commSortedByPath.AddRange(commsSorted);
+        List<Banderwagon> commSortedByPath = new(commitmentsSorted.Length + 1) { root };
+        commSortedByPath.AddRange(commitmentsSorted);
 
         Stem[] stems = GetStemsFromKeys(CollectionsMarshal.AsSpan(keys), numberOfStems);
 
@@ -225,8 +228,13 @@ public partial class VerkleTree
         SortedSet<(byte[], byte)> allPathsAndZs = new(new ListWithByteComparer());
         Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ = new(new ListWithByteEqualityComparer());
         SortedDictionary<byte[], Stem> otherStemsByPrefix = new(new ByteListComparer());
-        foreach ((var key, var value) in keys.Zip(values))
+
+        var numOfKeyValuePair = values.Count;
+        for (int x = 0; x < numOfKeyValuePair; x++)
         {
+            byte[] key = keys[x];
+            byte[] value = values[x];
+
             var stem = key[..31];
             (ExtPresent extPres, var depth) = depthsAndExtByStem[stem];
 
@@ -327,7 +335,7 @@ public partial class VerkleTree
             }
         }
 
-        Dictionary<byte[], Banderwagon> commByPath = new(new ListEqualityComparer());
+        SpanDictionary<byte, Banderwagon> commByPath = new(Bytes.SpanEqualityComparer);
         foreach ((byte[] path, Banderwagon comm) in allPaths.Zip(commSortedByPath)) commByPath[path] = comm;
 
         var isTrue = VerifyVerkleProofStruct(new VerkleProofStruct(ipaProof, d), allPathsAndZs, leafValuesByPathAndZ,
@@ -352,7 +360,7 @@ public partial class VerkleTree
     }
 
     private static bool VerifyVerkleProofStruct(VerkleProofStruct proof, SortedSet<(byte[], byte)> allPathsAndZs,
-        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ, Dictionary<byte[], Banderwagon> commByPath)
+        Dictionary<(byte[], byte), FrE> leafValuesByPathAndZ, SpanDictionary<byte, Banderwagon> commByPath)
     {
         var comms = new Banderwagon[allPathsAndZs.Count];
         var index = 0;

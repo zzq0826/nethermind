@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using FastEnumUtility;
+using Nethermind.Core.Collections;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -110,7 +111,7 @@ public struct VerificationHint
 public struct UpdateHint
 {
     public Dictionary<Stem, (ExtPresent, byte)> DepthAndExtByStem { get; set; }
-    public Dictionary<byte[], Banderwagon> CommByPath { get; set; }
+    public SpanDictionary<byte, Banderwagon> CommByPath { get; set; }
     public SortedDictionary<byte[], Stem> DifferentStemNoProof { get; set; }
 }
 
