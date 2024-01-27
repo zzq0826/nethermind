@@ -188,6 +188,6 @@ public interface IDbConfig : IConfig
     /// </summary>
     uint StatsDumpPeriodSec { get; set; }
 
-    int HighPriorityThreadCount { get; }
-    int LowPriorityThreadCount { get; }
+    int HighPriorityThreadCount { get; set; }
+    int LowPriorityThreadCount { get; set; }
 }

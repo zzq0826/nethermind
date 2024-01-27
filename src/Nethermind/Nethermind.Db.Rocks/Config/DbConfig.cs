@@ -182,6 +182,6 @@ public class DbConfig : IDbConfig
     public bool EnableDbStatistics { get; set; } = false;
     public bool EnableMetricsUpdater { get; set; } = false;
     public uint StatsDumpPeriodSec { get; set; } = 600;
-    public int HighPriorityThreadCount { get; } = 1;
-    public int LowPriorityThreadCount { get; } = 8;
+    public int HighPriorityThreadCount { get; set; } = 1;
+    public int LowPriorityThreadCount { get; set; } = 8;
 }
