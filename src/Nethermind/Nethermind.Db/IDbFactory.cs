@@ -8,7 +8,7 @@ namespace Nethermind.Db
     /// <summary>
     /// Allows to create a new Db <see cref="IDb"/> instance.
     /// </summary>
-    public interface IDbFactory
+    public interface IDbFactory : IDisposable
     {
         /// <summary>
         /// Creates a standard Db.

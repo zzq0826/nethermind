@@ -45,5 +45,10 @@ namespace Nethermind.Db.Rpc
 
         private IDb WrapWithRpc(IDb db) =>
             new ReadOnlyDb(new RpcDb(db.Name, _jsonSerializer, _jsonRpcClient, _logManager, db), true);
+
+        public void Dispose()
+        {
+            _wrappedRocksDbFactory?.Dispose();
+        }
     }
 }

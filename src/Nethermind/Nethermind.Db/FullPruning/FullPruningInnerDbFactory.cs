@@ -96,5 +96,10 @@ namespace Nethermind.Db.FullPruning
 
             return -1; // if directory doesn't exist current index is -1.
         }
+
+        public void Dispose()
+        {
+            _dbFactory.Dispose();
+        }
     }
 }

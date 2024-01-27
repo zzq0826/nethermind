@@ -187,4 +187,7 @@ public interface IDbConfig : IConfig
     /// Default: 600 (10 min)
     /// </summary>
     uint StatsDumpPeriodSec { get; set; }
+
+    int HighPriorityThreadCount { get; }
+    int LowPriorityThreadCount { get; }
 }

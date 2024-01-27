@@ -20,5 +20,9 @@ namespace Nethermind.Db
         {
             throw new InvalidOperationException();
         }
+
+        public void Dispose()
+        {
+        }
     }
 }

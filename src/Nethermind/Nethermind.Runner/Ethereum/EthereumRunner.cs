@@ -78,6 +78,7 @@ namespace Nethermind.Runner.Ethereum
             }
 
             Stop(() => _api.DbProvider?.Dispose(), "Closing DBs");
+            Stop(() => _api.DbFactory?.Dispose(), "Closing DB factory");
 
             if (_logger.IsInfo) _logger.Info("All DBs closed.");
 

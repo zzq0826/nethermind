@@ -195,8 +195,10 @@ namespace Nethermind.Db.Test
         }
     }
 
-    [TestFixture(true)]
-    [TestFixture(false)]
+    [TestFixture(true, false)]
+    [TestFixture(false, false)]
+    [TestFixture(true, true)]
+    [TestFixture(false, true)]
     [Parallelizable(ParallelScope.None)]
     public class DbOnTheRocksDbTests
     {
@@ -205,10 +207,12 @@ namespace Nethermind.Db.Test
         IDisposable? _dbDisposable = null!;
 
         private readonly bool _useColumnDb = false;
+        private readonly bool _useMemEnv;
 
-        public DbOnTheRocksDbTests(bool useColumnDb)
+        public DbOnTheRocksDbTests(bool useColumnDb, bool useMemEnv)
         {
             _useColumnDb = useColumnDb;
+            _useMemEnv = useMemEnv;
         }
 
         [SetUp]
@@ -219,12 +223,19 @@ namespace Nethermind.Db.Test
                 Directory.Delete(DbPath, true);
             }
 
+            Env? env = _useMemEnv ? Env.CreateMemEnv() : Env.CreateDefaultEnv();
             Directory.CreateDirectory(DbPath);
             if (_useColumnDb)
             {
                 IDbConfig config = new DbConfig();
-                ColumnsDb<ReceiptsColumns> columnsDb = new(DbPath, GetRocksDbSettings(DbPath, "Blocks"), config,
-                    LimboLogs.Instance, new List<ReceiptsColumns>() { ReceiptsColumns.Blocks });
+                ColumnsDb<ReceiptsColumns> columnsDb = new(
+                    DbPath,
+                    GetRocksDbSettings(DbPath, "Blocks"),
+                    config,
+                    LimboLogs.Instance,
+                    new List<ReceiptsColumns>() { ReceiptsColumns.Blocks },
+                    env: env
+                );
                 _dbDisposable = columnsDb;
 
                 _db = (ColumnDb)columnsDb.GetColumnDb(ReceiptsColumns.Blocks);
@@ -232,7 +243,13 @@ namespace Nethermind.Db.Test
             else
             {
                 IDbConfig config = new DbConfig();
-                _db = new DbOnTheRocks(DbPath, GetRocksDbSettings(DbPath, "Blocks"), config, LimboLogs.Instance);
+                _db = new DbOnTheRocks(
+                    DbPath,
+                    GetRocksDbSettings(DbPath, "Blocks"),
+                    config,
+                    LimboLogs.Instance,
+                    env: env
+                );
                 _dbDisposable = _db;
             }
         }

@@ -72,15 +72,16 @@ public class DbOnTheRocks : IDb, ITunableDb
 
     internal long _allocatedSpan = 0;
 
-    public DbOnTheRocks(
-        string basePath,
+    public DbOnTheRocks(string basePath,
         DbSettings dbSettings,
         IDbConfig dbConfig,
         ILogManager logManager,
         IList<string>? columnFamilies = null,
         RocksDbSharp.Native? rocksDbNative = null,
         IFileSystem? fileSystem = null,
-        IntPtr? sharedCache = null)
+        IntPtr? sharedCache = null,
+        Env? env = null
+    )
     {
         _logger = logManager.GetClassLogger();
         _settings = dbSettings;
@@ -88,7 +89,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         _fileSystem = fileSystem ?? new FileSystem();
         _rocksDbNative = rocksDbNative ?? RocksDbSharp.Native.Instance;
         _perTableDbConfig = new PerTableDbConfig(dbConfig, _settings);
-        _db = Init(basePath, dbSettings.DbPath, dbConfig, logManager, columnFamilies, dbSettings.DeleteOnStart, sharedCache);
+        _db = Init(basePath, dbSettings.DbPath, dbConfig, logManager, columnFamilies, dbSettings.DeleteOnStart, sharedCache, env);
 
         if (_perTableDbConfig.AdditionalRocksDbOptions is not null)
         {
@@ -110,7 +111,7 @@ public class DbOnTheRocks : IDb, ITunableDb
     }
 
     private RocksDb Init(string basePath, string dbPath, IDbConfig dbConfig, ILogManager? logManager,
-        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null)
+        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null, Env? env = null)
     {
         _fullPath = GetFullDbPath(dbPath, basePath);
         _logger = logManager?.GetClassLogger() ?? default;
@@ -128,7 +129,7 @@ public class DbOnTheRocks : IDb, ITunableDb
             // ReSharper disable once VirtualMemberCallInConstructor
             if (_logger.IsDebug) _logger.Debug($"Building options for {Name} DB");
             DbOptions = new DbOptions();
-            BuildOptions(_perTableDbConfig, DbOptions, sharedCache);
+            BuildOptions(_perTableDbConfig, DbOptions, sharedCache, env);
 
             ColumnFamilies? columnFamilies = null;
             if (columnNames is not null)
@@ -142,7 +143,7 @@ public class DbOnTheRocks : IDb, ITunableDb
                     if (columnFamily == "Default") columnFamily = "default";
 
                     ColumnFamilyOptions options = new();
-                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache);
+                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache, env);
                     columnFamilies.Add(columnFamily, options);
                 }
             }
@@ -300,7 +301,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         return 0;
     }
 
-    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache) where T : Options<T>
+    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache, Env? env) where T : Options<T>
     {
         _maxThisDbSize = 0;
         BlockBasedTableOptions tableOptions = new();
@@ -432,6 +433,11 @@ public class DbOnTheRocks : IDb, ITunableDb
             options.EnableStatistics();
         }
         options.SetStatsDumpPeriodSec(dbConfig.StatsDumpPeriodSec);
+
+        if (env != null)
+        {
+            options.SetEnv(env.Handle);
+        }
 
         WriteOptions = CreateWriteOptions(dbConfig);
 

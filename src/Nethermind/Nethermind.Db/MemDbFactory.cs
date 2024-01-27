@@ -18,5 +18,9 @@ namespace Nethermind.Db
         {
             return new MemColumnsDb<T>(dbSettings.DbName);
         }
+
+        public void Dispose()
+        {
+        }
     }
 }
