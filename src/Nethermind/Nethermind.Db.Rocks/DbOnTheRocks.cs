@@ -406,7 +406,7 @@ public class DbOnTheRocks : IDb, ITunableDb
             options.SetMaxBackgroundCompactions(Native.Instance.rocksdb_env_get_low_priority_background_threads(env.Handle));
             options.SetMaxBackgroundFlushes(Native.Instance.rocksdb_env_get_low_priority_background_threads(env.Handle));
             // VERY important to reduce stalls. Allow L0->L1 compaction to happen with multiple thread.
-            _rocksDbNative.rocksdb_options_set_max_subcompactions(options.Handle, (uint)Native.Instance.rocksdb_env_get_bottom_priority_background_threads(env.Handle));
+            _rocksDbNative.rocksdb_options_set_max_subcompactions(options.Handle, (uint)Native.Instance.rocksdb_env_get_low_priority_background_threads(env.Handle));
 
             options.SetEnv(env.Handle);
         }
