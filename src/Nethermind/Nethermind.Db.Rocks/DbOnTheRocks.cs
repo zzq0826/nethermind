@@ -406,17 +406,25 @@ public class DbOnTheRocks : IDb, ITunableDb
 
         options.SetBlockBasedTableFactory(tableOptions);
 
-        options.SetMaxBackgroundFlushes(Environment.ProcessorCount);
-        options.IncreaseParallelism(Environment.ProcessorCount);
+        if (env != null)
+        {
+            options.SetEnv(env.Handle);
+        }
+        else
+        {
+            options.SetMaxBackgroundFlushes(Environment.ProcessorCount);
+            options.IncreaseParallelism(Environment.ProcessorCount);
+
+            // VERY important to reduce stalls. Allow L0->L1 compaction to happen with multiple thread.
+            _rocksDbNative.rocksdb_options_set_max_subcompactions(options.Handle, (uint)Environment.ProcessorCount);
+        }
+
         options.SetRecycleLogFileNum(dbConfig
             .RecycleLogFileNum); // potential optimization for reusing allocated log files
 
         options.SetMaxBytesForLevelBase(dbConfig.MaxBytesForLevelBase);
         options.SetUseDirectReads(dbConfig.UseDirectReads.GetValueOrDefault());
         options.SetUseDirectIoForFlushAndCompaction(dbConfig.UseDirectIoForFlushAndCompactions.GetValueOrDefault());
-
-        // VERY important to reduce stalls. Allow L0->L1 compaction to happen with multiple thread.
-        _rocksDbNative.rocksdb_options_set_max_subcompactions(options.Handle, (uint)Environment.ProcessorCount);
 
         if (dbConfig.CompactionReadAhead is not null && dbConfig.CompactionReadAhead != 0)
         {
@@ -433,11 +441,6 @@ public class DbOnTheRocks : IDb, ITunableDb
             options.EnableStatistics();
         }
         options.SetStatsDumpPeriodSec(dbConfig.StatsDumpPeriodSec);
-
-        if (env != null)
-        {
-            options.SetEnv(env.Handle);
-        }
 
         WriteOptions = CreateWriteOptions(dbConfig);
 
