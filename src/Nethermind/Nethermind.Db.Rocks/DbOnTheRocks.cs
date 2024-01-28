@@ -80,7 +80,8 @@ public class DbOnTheRocks : IDb, ITunableDb
         RocksDbSharp.Native? rocksDbNative = null,
         IFileSystem? fileSystem = null,
         IntPtr? sharedCache = null,
-        Env? env = null
+        Env? env = null,
+        IntPtr? rateLimiter = null
     )
     {
         _logger = logManager.GetClassLogger();
@@ -89,7 +90,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         _fileSystem = fileSystem ?? new FileSystem();
         _rocksDbNative = rocksDbNative ?? RocksDbSharp.Native.Instance;
         _perTableDbConfig = new PerTableDbConfig(dbConfig, _settings);
-        _db = Init(basePath, dbSettings.DbPath, dbConfig, logManager, columnFamilies, dbSettings.DeleteOnStart, sharedCache, env);
+        _db = Init(basePath, dbSettings.DbPath, dbConfig, logManager, columnFamilies, dbSettings.DeleteOnStart, sharedCache, env, rateLimiter);
 
         if (_perTableDbConfig.AdditionalRocksDbOptions is not null)
         {
@@ -111,7 +112,7 @@ public class DbOnTheRocks : IDb, ITunableDb
     }
 
     private RocksDb Init(string basePath, string dbPath, IDbConfig dbConfig, ILogManager? logManager,
-        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null, Env? env = null)
+        IList<string>? columnNames = null, bool deleteOnStart = false, IntPtr? sharedCache = null, Env? env = null, IntPtr? rateLimiter = null)
     {
         _fullPath = GetFullDbPath(dbPath, basePath);
         _logger = logManager?.GetClassLogger() ?? default;
@@ -129,7 +130,7 @@ public class DbOnTheRocks : IDb, ITunableDb
             // ReSharper disable once VirtualMemberCallInConstructor
             if (_logger.IsDebug) _logger.Debug($"Building options for {Name} DB");
             DbOptions = new DbOptions();
-            BuildOptions(_perTableDbConfig, DbOptions, sharedCache, env);
+            BuildOptions(_perTableDbConfig, DbOptions, sharedCache, env, rateLimiter);
 
             ColumnFamilies? columnFamilies = null;
             if (columnNames is not null)
@@ -143,7 +144,7 @@ public class DbOnTheRocks : IDb, ITunableDb
                     if (columnFamily == "Default") columnFamily = "default";
 
                     ColumnFamilyOptions options = new();
-                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache, env);
+                    BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache, env, rateLimiter);
                     columnFamilies.Add(columnFamily, options);
                 }
             }
@@ -301,7 +302,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         return 0;
     }
 
-    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache, Env? env) where T : Options<T>
+    protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache, Env? env, IntPtr? rateLimiter) where T : Options<T>
     {
         _maxThisDbSize = 0;
         BlockBasedTableOptions tableOptions = new();
@@ -376,6 +377,10 @@ public class DbOnTheRocks : IDb, ITunableDb
                 _rocksDbNative.rocksdb_ratelimiter_create(dbConfig.MaxBytesPerSec.Value, 1000, 10);
             _rocksDbNative.rocksdb_options_set_ratelimiter(options.Handle, _rateLimiter.Value);
         }
+        else if (rateLimiter != null)
+        {
+            _rocksDbNative.rocksdb_options_set_ratelimiter(options.Handle, rateLimiter.Value);
+        }
 
         ulong writeBufferSize = dbConfig.WriteBufferSize;
         options.SetWriteBufferSize(writeBufferSize);
@@ -398,6 +403,11 @@ public class DbOnTheRocks : IDb, ITunableDb
 
         if (env != null)
         {
+            options.SetMaxBackgroundCompactions(Native.Instance.rocksdb_env_get_low_priority_background_threads(env.Handle));
+            options.SetMaxBackgroundFlushes(Native.Instance.rocksdb_env_get_low_priority_background_threads(env.Handle));
+            // VERY important to reduce stalls. Allow L0->L1 compaction to happen with multiple thread.
+            _rocksDbNative.rocksdb_options_set_max_subcompactions(options.Handle, (uint)Native.Instance.rocksdb_env_get_bottom_priority_background_threads(env.Handle));
+
             options.SetEnv(env.Handle);
         }
         else

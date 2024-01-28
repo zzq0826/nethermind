@@ -60,4 +60,15 @@ public class PerTableDbConfigTests
         PerTableDbConfig config = new PerTableDbConfig(dbConfig, new DbSettings(DbNames.Receipts, ""));
         config.MaxOpenFiles.Should().Be(2);
     }
+
+    [Test]
+    public void When_MaxBytesPerSec_IsSame_ReturnNull()
+    {
+        DbConfig dbConfig = new DbConfig();
+        dbConfig.MaxBytesPerSec = 20;
+        dbConfig.ReceiptsDbMaxBytesPerSec = 20;
+
+        PerTableDbConfig config = new PerTableDbConfig(dbConfig, new DbSettings(DbNames.Receipts, ""));
+        config.MaxBytesPerSec.HasValue.Should().BeFalse();
+    }
 }

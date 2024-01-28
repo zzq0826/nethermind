@@ -18,7 +18,13 @@ public class DbConfig : IDbConfig
     public ulong BlockCacheSize { get; set; } = 0;
     public bool CacheIndexAndFilterBlocks { get; set; } = false;
     public int? MaxOpenFiles { get; set; }
-    public long? MaxBytesPerSec { get; set; }
+
+    // This has autotune enabled, but the effective rate is between `MaxBytesPerSec` and `MaxBytesPerSec/20`
+    // so still need to have some reasonable value set. Most NVME SSD under sustained load degrade to about 0.5GBps,
+    // while premium SSD tend to keep up around 1GBps until it overheat. Unless the user is using enterprise grade
+    // SSD, this is probably about right.
+    public long? MaxBytesPerSec { get; set; } = 4.GiB();
+
     public int? BlockSize { get; set; } = 16 * 1024;
     public ulong? ReadAheadSize { get; set; } = (ulong)256.KiB();
     public bool? UseDirectReads { get; set; } = false;
@@ -184,4 +190,5 @@ public class DbConfig : IDbConfig
     public uint StatsDumpPeriodSec { get; set; } = 600;
     public int HighPriorityThreadCount { get; set; } = 1;
     public int LowPriorityThreadCount { get; set; } = 8;
+    public int BottomPriorityThreadCount { get; set; } = 2;
 }

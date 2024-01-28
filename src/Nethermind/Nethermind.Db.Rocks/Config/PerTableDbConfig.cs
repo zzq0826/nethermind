@@ -37,7 +37,20 @@ public class PerTableDbConfig
     public IDictionary<string, string>? AdditionalRocksDbOptions => ReadConfig<IDictionary<string, string>?>(nameof(AdditionalRocksDbOptions));
 
     public int? MaxOpenFiles => ReadConfig<int?>(nameof(MaxOpenFiles));
-    public long? MaxBytesPerSec => ReadConfig<long?>(nameof(MaxBytesPerSec));
+
+    public long? MaxBytesPerSec
+    {
+        get
+        {
+            long? val = ReadConfig<long?>(nameof(MaxBytesPerSec));
+            if (val != null && val == _dbConfig.MaxBytesPerSec)
+            {
+                return null;
+            }
+
+            return null;
+        }
+    }
     public uint RecycleLogFileNum => ReadConfig<uint>(nameof(RecycleLogFileNum));
     public bool WriteAheadLogSync => ReadConfig<bool>(nameof(WriteAheadLogSync));
     public bool? UseDirectReads => ReadConfig<bool?>(nameof(UseDirectReads));

@@ -18,6 +18,7 @@ public class RocksDbFactory : IDbFactory, IDisposable
 
     private readonly IntPtr _sharedCache;
     private readonly Env? _env = null;
+    private readonly IntPtr? _rateLimiter = null;
 
     public RocksDbFactory(IDbConfig dbConfig, ILogManager logManager, string basePath)
     {
@@ -32,17 +33,27 @@ public class RocksDbFactory : IDbFactory, IDisposable
             logger.Debug($"Shared memory size is {dbConfig.SharedBlockCacheSize}");
         }
 
-        if (Environment.GetEnvironmentVariable("NO_SHARED_ENV") == "1")
+        var native = RocksDbSharp.Native.Instance;
+        _env = Env.CreateDefaultEnv();
+        _env.SetBackgroundThreads(Math.Min(dbConfig.LowPriorityThreadCount, Environment.ProcessorCount));
+        _env.SetHighPriorityBackgroundThreads(dbConfig.HighPriorityThreadCount);
+        native.rocksdb_env_set_bottom_priority_background_threads(_env.Handle, Math.Min(dbConfig.BottomPriorityThreadCount, Environment.ProcessorCount));
+        _sharedCache = native.rocksdb_cache_create_lru(new UIntPtr(dbConfig.SharedBlockCacheSize));
+        try
         {
-            _env = null;
+            if (dbConfig.MaxBytesPerSec.HasValue)
+            {
+                _rateLimiter = native.rocksdb_ratelimiter_create_auto_tuned(dbConfig.MaxBytesPerSec.Value, 100 * 1000, 10);
+            }
+            else
+            {
+                logger.Warn($"Skipping global ratelimiter setup");
+            }
         }
-        else
+        catch (NativeImport.NativeFunctionMissingException e)
         {
-            _env = Env.CreateDefaultEnv();
-            _env.SetBackgroundThreads(Math.Min(dbConfig.LowPriorityThreadCount, Environment.ProcessorCount));
-            _env.SetHighPriorityBackgroundThreads(dbConfig.HighPriorityThreadCount);
+            logger.Warn($"Unable to set global RateLimiter due to low version of rocksdb. {e}");
         }
-        _sharedCache = RocksDbSharp.Native.Instance.rocksdb_cache_create_lru(new UIntPtr(dbConfig.SharedBlockCacheSize));
     }
 
     public IDb CreateDb(DbSettings dbSettings) =>
@@ -55,7 +66,8 @@ public class RocksDbFactory : IDbFactory, IDisposable
 
     public void Dispose()
     {
-        if (_env != null) Native.Instance.rocksdb_env_destroy(_env.Handle);
+        if (_env is not null) Native.Instance.rocksdb_env_destroy(_env.Handle);
         Native.Instance.rocksdb_cache_destroy(_sharedCache);
+        if (_rateLimiter.HasValue) Native.Instance.rocksdb_ratelimiter_destroy(_rateLimiter.Value);
     }
 }

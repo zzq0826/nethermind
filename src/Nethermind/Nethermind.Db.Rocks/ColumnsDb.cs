@@ -24,7 +24,8 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
         ILogManager logManager,
         IReadOnlyList<T> keys,
         IntPtr? sharedCache = null,
-        Env? env = null
+        Env? env = null,
+        IntPtr? rateLimiter = null
     ) : base (
         basePath,
         settings,
@@ -32,7 +33,8 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
         logManager,
         GetEnumKeys(keys).Select((key) => key.ToString()).ToList(),
         sharedCache: sharedCache,
-        env: env
+        env: env,
+        rateLimiter: rateLimiter
     ) {
         keys = GetEnumKeys(keys);
 
@@ -52,9 +54,9 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
         return keys;
     }
 
-    protected override void BuildOptions<O>(PerTableDbConfig dbConfig, Options<O> options, IntPtr? sharedCache, Env? env)
+    protected override void BuildOptions<O>(PerTableDbConfig dbConfig, Options<O> options, IntPtr? sharedCache, Env? env, IntPtr? rateLimiter)
     {
-        base.BuildOptions(dbConfig, options, sharedCache, env);
+        base.BuildOptions(dbConfig, options, sharedCache, env, rateLimiter);
         options.SetCreateMissingColumnFamilies();
     }
 

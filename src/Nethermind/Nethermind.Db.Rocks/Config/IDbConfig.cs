@@ -190,4 +190,5 @@ public interface IDbConfig : IConfig
 
     int HighPriorityThreadCount { get; set; }
     int LowPriorityThreadCount { get; set; }
+    int BottomPriorityThreadCount { get; set; }
 }
