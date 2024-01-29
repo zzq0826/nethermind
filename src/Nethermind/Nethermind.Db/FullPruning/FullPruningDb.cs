@@ -337,5 +337,15 @@ namespace Nethermind.Db.FullPruning
                 tunableDb.Tune(type);
             }
         }
+
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

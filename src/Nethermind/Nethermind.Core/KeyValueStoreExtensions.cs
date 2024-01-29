@@ -138,6 +138,11 @@ namespace Nethermind.Core
             db.Remove(key.Bytes);
         }
 
+        public static void Delete(this IWriteOnlyKeyValueStore db, byte[] key)
+        {
+            db.Remove(key);
+        }
+
         public static void Delete(this IWriteOnlyKeyValueStore db, long key)
         {
             db.Remove(key.ToBigEndianByteArrayWithoutLeadingZeros());

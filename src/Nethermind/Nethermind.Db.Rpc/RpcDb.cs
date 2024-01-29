@@ -117,5 +117,15 @@ namespace Nethermind.Db.Rpc
         public void DangerousReleaseMemory(in ReadOnlySpan<byte> span)
         {
         }
+
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -45,5 +45,25 @@ namespace Nethermind.Db.Rpc
         {
             return new InMemoryColumnWriteBatch<T>(this);
         }
+
+        public void Flush()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

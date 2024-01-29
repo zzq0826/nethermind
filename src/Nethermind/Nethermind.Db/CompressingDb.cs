@@ -175,6 +175,16 @@ namespace Nethermind.Db
                 if (_wrapped is ITunableDb tunable)
                     tunable.Tune(type);
             }
+
+            public void Compact()
+            {
+                throw new NotImplementedException();
+            }
+
+            public void CompactRange(long keyFrom, long keyTo)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

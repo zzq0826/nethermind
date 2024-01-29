@@ -30,4 +30,24 @@ public class TestMemColumnsDb<TKey> : IColumnsDb<TKey>
     {
         return new InMemoryColumnWriteBatch<TKey>(this);
     }
+
+    public void Flush()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void Clear()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void Compact()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void CompactRange(long keyFrom, long keyTo)
+    {
+        throw new System.NotImplementedException();
+    }
 }

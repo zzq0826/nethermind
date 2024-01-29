@@ -143,5 +143,15 @@ namespace Nethermind.Db
             WritesCount++;
             _db[key] = value;
         }
+
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

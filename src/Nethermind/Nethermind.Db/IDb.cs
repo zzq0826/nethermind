@@ -26,8 +26,9 @@ namespace Nethermind.Db
         long GetIndexSize() => 0;
         long GetMemtableSize() => 0;
 
-        void Flush() { }
-        void Clear() { }
-        void Compact() { }
+        void Flush();
+        void Clear();
+        void Compact();
+        void CompactRange(long keyFrom, long keyTo);
     }
 }

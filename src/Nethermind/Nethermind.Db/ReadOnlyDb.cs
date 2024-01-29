@@ -110,6 +110,16 @@ namespace Nethermind.Db
 
         public void DangerousReleaseMemory(in ReadOnlySpan<byte> span) { }
 
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
+
         public bool PreferWriteByArray => true; // Because of memdb buffer
     }
 }

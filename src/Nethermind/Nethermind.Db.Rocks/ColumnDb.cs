@@ -4,8 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
+using Nethermind.Evm.Tracing.GethStyle.JavaScript;
 using RocksDbSharp;
 using IWriteBatch = Nethermind.Core.IWriteBatch;
 
@@ -15,7 +19,7 @@ public class ColumnDb : IDb
 {
     private readonly RocksDb _rocksDb;
     internal readonly DbOnTheRocks _mainDb;
-    internal readonly ColumnFamilyHandle _columnFamily;
+    public readonly ColumnFamilyHandle _columnFamily;
 
     private readonly DbOnTheRocks.ManagedIterators _readaheadIterators = new();
 
@@ -61,19 +65,19 @@ public class ColumnDb : IDb
     public IEnumerable<KeyValuePair<byte[], byte[]?>> GetAll(bool ordered = false)
     {
         Iterator iterator = _mainDb.CreateIterator(ordered, _columnFamily);
-        return _mainDb.GetAllCore(iterator);
+        return _mainDb.GetAllCore(iterator).ToArray();
     }
 
     public IEnumerable<byte[]> GetAllKeys(bool ordered = false)
     {
         Iterator iterator = _mainDb.CreateIterator(ordered, _columnFamily);
-        return _mainDb.GetAllKeysCore(iterator);
+        return _mainDb.GetAllKeysCore(iterator).ToArray();
     }
 
     public IEnumerable<byte[]> GetAllValues(bool ordered = false)
     {
         Iterator iterator = _mainDb.CreateIterator(ordered, _columnFamily);
-        return _mainDb.GetAllValuesCore(iterator);
+        return _mainDb.GetAllValuesCore(iterator).ToArray();
     }
 
     public IWriteBatch StartWriteBatch()
@@ -113,19 +117,58 @@ public class ColumnDb : IDb
         {
             _underlyingWriteBatch.Set(key, value, _columnDb._columnFamily, flags);
         }
+
+        public void Remove(ReadOnlySpan<byte> key)
+        {
+            // TODO: this does not participate in batching?
+            _underlyingWriteBatch.Delete(key, _columnDb._columnFamily);
+        }
     }
 
-    public void Remove(ReadOnlySpan<byte> key)
+    public unsafe void Remove(ReadOnlySpan<byte> key)
     {
-        // TODO: this does not participate in batching?
-        _rocksDb.Remove(key, _columnFamily, _mainDb.WriteOptions);
+        fixed (byte* bytes = &MemoryMarshal.GetReference(key))
+        {
+            var opts = new WriteOptions();
+            Native.Instance.rocksdb_delete_cf(_rocksDb.Handle, opts.Handle, _columnFamily.Handle, bytes, (nuint)key.Length);
+        }
     }
+
+    //public unsafe void RemoveRange(ReadOnlySpan<byte> key, ReadOnlySpan<byte> keyEnd)
+    //{
+    //    // TODO: this does not participate in batching?
+    //    fixed (byte* key2 = &MemoryMarshal.GetReference(key))
+    //    {
+    //        fixed (byte* key2End = &MemoryMarshal.GetReference(keyEnd))
+    //        {
+    //            Native.Instance.rocksdb_delete_range_cf(_rocksDb.Handle, opts.Handle, _columnFamily.Handle, key2, (nuint)key.Length, key2End, (nuint)keyEnd.Length);
+    //        }
+    //    }
+    //}
+    //public unsafe void Remove(ReadOnlySpan<byte> key)
+    //{
+    //    // TODO: this does not participate in batching?
+
+    //    fixed (byte* key2 = &MemoryMarshal.GetReference(key))
+    //    {
+    //        if (_columnFamily == null)
+    //        {
+    //            Native.Instance.rocksdb_singledelete(_rocksDb.Handle, (_mainDb.WriteOptions ?? new RocksDbSharp.WriteOptions()).Handle, key2, (nuint)key.Length);
+    //        }
+    //        else
+    //        {
+    //            Native.Instance.rocksdb_singledelete(_rocksDb.Handle, (_mainDb.WriteOptions ?? new RocksDbSharp.WriteOptions()).Handle, _columnFamily.Handle, key2, (nuint)key.Length);
+    //        }
+    //    }
+    //}
 
     public bool KeyExists(ReadOnlySpan<byte> key) => _rocksDb.Get(key, _columnFamily) is not null;
 
     public void Flush()
     {
-        _mainDb.Flush();
+        var opts = Native.Instance.rocksdb_flushoptions_create();
+        Native.Instance.rocksdb_flush_cf(_rocksDb.Handle, opts, _columnFamily.Handle);
+        Native.Instance.rocksdb_flushoptions_destroy(opts);
     }
 
     public void Compact()
@@ -133,6 +176,18 @@ public class ColumnDb : IDb
         _rocksDb.CompactRange(Keccak.Zero.BytesToArray(), Keccak.MaxValue.BytesToArray(), _columnFamily);
     }
 
+    public unsafe void DeleteRange(byte[] start, byte[] end)
+    {
+        fixed (byte* converted = start)
+        {
+            fixed (byte* converted2 = end)
+            {
+                var w = new WriteOptions();
+                this._mainDb._rocksDbNative.rocksdb_delete_range_cf(_rocksDb.Handle, w.Handle, this._columnFamily.Handle, converted, (nuint)start.Length, converted2, (nuint)end.Length);
+                this._mainDb._rocksDbNative.rocksdb_suggest_compact_range_cf(_rocksDb.Handle, this._columnFamily.Handle, converted, (nuint)start.Length, converted2, (nuint)end.Length);
+            }
+        }
+    }
     /// <summary>
     /// Not sure how to handle delete of the columns DB
     /// </summary>
@@ -146,5 +201,10 @@ public class ColumnDb : IDb
     public void DangerousReleaseMemory(in ReadOnlySpan<byte> span)
     {
         _mainDb.DangerousReleaseMemory(span);
+    }
+
+    public void CompactRange(long keyFrom, long keyTo)
+    {
+        _rocksDb.CompactRange(BitConverter.GetBytes(keyFrom), BitConverter.GetBytes(keyTo));
     }
 }

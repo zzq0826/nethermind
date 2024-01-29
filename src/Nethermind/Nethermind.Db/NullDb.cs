@@ -65,5 +65,15 @@ namespace Nethermind.Db
         public void Dispose()
         {
         }
+
+        public void Compact()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CompactRange(long keyFrom, long keyTo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

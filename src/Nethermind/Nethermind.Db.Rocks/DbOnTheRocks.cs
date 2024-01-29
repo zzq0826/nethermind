@@ -35,7 +35,7 @@ public class DbOnTheRocks : IDb, ITunableDb
 
     private readonly ConcurrentHashSet<IWriteBatch> _currentBatches = new();
 
-    internal readonly RocksDb _db;
+    public readonly RocksDb _db;
 
     private IntPtr? _rateLimiter;
     internal WriteOptions? WriteOptions { get; private set; }
@@ -60,7 +60,7 @@ public class DbOnTheRocks : IDb, ITunableDb
 
     private readonly IFileSystem _fileSystem;
 
-    protected readonly RocksDbSharp.Native _rocksDbNative;
+    public readonly RocksDbSharp.Native _rocksDbNative;
 
     private ITunableDb.TuneType _currentTune = ITunableDb.TuneType.Default;
 
@@ -142,6 +142,9 @@ public class DbOnTheRocks : IDb, ITunableDb
                     if (columnFamily == "Default") columnFamily = "default";
 
                     ColumnFamilyOptions options = new();
+
+                    ApplyOptions(options);
+                    
                     BuildOptions(new PerTableDbConfig(dbConfig, _settings, columnFamily), options, sharedCache);
                     columnFamilies.Add(columnFamily, options);
                 }
@@ -303,6 +306,7 @@ public class DbOnTheRocks : IDb, ITunableDb
     protected virtual void BuildOptions<T>(PerTableDbConfig dbConfig, Options<T> options, IntPtr? sharedCache) where T : Options<T>
     {
         _maxThisDbSize = 0;
+        ApplyOptions(options);
         BlockBasedTableOptions tableOptions = new();
         tableOptions.SetBlockSize((ulong)(dbConfig.BlockSize ?? 16 * 1024));
         tableOptions.SetPinL0FilterAndIndexBlocksInCache(true);
@@ -456,6 +460,20 @@ public class DbOnTheRocks : IDb, ITunableDb
             _readAheadReadOptions.SetReadaheadSize(dbConfig.ReadAheadSize ?? (ulong)256.KiB());
             _readAheadReadOptions.SetTailing(true);
         }
+    }
+
+    private void ApplyOptions<T>(Options<T> options) where T : Options<T>
+    {
+        //_rocksDbNative.rocksdb_options_set_stats_persist_period_sec(options.Handle, 10);
+        //_rocksDbNative.rocksdb_options_set_stats_persist_period_sec(options.Handle, 10);
+        //var opts = _rocksDbNative.rocksdb_universal_compaction_options_create();
+        //_rocksDbNative.rocksdb_universal_compaction_options_set_max_size_amplification_percent(opts, 10);
+        //options.SetCompactionStyle(Compaction.Universal);
+        //_rocksDbNative.rocksdb_options_set_universal_compaction_options(options.Handle, opts);
+        //_rocksDbNative.rocksdb_options_set_soft_pending_compaction_bytes_limit(options.Handle, 100_000);
+        //_rocksDbNative.rocksdb_options_set_hard_pending_compaction_bytes_limit(options.Handle, 100_000);
+        //_rocksDbNative.rocksdb_options_set_delete_obsolete_files_period_micros(options.Handle, 100_000);
+        //options.SetInfoLogLevel(InfoLogLevel.Debug);
     }
 
     private static WriteOptions CreateWriteOptions(PerTableDbConfig dbConfig)
@@ -1289,6 +1307,11 @@ public class DbOnTheRocks : IDb, ITunableDb
             { "max_bytes_for_level_base", 4.MiB().ToString() },
             { "target_file_size_base", 1.MiB().ToString() },
         };
+    }
+
+    public void CompactRange(long keyFrom, long keyTo)
+    {
+        _db.CompactRange(keyFrom.ToBigEndianByteArrayWithoutLeadingZeros(), keyTo.ToBigEndianByteArrayWithoutLeadingZeros());
     }
 
     // Note: use of threadlocal is very important as the seek forward is fast, but the seek backward is not fast.

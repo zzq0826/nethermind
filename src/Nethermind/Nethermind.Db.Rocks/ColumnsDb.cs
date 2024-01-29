@@ -26,6 +26,11 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
         {
             _columnDbs[key] = new ColumnDb(_db, this, key.ToString()!);
         }
+
+        if (_perTableDbConfig.AdditionalRocksDbOptions != null)
+        {
+            ApplyOptions(_perTableDbConfig.AdditionalRocksDbOptions);
+        }
     }
 
     private static IReadOnlyList<T> GetEnumKeys(IReadOnlyList<T> keys)
@@ -44,7 +49,7 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
         options.SetCreateMissingColumnFamilies();
     }
 
-    public IDb GetColumnDb(T key) => _columnDbs[key];
+    public ColumnDb GetColumnDb(T key) => _columnDbs[key];
 
     public IEnumerable<T> ColumnKeys => _columnDbs.Keys;
 
@@ -67,6 +72,11 @@ public class ColumnsDb<T> : DbOnTheRocks, IColumnsDb<T> where T : struct, Enum
             _rocksDbNative.rocksdb_set_options_cf(_db.Handle, cols.Value._columnFamily.Handle, keys.Length, keys, values);
         }
         base.ApplyOptions(options);
+    }
+
+    IDb IColumnsDb<T>.GetColumnDb(T key)
+    {
+        return this.GetColumnDb(key);
     }
 
     private class RocksColumnsWriteBatch : IColumnsWriteBatch<T>
