@@ -14,23 +14,16 @@ public static class VerkleUtils
     public static (FrE, FrE) BreakValueInLowHigh(byte[]? value)
     {
         if (value is null) return (FrE.Zero, FrE.Zero);
-        if (value.Length != 32) throw new ArgumentException();
         UInt256 valueFr = new(value);
         FrE lowFr = FrE.SetElement(valueFr.u0, valueFr.u1) + ValueExistsMarker;
         var highFr = FrE.SetElement(valueFr.u2, valueFr.u3);
         return (lowFr, highFr);
     }
 
-    public static (List<byte>, byte?, byte?) GetPathDifference(IEnumerable<byte> existingNodeKey,
-        IEnumerable<byte> newNodeKey)
+    public static int GetPathDifference(in ReadOnlySpan<byte> existingNodeKey,
+        in ReadOnlySpan<byte> newNodeKey)
     {
-        var samePathIndices = new List<byte>();
-        foreach ((var first, var second) in existingNodeKey.Zip(newNodeKey))
-        {
-            if (first != second) return (samePathIndices, first, second);
-            samePathIndices.Add(first);
-        }
-
-        return (samePathIndices, null, null);
+        for (int i = 0; i < existingNodeKey.Length; i++) if (existingNodeKey[i] != newNodeKey[i]) return i;
+        return existingNodeKey.Length;
     }
 }

@@ -5,7 +5,7 @@ using Nethermind.Verkle.Fields.FrEElement;
 
 namespace Nethermind.Core.Verkle
 {
-    public struct Committer
+    public readonly struct Committer
     {
         private static readonly CRS Constants = CRS.Instance;
 
@@ -14,7 +14,7 @@ namespace Nethermind.Core.Verkle
             return Banderwagon.MultiScalarMul(Constants.BasisG, value);
         }
 
-        public static Banderwagon ScalarMul(FrE value, int index)
+        public static Banderwagon ScalarMul(in FrE value, int index)
         {
             return Constants.BasisG[index] * value;
         }

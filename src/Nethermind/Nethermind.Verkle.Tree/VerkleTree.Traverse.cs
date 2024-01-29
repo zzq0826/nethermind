@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Nethermind.Core.Extensions;
 using Nethermind.Verkle.Curve;
@@ -16,6 +15,7 @@ public partial class VerkleTree
 {
     private void UpdateTreeCommitments(Span<byte> stem, LeafUpdateDelta leafUpdateDelta, bool forSync = false)
     {
+        if(_logger.IsTrace) _logger.Trace($"Updating Tree Commitments Stem:{stem.ToHexString()} forSync:{forSync}");
         TraverseContext context = new(stem, leafUpdateDelta) { ForSync = forSync };
         Banderwagon rootDelta = TraverseBranch(context);
         if (_logger.IsTrace) _logger.Trace($"RootDelta To Apply: {rootDelta.ToBytes().ToHexString()}");
@@ -25,10 +25,10 @@ public partial class VerkleTree
     private Banderwagon TraverseBranch(TraverseContext traverseContext)
     {
         var childIndex = traverseContext.Stem[traverseContext.CurrentIndex];
-        var absolutePath = traverseContext.Stem[..(traverseContext.CurrentIndex + 1)].ToArray();
+        Span<byte> absolutePath = traverseContext.Stem[..(traverseContext.CurrentIndex + 1)];
 
         InternalNode? child = GetInternalNode(absolutePath);
-        if (child is null || (child.IsStem && child.InternalCommitment.Point.Equals(new Banderwagon())))
+        if (child is null || (child.IsStem && Banderwagon.Equals(child.InternalCommitment.Point, Banderwagon.Identity)))
         {
             if (_logger.IsTrace) _logger.Trace("Create New Stem Node");
             // 1. create new suffix node
@@ -59,7 +59,7 @@ public partial class VerkleTree
         }
 
         traverseContext.CurrentIndex += 1;
-        (Banderwagon stemDeltaHash, var changeStemToBranch) = TraverseStem(child, traverseContext);
+        var changeStemToBranch = TraverseStem(child, traverseContext, out Banderwagon stemDeltaHash);
         traverseContext.CurrentIndex -= 1;
         if (_logger.IsTrace) _logger.Trace($"TraverseStem Delta:{stemDeltaHash.ToBytes().ToHexString()}");
 
@@ -80,19 +80,19 @@ public partial class VerkleTree
         return stemDeltaHash;
     }
 
-    private (Banderwagon, bool) TraverseStem(InternalNode node, TraverseContext traverseContext)
+    private bool TraverseStem(InternalNode node, TraverseContext traverseContext, out Banderwagon stemDeltaHash)
     {
         Debug.Assert(node.IsStem);
 
-        (List<byte> sharedPath, var pathDiffIndexOld, var pathDiffIndexNew) =
-            VerkleUtils.GetPathDifference(node.Stem!.Bytes, traverseContext.Stem.ToArray());
+        int sharedPathCount =
+            VerkleUtils.GetPathDifference(node.Stem!.BytesAsSpan, traverseContext.Stem);
 
-        if (sharedPath.Count != 31)
+        if (sharedPathCount != 31)
         {
-            var relativePathLength = sharedPath.Count - traverseContext.CurrentIndex;
-            // byte[] relativeSharedPath = sharedPath.ToArray()[traverseContext.CurrentIndex..].ToArray();
-            var oldLeafIndex = pathDiffIndexOld ?? throw new ArgumentException();
-            var newLeafIndex = pathDiffIndexNew ?? throw new ArgumentException();
+            var relativePathLength = sharedPathCount - traverseContext.CurrentIndex;
+            var oldLeafIndex = node.Stem!.BytesAsSpan[sharedPathCount];
+            var newLeafIndex = traverseContext.Stem[sharedPathCount];
+            Span<byte> sharedPath = traverseContext.Stem[..sharedPathCount];
             // node share a path but not the complete stem.
 
             // the internal node will be denoted by their sharedPath
@@ -105,13 +105,13 @@ public partial class VerkleTree
             FrE deltaHashNewStem = deltaFrNewStem + newStem.InitCommitmentHash!.Value;
 
             // creating the stem node for the new suffix node
-            var stemKey = new byte[sharedPath.Count + 1];
+            var stemKey = new byte[sharedPathCount + 1];
             sharedPath.CopyTo(stemKey);
             stemKey[^1] = newLeafIndex;
             SetInternalNode(stemKey, newStem);
             Banderwagon newSuffixCommitmentDelta = Committer.ScalarMul(deltaHashNewStem, newLeafIndex);
 
-            stemKey = new byte[sharedPath.Count + 1];
+            stemKey = new byte[sharedPathCount + 1];
             sharedPath.CopyTo(stemKey);
             stemKey[^1] = oldLeafIndex;
             SetInternalNode(stemKey, node);
@@ -122,12 +122,13 @@ public partial class VerkleTree
             Banderwagon deltaCommitment = oldSuffixCommitmentDelta + newSuffixCommitmentDelta;
 
             Banderwagon internalCommitment =
-                FillSpaceWithBranchNodes(sharedPath.ToArray(), relativePathLength, deltaCommitment);
+                FillSpaceWithBranchNodes(sharedPath, relativePathLength, deltaCommitment);
 
-            return (internalCommitment - node.InternalCommitment.Point, true);
+            stemDeltaHash = internalCommitment - node.InternalCommitment.Point;
+            return true;
         }
 
-        var absolutePath = traverseContext.Stem[..traverseContext.CurrentIndex].ToArray();
+        Span<byte> absolutePath = traverseContext.Stem[..traverseContext.CurrentIndex];
         var childIndex = traverseContext.Stem[traverseContext.CurrentIndex - 1];
         if (traverseContext.ForSync)
         {
@@ -142,18 +143,20 @@ public partial class VerkleTree
             // 1. Add internal.stem node
             // 2. return delta from ExtensionCommitment
             SetInternalNode(absolutePath, stem);
-            return (Committer.ScalarMul(deltaHash, childIndex), false);
+            stemDeltaHash = Committer.ScalarMul(deltaHash, childIndex);
+            return false;
         }
         else
         {
             InternalNode updatedStemNode = node.Clone();
             FrE deltaFr = updatedStemNode.UpdateCommitment(traverseContext.LeafUpdateDelta);
             SetInternalNode(absolutePath, updatedStemNode);
-            return (Committer.ScalarMul(deltaFr, childIndex), false);
+            stemDeltaHash = Committer.ScalarMul(deltaFr, childIndex);
+            return false;
         }
     }
 
-    private Banderwagon FillSpaceWithBranchNodes(byte[] path, int length, Banderwagon deltaPoint)
+    private Banderwagon FillSpaceWithBranchNodes(in ReadOnlySpan<byte> path, int length, Banderwagon deltaPoint)
     {
         for (var i = 0; i < length; i++)
         {
@@ -166,18 +169,11 @@ public partial class VerkleTree
         return deltaPoint;
     }
 
-    public ref struct TraverseContext
+    public ref struct TraverseContext(Span<byte> stem, LeafUpdateDelta delta)
     {
-        public LeafUpdateDelta LeafUpdateDelta { get; }
-        public bool ForSync { get; set; }
-        public Span<byte> Stem { get; }
-        public int CurrentIndex { get; set; }
-
-        public TraverseContext(Span<byte> stem, LeafUpdateDelta delta)
-        {
-            Stem = stem;
-            CurrentIndex = 0;
-            LeafUpdateDelta = delta;
-        }
+        public LeafUpdateDelta LeafUpdateDelta { get; } = delta;
+        public bool ForSync { get; init; }
+        public Span<byte> Stem { get; } = stem;
+        public int CurrentIndex { get; set; } = 0;
     }
 }

@@ -42,17 +42,17 @@ public partial class VerkleTree
         SpanDictionary<byte, List<SuffixStateDiff>> stemStateDiff = new(Bytes.SpanEqualityComparer);
         foreach (var key in keys)
         {
-            SuffixStateDiff suffixData = new() { Suffix = key[31], CurrentValue = Get(key.AsSpan()) };
-            if (!stemStateDiff.TryGetValue(key.Slice(0, 31), out List<SuffixStateDiff>? suffixStateDiffList))
+            SuffixStateDiff suffixData = new() { Suffix = key[31], CurrentValue = Get(key) };
+            Span<byte> keyStem = key.AsSpan()[..31];
+            if (!stemStateDiff.TryGetValue(keyStem, out List<SuffixStateDiff> suffixStateDiffList))
             {
-                suffixStateDiffList = new List<SuffixStateDiff>();
-                stemStateDiff.TryAdd(key.Slice(0, 31), suffixStateDiffList);
+                suffixStateDiffList = [];
+                stemStateDiff.TryAdd(keyStem, suffixStateDiffList);
             }
-
             suffixStateDiffList.Add(suffixData);
         }
 
-        var stemStateDiffList = stemStateDiff.Select(stemStateDiffData =>
+        List<StemStateDiff> stemStateDiffList = stemStateDiff.Select(stemStateDiffData =>
             new StemStateDiff { Stem = stemStateDiffData.Key, SuffixDiffs = stemStateDiffData.Value }).ToList();
 
         return new ExecutionWitness { VerkleProof = proof, StateDiff = stemStateDiffList };
