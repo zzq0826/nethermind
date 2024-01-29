@@ -202,16 +202,18 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
         // Try to execute block
         (ValidationResult result, string? message) = await ValidateBlockAndProcess(block, parentHeader, processingOptions);
 
+        string? validationInfo = message is null ? null : " Validation message: {message}.";
+
         if (result == ValidationResult.Invalid)
         {
-            if (_logger.IsInfo) _logger.Info($"Invalid block found. Validation message: {message}. Result of {requestStr}.");
+            if (_logger.IsInfo) _logger.Info($"Invalid block found.{validationInfo} Result of {requestStr}.");
             _invalidChainTracker.OnInvalidBlock(block.Hash!, block.ParentHash);
             return ResultWrapper<PayloadStatusV1>.Success(BuildInvalidPayloadStatusV1(request, message));
         }
 
         if (result == ValidationResult.Syncing)
         {
-            if (_logger.IsInfo) _logger.Info($"Processing queue wasn't empty added to queue {requestStr}.");
+            if (_logger.IsInfo) _logger.Info($"Processing queue wasn't empty, added to queue {requestStr}.{validationInfo}");
             return NewPayloadV1Result.Syncing;
         }
 
@@ -330,7 +332,7 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
                     ProcessingResult.QueueException => "Block cannot be added to processing queue.",
                     ProcessingResult.MissingBlock => "Block wasn't found in tree.",
                     ProcessingResult.ProcessingError => "Block processing failed.",
-                    _ => null
+                    _ => $"Other: {e.ProcessingResult}"
                 };
 
                 blockProcessedTaskCompletionSource.TrySetResult(validationResult);
@@ -386,6 +388,8 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
         {
             _processingQueue.BlockRemoved -= GetProcessingQueueOnBlockRemoved;
         }
+
+        if (_logger.IsInfo) _logger.Debug($"ValidateBlockAndProcess returns {result}");
 
         return (TryCacheResult(result ?? ValidationResult.Syncing), validationMessage);
     }
