@@ -10,6 +10,8 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
 using Nethermind.Network.Contract.P2P;
+using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
+using Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V67;
 using Nethermind.Network.P2P.Subprotocols.Eth.V68.Messages;
 using Nethermind.Network.Rlpx;
@@ -24,7 +26,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
     private readonly IPooledTxsRequestor _pooledTxsRequestor;
 
     private readonly Action<V66.Messages.GetPooledTransactionsMessage> _sendAction;
-
+    private readonly Dictionary<Hash256, TxAnnounceData> _announceData = new Dictionary<Hash256, TxAnnounceData>();
     public override string Name => "eth68";
 
     public override byte ProtocolVersion => EthVersions.Eth68;
@@ -73,6 +75,30 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
         }
     }
 
+    protected override void Handle(TransactionsMessage msg)
+    {
+        base.Handle(msg);
+        foreach (var tx in msg.Transactions)
+        {
+            Debug.Assert(tx.Hash != null);
+            if (_announceData.ContainsKey(tx.Hash))
+            {
+                TxAnnounceData data = _announceData[tx.Hash];
+                if (data.Type != tx.Type)
+                {
+                    throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
+                }
+                //Geth gives some leeway in size difference
+                //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
+                if (Math.Abs(data.Size - tx.GetLength()) > 8 )
+                {
+                    throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
+                }
+                _announceData.Remove(tx.Hash);
+            }
+        }
+    }
+
     private void Handle(NewPooledTransactionHashesMessage68 message)
     {
         bool isTrace = Logger.IsTrace;
@@ -94,7 +120,16 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
 
         Stopwatch? stopwatch = isTrace ? Stopwatch.StartNew() : null;
 
-        _pooledTxsRequestor.RequestTransactionsEth68(_sendAction, message.Hashes, message.Sizes, message.Types);
+        IReadOnlyList<TxAnnounceData> requested = _pooledTxsRequestor.RequestTransactionsEth68(_sendAction, message.Hashes, message.Sizes, message.Types);
+
+        foreach (TxAnnounceData announceData in requested)
+        {
+            //We do not want to overwrite previous announcement values 
+            if (!_announceData.ContainsKey(announceData.Hash))
+            {
+                _announceData.Add(announceData.Hash, announceData);
+            }
+        }
 
         stopwatch?.Stop();
 
