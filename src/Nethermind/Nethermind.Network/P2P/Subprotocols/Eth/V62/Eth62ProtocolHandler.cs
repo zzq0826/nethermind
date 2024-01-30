@@ -254,7 +254,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V62
             ProtocolInitialized?.Invoke(this, eventArgs);
         }
 
-        protected void Handle(TransactionsMessage msg)
+        protected virtual void Handle(TransactionsMessage msg)
         {
             IList<Transaction> iList = msg.Transactions;
 

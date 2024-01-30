@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Nethermind.Core;
 using Nethermind.Core.Caching;
 using Nethermind.Core.Collections;
@@ -72,9 +73,10 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
             }
         }
 
-        public void RequestTransactionsEth68(Action<V66.Messages.GetPooledTransactionsMessage> send, IReadOnlyList<Hash256> hashes, IReadOnlyList<int> sizes, IReadOnlyList<byte> types)
+        public IReadOnlyList<TxAnnounceData> RequestTransactionsEth68(Action<V66.Messages.GetPooledTransactionsMessage> send, IReadOnlyList<Hash256> hashes, IReadOnlyList<int> sizes, IReadOnlyList<byte> types)
         {
             using ArrayPoolList<(Hash256 Hash, byte Type, int Size)> discoveredTxHashesAndSizes = new(hashes.Count);
+            using ArrayPoolList<TxAnnounceData> requestedTxs = new(hashes.Count);
             AddMarkUnknownHashesEth68(hashes, sizes, types, discoveredTxHashesAndSizes);
 
             if (discoveredTxHashesAndSizes.Count != 0)
@@ -97,6 +99,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                     if (_txPoolConfig.BlobsSupport.IsEnabled() || txType != TxType.Blob)
                     {
                         hashesToRequest.Add(discoveredTxHashesAndSizes[i].Hash);
+                        requestedTxs.Add(new TxAnnounceData(discoveredTxHashesAndSizes[i].Hash, txSize, txType));
                         packetSizeLeft -= txSize;
                     }
                 }
@@ -106,6 +109,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth
                     RequestPooledTransactionsEth66(send, hashesToRequest);
                 }
             }
+            return requestedTxs.ToArray();
         }
 
         private void AddMarkUnknownHashes(IReadOnlyList<Hash256> hashes, ArrayPoolList<Hash256> discoveredTxHashes)
