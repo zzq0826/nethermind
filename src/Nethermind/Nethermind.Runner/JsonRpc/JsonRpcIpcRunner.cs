@@ -14,9 +14,7 @@ using Nethermind.JsonRpc.WebSockets;
 using Nethermind.Logging;
 using Nethermind.Serialization.Json;
 using Nethermind.Sockets;
-
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Net.WebSockets;
 
 namespace Nethermind.Runner.JsonRpc
 {
@@ -24,6 +22,7 @@ namespace Nethermind.Runner.JsonRpc
     {
         private const int OperationCancelledError = 125;
         private readonly ILogger _logger;
+        private readonly ILogManager _logManager;
         private readonly IJsonRpcLocalStats _jsonRpcLocalStats;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly IFileSystem _fileSystem;
@@ -48,6 +47,7 @@ namespace Nethermind.Runner.JsonRpc
             _jsonRpcProcessor = jsonRpcProcessor;
             _jsonRpcService = jsonRpcService;
             _logger = logManager.GetClassLogger();
+            _logManager = logManager;
             _jsonRpcLocalStats = jsonRpcLocalStats;
             _jsonSerializer = jsonSerializer;
             _fileSystem = fileSystem;
@@ -120,11 +120,12 @@ namespace Nethermind.Runner.JsonRpc
                 socket.ReceiveTimeout = _jsonRpcConfig.Timeout;
                 socket.SendTimeout = _jsonRpcConfig.Timeout;
 
+                WebSocket webSocket = WebSocket.CreateFromStream(new NetworkStream(socket, false), true, null, TimeSpan.Zero);
                 _resetEvent.Set();
 
                 socketsClient = new JsonRpcSocketsClient(
                     string.Empty,
-                    new IpcSocketsHandler(socket),
+                    new WebSocketHandler(webSocket, _logManager),
                     RpcEndpoint.IPC,
                     _jsonRpcProcessor,
                     _jsonRpcService,
