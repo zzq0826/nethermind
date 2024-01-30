@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -13,12 +14,16 @@ namespace Nethermind.Core.Verkle;
 
 public class ExecutionWitness
 {
-    public List<StemStateDiff> StateDiff { get; set; } = new(0);
-    public WitnessVerkleProof? VerkleProof { get; set; } = null;
+    public StemStateDiff[] StateDiff { get; }
+    public WitnessVerkleProof? VerkleProof { get; }
 
-    public ExecutionWitness() { }
+    public ExecutionWitness()
+    {
+        StateDiff = Array.Empty<StemStateDiff>();
+        VerkleProof = null;
+    }
 
-    public ExecutionWitness(List<StemStateDiff> stateDiff, WitnessVerkleProof proof)
+    public ExecutionWitness(StemStateDiff[] stateDiff, WitnessVerkleProof proof)
     {
         StateDiff = stateDiff;
         VerkleProof = proof;
