@@ -157,7 +157,7 @@ public class Block
         if (ExecutionWitness is not null)
         {
             builder.AppendLine($"  ExecutionWitness");
-            builder.AppendLine($"    StateDiff: {ExecutionWitness.StateDiff.Count}");
+            builder.AppendLine($"    StateDiff: {ExecutionWitness.StateDiff.Length}");er
             if (ExecutionWitness.VerkleProof is not null)
             {
                 builder.AppendLine($"    WitnessVerkleProof: {ExecutionWitness.VerkleProof.D}");

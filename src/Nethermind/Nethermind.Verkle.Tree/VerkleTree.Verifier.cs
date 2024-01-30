@@ -37,10 +37,10 @@ public partial class VerkleTree
         return stems;
     }
 
-    private static Stem[] GetStemsFromStemStateDiff(List<StemStateDiff> suffixDiffs)
+    private static Stem[] GetStemsFromStemStateDiff(StemStateDiff[] suffixDiffs)
     {
-        var stems = new Stem[suffixDiffs.Count];
-        for (var i = 0; i < suffixDiffs.Count; i++) stems[i] = suffixDiffs[i].Stem;
+        var stems = new Stem[suffixDiffs.Length];
+        for (var i = 0; i < suffixDiffs.Length; i++) stems[i] = suffixDiffs[i].Stem;
         return stems;
     }
 

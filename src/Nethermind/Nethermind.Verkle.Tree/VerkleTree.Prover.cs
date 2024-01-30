@@ -52,10 +52,15 @@ public partial class VerkleTree
             suffixStateDiffList.Add(suffixData);
         }
 
-        List<StemStateDiff> stemStateDiffList = stemStateDiff.Select(stemStateDiffData =>
-            new StemStateDiff { Stem = stemStateDiffData.Key, SuffixDiffs = stemStateDiffData.Value }).ToList();
+        var stemStateDiffList = new StemStateDiff[stemStateDiff.Count];
+        int i = 0;
+        foreach (KeyValuePair<byte[], List<SuffixStateDiff>> stemStateDiffData in stemStateDiff)
+        {
+            stemStateDiffList[i++] = new StemStateDiff
+                { Stem = stemStateDiffData.Key, SuffixDiffs = stemStateDiffData.Value };
+        }
 
-        return new ExecutionWitness { VerkleProof = proof, StateDiff = stemStateDiffList };
+        return new ExecutionWitness(stemStateDiffList, proof);
     }
 
     public VerkleProof CreateVerkleProof(byte[][] keys, out Banderwagon rootPoint)
