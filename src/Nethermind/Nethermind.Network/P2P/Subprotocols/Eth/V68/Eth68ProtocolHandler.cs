@@ -90,7 +90,8 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
                 }
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
-                if (Math.Abs(data.Size - tx.GetLength()) > 8 )
+                //if (Math.Abs(data.Size - tx.GetLength()) > 8 )
+                if(data.Size != tx.GetLength())
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
                 }
