@@ -74,8 +74,8 @@ public partial class VerkleTree
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
 
-        Dictionary<Stem, byte> depthsByStem = new();
-        Dictionary<Stem, ExtPresent> extStatus = new();
+        List<byte> depthsByStem = new();
+        List<ExtPresent> extStatus = new();
 
         // generate prover path for keys
         Dictionary<byte[], HashSet<byte>> neededOpenings = new(Bytes.EqualityComparer);
@@ -92,23 +92,29 @@ public partial class VerkleTree
                     {
                         case VerkleNodeType.BranchNode:
                             CreateBranchProofPolynomialIfNotExist(parentPath, null);
-                            neededOpenings.TryAdd(parentPath, new HashSet<byte>());
+                            neededOpenings.TryAdd(parentPath, []);
                             neededOpenings[parentPath].Add(key[i]);
                             continue;
                         case VerkleNodeType.StemNode:
                             Stem keyStem = key[..31];
-                            depthsByStem.TryAdd(keyStem, (byte)i);
                             CreateStemProofPolynomialIfNotExist(keyStem, null);
                             neededOpenings.TryAdd(parentPath, new HashSet<byte>());
-                            stemList.Add(parentPath);
+                            bool newStem = stemList.Add(parentPath);
+
+                            if (newStem) depthsByStem.Add((byte)i);
+                            else depthsByStem[^1] = (byte)i;
+
                             if (keyStem == node.Stem)
                             {
                                 neededOpenings[parentPath].Add(key[31]);
-                                extStatus.TryAdd(keyStem, ExtPresent.Present);
+
+                                if (newStem) extStatus.Add(ExtPresent.Present);
+                                else extStatus[^1] = ExtPresent.Present;
                             }
                             else
                             {
-                                extStatus.TryAdd(keyStem, ExtPresent.DifferentStem);
+                                if (newStem) extStatus.Add(ExtPresent.DifferentStem);
+                                else extStatus[^1] = ExtPresent.DifferentStem;
                             }
 
                             break;
@@ -118,9 +124,8 @@ public partial class VerkleTree
                 }
                 else
                 {
-                    var keyStem = key[..31];
-                    extStatus.TryAdd(keyStem, ExtPresent.None);
-                    depthsByStem.TryAdd(keyStem, (byte)i);
+                    extStatus.Add(ExtPresent.None);
+                    depthsByStem.Add((byte)i);
                 }
 
                 // reaching here means end of the path for the leaf
@@ -128,8 +133,8 @@ public partial class VerkleTree
             }
 
         VerkleProof finalProof = CreateProofStruct(stemList, neededOpenings, true, out rootPoint, null);
-        finalProof.VerifyHint.Depths = depthsByStem.Values.ToArray();
-        finalProof.VerifyHint.ExtensionPresent = extStatus.Values.ToArray();
+        finalProof.VerifyHint.Depths = depthsByStem.ToArray();
+        finalProof.VerifyHint.ExtensionPresent = extStatus.ToArray();
 
         return finalProof;
     }
@@ -401,7 +406,10 @@ public partial class VerkleTree
         var commitments = new Banderwagon[256];
         for (var i = 0; i < 256; i++)
         {
-            InternalNode? node = GetInternalNode(path.Append((byte)i).ToArray(), rootHash);
+            Span<byte> internalPath = new byte[path.Length + 1];
+            path.CopyTo(internalPath);
+            internalPath[^1] = (byte)i;
+            InternalNode? node = GetInternalNode(internalPath, rootHash);
             commitments[i] = node == null ? Banderwagon.Identity : node.InternalCommitment.Point;
         }
 
