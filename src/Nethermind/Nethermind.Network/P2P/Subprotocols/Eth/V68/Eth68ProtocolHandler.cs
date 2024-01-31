@@ -77,7 +77,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
 
     protected override void Handle(TransactionsMessage msg)
     {
-        base.Handle(msg);
+        //Disconnect before or after accepting tx?
         foreach (var tx in msg.Transactions)
         {
             Debug.Assert(tx.Hash != null);
@@ -91,13 +91,15 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
                 //if (Math.Abs(data.Size - tx.GetLength()) > 8 )
-                if(data.Size != tx.GetLength())
+                Logger.Info( $"transaction diff: {Math.Abs(data.Size-tx.GetLength())}");
+                if (data.Size != tx.GetLength())
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
                 }
                 _announceData.Remove(tx.Hash);
             }
         }
+        base.Handle(msg);
     }
 
     private void Handle(NewPooledTransactionHashesMessage68 message)
