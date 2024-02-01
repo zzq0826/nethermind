@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Nethermind.Consensus;
 using Nethermind.Core;
+using Nethermind.Core.Caching;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Logging;
@@ -26,7 +27,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
     private readonly IPooledTxsRequestor _pooledTxsRequestor;
 
     private readonly Action<V66.Messages.GetPooledTransactionsMessage> _sendAction;
-    private readonly Dictionary<Hash256, TxAnnounceData> _announceData = new Dictionary<Hash256, TxAnnounceData>();
+    private readonly LruCache<ValueHash256, (int, TxType)> _announceData = new (64 * 1024, 1042, "tx announce data");
     public override string Name => "eth68";
 
     public override byte ProtocolVersion => EthVersions.Eth68;
@@ -78,28 +79,33 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
     protected override void Handle(TransactionsMessage msg)
     {
         //Disconnect before or after accepting tx?
+        ValidateAnnouncedValues(msg);
+        base.Handle(msg);
+    }
+
+    private void ValidateAnnouncedValues(TransactionsMessage msg)
+    {
         foreach (var tx in msg.Transactions)
         {
             Debug.Assert(tx.Hash != null);
-            if (_announceData.ContainsKey(tx.Hash))
+            if (_announceData.Contains(tx.Hash))
             {
-                TxAnnounceData data = _announceData[tx.Hash];
-                if (data.Type != tx.Type)
+                (int size, TxType type) = _announceData.Get(tx.Hash);
+                if (type != tx.Type)
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
                 }
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
                 //if (Math.Abs(data.Size - tx.GetLength()) > 8 )
-                Logger.Info( $"transaction diff: {Math.Abs(data.Size-tx.GetLength())}");
-                if (data.Size != tx.GetLength())
+                Logger.Info($"transaction diff: {Math.Abs(size - tx.GetLength())}");
+                if (size != tx.GetLength())
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
                 }
-                _announceData.Remove(tx.Hash);
+                _announceData.Delete(tx.Hash);
             }
         }
-        base.Handle(msg);
     }
 
     private void Handle(NewPooledTransactionHashesMessage68 message)
@@ -124,13 +130,13 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
         Stopwatch? stopwatch = isTrace ? Stopwatch.StartNew() : null;
 
         IReadOnlyList<TxAnnounceData> requested = _pooledTxsRequestor.RequestTransactionsEth68(_sendAction, message.Hashes, message.Sizes, message.Types);
-
+        
         foreach (TxAnnounceData announceData in requested)
         {
-            //We do not want to overwrite previous announcement values 
-            if (!_announceData.ContainsKey(announceData.Hash))
+            //We do not want to overwrite previous announcement values to prevent manipulation from the peer
+            if (!_announceData.Contains(announceData.Hash))
             {
-                _announceData.Add(announceData.Hash, announceData);
+                _announceData.Set(announceData.Hash, (announceData.Size, announceData.Type));
             }
         }
 
