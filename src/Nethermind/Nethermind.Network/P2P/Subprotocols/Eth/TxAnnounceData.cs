@@ -3,10 +3,11 @@
 
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Stats.Model;
 
 namespace Nethermind.Network.P2P.Subprotocols.Eth;
 
-public class TxAnnounceData
+public struct TxAnnounceData
 {
     public TxAnnounceData(Hash256 hash, int size, TxType type)
     {
@@ -14,6 +15,7 @@ public class TxAnnounceData
         Size = size;
         Type = type;
     }
+
     public Hash256 Hash { get; }
     public int Size { get; }
     public TxType Type { get; }
