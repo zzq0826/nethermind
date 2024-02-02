@@ -91,6 +91,8 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
             if (_announceData.Contains(tx.Hash))
             {
                 (int size, TxType type) = _announceData.Get(tx.Hash);
+                Logger.Info($"validating announce data {tx.Hash} {size} {type}");
+
                 if (type != tx.Type)
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
@@ -136,6 +138,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
             //We do not want to overwrite previous announcement values to prevent manipulation from the peer
             if (!_announceData.Contains(announceData.Hash))
             {
+                Logger.Info($"insert announce data {announceData.Hash} {announceData.Size} {announceData.Type}" );
                 _announceData.Set(announceData.Hash, (announceData.Size, announceData.Type));
             }
         }
