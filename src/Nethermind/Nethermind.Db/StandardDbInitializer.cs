@@ -37,13 +37,13 @@ namespace Nethermind.Db
 
         private void RegisterAll(bool useReceiptsDb, bool useBlobsDb)
         {
-            RegisterDb(BuildRocksDbSettings(DbNames.Blocks, () => Metrics.BlocksDbReads++, () => Metrics.BlocksDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.Headers, () => Metrics.HeaderDbReads++, () => Metrics.HeaderDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.BlockNumbers, () => Metrics.BlockNumberDbReads++, () => Metrics.BlockNumberDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.BlockInfos, () => Metrics.BlockInfosDbReads++, () => Metrics.BlockInfosDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.BadBlocks, () => Metrics.BadBlocksDbReads++, () => Metrics.BadBlocksDbWrites++));
+            RegisterDb(BuildDbSettings(DbNames.Blocks));
+            RegisterDb(BuildDbSettings(DbNames.Headers));
+            RegisterDb(BuildDbSettings(DbNames.BlockNumbers));
+            RegisterDb(BuildDbSettings(DbNames.BlockInfos));
+            RegisterDb(BuildDbSettings(DbNames.BadBlocks));
 
-            RocksDbSettings stateDbSettings = BuildRocksDbSettings(DbNames.State, () => Metrics.StateDbReads++, () => Metrics.StateDbWrites++);
+            DbSettings stateDbSettings = BuildDbSettings(DbNames.State);
             RegisterCustomDb(DbNames.State, () => new FullPruningDb(
                 stateDbSettings,
                 PersistedDb
@@ -51,31 +51,29 @@ namespace Nethermind.Db
                     : new MemDbFactoryToRocksDbAdapter(MemDbFactory),
                 () => Interlocked.Increment(ref Metrics.StateDbInPruningWrites)));
 
-            RegisterDb(BuildRocksDbSettings(DbNames.Code, () => Metrics.CodeDbReads++, () => Metrics.CodeDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.Bloom, () => Metrics.BloomDbReads++, () => Metrics.BloomDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.CHT, () => Metrics.CHTDbReads++, () => Metrics.CHTDbWrites++));
-            RegisterDb(BuildRocksDbSettings(DbNames.Witness, () => Metrics.WitnessDbReads++, () => Metrics.WitnessDbWrites++));
+            RegisterDb(BuildDbSettings(DbNames.Code));
+            RegisterDb(BuildDbSettings(DbNames.Bloom));
+            RegisterDb(BuildDbSettings(DbNames.CHT));
+            RegisterDb(BuildDbSettings(DbNames.Witness));
             if (useReceiptsDb)
             {
-                RegisterColumnsDb<ReceiptsColumns>(BuildRocksDbSettings(DbNames.Receipts, () => Metrics.ReceiptsDbReads++, () => Metrics.ReceiptsDbWrites++));
+                RegisterColumnsDb<ReceiptsColumns>(BuildDbSettings(DbNames.Receipts));
             }
             else
             {
                 RegisterCustomColumnDb(DbNames.Receipts, () => new ReadOnlyColumnsDb<ReceiptsColumns>(new MemColumnsDb<ReceiptsColumns>(), false));
             }
-            RegisterDb(BuildRocksDbSettings(DbNames.Metadata, () => Metrics.MetadataDbReads++, () => Metrics.MetadataDbWrites++));
+            RegisterDb(BuildDbSettings(DbNames.Metadata));
             if (useBlobsDb)
             {
-                RegisterColumnsDb<BlobTxsColumns>(BuildRocksDbSettings(DbNames.BlobTransactions, () => Metrics.BlobTransactionsDbReads++, () => Metrics.BlobTransactionsDbWrites++));
+                RegisterColumnsDb<BlobTxsColumns>(BuildDbSettings(DbNames.BlobTransactions));
             }
         }
 
-        private static RocksDbSettings BuildRocksDbSettings(string dbName, Action updateReadsMetrics, Action updateWriteMetrics, bool deleteOnStart = false)
+        private static DbSettings BuildDbSettings(string dbName, bool deleteOnStart = false)
         {
             return new(GetTitleDbName(dbName), dbName)
             {
-                UpdateReadMetrics = updateReadsMetrics,
-                UpdateWriteMetrics = updateWriteMetrics,
                 DeleteOnStart = deleteOnStart
             };
         }
