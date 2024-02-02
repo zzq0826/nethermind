@@ -78,7 +78,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
 
     protected override void Handle(TransactionsMessage msg)
     {
-        //Disconnect before or after accepting tx?
+        //We can disconnect before or after accepting tx?
         ValidateAnnouncedValues(msg);
         base.Handle(msg);
     }
