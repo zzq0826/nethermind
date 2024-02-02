@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Net;
 using DotNetty.Buffers;
 using FluentAssertions;
@@ -12,12 +15,14 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Core.Timers;
+using Nethermind.Crypto;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Network.P2P;
 using Nethermind.Network.P2P.Subprotocols;
 using Nethermind.Network.P2P.Subprotocols.Eth;
 using Nethermind.Network.P2P.Subprotocols.Eth.V62.Messages;
+using Nethermind.Network.P2P.Subprotocols.Eth.V66;
 using Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V68;
 using Nethermind.Network.P2P.Subprotocols.Eth.V68.Messages;
@@ -229,6 +234,91 @@ public class Eth68ProtocolHandlerTests
         HandleZeroMessage(hashesMsg, Eth68MessageCode.NewPooledTransactionHashes);
 
         _session.Received(messagesCount).DeliverMessage(Arg.Is<GetPooledTransactionsMessage>(m => m.EthMessage.Hashes.Count == maxNumberOfTxsInOneMsg || m.EthMessage.Hashes.Count == numberOfTransactions % maxNumberOfTxsInOneMsg));
+    }
+
+    [Test]
+    public void HandleMessage_TwoTxWithValidAnnnounceData_TwoTxAreSubmittedToPool( )
+    {
+        Transaction[] tx = new[] { Build.A.Transaction.Signed(new EthereumEcdsa(3, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject, Build.A.Transaction.Signed(new EthereumEcdsa(4, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject };
+        List<byte> types = tx.Select(t=>(byte)t.Type).ToList();
+        List<int> sizes = tx.Select(t => t.GetLength()).ToList();
+        List<Hash256> hashes = tx.Select(t => t.Hash).ToList();
+        _pooledTxsRequestor
+            .RequestTransactionsEth68(
+            Arg.Any<Action<GetPooledTransactionsMessage>>(),
+            Arg.Any<IReadOnlyList<Hash256>>(),
+            Arg.Any<IReadOnlyList<int>>(),
+            Arg.Any<IReadOnlyList<byte>>())
+            .Returns(tx.Select(t => new TxAnnounceData(t.Hash, t.GetLength(), t.Type)).ToImmutableList());
+        NewPooledTransactionHashesMessage68 msg1 = new(types, sizes, hashes);
+        var msg2 = new PooledTransactionsMessage(0, new Network.P2P.Subprotocols.Eth.V65.Messages.PooledTransactionsMessage(tx));
+
+        HandleIncomingStatusMessage();
+        HandleZeroMessage(msg1, Eth68MessageCode.NewPooledTransactionHashes);
+        HandleZeroMessage(msg2, Eth66MessageCode.PooledTransactions);
+
+        _transactionPool.Received(2).SubmitTx(Arg. Any<Transaction>(), Arg.Any<TxHandlingOptions>()); 
+    }
+
+    [TestCase(TxType.Blob)]
+    [TestCase(TxType.DepositTx)]
+    public void HandleMessage_TwoTxWithValidAndInvalidAnnnounceTypeData_ThrowSubProtocolException(TxType wrongType)
+    {
+        Transaction[] tx = new[] { Build.A.Transaction.Signed(new EthereumEcdsa(3, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject, Build.A.Transaction.Signed(new EthereumEcdsa(4, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject };
+        List<byte> types = tx.Select(t => (byte)t.Type).ToList();
+        List<int> sizes = tx.Select(t => t.GetLength()).ToList();
+        List<Hash256> hashes = tx.Select(t => t.Hash).ToList();
+        _pooledTxsRequestor
+            .RequestTransactionsEth68(
+            Arg.Any<Action<GetPooledTransactionsMessage>>(),
+            Arg.Any<IReadOnlyList<Hash256>>(),
+            Arg.Any<IReadOnlyList<int>>(),
+            Arg.Any<IReadOnlyList<byte>>())
+            .Returns(new[] { new TxAnnounceData(
+                tx[0].Hash,
+                tx[0].GetLength(),
+                tx[0].Type), new TxAnnounceData(
+                    tx[1].Hash,
+                    tx[1].GetLength(),
+                    wrongType) }.ToImmutableList());
+        NewPooledTransactionHashesMessage68 msg1 = new(types.ToImmutableList(), sizes, hashes);
+        var msg2 = new PooledTransactionsMessage(0, new Network.P2P.Subprotocols.Eth.V65.Messages.PooledTransactionsMessage(tx));
+
+        HandleIncomingStatusMessage();
+        HandleZeroMessage(msg1, Eth68MessageCode.NewPooledTransactionHashes);
+
+        Assert.That(() => HandleZeroMessage(msg2, Eth66MessageCode.PooledTransactions), Throws.InstanceOf<SubprotocolException>());
+    }
+
+    [TestCase(1)]
+    [TestCase(-1)]
+    [TestCase(10000000)]
+    public void HandleMessage_TwoTxWithValidAndInvalidAnnnounceSizeData_ThrowSubProtocolException(int wrongSize)
+    {
+        Transaction[] tx = new[] { Build.A.Transaction.Signed(new EthereumEcdsa(3, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject, Build.A.Transaction.Signed(new EthereumEcdsa(4, LimboLogs.Instance), TestItem.PrivateKeyA).TestObject };
+        List<byte> types = tx.Select(t => (byte)t.Type).ToList();
+        List<int> sizes = tx.Select(t => t.GetLength()).ToList();
+        List<Hash256> hashes = tx.Select(t => t.Hash).ToList();
+        _pooledTxsRequestor
+            .RequestTransactionsEth68(
+            Arg.Any<Action<GetPooledTransactionsMessage>>(),
+            Arg.Any<IReadOnlyList<Hash256>>(),
+            Arg.Any<IReadOnlyList<int>>(),
+            Arg.Any<IReadOnlyList<byte>>())
+            .Returns(new[] { new TxAnnounceData(
+                tx[0].Hash,
+                tx[0].GetLength(),
+                tx[0].Type), new TxAnnounceData(
+                    tx[1].Hash,
+                    wrongSize,
+                    tx[1].Type) }.ToImmutableList());
+        NewPooledTransactionHashesMessage68 msg1 = new(types.ToImmutableList(), sizes, hashes);
+        var msg2 = new PooledTransactionsMessage(0, new Network.P2P.Subprotocols.Eth.V65.Messages.PooledTransactionsMessage(tx));
+
+        HandleIncomingStatusMessage();
+        HandleZeroMessage(msg1, Eth68MessageCode.NewPooledTransactionHashes);
+
+        Assert.That(() => HandleZeroMessage(msg2, Eth66MessageCode.PooledTransactions), Throws.InstanceOf<SubprotocolException>());
     }
 
     private void HandleIncomingStatusMessage()
