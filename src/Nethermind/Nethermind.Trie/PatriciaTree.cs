@@ -18,6 +18,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie.Pruning;
+using Prometheus;
 
 namespace Nethermind.Trie
 {
@@ -87,6 +88,24 @@ namespace Nethermind.Trie
         {
         }
 
+        protected Counter PatriciaRunCountP =
+            Prometheus.Metrics.CreateCounter("patricia_run_count", "time in run", "trietype");
+
+        protected Counter PatriciaRunTimeP =
+            Prometheus.Metrics.CreateCounter("patricia_run_time", "time in run", "trietype");
+
+        protected Counter PatriciaCommitTimeP =
+            Prometheus.Metrics.CreateCounter("patricia_commit_time", "time in commit", "trietype");
+
+        protected Counter PatriciaUpdateRootHashTimeP =
+            Prometheus.Metrics.CreateCounter("patricia_update_root_hash_time", "time in run", "trietype");
+
+        protected Counter.Child PatriciaRunTime;
+        protected Counter.Child PatriciaRunCount;
+        protected Counter.Child PatriciaCommitTime;
+        protected Counter.Child PatriciaUpdateRootHashTime;
+
+
         public PatriciaTree(
             IKeyValueStoreWithBatching keyValueStore,
             Hash256 rootHash,
@@ -122,6 +141,11 @@ namespace Nethermind.Trie
             // RootRef?.MarkPersistedRecursively(_logger);
 
             _bufferPool = bufferPool;
+
+            PatriciaRunTime = PatriciaRunTimeP.WithLabels("state");
+            PatriciaRunCount = PatriciaRunCountP.WithLabels("state");
+            PatriciaCommitTime = PatriciaCommitTimeP.WithLabels("state");
+            PatriciaUpdateRootHashTime = PatriciaUpdateRootHashTimeP.WithLabels("state");
         }
 
         public void Commit(long blockNumber, bool skipRoot = false, WriteFlags writeFlags = WriteFlags.None)
@@ -131,6 +155,7 @@ namespace Nethermind.Trie
                 ThrowReadOnlyTrieException();
             }
 
+            long startTime = Stopwatch.GetTimestamp();
             if (RootRef is not null && RootRef.IsDirty)
             {
                 Commit(new NodeCommitInfo(RootRef), skipSelf: skipRoot);
@@ -166,6 +191,9 @@ namespace Nethermind.Trie
             {
                 _logger.Debug($"Finished committing block {blockNumber}");
             }
+
+            if (_logger.IsDebug) _logger.Debug($"Finished committing block {blockNumber}");
+            PatriciaCommitTime.Inc(Stopwatch.GetTimestamp() - startTime);
         }
 
         private void Commit(NodeCommitInfo nodeCommitInfo, bool skipSelf = false)
@@ -336,8 +364,10 @@ namespace Nethermind.Trie
 
         public void UpdateRootHash()
         {
+            long startTime = Stopwatch.GetTimestamp();
             RootRef?.ResolveKey(TrieStore, true, bufferPool: _bufferPool);
             SetRootHash(RootRef?.Keccak ?? EmptyTreeHash, false);
+            PatriciaUpdateRootHashTime.Inc(Stopwatch.GetTimestamp() - startTime);
         }
 
         private void SetRootHash(Hash256? value, bool resetObjects)

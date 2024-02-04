@@ -9,8 +9,11 @@ using DotNetty.Common.Utilities;
 using DotNetty.Transport.Channels;
 using Nethermind.Core.Exceptions;
 using Nethermind.Logging;
+using Nethermind.Network.P2P.Subprotocols;
 using Nethermind.Network.Rlpx;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Stats.Model;
+using Prometheus;
 using Snappy;
 
 namespace Nethermind.Network.P2P.ProtocolHandlers
@@ -20,16 +23,22 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         private readonly ISession _session;
         private readonly ILogger _logger;
 
+        private Counter ZeroNettyExceptions =
+            Prometheus.Metrics.CreateCounter("zero_netty_exceptions", "Zero netty exceptions", "exception", "state", "direction");
+
         public bool SnappyEnabled { get; private set; }
 
         public ZeroNettyP2PHandler(ISession session, ILogManager logManager)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _logger = logManager?.GetClassLogger<ZeroNettyP2PHandler>() ?? throw new ArgumentNullException(nameof(logManager));
+            lastMeasurement = DateTime.Now;
         }
 
         public void Init(IPacketSender packetSender, IChannelHandlerContext context)
         {
+            // This is the point where P2P is registered.
+            // Other capability will be registered on `Hello` message.
             _session.Init(5, context, packetSender);
         }
 
@@ -39,8 +48,24 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             base.ChannelRegistered(context);
         }
 
+        private DateTime lastMeasurement;
+
+        private Histogram InterReadInterval = Prometheus.Metrics.CreateHistogram("zero_netty_inter_read_interavl",
+            "read interval", new HistogramConfiguration()
+            {
+                Buckets = Histogram.PowersOfTenDividedBuckets(0, 8, 10),
+            });
+        private Histogram LastMeasurementReset = Prometheus.Metrics.CreateHistogram("zero_netty_last_meaturement_reset",
+            "reset", new HistogramConfiguration()
+            {
+                Buckets = Histogram.PowersOfTenDividedBuckets(0, 8, 10),
+            });
+
         protected override void ChannelRead0(IChannelHandlerContext ctx, ZeroPacket input)
         {
+            InterReadInterval.Observe((DateTime.Now - lastMeasurement).TotalMicroseconds);
+            lastMeasurement = DateTime.Now;
+
             IByteBuffer content = input.Content;
             if (SnappyEnabled)
             {
@@ -102,15 +127,23 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
 
         public override void ExceptionCaught(IChannelHandlerContext context, Exception exception)
         {
+            ZeroNettyExceptions.WithLabels(exception.GetType().Name, _session.State.ToString(), _session.Direction.ToString()).Inc();
+
             //In case of SocketException we log it as debug to avoid noise
             string clientId = _session?.Node?.ToString(Node.Format.Console) ?? $"unknown {_session?.RemoteHost}";
             if (exception is SocketException)
             {
-                if (_logger.IsTrace) _logger.Trace($"Error in communication with {clientId} (SocketException): {exception}");
+                if (!exception.ToString().Contains("Connection reset by peer"))
+                {
+                    if (_logger.IsInfo) _logger.Info($"Error in communication with {clientId} (SocketException): {exception}");
+                }
             }
             else
             {
-                if (_logger.IsDebug) _logger.Debug($"Error in communication with {clientId}: {exception}");
+                if (!exception.ToString().Contains("sent an invalid public key format"))
+                {
+                    if (_logger.IsInfo) _logger.Info($"Error in communication with {clientId}: {exception}");
+                }
             }
 
             if (exception is IInternalNethermindException)
@@ -119,7 +152,8 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             }
             else if (_session?.Node?.IsStatic != true)
             {
-                _session.InitiateDisconnect(DisconnectReason.Exception, $"Exception in connection: {exception.GetType().Name} with message: {exception.Message}");
+                _session.InitiateDisconnect(DisconnectReason.Exception,
+                    $"Exception in connection: {exception.GetType().Name} with message: {exception.Message}");
             }
             else
             {

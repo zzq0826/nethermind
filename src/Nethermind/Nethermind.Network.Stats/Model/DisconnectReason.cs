@@ -65,6 +65,18 @@ public enum DisconnectReason : byte
 
     // Try not to use this. Instead create a new one.
     Other,
+
+    PeerRefreshFailedTimeout,
+    PeerRefreshFailedFaulted,
+    PeerRefreshFailedEmptyResponse,
+    PeerRefreshFailedInvalidHeaderHash,
+
+    NettyConnectionReset,
+    NettySocketException,
+    NettyRlpException,
+    NettySubprotocolException,
+    NettyInvalidDataException,
+    NettyException
 }
 
 public static class DisconnectReasonExtension
@@ -110,6 +122,10 @@ public static class DisconnectReasonExtension
                 return EthDisconnectReason.TooManyPeers;
 
             case DisconnectReason.PeerRemoved:
+            case DisconnectReason.PeerRefreshFailedTimeout:
+            case DisconnectReason.PeerRefreshFailedFaulted:
+            case DisconnectReason.PeerRefreshFailedEmptyResponse:
+            case DisconnectReason.PeerRefreshFailedInvalidHeaderHash:
             case DisconnectReason.PeerRefreshFailed:
                 return EthDisconnectReason.DisconnectRequested;
 

@@ -44,6 +44,11 @@ namespace Nethermind.State
             : base(trieStore, rootHash, false, true, logManager)
         {
             TrieType = TrieType.Storage;
+
+            PatriciaRunTime = PatriciaRunTimeP.WithLabels("storage");
+            PatriciaRunCount = PatriciaRunCountP.WithLabels("storage");
+            PatriciaCommitTime = PatriciaCommitTimeP.WithLabels("storage");
+            PatriciaUpdateRootHashTime = PatriciaUpdateRootHashTimeP.WithLabels("storage");
         }
 
         private static void GetKey(in UInt256 index, in Span<byte> key)

@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNetty.Buffers;
 using DotNetty.Common.Concurrency;
 using DotNetty.Handlers.Logging;
 using DotNetty.Transport.Bootstrapping;
@@ -21,6 +24,8 @@ using Nethermind.Network.P2P.EventArg;
 using Nethermind.Network.Rlpx.Handshake;
 using Nethermind.Stats.Model;
 using ILogger = Nethermind.Logging.InterfaceLogger;
+using Prometheus;
+using Exception = System.Exception;
 using LogLevel = DotNetty.Handlers.Logging.LogLevel;
 
 namespace Nethermind.Network.Rlpx
@@ -44,6 +49,9 @@ namespace Nethermind.Network.Rlpx
         private readonly IEventExecutorGroup _group;
         private readonly TimeSpan _sendLatency;
         private readonly TimeSpan _connectTimeout;
+
+        // private PooledByteBufferAllocator _bufferAllocator = new PooledByteBufferAllocator(4, 4, 8192, 8);
+        private PooledByteBufferAllocator _bufferAllocator = PooledByteBufferAllocator.Default;
 
         public RlpxHost(IMessageSerializationService serializationService,
             PublicKey localNodeId,
@@ -92,7 +100,68 @@ namespace Nethermind.Network.Rlpx
             LocalIp = localIp;
             _sendLatency = sendLatency;
             _connectTimeout = TimeSpan.FromMilliseconds(connectTimeoutMs);
+
+            PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await timer.WaitForNextTickAsync();
+
+                    // RecordMetric(_bufferAllocator, "channel");
+                    RecordMetric(PooledByteBufferAllocator.Default, "default");
+                }
+            });
         }
+
+        private Gauge AllocatorArenaCount =
+            Prometheus.Metrics.CreateGauge("allocator_arena_count", "Arena count", "allocator", "alloctype");
+
+        private Gauge AllocatorArenaActiveBytes =
+            Prometheus.Metrics.CreateGauge("allocator_arena_active_bytes", "Arena count", "allocator", "alloctype", "arenaidx");
+        private Gauge AllocatorArenaActiveAllocation =
+            Prometheus.Metrics.CreateGauge("allocator_arena_active_allocation", "Arena count", "allocator", "alloctype", "arenaidx", "type");
+        private Gauge AllocatorArenaAllocation =
+            Prometheus.Metrics.CreateGauge("allocator_arena_num_allocations", "Arena count", "allocator", "alloctype", "arenaidx");
+        private Gauge AllocatorArenaDeallocation =
+            Prometheus.Metrics.CreateGauge("allocator_arena_num_deallocations", "Arena count", "allocator", "alloctype", "arenaidx");
+        private Gauge AllocatorArenaThreadcache =
+            Prometheus.Metrics.CreateGauge("allocator_arena_num_threadcache", "Arena count", "allocator", "alloctype", "arenaidx");
+        private Gauge AllocatorArenaChunkList =
+            Prometheus.Metrics.CreateGauge("allocator_arena_num_chunk_list", "Arena chunklist", "allocator", "alloctype", "arenaidx");
+
+        private void RecordMetric(PooledByteBufferAllocator allocator, string allocatorName)
+        {
+            void RecordPoolArenaMetrics(string arenaType, int idx, IPoolArenaMetric poolArena) {
+                AllocatorArenaActiveBytes.WithLabels(allocatorName, arenaType, idx.ToString()).Set(poolArena.NumActiveBytes);
+
+                AllocatorArenaActiveAllocation.WithLabels(allocatorName, arenaType, idx.ToString(), "total").Set(poolArena.NumActiveAllocations);
+                AllocatorArenaActiveAllocation.WithLabels(allocatorName, arenaType, idx.ToString(), "normal").Set(poolArena.NumActiveNormalAllocations);
+                AllocatorArenaActiveAllocation.WithLabels(allocatorName, arenaType, idx.ToString(), "small").Set(poolArena.NumActiveSmallAllocations);
+                AllocatorArenaActiveAllocation.WithLabels(allocatorName, arenaType, idx.ToString(), "tiny").Set(poolArena.NumActiveTinyAllocations);
+                AllocatorArenaActiveAllocation.WithLabels(allocatorName, arenaType, idx.ToString(), "huge").Set(poolArena.NumActiveHugeAllocations);
+
+                AllocatorArenaAllocation.WithLabels(allocatorName, arenaType, idx.ToString()).Set(poolArena.NumAllocations);
+                AllocatorArenaDeallocation.WithLabels(allocatorName, arenaType, idx.ToString()).Set(poolArena.NumDeallocations);
+                AllocatorArenaThreadcache.WithLabels(allocatorName, arenaType, idx.ToString()).Set(poolArena.NumThreadCaches);
+                AllocatorArenaChunkList.WithLabels(allocatorName, arenaType, idx.ToString()).Set(poolArena.ChunkLists.Sum((it) => it.Count()));
+            }
+
+            void RecordMetrics(string arenaType, IReadOnlyCollection<IPoolArenaMetric> poolArena)
+            {
+                AllocatorArenaCount.WithLabels(allocatorName, arenaType).Set(poolArena.Count);
+                int idx = 0;
+                foreach (IPoolArenaMetric poolArenaMetric in poolArena)
+                {
+                    RecordPoolArenaMetrics(arenaType, idx, poolArenaMetric);
+                    idx++;
+                }
+            }
+
+            RecordMetrics("heap", allocator.Metric.HeapArenas());
+            RecordMetrics("direct", allocator.Metric.DirectArenas());
+        }
+
 
         public async Task Init()
         {
@@ -220,6 +289,9 @@ namespace Nethermind.Network.Rlpx
 
         public event EventHandler<SessionEventArgs> SessionCreated;
 
+        private static Counter AbruptDisconnect =
+            Prometheus.Metrics.CreateCounter("rlpxhost_abrupt_disconnect", "ABrupt disconnect", "state", "direction");
+
         private void InitializeChannel(IChannel channel, ISession session)
         {
             if (session.Direction == ConnectionDirection.In)
@@ -253,6 +325,12 @@ namespace Nethermind.Network.Rlpx
                 await Task.Delay(TimeSpan.FromSeconds(1));
 
                 if (_logger.IsTrace) _logger.Trace($"|NetworkTrace| {session} channel disconnected");
+
+                if (session.State <= SessionState.Initialized)
+                {
+                    AbruptDisconnect.WithLabels(session.State.ToString(), session.Direction.ToString()).Inc();
+                }
+
                 session.MarkDisconnected(DisconnectReason.ConnectionClosed, DisconnectType.Remote, "channel disconnected");
             });
         }

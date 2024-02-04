@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -22,6 +23,7 @@ using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
+using Prometheus;
 using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing;
@@ -47,6 +49,13 @@ public partial class BlockProcessor : IBlockProcessor
     /// to any block-specific tracers.
     /// </summary>
     protected BlockReceiptsTracer ReceiptsTracer { get; set; }
+
+    private Histogram BlockProcessingTime =
+        Prometheus.Metrics.CreateHistogram("block_processor_processing_time", "processing time", new HistogramConfiguration()
+        {
+            LabelNames = new []{"part"},
+            Buckets = Histogram.PowersOfTenDividedBuckets(0, 9, 10),
+        });
 
     public BlockProcessor(
         ISpecProvider? specProvider,
@@ -105,6 +114,7 @@ public partial class BlockProcessor : IBlockProcessor
         {
             for (int i = 0; i < blocksCount; i++)
             {
+                var startTime = Stopwatch.GetTimestamp();
                 if (blocksCount > 64 && i % 8 == 0)
                 {
                     if (_logger.IsInfo) _logger.Info($"Processing part of a long blocks branch {i}/{blocksCount}. Block: {suggestedBlocks[i]}");
@@ -115,7 +125,9 @@ public partial class BlockProcessor : IBlockProcessor
                 processedBlocks[i] = processedBlock;
 
                 // be cautious here as AuRa depends on processing
+                var startTime2 = Stopwatch.GetTimestamp();
                 PreCommitBlock(newBranchStateRoot, suggestedBlocks[i].Number);
+                BlockProcessingTime.WithLabels("pre_commit_block").Observe(Stopwatch.GetElapsedTime(startTime2).TotalMicroseconds);
                 if (notReadOnly)
                 {
                     _witnessCollector.Persist(processedBlock.Hash!);
@@ -134,6 +146,7 @@ public partial class BlockProcessor : IBlockProcessor
                     Hash256? newStateRoot = suggestedBlocks[i].StateRoot;
                     InitBranch(newStateRoot, false);
                 }
+                BlockProcessingTime.WithLabels("whole").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
             }
 
             if (options.ContainsFlag(ProcessingOptions.DoNotUpdateHead))
@@ -201,7 +214,9 @@ public partial class BlockProcessor : IBlockProcessor
         ApplyDaoTransition(suggestedBlock);
         Block block = PrepareBlockForProcessing(suggestedBlock);
         TxReceipt[] receipts = ProcessBlock(block, blockTracer, options);
+        var startTime = Stopwatch.GetTimestamp();
         ValidateProcessedBlock(suggestedBlock, options, block, receipts);
+        BlockProcessingTime.WithLabels("validate").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
         if (options.ContainsFlag(ProcessingOptions.StoreReceipts))
         {
             StoreTxReceipts(block, receipts);
@@ -238,19 +253,31 @@ public partial class BlockProcessor : IBlockProcessor
         _beaconBlockRootHandler.ApplyContractStateChanges(block, spec, _stateProvider);
         _stateProvider.Commit(spec);
 
+        var startTime = Stopwatch.GetTimestamp();
         TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, ReceiptsTracer, spec);
+        BlockProcessingTime.WithLabels("process_tx").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
 
         if (spec.IsEip4844Enabled)
         {
             block.Header.BlobGasUsed = BlobGasCalculator.CalculateBlobGas(block.Transactions);
         }
 
+        startTime = Stopwatch.GetTimestamp();
         block.Header.ReceiptsRoot = _receiptsRootCalculator.GetReceiptsRoot(receipts, spec, block.ReceiptsRoot);
+        BlockProcessingTime.WithLabels("receipts_root").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
+
+        startTime = Stopwatch.GetTimestamp();
         ApplyMinerRewards(block, blockTracer, spec);
         _withdrawalProcessor.ProcessWithdrawals(block, spec);
         ReceiptsTracer.EndBlockTrace();
+        BlockProcessingTime.WithLabels("receipt_trace").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
 
+        startTime = Stopwatch.GetTimestamp();
         _stateProvider.Commit(spec);
+        BlockProcessingTime.WithLabels("state_commit").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
+        startTime = Stopwatch.GetTimestamp();
+        _stateProvider.RecalculateStateRoot();
+        BlockProcessingTime.WithLabels("state_root").Observe(Stopwatch.GetElapsedTime(startTime).TotalMicroseconds);
 
         if (ShouldComputeStateRoot(block.Header))
         {

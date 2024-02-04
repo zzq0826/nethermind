@@ -73,6 +73,8 @@ namespace Nethermind.Core
 
         // Used for full pruning db to skip duplicate read
         SkipDuplicateRead = 4,
+        WarmUp = 8,
+        CacheOnly = 16,
     }
 
     [Flags]

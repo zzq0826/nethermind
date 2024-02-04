@@ -21,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Prometheus;
 using static Nethermind.Evm.VirtualMachine;
 using static System.Runtime.CompilerServices.Unsafe;
 using ValueHash256 = Nethermind.Core.Crypto.ValueHash256;
@@ -204,6 +205,9 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
     private (Address Address, bool ShouldDelete) _parityTouchBugAccount = (Address.FromNumber(3), false);
     private ReadOnlyMemory<byte> _returnDataBuffer = Array.Empty<byte>();
     private ITxTracer _txTracer = NullTxTracer.Instance;
+
+    private Counter InstructionTime =
+        Prometheus.Metrics.CreateCounter("vm_instruction_time", "instruction time", "instruction");
 
     public VirtualMachine(
         IBlockhashProvider? blockhashProvider,

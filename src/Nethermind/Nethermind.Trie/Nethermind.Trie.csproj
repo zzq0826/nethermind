@@ -10,4 +10,8 @@
     <ProjectReference Include="..\Nethermind.Serialization.Rlp\Nethermind.Serialization.Rlp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="prometheus-net" />
+  </ItemGroup>
+
 </Project>

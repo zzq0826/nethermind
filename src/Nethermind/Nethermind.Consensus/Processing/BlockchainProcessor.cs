@@ -20,6 +20,7 @@ using Nethermind.Evm.Tracing.ParityStyle;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.State;
+using Prometheus;
 using Metrics = Nethermind.Blockchain.Metrics;
 
 namespace Nethermind.Consensus.Processing;
@@ -203,6 +204,8 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
         return tcs.Task;
     }
 
+    private Counter RecoveryTime = Prometheus.Metrics.CreateCounter("recovery_time", "recovery time");
+
     private void RunRecoveryLoop()
     {
         void DecrementQueue(Hash256 blockHash, ProcessingResult processingResult, Exception? exception = null)
@@ -222,7 +225,9 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
                 {
                     Interlocked.Add(ref _currentRecoveryQueueSize, -blockRef.Block!.Transactions.Length);
                     if (_logger.IsTrace) _logger.Trace($"Recovering addresses for block {blockRef.BlockHash}.");
+                    long startTime = Stopwatch.GetTimestamp();
                     _recoveryStep.RecoverData(blockRef.Block);
+                    RecoveryTime.Inc(Stopwatch.GetTimestamp() - startTime);
 
                     try
                     {
@@ -292,6 +297,7 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
         return tcs.Task;
     }
 
+
     private void RunProcessingLoop()
     {
         if (_logger.IsDebug) _logger.Debug($"Starting block processor - {_blockQueue.Count} blocks waiting in the queue.");
@@ -356,12 +362,17 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
 
     int IBlockProcessingQueue.Count => _queueCount;
 
+    private Counter ProcessTime = Prometheus.Metrics.CreateCounter("blockchain_processor_process_tics", "process", "part");
     public Block? Process(Block suggestedBlock, ProcessingOptions options, IBlockTracer tracer)
     {
+        long startTime = Stopwatch.GetTimestamp();
+        long wholeStartTime = Stopwatch.GetTimestamp();
         if (!RunSimpleChecksAheadOfProcessing(suggestedBlock, options))
         {
             return null;
         }
+        ProcessTime.WithLabels("simple_check").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
         UInt256 totalDifficulty = suggestedBlock.TotalDifficulty ?? 0;
         if (_logger.IsTrace) _logger.Trace($"Total difficulty of block {suggestedBlock.ToString(Block.Format.Short)} is {totalDifficulty}");
@@ -370,6 +381,9 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
             suggestedBlock.IsGenesis
             || _blockTree.IsBetterThanHead(suggestedBlock.Header)
             || options.ContainsFlag(ProcessingOptions.ForceProcessing);
+
+        ProcessTime.WithLabels("better_head_check").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
         if (!shouldProcess)
         {
@@ -380,10 +394,17 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
         }
 
         ProcessingBranch processingBranch = PrepareProcessingBranch(suggestedBlock, options);
+        ProcessTime.WithLabels("prepare").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
+
         PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
+        ProcessTime.WithLabels("prepare2").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
         _stopwatch.Restart();
         Block[]? processedBlocks = ProcessBranch(processingBranch, options, tracer);
+        ProcessTime.WithLabels("process_branch").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
         if (processedBlocks is null)
         {
             return null;
@@ -407,6 +428,8 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
             if (_logger.IsTrace) _logger.Trace($"Updating main chain: {lastProcessed}, blocks count: {processedBlocks.Length}");
             _blockTree.UpdateMainChain(processingBranch.Blocks, true);
         }
+        ProcessTime.WithLabels("update_main_chain").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
         bool readonlyChain = options.ContainsFlag(ProcessingOptions.ReadOnlyChain);
         long blockProcessingTimeInMs = _stopwatch.ElapsedMilliseconds;
@@ -422,12 +445,17 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
 
             Metrics.LastBlockProcessingTimeInMs = blockProcessingTimeInMs;
         }
+        ProcessTime.WithLabels("mark_chain").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
         if (!readonlyChain)
         {
             _stats.UpdateStats(lastProcessed, _blockTree, _recoveryQueue.Count, _blockQueue.Count, _stopwatch.ElapsedMicroseconds());
         }
+        ProcessTime.WithLabels("update_stats").Inc(Stopwatch.GetTimestamp() - startTime);
+        startTime = Stopwatch.GetTimestamp();
 
+        ProcessTime.WithLabels("whole").Inc(Stopwatch.GetTimestamp() - wholeStartTime);
         return lastProcessed;
     }
 
@@ -540,6 +568,7 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
     private void PrepareBlocksToProcess(Block suggestedBlock, ProcessingOptions options,
         ProcessingBranch processingBranch)
     {
+        long startTime = Stopwatch.GetTimestamp();
         List<Block> blocksToProcess = processingBranch.BlocksToProcess;
         if (options.ContainsFlag(ProcessingOptions.ForceProcessing))
         {
@@ -570,13 +599,16 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
                     throw new InvalidOperationException("Attempted to process a disconnected blockchain");
                 }
 
+                startTime = Stopwatch.GetTimestamp();
                 if (!_stateReader.HasStateForBlock(parentOfFirstBlock))
                 {
                     throw new InvalidOperationException($"Attempted to process a blockchain with missing state root {parentOfFirstBlock.StateRoot}");
                 }
+                ProcessTime.WithLabels("check_has_state").Inc(Stopwatch.GetTimestamp() - startTime);
             }
         }
 
+        startTime = Stopwatch.GetTimestamp();
         if (_logger.IsTrace)
             _logger.Trace($"Processing {blocksToProcess.Count} blocks from state root {processingBranch.Root}");
         for (int i = 0; i < blocksToProcess.Count; i++)
@@ -584,6 +616,7 @@ public sealed class BlockchainProcessor : IBlockchainProcessor, IBlockProcessing
             /* this can happen if the block was loaded as an ancestor and did not go through the recovery queue */
             _recoveryStep.RecoverData(blocksToProcess[i]);
         }
+        ProcessTime.WithLabels("second_recovery").Inc(Stopwatch.GetTimestamp() - startTime);
     }
 
     private ProcessingBranch PrepareProcessingBranch(Block suggestedBlock, ProcessingOptions options)

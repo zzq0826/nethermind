@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using System.Reflection;
@@ -17,6 +18,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Db.Rocks.Config;
 using Nethermind.Db.Rocks.Statistics;
 using Nethermind.Logging;
+using Prometheus;
 using RocksDbSharp;
 using IWriteBatch = Nethermind.Core.IWriteBatch;
 
@@ -45,6 +47,7 @@ public class DbOnTheRocks : IDb, ITunableDb
 
     private ReadOptions? _defaultReadOptions = null;
     private ReadOptions? _readAheadReadOptions = null;
+    private ReadOptions? _cachedReadOption = null;
 
     internal DbOptions? DbOptions { get; private set; }
 
@@ -77,6 +80,24 @@ public class DbOnTheRocks : IDb, ITunableDb
     private long _totalReads;
     private long _totalWrites;
 
+    private Counter DbOnTheRocksWriteCount =
+        Prometheus.Metrics.CreateCounter("db_on_the_rocks_write_count", "time in set", "db", "flagtype");
+
+    private Counter.Child DbOnTheRocksWriteCountNORMAL;
+    private Counter.Child DbOnTheRocksWriteCountLP;
+    private Counter.Child DbOnTheRocksWriteCountLPNOWAL;
+    private Counter.Child DbOnTheRocksWriteCountNOWAL;
+
+    private Counter DbOnTheRocksReadTime =
+        Prometheus.Metrics.CreateCounter("db_on_the_rocks_read_time", "time in set", "db", "cached");
+    private Counter DbOnTheRocksReadCount =
+        Prometheus.Metrics.CreateCounter("db_on_the_rocks_read_count", "time in set", "db", "cached");
+    private Counter.Child DbOnTheRocksReadTimeC;
+    private Counter.Child DbOnTheRocksReadCountC;
+    private Counter.Child DbOnTheRocksReadTimeCachedC;
+    private Counter.Child DbOnTheRocksReadCountCachedC;
+    private ReadOptions _defaultReadOption = null!;
+
     public DbOnTheRocks(
         string basePath,
         DbSettings dbSettings,
@@ -99,6 +120,16 @@ public class DbOnTheRocks : IDb, ITunableDb
         {
             ApplyOptions(_perTableDbConfig.AdditionalRocksDbOptions);
         }
+
+        DbOnTheRocksWriteCountLP = DbOnTheRocksWriteCount.WithLabels(_perTableDbConfig.GetPrefix(), "lp");
+        DbOnTheRocksWriteCountNORMAL = DbOnTheRocksWriteCount.WithLabels(_perTableDbConfig.GetPrefix(), "normal");
+        DbOnTheRocksWriteCountLPNOWAL = DbOnTheRocksWriteCount.WithLabels(_perTableDbConfig.GetPrefix(), "lpnowal");
+        DbOnTheRocksWriteCountNOWAL = DbOnTheRocksWriteCount.WithLabels(_perTableDbConfig.GetPrefix(), "wal");
+
+        DbOnTheRocksReadTimeC = DbOnTheRocksReadTime.WithLabels(_perTableDbConfig.GetPrefix(), "no");
+        DbOnTheRocksReadCountC = DbOnTheRocksReadCount.WithLabels(_perTableDbConfig.GetPrefix(), "no");
+        DbOnTheRocksReadTimeCachedC = DbOnTheRocksReadTime.WithLabels(_perTableDbConfig.GetPrefix(), "yes");
+        DbOnTheRocksReadCountCachedC = DbOnTheRocksReadCount.WithLabels(_perTableDbConfig.GetPrefix(), "yes");
     }
 
     protected virtual RocksDb DoOpen(string path, (DbOptions Options, ColumnFamilies? Families) db)
@@ -623,6 +654,11 @@ public class DbOnTheRocks : IDb, ITunableDb
             _readAheadReadOptions.SetReadaheadSize(dbConfig.ReadAheadSize ?? (ulong)256.KiB());
             _readAheadReadOptions.SetTailing(true);
         }
+        _cachedReadOption = new ReadOptions();
+        _cachedReadOption.SetReadTier(1);
+
+        _defaultReadOption = new ReadOptions();
+
         #endregion
     }
 
@@ -655,6 +691,7 @@ public class DbOnTheRocks : IDb, ITunableDb
         {
             if (_readAheadReadOptions is not null && (flags & ReadFlags.HintReadAhead) != 0)
             {
+                var startTime = Stopwatch.GetTimestamp();
                 if (!readaheadIterators.IsValueCreated)
                 {
                     readaheadIterators.Value = _db.NewIterator(cf, _readAheadReadOptions);
@@ -664,11 +701,31 @@ public class DbOnTheRocks : IDb, ITunableDb
                 iterator.Seek(key);
                 if (iterator.Valid() && Bytes.AreEqual(iterator.GetKeySpan(), key))
                 {
-                    return iterator.Value();
+                    DbOnTheRocksReadCountC.Inc();
+                    var res2 = iterator.Value();
+                    DbOnTheRocksReadTimeC.Inc(Stopwatch.GetTimestamp() - startTime);
+                    return res2;
                 }
             }
 
-            return _db.Get(key, cf, _defaultReadOptions);
+            byte[]? res = null;
+
+            if ((flags & ReadFlags.CacheOnly) != 0)
+            {
+                var startTime = Stopwatch.GetTimestamp();
+                res = _db.Get(key, cf, _cachedReadOption);
+                DbOnTheRocksReadCountCachedC.Inc();
+                DbOnTheRocksReadTimeCachedC.Inc(Stopwatch.GetTimestamp() - startTime);
+            }
+            else
+            {
+                var startTime = Stopwatch.GetTimestamp();
+                res = _db.Get(key, cf, _defaultReadOption);
+                DbOnTheRocksReadTimeC.Inc(Stopwatch.GetTimestamp() - startTime);
+                DbOnTheRocksReadCountC.Inc();
+            }
+
+            return res;
         }
         catch (RocksDbSharpException e)
         {
@@ -710,19 +767,23 @@ public class DbOnTheRocks : IDb, ITunableDb
     {
         if ((flags & WriteFlags.LowPriorityAndNoWAL) == WriteFlags.LowPriorityAndNoWAL)
         {
+            DbOnTheRocksWriteCountLPNOWAL.Inc();
             return _lowPriorityAndNoWalWrite;
         }
 
         if ((flags & WriteFlags.DisableWAL) == WriteFlags.DisableWAL)
         {
+            DbOnTheRocksWriteCountNOWAL.Inc();
             return _noWalWrite;
         }
 
         if ((flags & WriteFlags.LowPriority) == WriteFlags.LowPriority)
         {
+            DbOnTheRocksWriteCountLP.Inc();
             return _lowPriorityWriteOptions;
         }
 
+        DbOnTheRocksWriteCountNORMAL.Inc();
         return WriteOptions;
     }
 
@@ -1049,6 +1110,14 @@ public class DbOnTheRocks : IDb, ITunableDb
             _reusableWriteBatch = batch;
         }
 
+        private static Histogram DbOnTheRocksBatchSize =
+            Prometheus.Metrics.CreateHistogram("db_on_the_rocks_batch_size", "The batch size", new HistogramConfiguration()
+            {
+                Buckets = Histogram.ExponentialBuckets(1, 2, 15)
+            });
+        private static Counter DbOnTheRocksBatchDispose =
+            Prometheus.Metrics.CreateCounter("db_on_the_rocks_batch_dispose", "yatch dispose");
+
         public void Dispose()
         {
             ObjectDisposedException.ThrowIf(_dbOnTheRocks._isDisposed, _dbOnTheRocks);
@@ -1061,10 +1130,12 @@ public class DbOnTheRocks : IDb, ITunableDb
 
             try
             {
+                Stopwatch sw = Stopwatch.StartNew();
                 _dbOnTheRocks._db.Write(_rocksBatch, _dbOnTheRocks.WriteFlagsToWriteOptions(_writeFlags));
 
                 _dbOnTheRocks._currentBatches.TryRemove(this);
                 ReturnWriteBatch(_rocksBatch);
+                DbOnTheRocksBatchDispose.Inc(sw.ElapsedMicroseconds());
             }
             catch (RocksDbSharpException e)
             {

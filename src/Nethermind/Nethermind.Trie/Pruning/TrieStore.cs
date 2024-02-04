@@ -12,6 +12,7 @@ using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Logging;
+using Prometheus;
 
 namespace Nethermind.Trie.Pruning
 {
@@ -137,6 +138,9 @@ namespace Nethermind.Trie.Pruning
             : this(keyValueStore, No.Pruning, Pruning.Persist.EveryBlock, logManager)
         {
         }
+
+        private Counter WarmUpCount = Prometheus.Metrics.CreateCounter("triestore_warmup", "warmup counter");
+        private Counter WarmUpDelay = Prometheus.Metrics.CreateCounter("triestore_warmup_delay", "warmup counter");
 
         public TrieStore(
             IKeyValueStoreWithBatching? keyValueStore,
@@ -333,8 +337,11 @@ namespace Nethermind.Trie.Pruning
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
+        private Counter LoadRlpTime = Prometheus.Metrics.CreateCounter("triestore_loadrlp_time", "load rlp time");
+
         public byte[]? TryLoadRlp(Hash256 keccak, IKeyValueStore? keyValueStore, ReadFlags readFlags = ReadFlags.None)
         {
+            long startTime = Stopwatch.GetTimestamp();
             keyValueStore ??= _keyValueStore;
             byte[]? rlp = keyValueStore.Get(keccak.Bytes, readFlags);
 
@@ -343,6 +350,7 @@ namespace Nethermind.Trie.Pruning
                 Metrics.LoadedFromDbNodesCount++;
             }
 
+            LoadRlpTime.Inc(Stopwatch.GetTimestamp() - startTime);
             return rlp;
         }
 
@@ -435,6 +443,9 @@ namespace Nethermind.Trie.Pruning
                 });
             }
         }
+
+        private Counter TrieStoreAddedNodes = Prometheus.Metrics.CreateCounter("triestore_added_nodes", "addedd nodes");
+        private Counter TrieStoreRemovedNodes = Prometheus.Metrics.CreateCounter("triestore_removed_nodes", "removedd nodes");
 
         private bool CanPruneCacheFurther()
         {

@@ -59,6 +59,7 @@ public static class Program
     {
         // Increase regex cache size as more added in log coloring matches
         Regex.CacheSize = 128;
+        Prometheus.ExemplarBehavior.NoExemplars();
 #if !DEBUG
         ResourceLeakDetector.Level = ResourceLeakDetector.DetectionLevel.Disabled;
 #endif

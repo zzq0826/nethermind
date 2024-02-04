@@ -20,6 +20,7 @@ using Nethermind.Logging;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
 using Nethermind.Synchronization.Peers.AllocationStrategies;
+using Prometheus;
 using Timer = System.Timers.Timer;
 
 [assembly: InternalsVisibleTo("Nethermind.Blockchain.Test")]
@@ -441,12 +442,59 @@ namespace Nethermind.Synchronization.Peers
             await Task.CompletedTask;
         }
 
+        private Gauge PeerClientTypeGauge =
+            Prometheus.Metrics.CreateGauge("sync_peer_pool_client_type", "Client type", "client_type");
+
+        private Gauge PeerAllocatedTypeGauge =
+            Prometheus.Metrics.CreateGauge("sync_peer_pool_allocation_type", "Client type", "alloc_type");
+
         private void StartUpgradeTimer()
         {
             if (_logger.IsDebug) _logger.Debug("Starting eth sync peer upgrade timer");
             Timer upgradeTimer = _upgradeTimer = new Timer(_allocationsUpgradeIntervalInMs);
             upgradeTimer.Elapsed += (_, _) =>
             {
+                IDictionary<NodeClientType, int> countOfClientType = new Dictionary<NodeClientType, int>();
+                IDictionary<AllocationContexts, int> allocatedContexts = new Dictionary<AllocationContexts, int>();
+                IList<AllocationContexts> _allocationContextsList = new List<AllocationContexts>()
+                {
+                    AllocationContexts.Headers,
+                    AllocationContexts.Bodies,
+                    AllocationContexts.Receipts,
+                    AllocationContexts.State,
+                    AllocationContexts.Witness,
+                    AllocationContexts.Snap,
+                };
+
+                foreach (AllocationContexts allocationContexts in _allocationContextsList)
+                {
+                    allocatedContexts[allocationContexts] = 0;
+                }
+
+                foreach (PeerInfo peerInfo in AllPeers)
+                {
+                    NodeClientType type = peerInfo.SyncPeer.Node.ClientType;
+                    if (!countOfClientType.ContainsKey(type)) countOfClientType[type] = 0;
+                    countOfClientType[type] += 1;
+
+                    foreach (AllocationContexts ctx in _allocationContextsList)
+                    {
+                        if ((peerInfo.AllocatedContexts & ctx) != 0)
+                        {
+                            allocatedContexts[ctx]++;
+                        }
+                    }
+                }
+
+                foreach (var keyValuePair in countOfClientType)
+                {
+                    PeerClientTypeGauge.WithLabels(keyValuePair.Key.ToString()).Set(keyValuePair.Value);
+                }
+                foreach (var keyValuePair in allocatedContexts)
+                {
+                    PeerAllocatedTypeGauge.WithLabels(keyValuePair.Key.ToString()).Set(keyValuePair.Value);
+                }
+
                 try
                 {
                     upgradeTimer.Enabled = false;
@@ -460,6 +508,7 @@ namespace Nethermind.Synchronization.Peers
                 {
                     upgradeTimer.Enabled = true;
                 }
+
             };
 
             upgradeTimer.Start();
@@ -557,11 +606,12 @@ namespace Nethermind.Synchronization.Peers
                     {
                         if (firstToComplete == delayTask)
                         {
-                            ReportRefreshFailed(syncPeer, "timeout", new TimeoutException());
+                            ReportRefreshFailed(syncPeer, "timeout", new TimeoutException(), DisconnectReason.PeerRefreshFailedTimeout);
                         }
                         else if (firstToComplete.IsFaulted)
                         {
-                            ReportRefreshFailed(syncPeer, "faulted", t.Exception);
+                            _logger.Error("the exception is", t.Exception);
+                            ReportRefreshFailed(syncPeer, "faulted", t.Exception, DisconnectReason.PeerRefreshFailedFaulted);
                         }
                         else if (firstToComplete.IsCanceled)
                         {
@@ -574,13 +624,13 @@ namespace Nethermind.Synchronization.Peers
                             BlockHeader? header = getHeadHeaderTask.Result;
                             if (header is null)
                             {
-                                ReportRefreshFailed(syncPeer, "null response");
+                                ReportRefreshFailed(syncPeer, "null response", disconnectReason: DisconnectReason.PeerRefreshFailedEmptyResponse);
                                 return;
                             }
 
                             if (!HeaderValidator.ValidateHash(header))
                             {
-                                ReportRefreshFailed(syncPeer, "invalid header hash");
+                                ReportRefreshFailed(syncPeer, "invalid header hash", disconnectReason: DisconnectReason.PeerRefreshFailedInvalidHeaderHash);
                                 return;
                             }
 
@@ -659,7 +709,7 @@ namespace Nethermind.Synchronization.Peers
             syncPeer.IsInitialized = true;
         }
 
-        public void ReportRefreshFailed(ISyncPeer syncPeer, string reason, Exception? exception = null)
+        public void ReportRefreshFailed(ISyncPeer syncPeer, string reason, Exception? exception = null, DisconnectReason? disconnectReason = null)
         {
             if (_logger.IsTrace) _logger.Trace($"Refresh failed reported: {syncPeer.Node:c}, {reason}, {exception}");
             _stats.ReportSyncEvent(syncPeer.Node, syncPeer.IsInitialized ? NodeStatsEventType.SyncFailed : NodeStatsEventType.SyncInitFailed);
@@ -672,7 +722,7 @@ namespace Nethermind.Synchronization.Peers
             }
             else
             {
-                syncPeer.Disconnect(DisconnectReason.PeerRefreshFailed, $"refresh peer info fault - {reason}");
+                syncPeer.Disconnect(disconnectReason ?? DisconnectReason.PeerRefreshFailed, $"refresh peer info fault - {reason}");
             }
         }
 
