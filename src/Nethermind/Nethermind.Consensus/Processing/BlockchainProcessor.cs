@@ -380,6 +380,8 @@ public class BlockchainProcessor : IBlockchainProcessor, IBlockProcessingQueue
         }
 
         ProcessingBranch processingBranch = PrepareProcessingBranch(suggestedBlock, options);
+        _blockTree.OnBlocksProcessing(processingBranch.Blocks);
+
         PrepareBlocksToProcess(suggestedBlock, options, processingBranch);
 
         _stopwatch.Restart();

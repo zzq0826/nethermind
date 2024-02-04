@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -27,6 +28,7 @@ namespace Nethermind.TxPool
         private readonly IChainHeadInfoProvider _headInfo;
         private readonly ITxGossipPolicy _txGossipPolicy;
         private readonly Func<Transaction, bool> _gossipFilter;
+        private readonly Stopwatch _lastBroadcastPersistent = Stopwatch.StartNew();
 
         /// <summary>
         /// Timer for rebroadcasting pending own transactions.
@@ -143,7 +145,13 @@ namespace Nethermind.TxPool
         public void OnNewHead()
         {
             _baseFeeThreshold = CalculateBaseFeeThreshold();
-            BroadcastPersistentTxs();
+
+            ulong milliseconds = (ulong)_lastBroadcastPersistent.ElapsedMilliseconds;
+            if (milliseconds > 500)
+            {
+                _lastBroadcastPersistent.Restart();
+                BroadcastPersistentTxs();
+            }
         }
 
         internal UInt256 CalculateBaseFeeThreshold()
@@ -210,6 +218,8 @@ namespace Nethermind.TxPool
             {
                 if (_logger.IsDebug) _logger.Debug($"PeerNotificationThreshold is not a positive value: {_txPoolConfig.PeerNotificationThreshold}. Skipping broadcasting persistent transactions.");
             }
+
+            ResumeBroadcastingTxs();
         }
 
         internal (IList<Transaction>? TransactionsToSend, IList<Transaction>? HashesToSend) GetPersistentTxsToSend()
@@ -284,6 +294,16 @@ namespace Nethermind.TxPool
                     StopBroadcast(tx.Hash!);
                 }
             }
+        }
+
+        public void StopBroadcastingTxs()
+        {
+            _timer.Enabled = false;
+        }
+
+        public void ResumeBroadcastingTxs()
+        {
+            _timer.Enabled = true;
         }
 
         private void TimerOnElapsed(object? sender, EventArgs args)

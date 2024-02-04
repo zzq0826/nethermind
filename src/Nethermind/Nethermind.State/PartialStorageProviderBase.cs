@@ -295,7 +295,7 @@ namespace Nethermind.State
         /// </summary>
         protected class Change
         {
-            public Change(ChangeType changeType, StorageCell storageCell, byte[] value)
+            public Change(ChangeType changeType, in StorageCell storageCell, byte[] value)
             {
                 StorageCell = storageCell;
                 Value = value;
@@ -303,7 +303,7 @@ namespace Nethermind.State
             }
 
             public ChangeType ChangeType { get; }
-            public StorageCell StorageCell { get; }
+            public StorageCell StorageCell;
             public byte[] Value { get; }
         }
 

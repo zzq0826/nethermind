@@ -57,6 +57,26 @@ namespace Nethermind.State
             return _stateProvider.GetAccount(address);
         }
 
+        public Account Prefetch(Address address)
+        {
+            return _stateProvider.Prefetch(address);
+        }
+
+        public StorageTree PrefetchStorage(Address address, Account account)
+        {
+            return _persistentStorageProvider.Prefetch(address, account);
+        }
+
+        public void Prefetch(StorageTree storage, in StorageCell storageKey)
+        {
+            _persistentStorageProvider.Prefetch(storage, in storageKey);
+        }
+
+        public void EnablePrefetch()
+        {
+            _stateProvider.EnablePrefetch();
+        }
+
         AccountStruct IAccountStateProvider.GetAccount(Address address)
         {
             return _stateProvider.GetAccount(address).ToStruct();
@@ -144,7 +164,7 @@ namespace Nethermind.State
 
         public void CommitTree(long blockNumber)
         {
-            _persistentStorageProvider.CommitTrees(blockNumber);
+            _persistentStorageProvider.CommitBlock(blockNumber);
             _stateProvider.CommitTree(blockNumber);
             _persistentStorageProvider.StateRoot = _stateProvider.StateRoot;
         }
@@ -225,6 +245,12 @@ namespace Nethermind.State
             _persistentStorageProvider.Commit(tracer);
             _transientStorageProvider.Commit(tracer);
             _stateProvider.Commit(releaseSpec, tracer, isGenesis);
+        }
+
+        public void CommitBlock(long blockNumber)
+        {
+            _persistentStorageProvider.CommitBlock(blockNumber);
+            _stateProvider.CommitBlock();
         }
 
         public Snapshot TakeSnapshot(bool newTransactionStart = false)

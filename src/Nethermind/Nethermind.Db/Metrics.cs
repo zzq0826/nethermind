@@ -63,6 +63,14 @@ namespace Nethermind.Db
         public static long BlockInfosDbWrites { get; set; }
 
         [CounterMetric]
+        [Description("Number of State Trie cache reads.")]
+        public static int StateTreeCacheHits;
+
+        [CounterMetric]
+        [Description("Number of ReadOnly State Trie reads. (e.g. tx pool)")]
+        public static int ReadOnlyStateTreeReads;
+
+        [CounterMetric]
         [Description("_Deprecated._ Number of State Trie reads.")]
         public static long StateTreeReads { get; set; }
 

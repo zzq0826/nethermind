@@ -62,6 +62,7 @@ namespace Nethermind.TxPool
         private readonly ITimer? _timer;
         private Transaction[]? _transactionSnapshot;
         private Transaction[]? _blobTransactionSnapshot;
+        private bool _notAcceptingTxs;
 
         /// <summary>
         /// This class stores all known pending transactions that can be used for block production
@@ -110,7 +111,8 @@ namespace Nethermind.TxPool
                 ? new PersistentBlobTxDistinctSortedPool(blobTxStorage, _txPoolConfig, comparer, logManager)
                 : new BlobTxDistinctSortedPool(txPoolConfig.BlobsSupport == BlobsSupportMode.InMemory ? _txPoolConfig.InMemoryBlobPoolSize : 0, comparer, logManager);
             if (_blobTransactions.Count > 0) _blobTransactions.UpdatePool(_accounts, _updateBucket);
-
+            
+            _headInfo.HeadProcessing += OnHeadProcessing;
             _headInfo.HeadChanged += OnHeadChange;
 
             _preHashFilters = new IIncomingTxFilter[]
@@ -173,6 +175,13 @@ namespace Nethermind.TxPool
         internal Transaction[] GetOwnPendingTransactions() => _broadcaster.GetSnapshot();
 
         public int GetPendingBlobTransactionsCount() => _blobTransactions.Count;
+        
+
+        private void OnHeadProcessing(object? sender, IReadOnlyList<Block> e)
+        {
+            _notAcceptingTxs = true;
+            _broadcaster.StopBroadcastingTxs();
+        }
 
         private void OnHeadChange(object? sender, BlockReplacementEventArgs e)
         {
@@ -202,6 +211,7 @@ namespace Nethermind.TxPool
                     {
                         try
                         {
+                            _notAcceptingTxs = false;
                             ReAddReorganisedTransactions(args.PreviousBlock);
                             RemoveProcessedTransactions(args.Block);
                             UpdateBuckets();
@@ -362,6 +372,10 @@ namespace Nethermind.TxPool
         public AcceptTxResult SubmitTx(Transaction tx, TxHandlingOptions handlingOptions)
         {
             Metrics.PendingTransactionsReceived++;
+            if (_notAcceptingTxs)
+            {
+                return AcceptTxResult.AlreadyKnown;
+            }
 
             // assign a sequence number to transaction so we can order them by arrival times when
             // gas prices are exactly the same

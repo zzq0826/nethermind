@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Nethermind.Core;
+using Nethermind.Core.Caching;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
@@ -24,7 +28,8 @@ namespace Nethermind.State
         private readonly StateProvider _stateProvider;
         private readonly ILogManager? _logManager;
         internal readonly IStorageTreeFactory _storageTreeFactory;
-        private readonly ResettableDictionary<Address, StorageTree> _storages = new();
+        private readonly StorageCache _storages;
+        private readonly LruCache<StorageCell, byte[]> _cache = new(6000, "");
 
         /// <summary>
         /// EIP-1283
@@ -40,6 +45,7 @@ namespace Nethermind.State
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _storageTreeFactory = storageTreeFactory ?? new StorageTreeFactory();
+            _storages = new(this, _storageTreeFactory);
         }
 
         public Hash256 StateRoot { get; set; } = null!;
@@ -50,7 +56,7 @@ namespace Nethermind.State
         public override void Reset()
         {
             base.Reset();
-            _storages.Reset();
+            //_storages.Reset();
             _originalValues.Clear();
             _committedThisRound.Clear();
         }
@@ -166,10 +172,8 @@ namespace Nethermind.State
                             _logger.Trace($"  Update {change.StorageCell.Address}_{change.StorageCell.Index} V = {change.Value.ToHexString(true)}");
                         }
 
-                        StorageTree tree = GetOrCreateStorage(change.StorageCell.Address);
-                        Db.Metrics.StorageTreeWrites++;
+                        SaveToTree(in change.StorageCell, change.Value);
                         toUpdateRoots.Add(change.StorageCell.Address);
-                        tree.Set(change.StorageCell.Index, change.Value);
                         if (isTracing)
                         {
                             trace![change.StorageCell] = new ChangeTrace(change.Value);
@@ -205,49 +209,59 @@ namespace Nethermind.State
         }
 
         /// <summary>
-        /// Commit persisent storage trees
+        /// Commit persistent storage trees
         /// </summary>
         /// <param name="blockNumber">Current block number</param>
-        public void CommitTrees(long blockNumber)
+        public void CommitBlock(long blockNumber)
         {
             // _logger.Warn($"Storage block commit {blockNumber}");
             foreach (KeyValuePair<Address, StorageTree> storage in _storages)
             {
                 storage.Value.Commit(blockNumber);
             }
-
             // TODO: maybe I could update storage roots only now?
-
-            // only needed here as there is no control over cached storage size otherwise
+            
             _storages.Reset();
+            // only needed here as there is no control over cached storage size otherwise
+            _cache.Clear();
         }
 
         private StorageTree GetOrCreateStorage(Address address)
         {
-            ref StorageTree? value = ref _storages.GetValueRefOrAddDefault(address, out bool exists);
-            if (!exists)
-            {
-                value = _storageTreeFactory.Create(address, _trieStore.GetTrieStore(address.ToAccountPath), _stateProvider.GetStorageRoot(address), StateRoot, _logManager);
-                return value;
-            }
-
-            return value;
+            return _storages.Get(address);
         }
 
         private ReadOnlySpan<byte> LoadFromTree(in StorageCell storageCell)
         {
+            byte[] value;
+            //if (!storageCell.IsHash && _cache.TryGet(storageCell, out byte[] value))
+            //{
+            //    PushToRegistryOnly(storageCell, value);
+            //    return value;
+            //}
+
             StorageTree tree = GetOrCreateStorage(storageCell.Address);
 
             Db.Metrics.StorageTreeReads++;
 
             if (!storageCell.IsHash)
             {
-                byte[] value = tree.Get(storageCell.Index);
+                value = tree.Get(storageCell.Index);
                 PushToRegistryOnly(storageCell, value);
                 return value;
             }
 
             return tree.Get(storageCell.Hash.Bytes);
+        }
+
+        private void SaveToTree(in StorageCell storageCell, byte[] value)
+        {
+            StorageTree tree = GetOrCreateStorage(storageCell.Address);
+
+            Db.Metrics.StorageTreeWrites++;
+            
+            _cache.Set(storageCell, value);
+            tree.Set(storageCell.Index, value);
         }
 
         private void PushToRegistryOnly(in StorageCell cell, byte[] value)
@@ -292,13 +306,119 @@ namespace Nethermind.State
             // by means of CREATE 2 - notice that the cached trie may carry information about items that were not
             // touched in this block, hence were not zeroed above
             // TODO: how does it work with pruning?
-            _storages[address] = new StorageTree(_trieStore.GetTrieStore(address.ToAccountPath), Keccak.EmptyTreeHash, _logManager);
+            _storages.Set(address, new StorageTree(_trieStore.GetTrieStore(address.ToAccountPath), Keccak.EmptyTreeHash, _logManager));
+        }
+
+        public StorageTree Prefetch(Address address, Account account)
+        {
+            return _storages.Get(address, account);
+        }
+
+        internal void Prefetch(StorageTree tree, in StorageCell storageCell)
+        {
+            var value = tree.Get(storageCell.Index) ?? Array.Empty<byte>();
+            _cache.Set(storageCell, value);
         }
 
         private class StorageTreeFactory : IStorageTreeFactory
         {
             public StorageTree Create(Address address, IScopedTrieStore trieStore, Hash256 storageRoot, Hash256 stateRoot, ILogManager? logManager)
                 => new(trieStore, storageRoot, logManager);
+        }
+
+        private class StorageCache : IEnumerable<KeyValuePair<Address, StorageTree>>
+        {
+            private readonly PersistentStorageProvider _storage;
+            private readonly IStorageTreeFactory _storageTreeFactory;
+            private readonly Dictionary<Address, StorageTree>[] _caches;
+            private bool _isReadOnly;
+
+            public StorageCache(PersistentStorageProvider storage, IStorageTreeFactory storageTreeFactory)
+            {
+                // 16 caches to avoid contention in parallel processing
+                Dictionary<Address, StorageTree>[] caches = new Dictionary<Address, StorageTree>[16];
+                for (int i = 0; i < caches.Length; i++)
+                {
+                    caches[i] = new Dictionary<Address, StorageTree>(64);
+                }
+
+                _caches = caches;
+                _storage = storage;
+                _storageTreeFactory = storageTreeFactory;
+            }
+
+            public void Set(Address address, StorageTree tree)
+            {
+                if (_isReadOnly) return;
+
+                int index = address.Bytes[0] & 0xF;
+                Dictionary<Address, StorageTree> cache = _caches[index];
+                lock (cache)
+                {
+                    cache[address] = tree;
+                }
+            }
+
+            public StorageTree Get(Address address, Account? account = null)
+            {
+                int index = address.Bytes[0] & 0xF;
+                Dictionary<Address, StorageTree> cache = _caches[index];
+                lock (cache)
+                {
+
+                    ref StorageTree? value = ref CollectionsMarshal.GetValueRefOrAddDefault(cache, address, out bool exists);
+                    if (!exists)
+                    {
+                        value = _storageTreeFactory.Create(address,
+                                                           _storage._trieStore.GetTrieStore(address.ToAccountPath),
+                                                           account?.StorageRoot ?? _storage._stateProvider.GetStorageRoot(address),
+                                                           _storage.StateRoot,
+                                                           _storage._logManager);
+                        return value;
+                    }
+
+                    return value;
+                }
+            }
+
+            public void Reset()
+            {
+                SetReadOnly();
+
+                Dictionary<Address, StorageTree>[] caches = _caches;
+                for (int i = 0; i < caches.Length; i++)
+                {
+                    caches[i] = new Dictionary<Address, StorageTree>(64);
+                }
+            }
+
+            public void SetReadWrite()
+            {
+                Volatile.Write(ref _isReadOnly, false);
+            }
+
+            private void SetReadOnly()
+            {
+                Volatile.Write(ref _isReadOnly, true);
+            }
+
+            public IEnumerator<KeyValuePair<Address, StorageTree>> GetEnumerator()
+            {
+                Dictionary<Address, StorageTree>[] caches = _caches;
+                for (int i = 0; i < caches.Length; i++)
+                {
+                    Dictionary<Address, StorageTree> cache = caches[i];
+                    lock (cache)
+                    {
+                        foreach (KeyValuePair<Address, StorageTree> pair in cache)
+                        {
+                            yield return pair;
+                        }
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

@@ -165,6 +165,7 @@ namespace Nethermind.Blockchain
         /// A block is marked as canon
         /// </summary>
         event EventHandler<BlockReplacementEventArgs> BlockAddedToMain;
+        event EventHandler<IReadOnlyList<Block>> BlocksProcessing;
 
         /// <summary>
         /// A block is now set as head
@@ -184,5 +185,6 @@ namespace Nethermind.Blockchain
         void UpdateBeaconMainChain(BlockInfo[]? blockInfos, long clearBeaconMainChainStartPoint);
 
         void RecalculateTreeLevels();
+        void OnBlocksProcessing(IReadOnlyList<Block> blocks);
     }
 }

@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Nethermind.Blockchain.Visitors;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
-using Nethermind.Int256;
 
 namespace Nethermind.Blockchain
 {
@@ -20,9 +19,12 @@ namespace Nethermind.Blockchain
     {
         private readonly IBlockTree _wrapped;
 
+        public event EventHandler<IReadOnlyList<Block>> BlocksProcessing;
+
         public ReadOnlyBlockTree(IBlockTree wrapped)
         {
             _wrapped = wrapped;
+            _wrapped.BlocksProcessing += (e, blocks) => OnBlocksProcessing(blocks);
         }
 
         public ulong NetworkId => _wrapped.NetworkId;
@@ -196,5 +198,10 @@ namespace Nethermind.Blockchain
         public void UpdateMainChain(IReadOnlyList<Block> blocks, bool wereProcessed, bool forceHeadBlock = false) => throw new InvalidOperationException($"{nameof(ReadOnlyBlockTree)} does not expect {nameof(UpdateMainChain)} calls");
 
         public void ForkChoiceUpdated(Hash256? finalizedBlockHash, Hash256? safeBlockBlockHash) => throw new InvalidOperationException($"{nameof(ReadOnlyBlockTree)} does not expect {nameof(ForkChoiceUpdated)} calls");
+
+        public void OnBlocksProcessing(IReadOnlyList<Block> blocks)
+        {
+            BlocksProcessing?.Invoke(this, blocks);
+        }
     }
 }

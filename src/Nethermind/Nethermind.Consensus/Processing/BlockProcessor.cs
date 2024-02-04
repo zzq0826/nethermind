@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Consensus.BeaconBlockRoot;
@@ -14,6 +15,7 @@ using Nethermind.Consensus.Validators;
 using Nethermind.Consensus.Withdrawals;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Eip2930;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
 using Nethermind.Evm;
@@ -74,7 +76,9 @@ public partial class BlockProcessor : IBlockProcessor
 
         ReceiptsTracer = new BlockReceiptsTracer();
     }
+    
 
+    public event EventHandler<BlocksProcessingEventArgs>? BlocksProcessing;
     public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
 
     public event EventHandler<TxProcessedEventArgs> TransactionProcessed
@@ -150,8 +154,6 @@ public partial class BlockProcessor : IBlockProcessor
             throw;
         }
     }
-
-    public event EventHandler<BlocksProcessingEventArgs>? BlocksProcessing;
 
     // TODO: move to branch processor
     private void InitBranch(Hash256 branchStateRoot, bool incrementReorgMetric = true)
@@ -238,7 +240,11 @@ public partial class BlockProcessor : IBlockProcessor
         _beaconBlockRootHandler.ApplyContractStateChanges(block, spec, _stateProvider);
         _stateProvider.Commit(spec);
 
-        TxReceipt[] receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, ReceiptsTracer, spec);
+        TxReceipt[] receipts;
+        using (var disposable = Prefetcher.FetchInBackground(block.Transactions, _stateProvider))
+        {
+             receipts = _blockTransactionsExecutor.ProcessTransactions(block, options, ReceiptsTracer, spec);
+        }
 
         if (spec.IsEip4844Enabled)
         {
@@ -251,6 +257,8 @@ public partial class BlockProcessor : IBlockProcessor
         ReceiptsTracer.EndBlockTrace();
 
         _stateProvider.Commit(spec);
+
+        _stateProvider.CommitBlock(block.Number);
 
         if (ShouldComputeStateRoot(block.Header))
         {
@@ -371,6 +379,94 @@ public partial class BlockProcessor : IBlockProcessor
                 UInt256 balance = _stateProvider.GetBalance(daoAccount);
                 _stateProvider.AddToBalance(withdrawAccount, balance, Dao.Instance);
                 _stateProvider.SubtractFromBalance(daoAccount, balance, Dao.Instance);
+            }
+        }
+    }
+
+    private class Prefetcher(Transaction[] transactions, IWorldState stateProvider) : IThreadPoolWorkItem
+    {
+        private CancellationTokenSource _cts = new();
+
+        public static Disposable FetchInBackground(Transaction[] transactions, IWorldState stateProvider)
+        {
+            stateProvider.EnablePrefetch();
+
+            Prefetcher prefetcher = new (transactions, stateProvider);
+            ThreadPool.UnsafeQueueUserWorkItem(prefetcher, preferLocal: false);
+
+            return new Disposable(prefetcher);
+        }
+
+        // Need it to stop the prefetcher before next block starts processing
+        public readonly struct Disposable(Prefetcher prefetcher) : IDisposable
+        {
+            public readonly void Dispose()
+            {
+                CancellationTokenSource cts = prefetcher._cts;
+                prefetcher._cts = null;
+                cts.Cancel();
+                cts.Dispose();
+            }
+        }
+
+        void IThreadPoolWorkItem.Execute()
+        {
+            var maxParallelism = Environment.ProcessorCount / 2;
+            if (maxParallelism == 0) return;
+
+            try
+            {
+                ParallelOptions parallelOptions = new()
+                {
+                    CancellationToken = _cts?.Token ?? new CancellationToken(canceled: true),
+                    MaxDegreeOfParallelism = maxParallelism
+                };
+
+                Parallel.ForEach(transactions, parallelOptions, (tx, o) =>
+                {
+                    Address address = tx.SenderAddress;
+                    //if (address is null)
+                    //{
+                    //    if (tx.Signature is not null)
+                    //        address = tx.SenderAddress = Ecdsa.RecoverAddress(tx, !spec.ValidateChainId);
+                    //}
+
+                    if (address is null) return;
+                    if (address is not null)
+                    {
+                        stateProvider.Prefetch(address);
+                    }
+
+                    address = tx.To;
+                    if (address is not null)
+                    {
+                        Account account = stateProvider.Prefetch(address) ?? Account.TotallyEmpty;
+                        stateProvider.PrefetchStorage(address, account);
+                    }
+
+                    AccessList accessList = tx.AccessList;
+                    if (accessList?.IsEmpty ?? true) return;
+
+                    foreach((Address accessAddress, AccessList.StorageKeysEnumerable storageKeys) in accessList)
+                    {
+                        if (accessAddress is not null)
+                        {
+                            Account account = stateProvider.Prefetch(accessAddress) ?? Account.TotallyEmpty;
+                            StorageTree storage = stateProvider.PrefetchStorage(accessAddress, account);
+
+                            StorageCell storageKey;
+                            foreach (UInt256 key in storageKeys)
+                            {
+                                storageKey = new StorageCell(accessAddress, key);
+                                stateProvider.Prefetch(storage, in storageKey);
+                            }
+                        }
+                    }
+                });
+            }
+            catch (Exception ex) when (ex is ObjectDisposedException or OperationCanceledException)
+            {
+                // Do nothing
             }
         }
     }

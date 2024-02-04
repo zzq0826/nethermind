@@ -88,7 +88,7 @@ namespace Nethermind.State
                 return null;
             }
 
-            Metrics.StateTreeReads++;
+            Metrics.ReadOnlyStateTreeReads++;
             AccountStruct? account = _state.GetStruct(address, stateRoot);
             return account;
         }

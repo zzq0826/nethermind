@@ -110,4 +110,9 @@ public interface IWorldState : IJournal<Snapshot>, IReadOnlyStateProvider
     /// </summary>
     /// <param name="codeHash"></param>
     void TouchCode(in ValueHash256 codeHash);
+    void CommitBlock(long blockNumber);
+    Account? Prefetch(Address address);
+    StorageTree PrefetchStorage(Address address, Account account);
+    void EnablePrefetch();
+    void Prefetch(StorageTree storage, in StorageCell storageKey);
 }
