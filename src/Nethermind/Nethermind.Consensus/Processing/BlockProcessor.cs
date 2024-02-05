@@ -319,7 +319,7 @@ public partial class BlockProcessor : IBlockProcessor
             !block.IsGenesis)
         {
             byte[][] witnessKeys = _executionTracer.WitnessKeys.ToArray();
-            VerkleWorldState? verkleWorldState = _stateProvider as VerkleWorldState;
+            var verkleWorldState = _stateProvider as VerkleWorldState;
             witness = witnessKeys.Length == 0 ? new ExecutionWitness() : verkleWorldState?.GenerateExecutionWitness(witnessKeys, out _);
             block.Body.ExecutionWitness = witness;
         }

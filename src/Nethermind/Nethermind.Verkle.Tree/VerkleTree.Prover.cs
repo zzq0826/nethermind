@@ -74,8 +74,8 @@ public partial class VerkleTree
         ProofBranchPolynomialCache.Clear();
         ProofStemPolynomialCache.Clear();
 
-        List<byte> depthsByStem = new();
-        List<ExtPresent> extStatus = new();
+        List<byte> depthsByStem = [];
+        List<ExtPresent> extStatus = [];
 
         // generate prover path for keys
         Dictionary<byte[], HashSet<byte>> neededOpenings = new(Bytes.EqualityComparer);
@@ -98,7 +98,7 @@ public partial class VerkleTree
                         case VerkleNodeType.StemNode:
                             Stem keyStem = key[..31];
                             CreateStemProofPolynomialIfNotExist(keyStem, null);
-                            neededOpenings.TryAdd(parentPath, new HashSet<byte>());
+                            neededOpenings.TryAdd(parentPath, []);
                             bool newStem = stemList.Add(parentPath);
 
                             if (newStem) depthsByStem.Add((byte)i);
@@ -229,18 +229,18 @@ public partial class VerkleTree
     }
 
 
-    private VerkleProof CreateProofStruct(IReadOnlySet<byte[]> stemList,
+    private VerkleProof CreateProofStruct(HashSet<byte[]> stemList,
         Dictionary<byte[], HashSet<byte>> neededOpenings, bool addLeafOpenings, out Banderwagon rootPoint, Hash256? rootHash)
     {
-        List<VerkleProverQuery> queries = new();
+        List<VerkleProverQuery> queries = [];
         HashSet<byte[]> stemWithNoProofSet = new(Bytes.EqualityComparer);
-        List<Banderwagon> sortedCommitments = new();
+        List<Banderwagon> sortedCommitments = [];
 
         foreach (KeyValuePair<byte[], HashSet<byte>> elem in neededOpenings)
         {
             if (stemList.Contains(elem.Key))
             {
-                InternalNode? suffix = GetInternalNode(elem.Key, rootHash);
+                InternalNode suffix = GetInternalNode(elem.Key, rootHash);
                 var stemWithNoProof = AddStemCommitmentsOpenings(suffix, elem.Value, queries, addLeafOpenings, rootHash);
                 if (stemWithNoProof) stemWithNoProofSet.Add(suffix.Stem.Bytes);
                 continue;
@@ -249,21 +249,17 @@ public partial class VerkleTree
             AddBranchCommitmentsOpening(elem.Key, elem.Value, queries, rootHash);
         }
 
-        VerkleProverQuery root = queries.First();
+        rootPoint = queries[0].NodeCommitPoint;
+        foreach (VerkleProverQuery query in queries)
+        {
+            if (query.NodeCommitPoint == rootPoint) continue;
 
-        rootPoint = root.NodeCommitPoint;
-        foreach (VerkleProverQuery query in queries.Where(query => root.NodeCommitPoint != query.NodeCommitPoint))
             if (sortedCommitments.Count == 0 || sortedCommitments[^1] != query.NodeCommitPoint)
                 sortedCommitments.Add(query.NodeCommitPoint);
+        }
 
         MultiProof proofConstructor = new(CRS.Instance, PreComputedWeights.Instance);
 
-
-        // Console.WriteLine("Prover Query");
-        // foreach (VerkleProverQuery query in queries)
-        // {
-        //     Console.WriteLine($"{query.NodeCommitPoint.ToBytes().ToHexString()}:{query.ChildIndex}:{query.ChildHash.ToBytes().ToHexString()}");
-        // }
         Transcript proverTranscript = new("vt");
         VerkleProofStruct proof = proofConstructor.MakeMultiProof(proverTranscript, queries);
 

@@ -487,7 +487,7 @@ public class VerkleWorldState : IWorldState
         byte[] headerTreeKey = AccountHeader.GetTreeKeyPrefix(address.Bytes, 0);
 
         // TODO: is there a case where account is even null - anyways deleting a account is not supported in verkle trees
-        if (account != null) _tree.InsertStemBatch(headerTreeKey.Slice(0, 31), account.ToVerkleDict());
+        if (account != null) _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
         else throw new StateDeleteNotSupported();
         if (account!.Code is not null) _tree.SetCode(address, account.Code);
     }

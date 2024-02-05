@@ -43,7 +43,7 @@ public class VerkleStateTree(IVerkleTreeStore stateStore, ILogManager logManager
     public void Set(Address address, Account? account)
     {
         byte[] headerTreeKey = AccountHeader.GetTreeKeyPrefix(address.Bytes, 0);
-        if (account != null) InsertStemBatch(headerTreeKey.Slice(0, 31), account.ToVerkleDict());
+        if (account != null) InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
     }
 
     public byte[] Get(Address address, in UInt256 index, Hash256? stateRoot = null)
