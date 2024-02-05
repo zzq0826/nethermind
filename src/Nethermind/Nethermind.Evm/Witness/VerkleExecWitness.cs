@@ -43,6 +43,12 @@ public class VerkleExecWitness: IWitness
         return UpdateGas(gas, ref unspentGas);
     }
 
+    public bool AccessForTransaction(Address originAddress, Address? destinationAddress, bool isValueTransfer)
+    {
+        long gas = _witness.AccessForTransaction(originAddress, destinationAddress, isValueTransfer);
+        return true;
+    }
+
     public bool AccessAndChargeForGasBeneficiary(Address gasBeneficiary, ref long unspentGas)
     {
         long gas = _witness.AccessForGasBeneficiary(gasBeneficiary);

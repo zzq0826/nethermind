@@ -11,8 +11,6 @@ using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Int256;
 using Nethermind.Specs.Forks;
-using Nethermind.Verkle.Tree;
-using Nethermind.Verkle.Tree.Utils;
 using NUnit.Framework;
 
 namespace Nethermind.Evm.Test
@@ -20,7 +18,6 @@ namespace Nethermind.Evm.Test
     [TestFixture]
     public class IntrinsicGasCalculatorTests
     {
-        private const long IntrinsicWitnessGasCode = 13300;
         public static IEnumerable<(Transaction Tx, long cost, string Description)> TestCaseSource()
         {
             yield return (Build.A.Transaction.SignedAndResolved().TestObject, 21000, "empty");
@@ -47,8 +44,7 @@ namespace Nethermind.Evm.Test
         public void Intrinsic_cost_is_calculated_properly((Transaction Tx, long Cost, string Description) testCase)
         {
             IntrinsicGasCalculator.Calculate(testCase.Tx, Berlin.Instance).Should().Be(testCase.Cost);
-            VerkleWitness witness = new VerkleWitness();
-            IntrinsicGasCalculator.Calculate(testCase.Tx, Prague.Instance, ref witness).Should().Be(testCase.Cost + IntrinsicWitnessGasCode);
+            IntrinsicGasCalculator.Calculate(testCase.Tx, Prague.Instance).Should().Be(testCase.Cost );
         }
 
         [TestCaseSource(nameof(AccessTestCaseSource))]
@@ -78,15 +74,7 @@ namespace Nethermind.Evm.Test
                 }
                 else
                 {
-                    if (spec.IsVerkleTreeEipEnabled)
-                    {
-                        VerkleWitness witness = new VerkleWitness();
-                        IntrinsicGasCalculator.Calculate(tx, spec, ref witness).Should().Be(21000 + IntrinsicWitnessGasCode + testCase.Cost, spec.Name);
-                    }
-                    else
-                    {
-                        IntrinsicGasCalculator.Calculate(tx, spec).Should().Be(21000 + testCase.Cost, spec.Name);
-                    }
+                    IntrinsicGasCalculator.Calculate(tx, spec).Should().Be(21000 + testCase.Cost, spec.Name);
                 }
             }
 
@@ -111,19 +99,7 @@ namespace Nethermind.Evm.Test
             void Test(IReleaseSpec spec, bool isAfterRepricing)
             {
                 long expectedGas = 21000 + (isAfterRepricing ? testCase.NewCost : testCase.OldCost);
-                long actualGas;
-                switch (spec.IsVerkleTreeEipEnabled)
-                {
-                    case true:
-                        expectedGas += IntrinsicWitnessGasCode;
-                        VerkleWitness witness = new VerkleWitness();
-                        actualGas = IntrinsicGasCalculator.Calculate(tx, spec, ref witness);
-                        break;
-                    case false:
-                        actualGas = IntrinsicGasCalculator.Calculate(tx, spec);
-                        break;
-                }
-
+                var actualGas = IntrinsicGasCalculator.Calculate(tx, spec);
                 actualGas.Should()
                     .Be(expectedGas, spec.Name, testCase.Data.ToHexString());
 

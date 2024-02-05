@@ -22,13 +22,6 @@ public static class IntrinsicGasCalculator
         return result;
     }
 
-    public static long Calculate(Transaction transaction, IReleaseSpec releaseSpec, ref VerkleWitness witness)
-    {
-        long result = Calculate(transaction, releaseSpec);
-        if (releaseSpec.IsVerkleTreeEipEnabled)
-            result += witness.AccessForTransaction(transaction.SenderAddress!, transaction.To!, !transaction.Value.IsZero);
-        return result;
-    }
 
     private static long CreateCost(Transaction transaction, IReleaseSpec releaseSpec)
     {

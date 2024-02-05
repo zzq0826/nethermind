@@ -17,6 +17,11 @@ public class NoExecWitness: IWitness
         ref long unspentGas) => true;
 
     public bool AccessAndChargeForGasBeneficiary(Address gasBeneficiary, ref long unspentGas) => true;
+    public bool AccessForTransaction(Address originAddress, Address? destinationAddress, bool isValueTransfer)
+    {
+        return true;
+    }
+
     public bool AccessAndChargeForCodeOpCodes(Address caller, ref long unspentGas)
     {
         return true;

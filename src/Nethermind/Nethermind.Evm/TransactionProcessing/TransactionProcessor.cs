@@ -157,6 +157,7 @@ namespace Nethermind.Evm.TransactionProcessing
 
             // declare the execution witness to collect witness and also charge gas
             IWitness executionWitness = spec.IsVerkleTreeEipEnabled ? new VerkleExecWitness(LogManager) : new NoExecWitness();
+            executionWitness.AccessForTransaction(tx.SenderAddress!, tx.To!, !tx.Value.IsZero);
             ExecutionEnvironment env = BuildExecutionEnvironmnet(tx, header, spec, tracer, opts, executionWitness, effectiveGasPrice);
 
             long gasAvailable = tx.GasLimit - intrinsicGas;

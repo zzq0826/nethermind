@@ -18,6 +18,8 @@ public interface IWitness
 
     public bool AccessAndChargeForGasBeneficiary(Address gasBeneficiary, ref long unspentGas);
 
+    public bool AccessForTransaction(Address originAddress, Address? destinationAddress, bool isValueTransfer);
+
 
     public bool AccessAndChargeForCodeOpCodes(Address caller, ref long unspentGas);
 
