@@ -37,7 +37,7 @@ public abstract class BlockTracerBase<TTrace, TTracer> : IBlockTracer<TTrace> wh
     {
     }
 
-    public void ReportWithdrawalWitness(VerkleWitness witness) { }
+    public void ReportAccessWitness(VerkleWitness witness) { }
 
     public virtual void StartNewBlockTrace(Block block)
     {

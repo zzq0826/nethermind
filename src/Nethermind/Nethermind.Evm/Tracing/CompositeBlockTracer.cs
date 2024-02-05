@@ -41,14 +41,14 @@ namespace Nethermind.Evm.Tracing
             }
         }
 
-        public void ReportWithdrawalWitness(VerkleWitness witness)
+        public void ReportAccessWitness(VerkleWitness witness)
         {
             for (int index = 0; index < _childTracers.Count; index++)
             {
                 IBlockTracer childTracer = _childTracers[index];
                 if (childTracer.IsTracingRewards)
                 {
-                    childTracer.ReportWithdrawalWitness(witness);
+                    childTracer.ReportAccessWitness(witness);
                 }
             }
         }

@@ -49,7 +49,7 @@ public class WithdrawalProcessor : IWithdrawalProcessor
                 }
             }
         }
-        if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(witness);
+        if (blockTracer.IsTracingAccessWitness) blockTracer.ReportAccessWitness(witness);
         if (_logger.IsTrace) _logger.Trace($"Withdrawals applied for block {block}");
     }
 }

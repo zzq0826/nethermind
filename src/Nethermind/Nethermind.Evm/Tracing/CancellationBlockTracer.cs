@@ -43,12 +43,12 @@ namespace Nethermind.Evm.Tracing
             }
         }
 
-        public void ReportWithdrawalWitness(VerkleWitness witness)
+        public void ReportAccessWitness(VerkleWitness witness)
         {
             _token.ThrowIfCancellationRequested();
             if (_innerTracer.IsTracingRewards)
             {
-                _innerTracer.ReportWithdrawalWitness(witness);
+                _innerTracer.ReportAccessWitness(witness);
             }
         }
 

@@ -234,7 +234,7 @@ public class BlockExecutionTracer : IBlockTracer, ITxTracer, IJournal<int>, ITxT
     public void ReportReward(Address author, string rewardType, UInt256 rewardValue) =>
         _otherTracer.ReportReward(author, rewardType, rewardValue);
 
-    public void ReportWithdrawalWitness(VerkleWitness witness) =>
+    public void ReportAccessWitness(VerkleWitness witness) =>
         _aggregatedWitnessKeys.AddRange(witness.GetAccessedKeys());
 
     public void StartNewBlockTrace(Block block)

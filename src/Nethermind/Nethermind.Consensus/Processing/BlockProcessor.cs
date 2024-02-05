@@ -301,13 +301,13 @@ public partial class BlockProcessor : IBlockProcessor
 
         block.Header.ReceiptsRoot = receipts.GetReceiptsRoot(spec, block.ReceiptsRoot);
 
-        if (!block.IsGenesis)
+        if (!block.IsGenesis && block.Transactions.Length != 0)
         {
             VerkleWitness? gasWitness = null;
             if (blockTracer.IsTracingAccessWitness) gasWitness = new VerkleWitness();
             gasWitness?.AccessForGasBeneficiary(block.Header.GasBeneficiary);
             // TODO: possibly rename this function to just ReportWitness - can be used for both withdrawal and gasBeneficiary
-            if (blockTracer.IsTracingAccessWitness) blockTracer.ReportWithdrawalWitness(gasWitness);
+            if (blockTracer.IsTracingAccessWitness) blockTracer.ReportAccessWitness(gasWitness);
         }
 
         ApplyMinerRewards(block, blockTracer, spec);

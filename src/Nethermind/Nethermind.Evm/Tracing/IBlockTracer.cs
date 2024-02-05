@@ -30,7 +30,7 @@ namespace Nethermind.Evm.Tracing
         /// </summary>
         /// <remarks>
         /// Controls
-        /// - <see cref="ReportWithdrawalWitness"/>
+        /// - <see cref="ReportAccessWitness"/>
         /// </remarks>
         bool IsTracingAccessWitness { get; }
 
@@ -48,7 +48,7 @@ namespace Nethermind.Evm.Tracing
         /// </summary>
         /// <param name="witness">Witness for processing withdrawals.</param>
         /// <remarks>Depends on <see cref="IsTracingAccessWitness"/></remarks>
-        void ReportWithdrawalWitness(VerkleWitness witness);
+        void ReportAccessWitness(VerkleWitness witness);
 
         /// <summary>
         /// Starts a trace for new block.
