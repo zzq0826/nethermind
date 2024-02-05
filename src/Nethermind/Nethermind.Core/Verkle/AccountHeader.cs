@@ -13,8 +13,8 @@ public readonly struct AccountHeader
     public const int CodeHash = 3;
     public const int CodeSize = 4;
 
-    private const int MainStorageOffsetExponent = 31;
-    private const int MainStorageOffsetBase = 256;
+    private const int MainStorageOffsetExponent = 8 * 31;
+    private const int MainStorageOffsetBase = 1;
     private const int HeaderStorageOffset = 64;
     private const int CodeOffset = 128;
     private const int VerkleNodeWidth = 256;
