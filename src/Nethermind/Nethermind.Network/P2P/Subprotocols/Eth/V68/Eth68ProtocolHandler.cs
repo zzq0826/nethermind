@@ -92,16 +92,16 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
             {
                 (int size, TxType type) = _announceData.Get(tx.Hash);
                 Logger.Info($"validating announce data {tx.Hash} {size} {type}");
+                Logger.Info($"transaction size diff: {Math.Abs(size - tx.GetLength())} Type: {type} {tx.Type}");
 
                 if (type != tx.Type)
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
                 }
+
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
-                //if (Math.Abs(data.Size - tx.GetLength()) > 8 )
-                Logger.Info($"transaction diff: {Math.Abs(size - tx.GetLength())}");
-                if (size != tx.GetLength())
+                if (Math.Abs(size - tx.GetLength()) > 8)
                 {
                     throw new SubprotocolException($"Peer had mismatch in announced and received tx size.");
                 }
