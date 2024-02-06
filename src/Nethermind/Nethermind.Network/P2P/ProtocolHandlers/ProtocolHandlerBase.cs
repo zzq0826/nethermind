@@ -82,6 +82,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             Interlocked.Increment(ref Counter);
             if (Logger.IsTrace) Logger.Trace($"{Counter} Sending {typeof(T).Name}");
             int size = Session.DeliverMessage(message);
+            Logger.Info($"sending p2p message: {Session.Node?.Address} {Name} {message.ToString()} {size}");
             if (NetworkDiagTracer.IsEnabled) NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, message.ToString(), size);
         }
 
