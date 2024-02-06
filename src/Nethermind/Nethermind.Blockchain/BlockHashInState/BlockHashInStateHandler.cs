@@ -24,8 +24,6 @@ public class BlockHashInStateHandler: IBlockHashInStateHandler
         if (block.IsGenesis ||
             block.Header.ParentHash is null) return;
         Address? eip2935Account = DefaultHistoryStorageAddress;
-        if (!stateProvider.AccountExists(eip2935Account))
-            return;
 
         Hash256 parentBlockHash = block.Header.ParentHash;
         var blockIndex = new UInt256((ulong)block.Number - 1);
