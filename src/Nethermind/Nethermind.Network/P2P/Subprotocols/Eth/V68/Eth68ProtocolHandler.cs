@@ -103,7 +103,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
                 Logger.Info($"transaction diff: {Math.Abs(size - tx.GetLength())}");
                 if (size != tx.GetLength())
                 {
-                    throw new SubprotocolException($"Peer had mismatch in announced and received tx type.");
+                    throw new SubprotocolException($"Peer had mismatch in announced and received tx size.");
                 }
                 _announceData.Delete(tx.Hash);
             }
