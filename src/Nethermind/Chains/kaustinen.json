@@ -1,25 +1,29 @@
 {
-  "name": "Kaustinen",
-  "dataDir": "kaustinen",
+  "name": "Testnet",
   "engine": {
-    "Ethash": {
-    }
+    "Ethash": {}
   },
   "params": {
-    "gasLimitBoundDivisor": "0x0400",
+    "gasLimitBoundDivisor": "0x400",
+    "registrar": "0x0000000000000000000000000000000000000000",
     "accountStartNonce": "0x0",
-    "networkID": "0x10F2C",
-    "eip140Transition": "0x0",
-    "eip145Transition": "0x0",
+    "maximumExtraDataSize": "0xffff",
+    "minGasLimit": "0x1388",
+    "networkID": "0x10f2c",
+    "MergeForkIdTransition": "0x0",
+    "maxCodeSize": "0x6000",
+    "maxCodeSizeTransition": "0x0",
     "eip150Transition": "0x0",
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Transition": "0x0",
+    "eip158Transition": "0x0",
     "eip160Transition": "0x0",
     "eip161abcTransition": "0x0",
     "eip161dTransition": "0x0",
+    "eip155Transition": "0x0",
+    "eip140Transition": "0x0",
     "eip211Transition": "0x0",
     "eip214Transition": "0x0",
     "eip658Transition": "0x0",
+    "eip145Transition": "0x0",
     "eip1014Transition": "0x0",
     "eip1052Transition": "0x0",
     "eip1283Transition": "0x0",
@@ -30,8 +34,6 @@
     "eip1884Transition": "0x0",
     "eip2028Transition": "0x0",
     "eip2200Transition": "0x0",
-    "eip2315Transition": "0x0",
-    "eip2537Transition": "0x0",
     "eip2565Transition": "0x0",
     "eip2929Transition": "0x0",
     "eip2930Transition": "0x0",
@@ -39,14 +41,12 @@
     "eip3198Transition": "0x0",
     "eip3529Transition": "0x0",
     "eip3541Transition": "0x0",
-    "eip3651TransitionTimestamp": "0x0",
-    "eip3855TransitionTimestamp": "0x0",
-    "eip3860TransitionTimestamp": "0x0",
     "eip4895TransitionTimestamp": "0x0",
-    "eip6800TransitionTimestamp": "0x0",
-    "maxCodeSize": "0x6000",
-    "maxCodeSizeTransition": "0x0",
-    "terminalTotalDifficulty": "0x0"
+    "eip3855TransitionTimestamp": "0x0",
+    "eip3651TransitionTimestamp": "0x0",
+    "eip3860TransitionTimestamp": "0x0",
+    "terminalTotalDifficulty": "0x0",
+    "eip6800TransitionTimestamp": "0x0"
   },
   "genesis": {
     "seal": {
@@ -57,25 +57,12 @@
     },
     "difficulty": "0x01",
     "author": "0x0000000000000000000000000000000000000000",
-    "timestamp": "1700825700",
+    "timestamp": "0x65c20a28",
     "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "extraData": "",
     "gasLimit": "0x17D7840"
   },
-  "nodes": [
-    "enode://eef762bf3fb06e1bf304bc565d6ce9632b5acc4c98994f64791437e649a09c54885c79dbcc82764912ab89063ab6fcd98bdfbaaea89b423d32b41130ebae1f91@128.140.104.96:30303?discport=30303",
-    "enode://2f686cbb89217e1be5c394f901592a94a1a3ee08ef721e17b282632e0f64b503f6623859cbf109733bfac94a06fa0b8580416bc8b5916890657509261f337f45@128.140.104.95:30303?discport=30303",
-    "enode://87efbbf17380808b7cd539347b447c38aec4dbeecb43bb9877a172995889e0a3984590a25e8964c3bbdccddc403e64041cef6eb249a03f66e2a6c1ea7f0c27be@128.140.104.94:30303?discport=30303",
-    "enode://39d3a81e43a93177b6c33707ce714363566b99cc844ab561218334f35a9a24eb4e9373ec7e2eb4e9f76b4e3c08c7b94ca1c95c21dd98e2b89251de99964f30fd@135.181.109.82:30303?discport=30303",
-    "enode://dd94437328183057f48b127bde08aaa1ccc0aca4a28467f310a51e8f8e3d5937274688ed77dd310ecfc624bcca09d536e809ff415ac1be45425f8047f2fbcdf5@168.119.177.181:30303?discport=30303",
-    "enode://ea0b8bcb719c82d4fbc36a201444ce78d4cedfaed9c96c8c0bdb51d5850fb2c820dc8c3f073192210779fe3bcb7a121236ca1fb58f8173bcc5c147ea622f8fdd@128.140.104.69:30303?discport=30303",
-    "enode://2d6f8965db202bada421d2f7938977e1b8a4a5df989859b263237f62beba2d1ddae529631e92032c22b4261e0eaf915609e7e9986452ab140df43e1fb7c0a8a8@135.181.199.15:30303?discport=30303",
-    "enode://56366d86fe6465e37e5f096579fc8ed1ba94c7411b201735d38705331a010c5e97fee1b4cef1970ce5b3dfcde46349573ec56a81b8e4a1b39094846363c717d8@128.140.93.133:30303?discport=30303",
-    "enode://04482708372d62b77bbf1faffa85dd885d31428898afb8a860fba11d812e5c0c265a76f720bd1467fe98e17fb40bfa25739dd6fa841adf15607e12695a0d867c@78.47.30.10:30303?discport=30303",
-    "enode://dc88c348cbd48e36be3a1e9d81070b50e3dfd0469ce072c90cf224691379f638455b4e30386a632bb278152aed7aff3cf515aa033a82d96595a6ab599b078776@37.27.11.234:30303?discport=30303",
-    "enode://363d259e1214ce5df6f985a1d144e657d537ca71fca59d0dfcb7636eb221c1942938c022b4a8c57bfa3b5443318572b457ca38c0b7165b2a6d5f18be819c25eb@5.75.251.225:30303?discport=30303"
-
-  ],
-  "accounts":  {
+  "accounts": {
     "0x0000000000000000000000000000000000000000": {
       "balance": "1"
     },
@@ -900,6 +887,64 @@
     },
     "0x8c4D8CDD1f474510Dd70D66F2785a3a38a29AC1A": {
       "balance": "1000000000000000000000000000"
+    },
+    "0xfC7360b3b28cf4204268A8354dbEc60720d155D2": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x2F7626bBDb8c0f9071bC98046Ef6fDed2167F97F": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x752CE31Dec0dde7D1563CdF6438d892De2D4FBee": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x455f42d91096c4Aa708D7Cbcb2DC499dE89C402c": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x85154341488732D57a97F54AB9706Bc4B71B8636": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x6a9CcA73d4Ff3a249fa778C7651f4Df8B9fFa0Df": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xee2d0567AAe8080CA269b7908F4aF8BBb59A6804": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xDd8D4027078a471816e4Ef7F69aFc0A5d2947dDc": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x20466E9A67f299F6056bE52A50ea324FA6Bd05D5": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x03F24BB0C9cfb30217Ff992A36ae9230F2A1697f": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0x032d8372C519c3927b87BDe4479E846a81EF2d10": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xF863DF14954df73804b3150F3754a8F98CBB1D0d": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xbe918A6aef1920F3706E23d153146aA6C5982620": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xA0c7edA3CE474BC670A11EA9537cBEfd36331123": {
+      "balance": "1000000000000000000000000000"
+    },
+    "0xF03b43BeB861044492Eb43E247bEE2AC6C80c651": {
+      "balance": "1000000000000000000000000000"
     }
-  }
+  },
+  "nodes": [
+    "enode://0f08a9f7087b7a71fd818679d7d847e68c1566f8838e1be6c6baa2203f33365cd3d0152dc97618c2de1fb05a8cae9b01fb28334c31caa48e7fa6a8c7d74df14c@195.201.36.62:30303?discport=30303",
+    "enode://3cc0be5b2cd2831b938525198885783c250b2345e16e41d9116f1a15e4584a4703868bc5013072d7125d6ef07579903105e96d666c08531c1e0f0c3acbe92f0c@78.47.30.10:30303?discport=30303",
+    "enode://3d329c48709870e40aaeb8da4acdd260246d02e16941884aa7f660215166005a7d4def412971055cd05d90474e678435321cfe0ac50ebb815432edc822a8dad8@128.140.104.94:30303?discport=30303",
+    "enode://4ea942b5233c25bb30973e44c1033b38b4d1e58cc06414d242bbd0a8674eaeafc979c2e29e4f7acedf0752781a20a3e59f02ed091fa3e6aa811f994afd73644a@65.21.254.97:30303?discport=30303",
+    "enode://d1ac862059fbfda489a2586b87178ba4ed367c1b8d9b4bee1d2233f1dba4e047639d775e5084836c27442927f8823d1ea8dadc444814b2f9d03b7257d1f17663@128.140.88.250:30303?discport=30303",
+    "enode://ac5c3c5708a130d5f2a85d2f04864f22ded6ad113bdbfab96f70ec577942b4f865970f91ea440f0b6678976cb1669ca7255af034c0daa12ee605fc0015712c1d@128.140.104.96:30303?discport=30303",
+    "enode://65d7dc094a8239951794c8231e8d729d0a100590336f1ebaf47199ad12132ca2598b6d8bfcf684e86c194b55a104c51acdb306cb836107a4a4fa9fcadc76dada@95.216.201.186:30303?discport=30303",
+    "enode://6b558c11b405899a5e0da36497243d803ba9031bf580a23fa5c4e4c26165a8e5a8a607965ce39974f930ae440d466a601655baeab37f58db870f0cb812de8097@49.13.132.156:30303?discport=30303",
+    "enode://10d74b9ef46fed8870a43d83959f24c4f0bb5b4e8f1981d0eba396e85d71d5f0c54c8245db6c870f66778ed102bf33df5ec1cdae91ca1158a2fee3db3a00319e@49.13.196.169:30303?discport=30303",
+    "enode://e5380644370055133a6baa32627ad476eadf6ed0b3f0b942c084dbaaa3e15cc4f5db3cbb6a6ace097646b1de8b6db6e568f74bb968e4fe1718bec461d7ec0b2a@65.109.160.193:30303?discport=30303",
+    "enode://889cb02437d096d404bfcd8e81c945cbf74bd0fade45f2e9c064ec2914054fca6989c88838329008121b5234694a19c2be76707a1bd27db6d31274efde653f6e@138.201.94.233:30303?discport=30303"
+  ]
 }
