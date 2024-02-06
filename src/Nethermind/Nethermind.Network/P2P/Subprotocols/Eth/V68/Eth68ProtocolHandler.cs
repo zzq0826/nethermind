@@ -96,18 +96,14 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
 
                 if (type != tx.Type)
                 {
-                    Session.InitiateDisconnect(Stats.Model.DisconnectReason.BreachOfProtocol, "Announced tx type mismatch.");
-                    return;
-                    //throw new SubprotocolException($"Announced tx type mismatch.");
+                    throw new SubprotocolException($"Announced tx type mismatch.");
                 }
 
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
                 if (Math.Abs(size - tx.GetLength()) > 8)
                 {
-                    Session.InitiateDisconnect(Stats.Model.DisconnectReason.BreachOfProtocol, "Announced tx size mismatch.");
-                    return;
-                    //throw new SubprotocolException($"Announced tx size mismatch.");
+                    throw new SubprotocolException($"Announced tx size mismatch.");
                 }
                 _announceData.Delete(tx.Hash);
             }
