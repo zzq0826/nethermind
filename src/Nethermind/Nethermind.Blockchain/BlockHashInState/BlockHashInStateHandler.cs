@@ -21,10 +21,9 @@ public class BlockHashInStateHandler: IBlockHashInStateHandler
 
     public void AddBlockHashToState(Block block, IReleaseSpec spec, IWorldState stateProvider)
     {
-        if (!spec.IsEip2935Enabled ||
-            block.IsGenesis ||
+        if (block.IsGenesis ||
             block.Header.ParentHash is null) return;
-        Address? eip2935Account = spec.Eip2935ContractAddress ?? DefaultHistoryStorageAddress;
+        Address? eip2935Account = DefaultHistoryStorageAddress;
         if (!stateProvider.AccountExists(eip2935Account))
             return;
 
