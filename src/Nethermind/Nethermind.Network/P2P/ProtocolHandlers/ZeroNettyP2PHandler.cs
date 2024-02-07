@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using DotNetty.Buffers;
 using DotNetty.Common.Utilities;
 using DotNetty.Transport.Channels;
+using Nethermind.Config;
 using Nethermind.Core.Exceptions;
 using Nethermind.Logging;
 using Nethermind.Network.Rlpx;
@@ -130,6 +131,12 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         public void EnableSnappy()
         {
             SnappyEnabled = true;
+        }
+
+        public override void ChannelInactive(IChannelHandlerContext context)
+        {
+            _logger.Warn("ChannelInactive: " + Environment.StackTrace);
+            base.ChannelInactive(context);
         }
     }
 }
