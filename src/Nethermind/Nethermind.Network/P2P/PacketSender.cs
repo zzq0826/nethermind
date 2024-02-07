@@ -35,6 +35,11 @@ namespace Nethermind.Network.P2P
             IByteBuffer buffer = _messageSerializationService.ZeroSerialize(message);
             int length = buffer.ReadableBytes;
 
+            if (message is DisconnectMessage disconnect)
+            {
+                _logger.Info($"disconnect message {disconnect.PacketType} " + disconnect.Reason);
+            }
+
             // Running in background
             _ = SendBuffer(buffer);
 
