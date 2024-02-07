@@ -41,7 +41,7 @@ namespace Nethermind.Network.P2P
             }
 
             // Running in background
-            _ = SendBuffer(buffer);
+            SendBuffer(buffer).GetAwaiter().GetResult();
 
             return length;
         }
