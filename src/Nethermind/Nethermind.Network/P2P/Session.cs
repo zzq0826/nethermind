@@ -498,10 +498,11 @@ namespace Nethermind.Network.P2P
             }
             else
             {
-                Task delayTask =
-                    disconnectType == DisconnectType.Local
-                        ? Task.Delay(Timeouts.Disconnection)
-                        : Task.CompletedTask;
+                _logger.Trace($"wait {Timeouts.Disconnection.TotalMilliseconds} milliseconds before disconnect");
+                Task delayTask = Task.Delay(Timeouts.Disconnection);
+                //disconnectType == DisconnectType.Local
+                //? Task.Delay(Timeouts.Disconnection)
+                //: Task.CompletedTask;
                 delayTask.ContinueWith(t =>
                 {
                     if (_logger.IsTrace)
