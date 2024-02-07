@@ -34,14 +34,12 @@ namespace Nethermind.Network.P2P
 
             IByteBuffer buffer = _messageSerializationService.ZeroSerialize(message);
             int length = buffer.ReadableBytes;
-
-            if (message is DisconnectMessage disconnect)
+            if (message is P2PMessage disconnect)
             {
-                _logger.Info($"disconnect message {disconnect.PacketType} " + disconnect.Reason);
+                _logger.Info($"p2p message {disconnect.PacketType} ");
             }
-
             // Running in background
-            SendBuffer(buffer).GetAwaiter().GetResult();
+            _ = SendBuffer(buffer);
 
             return length;
         }
