@@ -751,7 +751,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 // TODO: have to cross check what is the use case of this here
                 if (vmState.ExecutionType == ExecutionType.TRANSACTION && env.TransferValue.IsZero)
                 {
-                    if (!env.Witness.AccessAndChargeForAbsentAccount(env.Caller, ref gasAvailable)) goto OutOfGas;
+                    if (!env.Witness.AccessAndChargeForAbsentAccount(env.ExecutingAccount, ref gasAvailable)) goto OutOfGas;
                 }
                 _state.CreateAccount(env.ExecutingAccount, env.TransferValue);
             }
@@ -850,7 +850,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             debugger?.TryWait(ref vmState, ref programCounter, ref gasAvailable, ref stack.Head);
 #endif
 
-            if (vmState.ExecutionType is not (ExecutionType.CREATE or ExecutionType.CREATE2))
+            if (!vmState.IsContractDeployment)
             {
                 if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounter, false,
                         ref gasAvailable)) goto OutOfGas;
@@ -1813,10 +1813,13 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                             stack.PushByte(code[programCounterInt]);
                             // just a optimization - because if it is not the first element of the chunk
                             // it means that that it was already included as witness due to code execution
-                            if (programCounterInt % 31 == 0)
+                            if (!vmState.IsContractDeployment)
                             {
-                                if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounterInt + 1,
-                                        false, ref gasAvailable)) goto OutOfGas;
+                                if (programCounterInt % 31 == 0)
+                                {
+                                    if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounterInt + 1,
+                                            false, ref gasAvailable)) goto OutOfGas;
+                                }
                             }
                         }
 
@@ -1865,8 +1868,11 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                         // the idea for this was to add proof of absence in case where we dont have all the required bytes
                         // for PUSHX, but this can already be inferred using codeSize - no need for proof of absence
                         if (endNotIncluded == code.Length) endNotIncluded++;
-                        if (!env.Witness.AccessAndChargeForCodeSlice(vmState.To, programCounter,
-                                endNotIncluded, false, ref gasAvailable)) goto OutOfGas;
+                        if (!vmState.IsContractDeployment)
+                        {
+                            if (!env.Witness.AccessAndChargeForCodeSlice(vmState.To, programCounter,
+                                    endNotIncluded, false, ref gasAvailable)) goto OutOfGas;
+                        }
 
                         programCounter += length;
                         break;
@@ -2688,9 +2694,10 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         where TTracingRefunds : struct, IIsTracing
         where TTracingStorage : struct, IIsTracing
     {
+        Console.WriteLine($"test ssatore gasgAvailable 1: {gasAvailable}");
         // fail fast before the first storage read if gas is not enough even for reset
         if (!spec.UseNetGasMetering && !UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return false;
-
+        Console.WriteLine($"test ssatore gasgAvailable 2: {gasAvailable}");
         if (spec.UseNetGasMeteringWithAStipendFix)
         {
             if (typeof(TTracingRefunds) == typeof(IsTracing))
@@ -2718,6 +2725,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 in storageCell,
                 StorageAccessType.SSTORE,
                 spec)) return false;
+        Console.WriteLine($"test ssatore gasgAvailable 3: {gasAvailable}");
 
         Span<byte> currentValue = _state.Get(in storageCell);
         // Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
@@ -2739,6 +2747,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             else if (currentIsZero)
             {
                 if (!UpdateGas(GasCostOf.SSet - GasCostOf.SReset, ref gasAvailable)) return false;
+                Console.WriteLine($"test ssatore gasgAvailable 4: {gasAvailable}");
             }
         }
         else // net metered
@@ -2746,6 +2755,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             if (newSameAsCurrent)
             {
                 if (!UpdateGas(spec.GetNetMeteredSStoreCost(), ref gasAvailable)) return false;
+                Console.WriteLine($"test ssatore gasgAvailable 5: {gasAvailable}");
             }
             else // net metered, C != N
             {
@@ -2758,10 +2768,12 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                     if (currentIsZero)
                     {
                         if (!UpdateGas(GasCostOf.SSet, ref gasAvailable)) return false;
+                        Console.WriteLine($"test ssatore gasgAvailable 6: {gasAvailable}");
                     }
                     else // net metered, current == original != new, !currentIsZero
                     {
                         if (!UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return false;
+                        Console.WriteLine($"test ssatore gasgAvailable 7: {gasAvailable}");
 
                         if (newIsZero)
                         {
@@ -2774,6 +2786,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 {
                     long netMeteredStoreCost = spec.GetNetMeteredSStoreCost();
                     if (!UpdateGas(netMeteredStoreCost, ref gasAvailable)) return false;
+                    Console.WriteLine($"test ssatore gasgAvailable 8: {gasAvailable}");
 
                     if (!originalIsZero) // net metered, new != current != original != 0
                     {
