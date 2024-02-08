@@ -496,12 +496,6 @@ namespace Nethermind.Evm.TransactionProcessing
 
             try
             {
-                if (!env.Witness.AccessAndChargeForTransaction(tx.SenderAddress!, tx.To!, !tx.Value.IsZero,
-                        ref unspentGas))
-                {
-                    throw new OutOfGasException();
-                }
-
                 if (tx.IsContractCreation)
                 {
                     if (!env.Witness.AccessAndChargeForContractCreationInit(env.ExecutingAccount, !tx.Value.IsZero,
