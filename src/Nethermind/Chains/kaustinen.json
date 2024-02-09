@@ -46,7 +46,9 @@
     "eip3651TransitionTimestamp": "0x0",
     "eip3860TransitionTimestamp": "0x0",
     "terminalTotalDifficulty": "0x0",
-    "eip6800TransitionTimestamp": "0x0"
+    "eip6800TransitionTimestamp": "0x0",
+    "eip2935TransitionTimestamp": "0x0",
+    "eip6780TransitionTimestamp": "0x0"
   },
   "genesis": {
     "seal": {
