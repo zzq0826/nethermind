@@ -583,14 +583,12 @@ namespace Nethermind.Evm.TransactionProcessing
 
                     foreach (Address toBeDestroyed in substate.DestroyList)
                     {
-                        if (Logger.IsTrace)
-                            Logger.Trace($"Destroying account {toBeDestroyed}");
-                        // TODO - handle this in better way - If we disable SelfDestruct - then this should be unreachable
-                        if (!spec.IsVerkleTreeEipEnabled)
-                        {
-                            WorldState.ClearStorage(toBeDestroyed);
-                            WorldState.DeleteAccount(toBeDestroyed);
-                        }
+                        Logger.Info($"Destroying account {toBeDestroyed}");
+                        if (!spec.IsVerkleTreeEipEnabled) WorldState.ClearStorage(toBeDestroyed);
+                        // we already have the EIP6780 enabled, that only adds address to the DestroyList if it was
+                        // created in the same transaction - so we can call delete on that account even in the
+                        // verkle context - because it technically does not remove anything from the tree
+                        WorldState.DeleteAccount(toBeDestroyed);
                         if (tracer.IsTracingRefunds)
                             tracer.ReportRefund(RefundOf.Destroy(spec.IsEip3529Enabled));
                     }

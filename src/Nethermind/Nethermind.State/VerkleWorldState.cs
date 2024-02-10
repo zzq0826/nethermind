@@ -18,6 +18,7 @@ using Nethermind.State.Witnesses;
 using Nethermind.Trie;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Tree;
+using Nethermind.Verkle.Tree.Sync;
 using Nethermind.Verkle.Tree.TreeStore;
 using Nethermind.Verkle.Tree.Utils;
 
@@ -345,7 +346,7 @@ public class VerkleWorldState : IWorldState
 
     public void DeleteAccount(Address address)
     {
-        throw new StateDeleteNotSupported();
+        PushDelete(address);
     }
 
     public void ClearStorage(Address address)
@@ -531,6 +532,11 @@ public class VerkleWorldState : IWorldState
         Push(ChangeType.Update, address, account);
     }
 
+    private void PushDelete(Address address)
+    {
+        Push(ChangeType.Delete, address, null);
+    }
+
     private void PushTouch(Address address, Account account, IReleaseSpec releaseSpec, bool isZero)
     {
         if (isZero && releaseSpec.IsEip158IgnoredAccount(address)) return;
@@ -546,9 +552,22 @@ public class VerkleWorldState : IWorldState
             return;
         }
 
-        if (_intraBlockCache[address].Count > 0 && _changes[_intraBlockCache[address].Peek()]?.ChangeType == ChangeType.New)
+        if (changeType == ChangeType.Delete)
         {
-            changeType = ChangeType.New;
+            if (!(_intraBlockCache[address].Count > 0 && _changes[_intraBlockCache[address].Peek()]?.ChangeType == ChangeType.New))
+            {
+                throw new StateDeleteNotSupported(
+                    "Account can only be deleted when it was created in the same transaction");
+            }
+        }
+        else
+        {
+            // this is to make sure that ChangeType for new account stays ChangeType.New so that we can handle Eip158 properly
+            // for new account - we dont save Empty accounts, but for old accounts we can save empty accounts
+            if (_intraBlockCache[address].Count > 0 && _changes[_intraBlockCache[address].Peek()]?.ChangeType == ChangeType.New )
+            {
+                changeType = ChangeType.New;
+            }
         }
 
         IncrementChangePosition();
@@ -737,33 +756,22 @@ public class VerkleWorldState : IWorldState
                 case ChangeType.Touch:
                 case ChangeType.Update:
                     {
-
-                        // We cannot delete accounts from the state in verkle world
-                        // if (change.Account != null && releaseSpec.IsEip158Enabled && change.Account.IsEmpty && !isGenesis)
-                        // {
-                        //     if (_logger.IsTrace) _logger.Trace($"  Commit remove empty {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
-                        //     SetState(change.Address, null);
-                        //     if (isTracing)
-                        //     {
-                        //         trace[change.Address] = new ChangeTrace(null);
-                        //     }
-                        // }
-                        // else
-                        // {
-                            if (_logger.IsTrace)
-                                if (change.Account != null)
-                                    _logger.Trace($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
-                            SetState(change.Address, change.Account);
-                            if (isTracing)
-                            {
-                                trace[change.Address] = new ChangeTrace(change.Account);
-                            }
-                        // }
+                        // No need for account deletion here even when Eip158 is enabled because we should not delete
+                        // anything from the tree that is already there
+                        if (_logger.IsTrace)
+                            if (change.Account != null)
+                                _logger.Trace($"  Commit update {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce} C = {change.Account.CodeHash}");
+                        SetState(change.Address, change.Account);
+                        if (isTracing)
+                        {
+                            trace[change.Address] = new ChangeTrace(change.Account);
+                        }
 
                         break;
                     }
                 case ChangeType.New:
                     {
+                        // For new accounts we do not need to save empty accounts when Eip158 enabled with Verkle
                         if (change.Account != null && (!releaseSpec.IsEip158Enabled || !change.Account.IsEmpty || isGenesis || change.Address == new Address("0xfffffffffffffffffffffffffffffffffffffffe")))
                         {
                             if (_logger.IsTrace) _logger.Trace($"  Commit create {change.Address} B = {change.Account.Balance} N = {change.Account.Nonce}");
