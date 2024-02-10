@@ -605,7 +605,11 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                     break;
                 }
             }
-            return result;
+
+            // we still use the UseHotAndColdStorage costs - we should be removing the Cold costs as it's being replaced
+            // by the witness access costs. We should still be keeping the Hot costs - to avoid free repeated access and
+            // cause a DDOS attack.
+            if (!result) return false;
         }
 
         if (!spec.UseHotAndColdStorage) return true;
@@ -1369,7 +1373,10 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                                 endNotIncluded = startIncluded + codeSizeToUse;
                                 if (endNotIncluded > actualCodeLength) endNotIncluded = actualCodeLength;
                             }
-                            env.Witness.AccessAndChargeForCodeSlice(vmState.To, startIncluded, endNotIncluded, false, ref gasAvailable);
+
+                            if (!vmState.IsContractDeployment)
+                                env.Witness.AccessAndChargeForCodeSlice(vmState.To, startIncluded, endNotIncluded,
+                                    false, ref gasAvailable);
                         }
 
                         break;
@@ -1813,14 +1820,13 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                             stack.PushByte(code[programCounterInt]);
                             // just a optimization - because if it is not the first element of the chunk
                             // it means that that it was already included as witness due to code execution
-                            if (!vmState.IsContractDeployment)
+
+                            if (!vmState.IsContractDeployment && programCounterInt % 31 == 0)
                             {
-                                if (programCounterInt % 31 == 0)
-                                {
-                                    if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounterInt + 1,
-                                            false, ref gasAvailable)) goto OutOfGas;
-                                }
+                                if (!env.Witness.AccessAndChargeForCodeProgramCounter(vmState.To, programCounterInt + 1,
+                                        false, ref gasAvailable)) goto OutOfGas;
                             }
+
                         }
 
                         programCounter++;
@@ -2475,8 +2481,17 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         Metrics.SelfDestructs++;
 
         Address inheritor = stack.PopAddress();
+        // TODO: charging access cost for the inheritor
+        //       but when the inheritor is same as the executing contract and that contract was create in the same transaction
+        //       we should not be charging the access cost?
         if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, false, opCode: Instruction.SELFDESTRUCT)) return false;
 
+        // TODO: charging the access cost for the executing account itself - but I am assuming that the executing account
+        //       might have been accessed already before - but not sure if the balance was accessed
+        //       also, we need to take care of the same thing - if this was created in the same transaction
+        //       then we should not charge any gas.
+        // Thought - anyways when you create a new account it is technically added to witness - so we should not think
+        // about mistakenly adding it to the witness - would not matter.
         Address executingAccount = vmState.Env.ExecutingAccount;
         bool createInSameTx = vmState.CreateList.Contains(executingAccount);
         if (!spec.SelfdestructOnlyOnSameTransaction || createInSameTx)
