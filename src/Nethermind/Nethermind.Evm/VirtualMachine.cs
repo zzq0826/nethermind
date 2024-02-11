@@ -566,8 +566,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
 
     private bool ChargeAccountAccessGas(ref long gasAvailable, EvmState vmState, Address address, IReleaseSpec spec, bool chargeForWarm = true, bool valueTransfer = false, Instruction opCode = Instruction.STOP)
     {
-        // Console.WriteLine($"Accessing {address}");
-
         bool result = true;
         if (spec.IsVerkleTreeEipEnabled)
         {
@@ -581,7 +579,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 }
                 case Instruction.EXTCODESIZE:
                 case Instruction.EXTCODECOPY:
-                case Instruction.SELFDESTRUCT:
                 case Instruction.CALL:
                 case Instruction.CALLCODE:
                 case Instruction.DELEGATECALL:
@@ -592,11 +589,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                         result = vmState.Env.Witness.AccessAndChargeForCodeOpCodes(address, ref gasAvailable);
                         if (!result) break;
                     }
-
-                    if (valueTransfer)
-                    {
-                        result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
-                    }
+                    if (valueTransfer) result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
                     break;
                 }
                 case Instruction.EXTCODEHASH:
@@ -604,6 +597,9 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                     result = vmState.Env.Witness.AccessAndChargeForCodeHash(address, ref gasAvailable);
                     break;
                 }
+                case Instruction.SELFDESTRUCT:
+                    result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
+                    break;
             }
 
             // we still use the UseHotAndColdStorage costs - we should be removing the Cold costs as it's being replaced
@@ -2481,25 +2477,25 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         Metrics.SelfDestructs++;
 
         Address inheritor = stack.PopAddress();
+
         // TODO: charging access cost for the inheritor
         //       but when the inheritor is same as the executing contract and that contract was create in the same transaction
         //       we should not be charging the access cost?
-        if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, false, opCode: Instruction.SELFDESTRUCT)) return false;
+        if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, chargeForWarm: false, opCode: Instruction.SELFDESTRUCT)) return false;
 
-        // TODO: charging the access cost for the executing account itself - but I am assuming that the executing account
-        //       might have been accessed already before - but not sure if the balance was accessed
-        //       also, we need to take care of the same thing - if this was created in the same transaction
-        //       then we should not charge any gas.
-        // Thought - anyways when you create a new account it is technically added to witness - so we should not think
-        // about mistakenly adding it to the witness - would not matter.
         Address executingAccount = vmState.Env.ExecutingAccount;
+
+        // accessing here is okay, as we would have already charged access gas for this address as this is the target
+        // account for the transaction
+        // TODO: test in case where ExecutingAccount is not the target account directly - instead it was called by the
+        //   target account
+        UInt256 balance = _state.GetBalance(executingAccount);
         bool createInSameTx = vmState.CreateList.Contains(executingAccount);
         if (!spec.SelfdestructOnlyOnSameTransaction || createInSameTx)
             vmState.DestroyList.Add(executingAccount);
 
-        UInt256 result = _state.GetBalance(executingAccount);
-        if (_txTracer.IsTracingActions) _txTracer.ReportSelfDestruct(executingAccount, result, inheritor);
-        if (spec.ClearEmptyAccountWhenTouched && !result.IsZero && _state.IsDeadAccount(inheritor))
+        if (_txTracer.IsTracingActions) _txTracer.ReportSelfDestruct(executingAccount, balance, inheritor);
+        if (spec.ClearEmptyAccountWhenTouched && !balance.IsZero && _state.IsDeadAccount(inheritor))
         {
             if (!UpdateGas(GasCostOf.NewAccount, ref gasAvailable)) return false;
         }
@@ -2512,17 +2508,17 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
 
         if (!inheritorAccountExists)
         {
-            _state.CreateAccount(inheritor, result);
+            _state.CreateAccount(inheritor, balance);
         }
         else if (!inheritor.Equals(executingAccount))
         {
-            _state.AddToBalance(inheritor, result, spec);
+            _state.AddToBalance(inheritor, balance, spec);
         }
 
         if (spec.SelfdestructOnlyOnSameTransaction && !createInSameTx && inheritor.Equals(executingAccount))
             return true; // dont burn eth when contract is not destroyed per EIP clarification
 
-        _state.SubtractFromBalance(executingAccount, result, spec);
+        _state.SubtractFromBalance(executingAccount, balance, spec);
         return true;
     }
 

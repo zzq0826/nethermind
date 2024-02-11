@@ -17,7 +17,7 @@ namespace Nethermind.Specs.Forks
             IsEip1153Enabled = false;
             IsEip5656Enabled = false;
             IsEip4844Enabled = false;
-            IsEip6780Enabled = false;
+            IsEip6780Enabled = true;
             IsEip4788Enabled = false;
             Eip4788ContractAddress = new Address("0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02");
         }
