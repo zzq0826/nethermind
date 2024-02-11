@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace Nethermind.Evm.Test.Verkle;
 
 [TestFixture]
-public class ContractCreationGasTests
+public class ContractCreationGasTests: VerkleVirtualMachineTestsBase
 {
 
     [Test]

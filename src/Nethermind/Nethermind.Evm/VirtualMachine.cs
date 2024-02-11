@@ -856,7 +856,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                         ref gasAvailable)) goto OutOfGas;
             }
 
-            Instruction instruction = (Instruction)code[programCounter];
+            var instruction = (Instruction)code[programCounter];
 
             // Evaluated to constant at compile time and code elided if not tracing
             if (typeof(TTracingInstructions) == typeof(IsTracing))
@@ -2705,10 +2705,8 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         where TTracingRefunds : struct, IIsTracing
         where TTracingStorage : struct, IIsTracing
     {
-        Console.WriteLine($"test ssatore gasgAvailable 1: {gasAvailable}");
         // fail fast before the first storage read if gas is not enough even for reset
         if (!spec.UseNetGasMetering && !UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return false;
-        Console.WriteLine($"test ssatore gasgAvailable 2: {gasAvailable}");
         if (spec.UseNetGasMeteringWithAStipendFix)
         {
             if (typeof(TTracingRefunds) == typeof(IsTracing))
@@ -2719,14 +2717,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
         stack.PopUInt256(out UInt256 result);
         Span<byte> bytes = stack.PopWord256();
         bool newIsZero = bytes.IsZero();
-        if (!newIsZero)
-        {
-            bytes = bytes.WithoutLeadingZeros().ToArray();
-        }
-        else
-        {
-            bytes = new byte[] { 0 };
-        }
+        bytes = !newIsZero ? bytes.WithoutLeadingZeros().ToArray() : [0];
 
         StorageCell storageCell = new(vmState.Env.ExecutingAccount, result);
 
@@ -2736,7 +2727,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 in storageCell,
                 StorageAccessType.SSTORE,
                 spec)) return false;
-        Console.WriteLine($"test ssatore gasgAvailable 3: {gasAvailable}");
 
         Span<byte> currentValue = _state.Get(in storageCell);
         // Console.WriteLine($"current: {currentValue.ToHexString()} newValue {newValue.ToHexString()}");
@@ -2758,7 +2748,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             else if (currentIsZero)
             {
                 if (!UpdateGas(GasCostOf.SSet - GasCostOf.SReset, ref gasAvailable)) return false;
-                Console.WriteLine($"test ssatore gasgAvailable 4: {gasAvailable}");
             }
         }
         else // net metered
@@ -2766,7 +2755,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
             if (newSameAsCurrent)
             {
                 if (!UpdateGas(spec.GetNetMeteredSStoreCost(), ref gasAvailable)) return false;
-                Console.WriteLine($"test ssatore gasgAvailable 5: {gasAvailable}");
             }
             else // net metered, C != N
             {
@@ -2779,12 +2767,10 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                     if (currentIsZero)
                     {
                         if (!UpdateGas(GasCostOf.SSet, ref gasAvailable)) return false;
-                        Console.WriteLine($"test ssatore gasgAvailable 6: {gasAvailable}");
                     }
                     else // net metered, current == original != new, !currentIsZero
                     {
                         if (!UpdateGas(spec.GetSStoreResetCost(), ref gasAvailable)) return false;
-                        Console.WriteLine($"test ssatore gasgAvailable 7: {gasAvailable}");
 
                         if (newIsZero)
                         {
@@ -2797,7 +2783,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine
                 {
                     long netMeteredStoreCost = spec.GetNetMeteredSStoreCost();
                     if (!UpdateGas(netMeteredStoreCost, ref gasAvailable)) return false;
-                    Console.WriteLine($"test ssatore gasgAvailable 8: {gasAvailable}");
 
                     if (!originalIsZero) // net metered, new != current != original != 0
                     {

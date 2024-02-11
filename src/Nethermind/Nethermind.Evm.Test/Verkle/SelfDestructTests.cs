@@ -19,9 +19,7 @@ namespace Nethermind.Evm.Test.Verkle;
 [TestFixture]
 public class SelfDestructTests: VerkleVirtualMachineTestsBase
 {
-    protected override long BlockNumber => MainnetSpecProvider.GrayGlacierBlockNumber;
-    protected override ulong Timestamp => MainnetSpecProvider.PragueBlockTimestamp;
-    private readonly EthereumEcdsa _ecdsa = new(1, LimboLogs.Instance);
+
     private readonly Address _contractAddress = ContractAddress.From(TestItem.PrivateKeyA.Address, 0);
 
 
