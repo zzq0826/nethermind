@@ -42,7 +42,9 @@ namespace Nethermind.Network.P2P
             _ = SendBuffer(buffer);
             if (message is DisconnectMessage)
             {
-                Task.Delay(200).Wait();
+                _logger.Info($"waiting for 3 seconds for disconnect message");
+
+                Task.Delay(3000).Wait();
             }
             return length;
         }
