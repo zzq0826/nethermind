@@ -499,7 +499,7 @@ namespace Nethermind.Network.P2P
             else
             {
                 _logger.Trace($"wait {Timeouts.Disconnection.TotalMilliseconds} milliseconds before disconnect");
-                Task delayTask = Task.Delay(Timeouts.Disconnection);
+                Task delayTask = Task.Delay(3000);
                 //disconnectType == DisconnectType.Local
                 //? Task.Delay(Timeouts.Disconnection)
                 //: Task.CompletedTask;
