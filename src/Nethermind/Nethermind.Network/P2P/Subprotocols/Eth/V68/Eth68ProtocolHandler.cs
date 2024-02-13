@@ -16,6 +16,7 @@ using Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V67;
 using Nethermind.Network.P2P.Subprotocols.Eth.V68.Messages;
 using Nethermind.Network.Rlpx;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Stats;
 using Nethermind.Synchronization;
 using Nethermind.TxPool;
@@ -96,14 +97,14 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
 
                 if (type != tx.Type)
                 {
-                    throw new SubprotocolException($"Announced tx type mismatch.");
+                    throw new RlpException($"Announced tx type mismatch.");
                 }
 
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
                 if (Math.Abs(size - tx.GetLength()) > 8)
                 {
-                    throw new SubprotocolException($"Announced tx size mismatch.");
+                    throw new RlpException($"Announced tx size mismatch.");
                 }
                 _announceData.Delete(tx.Hash);
             }
