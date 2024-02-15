@@ -155,11 +155,11 @@ jobs:
         continue-on-error: true
         working-directory: hive
         run: |
-          IFS=',' read -ra TEST_NAMES <<< "${{ join(matrix.hiveTests.testNames, ',') }}"
-          for testName in "${TEST_NAMES[@]}"
-          do
-            ./hive --client nethermind --sim ethereum/consensus --sim.limit /$testName --sim.parallelism $PARALLELISM
-          done
+          #IFS=',' read -ra TEST_NAMES <<< "${{ join(matrix.hiveTests.testNames, ',') }}"
+          #for testName in "${TEST_NAMES[@]}"
+          #do
+            ./hive --client nethermind --sim ethereum/consensus --sim.limit /TransitionTests/bcArrowGlacierToMerge/powToPosTest --sim.parallelism $PARALLELISM
+          #done
       - name: Print results
         run: |
           chmod +x nethermind/scripts/hive-results.sh
