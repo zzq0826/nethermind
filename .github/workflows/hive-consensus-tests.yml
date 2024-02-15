@@ -53,6 +53,7 @@ jobs:
         run: |
           tag="kch-hiveConsensusVerify"
           sed -i -e "s|^ARG baseimage=.*|ARG baseimage=nethermindeth/nethermind|" -e "s|^ARG tag=.*|ARG tag=$tag|" hive/clients/nethermind/Dockerfile
+          cat hive/clients/nethermind/Dockerfile
 
       - name: Build Hive
         working-directory: hive
@@ -65,7 +66,7 @@ jobs:
           #IFS=',' read -ra TEST_NAMES <<< "${{ join(matrix.hiveTests.testNames, ',') }}"
           #for testName in "${TEST_NAMES[@]}"
           #do
-            ./hive --client nethermind --sim ethereum/consensus --sim.limit /TransitionTests/bcArrowGlacierToMerge/powToPosTest --sim.parallelism $PARALLELISM
+            ./hive --client nethermind --docker.pull --sim.loglevel 5 --sim ethereum/consensus --sim.limit /TransitionTests/bcArrowGlacierToMerge/powToPosTest --sim.parallelism $PARALLELISM
           #done
       - name: Print results
         run: |
