@@ -139,5 +139,10 @@ namespace Nethermind.Core
         public bool IsTotallyEmpty => _storageRoot == Keccak.EmptyTreeHash.ValueHash256 && IsEmpty;
         public bool IsEmpty => _codeHash == Keccak.OfAnEmptyString.ValueHash256 && Balance.IsZero && Nonce.IsZero;
         public bool IsContract => _codeHash != Keccak.OfAnEmptyString.ValueHash256;
+
+        public override string ToString()
+        {
+            return $"{{ Nonce: {Nonce}, Balance: {Balance}, StorageRoot: {StorageRoot}, CodeHash: {CodeHash} }}";
+        }
     }
 }
