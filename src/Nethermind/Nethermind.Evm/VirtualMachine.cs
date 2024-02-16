@@ -2742,7 +2742,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         if (typeof(TTracingInstructions) == typeof(IsTracing))
         {
             ReadOnlySpan<byte> valueToStore = newIsZero ? BytesZero.AsSpan() : bytes;
-            byte[] storageBytes = new byte[32]; // do not stackalloc here
+            Span<byte> storageBytes = stackalloc byte[32];
             storageCell.Index.ToBigEndian(storageBytes);
             _txTracer.ReportStorageChange(storageBytes, valueToStore);
         }

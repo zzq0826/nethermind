@@ -87,30 +87,33 @@ namespace Nethermind.Trie
                     {
                         visitor.VisitLeaf(this, trieVisitContext.ToVisitContext(), Value.AsSpan());
 
-                        if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
+                        if (trieVisitContext is { IsStorage: false, ExpectAccounts: true })
                         {
-                            Account account = _accountDecoder.Decode(Value.AsRlpStream());
-                            if (account.HasCode && visitor.ShouldVisit(account.CodeHash))
+                            Rlp.ValueDecoderContext valueContext = Value.AsRlpValueContext();
+                            if (_accountDecoder.TryDecodeStruct(ref valueContext, out AccountStruct account))
                             {
-                                trieVisitContext.Level++;
-                                trieVisitContext.BranchChildIndex = null;
-                                visitor.VisitCode(account.CodeHash, trieVisitContext.ToVisitContext());
-                                trieVisitContext.Level--;
-                            }
-
-                            if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
-                            {
-                                trieVisitContext.IsStorage = true;
-                                trieVisitContext.Level++;
-                                trieVisitContext.BranchChildIndex = null;
-
-                                if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
+                                if (account.HasCode && visitor.ShouldVisit(account.CodeHash))
                                 {
-                                    nextToVisit.Add((storageRoot!, trieVisitContext));
+                                    trieVisitContext.Level++;
+                                    trieVisitContext.BranchChildIndex = null;
+                                    visitor.VisitCode(account.CodeHash, trieVisitContext.ToVisitContext());
+                                    trieVisitContext.Level--;
                                 }
-                                else
+
+                                if (account.HasStorage && visitor.ShouldVisit(account.StorageRoot))
                                 {
-                                    visitor.VisitMissingNode(account.StorageRoot, trieVisitContext.ToVisitContext());
+                                    trieVisitContext.IsStorage = true;
+                                    trieVisitContext.Level++;
+                                    trieVisitContext.BranchChildIndex = null;
+
+                                    if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
+                                    {
+                                        nextToVisit.Add((storageRoot!, trieVisitContext));
+                                    }
+                                    else
+                                    {
+                                        visitor.VisitMissingNode(account.StorageRoot, trieVisitContext.ToVisitContext());
+                                    }
                                 }
                             }
                         }
@@ -250,7 +253,8 @@ namespace Nethermind.Trie
                         trieVisitContext.AddVisited();
                         if (!trieVisitContext.IsStorage && trieVisitContext.ExpectAccounts) // can combine these conditions
                         {
-                            Account account = _accountDecoder.Decode(Value.AsRlpStream());
+                            Rlp.ValueDecoderContext valueContext = Value.AsRlpValueContext();
+                            AccountStruct account = _accountDecoder.DecodeStruct(ref valueContext);
                             if (account.HasCode && visitor.ShouldVisit(account.CodeHash))
                             {
                                 trieVisitContext.Level++;

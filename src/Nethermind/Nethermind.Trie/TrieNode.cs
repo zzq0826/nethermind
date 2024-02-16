@@ -1064,7 +1064,7 @@ namespace Nethermind.Trie
                         case 160:
                             {
                                 rlpStream.Position--;
-                                Hash256 keccak = rlpStream.DecodeKeccak();
+                                ValueHash256 keccak = rlpStream.DecodeValueKeccak();
                                 TrieNode child = tree.FindCachedOrUnknown(keccak);
                                 _data![i] = childOrRef = child;
 

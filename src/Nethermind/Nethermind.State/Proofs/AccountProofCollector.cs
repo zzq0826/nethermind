@@ -291,7 +291,8 @@ namespace Nethermind.State.Proofs
             }
             else
             {
-                Account account = _accountDecoder.Decode(new RlpStream(node.Value.ToArray()));
+                var valueContext = node.Value.AsRlpValueContext();
+                Account account = _accountDecoder.Decode(ref valueContext)!;
                 bool isPathMatched = IsPathMatched(node, _fullAccountPath);
                 if (isPathMatched)
                 {

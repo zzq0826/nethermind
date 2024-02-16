@@ -15,9 +15,10 @@ namespace Nethermind.Analytics
     public class SupplyVerifier : ITreeVisitor
     {
         private readonly ILogger _logger;
-        private readonly HashSet<Hash256> _ignoreThisOne = new HashSet<Hash256>();
+        private readonly HashSet<Hash256> _ignoreThisOne = new();
         private int _accountsVisited;
         private int _nodesVisited;
+        private AccountDecoder _accountDecoder = new();
 
         public SupplyVerifier(ILogger logger)
         {
@@ -88,12 +89,13 @@ namespace Nethermind.Analytics
                 return;
             }
 
-            AccountDecoder accountDecoder = new AccountDecoder();
-            Account account = accountDecoder.Decode(node.Value.AsRlpStream());
-            Balance += account.Balance;
-            _accountsVisited++;
-
-            _logger.Info($"Balance after visiting {_accountsVisited} accounts and {_nodesVisited} nodes: {Balance}");
+            Rlp.ValueDecoderContext valueContext = node.Value.AsRlpValueContext();
+            if (_accountDecoder.TryDecodeStruct(ref valueContext, out AccountStruct account))
+            {
+                Balance += account.Balance;
+                _accountsVisited++;
+                _logger.Info($"Balance after visiting {_accountsVisited} accounts and {_nodesVisited} nodes: {Balance}");
+            }
         }
 
         public void VisitCode(Hash256 codeHash, TrieVisitContext trieVisitContext)

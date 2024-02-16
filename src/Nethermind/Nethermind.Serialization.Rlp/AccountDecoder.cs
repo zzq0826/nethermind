@@ -286,19 +286,26 @@ namespace Nethermind.Serialization.Rlp
             return codeHash;
         }
 
-        public AccountStruct? DecodeStruct(ref Rlp.ValueDecoderContext decoderContext)
+        public bool TryDecodeStruct(ref Rlp.ValueDecoderContext decoderContext, out AccountStruct accountStruct)
         {
             int length = decoderContext.ReadSequenceLength();
             if (length == 1)
             {
-                return null;
+                accountStruct = default;
+                return false;
             }
 
+            DecodeStructInternal(ref decoderContext, out accountStruct);
+            return true;
+        }
+
+        private void DecodeStructInternal(ref Rlp.ValueDecoderContext decoderContext, out AccountStruct accountStruct)
+        {
             UInt256 nonce = decoderContext.DecodeUInt256();
             UInt256 balance = decoderContext.DecodeUInt256();
             ValueHash256 storageRoot = DecodeStorageRootStruct(ref decoderContext);
             ValueHash256 codeHash = DecodeCodeHashStruct(ref decoderContext);
-            return new AccountStruct(nonce, balance, storageRoot, codeHash);
+            accountStruct = new AccountStruct(nonce, balance, storageRoot, codeHash);
         }
     }
 }
