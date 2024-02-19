@@ -31,4 +31,16 @@ public interface IMetricsConfig : IConfig
 
     [ConfigItem(Description = "Whether to publish database size metrics.", DefaultValue = "true")]
     bool EnableDbSizeMetrics { get; }
+
+    [ConfigItem(Description = "Whether to apply Pyroscope monitoring on a node.", DefaultValue = "false")]
+    bool PyroscopeEnabled { get; }
+
+    [ConfigItem(Description = "The Prometheus url which accepts Pyroscope data.", DefaultValue = "")]
+    string PyroscopeServerUrl { get; }
+
+    [ConfigItem(Description = "User which is used for Pyroscope data sending.", DefaultValue = "")]
+    string PyroscopeUser { get; }
+
+    [ConfigItem(Description = "Password for user which is used for Pyroscope data sending.", DefaultValue = "")]
+    string PyroscopePassword { get; }
 }

@@ -26,6 +26,11 @@ namespace Nethermind.Monitoring
         private readonly string _pushGatewayUrl;
         private readonly int _intervalSeconds;
 
+        private readonly bool _pyroscopeEnabled;
+        private readonly string _pyroscopeServerUrl;
+        private readonly string _pyroscopeUser;
+        private readonly string _pyroscopePassword;
+
         public MonitoringService(IMetricsController metricsController, IMetricsConfig metricsConfig, ILogManager logManager)
         {
             _metricsController = metricsController ?? throw new ArgumentNullException(nameof(metricsController));
@@ -37,6 +42,11 @@ namespace Nethermind.Monitoring
             bool pushEnabled = metricsConfig.Enabled;
             int intervalSeconds = metricsConfig.IntervalSeconds;
 
+            bool pyroscopeEnabled = metricsConfig.PyroscopeEnabled;
+            string pyroscopeServerUrl = metricsConfig.PyroscopeServerUrl;
+            string pyroscopeUser = metricsConfig.PyroscopeUser;
+            string pyroscopePassword = metricsConfig.PyroscopePassword;
+
             _exposeHost = exposeHost;
             _exposePort = exposePort;
             _nodeName = string.IsNullOrWhiteSpace(nodeName)
@@ -47,6 +57,11 @@ namespace Nethermind.Monitoring
             _intervalSeconds = intervalSeconds <= 0
                 ? throw new ArgumentException($"Invalid monitoring push interval: {intervalSeconds}s")
                 : intervalSeconds;
+
+            _pyroscopeEnabled = pyroscopeEnabled;
+            _pyroscopeServerUrl = pyroscopeServerUrl;
+            _pyroscopeUser = pyroscopeUser;
+            _pyroscopePassword = pyroscopePassword;
 
             _logger = logManager is null
                 ? throw new ArgumentNullException(nameof(logManager))
@@ -88,6 +103,15 @@ namespace Nethermind.Monitoring
             }
             await Task.Factory.StartNew(() => _metricsController.StartUpdating(), TaskCreationOptions.LongRunning);
             if (_logger.IsInfo) _logger.Info($"Started monitoring for the group: {_options.Group}, instance: {_options.Instance}");
+
+            if (_pyroscopeEnabled)
+            {
+                Environment.SetEnvironmentVariable("PYROSCOPE_PROFILING_ENABLED", "1", EnvironmentVariableTarget.Process);
+                Environment.SetEnvironmentVariable("PYROSCOPE_APPLICATION_NAME", _nodeName, EnvironmentVariableTarget.Process);
+                Environment.SetEnvironmentVariable("PYROSCOPE_SERVER_ADDRESS", _pyroscopeServerUrl, EnvironmentVariableTarget.Process);
+                Environment.SetEnvironmentVariable("PYROSCOPE_BASIC_AUTH_USER", _pyroscopeUser, EnvironmentVariableTarget.Process);
+                Environment.SetEnvironmentVariable("PYROSCOPE_BASIC_AUTH_PASSWORD", _pyroscopePassword, EnvironmentVariableTarget.Process);
+            }
         }
 
         public void AddMetricsUpdateAction(Action callback)

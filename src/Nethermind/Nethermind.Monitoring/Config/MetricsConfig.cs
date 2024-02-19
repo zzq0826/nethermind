@@ -13,5 +13,9 @@ namespace Nethermind.Monitoring.Config
         public int IntervalSeconds { get; set; } = 5;
         public string NodeName { get; set; } = "Nethermind";
         public bool EnableDbSizeMetrics { get; set; } = true;
+        public bool PyroscopeEnabled => false;
+        public string PyroscopeServerUrl => "";
+        public string PyroscopeUser => "";
+        public string PyroscopePassword => "";
     }
 }
