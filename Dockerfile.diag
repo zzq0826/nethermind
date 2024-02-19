@@ -27,8 +27,9 @@ RUN curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/v0.
     mkdir -p /opt/pyroscope && \
     mv Pyroscope.Profiler.Native.so /opt/pyroscope/ && \
     mv Pyroscope.Linux.ApiWrapper.x64.so /opt/pyroscope/
-COPY --from=pyroscope/pyroscope-dotnet:0.8.14-glibc /Pyroscope.Profiler.Native.so ./Pyroscope.Profiler.Native.so
-COPY --from=pyroscope/pyroscope-dotnet:0.8.14-glibc /Pyroscope.Linux.ApiWrapper.x64.so ./Pyroscope.Linux.ApiWrapper.x64.so
+COPY --from=pyroscope/pyroscope-dotnet:0.8.14-glibc /Pyroscope.Profiler.Native.so /opt/pyroscope/Pyroscope.Profiler.Native.so
+COPY --from=pyroscope/pyroscope-dotnet:0.8.14-glibc /Pyroscope.Linux.ApiWrapper.x64.so /opt/pyroscope/Pyroscope.Linux.ApiWrapper.x64.so
+RUN chmod 755 /opt/pyroscope/Pyroscope.Profiler.Native.so /opt/pyroscope/Pyroscope.Linux.ApiWrapper.x64.so
 
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-jammy
 
