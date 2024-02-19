@@ -97,6 +97,12 @@ namespace Nethermind.Merge.Plugin.Synchronization
             bool beaconPivotExists = BeaconPivotExists();
             if (blockHeader is not null)
             {
+                if (_syncConfig.MaxAttemptsToUpdatePivot > 0)
+                {
+                    if (_logger.IsDebug) _logger.Debug($"Pivot update in progress. Skipped updating beacon pivot to {blockHeader.ToString(BlockHeader.Format.FullHashAndNumber)}");
+                    return;
+                }
+
                 if (beaconPivotExists && updateOnlyIfNull)
                 {
                     return;
