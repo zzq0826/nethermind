@@ -707,7 +707,7 @@ namespace Nethermind.State
 
         private Account? GetThroughCache(Address address)
         {
-            if (_intraBlockCache.TryGetValue(address, out Stack<int> value))
+            if (_intraBlockCache.TryGetValue(address, out Stack<int> value) && _changes[value.Peek()]?.Account is not null)
             {
                 return _changes[value.Peek()]!.Account;
             }
