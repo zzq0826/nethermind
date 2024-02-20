@@ -106,6 +106,13 @@ namespace Nethermind.Monitoring
 
             if (_pyroscopeEnabled)
             {
+                //hack
+                Environment.SetEnvironmentVariable("CORECLR_PROFILER", null, EnvironmentVariableTarget.User);
+                Environment.SetEnvironmentVariable("CORECLR_PROFILER_PATH", null, EnvironmentVariableTarget.User);
+
+                Environment.SetEnvironmentVariable("CORECLR_PROFILER", "{BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}", EnvironmentVariableTarget.User);
+                Environment.SetEnvironmentVariable("CORECLR_PROFILER_PATH", "/opt/pyroscope/Pyroscope.Profiler.Native.so", EnvironmentVariableTarget.User);
+                //endhack
                 Environment.SetEnvironmentVariable("PYROSCOPE_PROFILING_ENABLED", "1", EnvironmentVariableTarget.User);
                 Environment.SetEnvironmentVariable("PYROSCOPE_APPLICATION_NAME", _nodeName, EnvironmentVariableTarget.User);
                 Environment.SetEnvironmentVariable("PYROSCOPE_SERVER_ADDRESS", _pyroscopeServerUrl, EnvironmentVariableTarget.User);
