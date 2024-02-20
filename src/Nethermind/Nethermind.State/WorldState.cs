@@ -192,10 +192,11 @@ namespace Nethermind.State
             return _stateProvider.GetCodeHash(address);
         }
 
-        public void Accept(ITreeVisitor visitor, Hash256 stateRoot, VisitingOptions? visitingOptions = null)
+        public void Accept<TContext>(ITreeVisitor<TContext> visitor, Hash256 stateRoot, VisitingOptions? visitingOptions = null) where TContext : struct, INodeContext<TContext>
         {
             _stateProvider.Accept(visitor, stateRoot, visitingOptions);
         }
+
         public bool AccountExists(Address address)
         {
             return _stateProvider.AccountExists(address);

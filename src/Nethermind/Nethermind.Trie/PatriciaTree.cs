@@ -1283,7 +1283,7 @@ namespace Nethermind.Trie
                 visitor.VisitTree(default, rootHash, trieVisitContext);
                 if (TryGetRootRef(out TrieNode rootRef))
                 {
-                    rootRef?.Accept(visitor, default, resolver, trieVisitContext);
+                    rootRef?.Accept(visitor, default, resolver, trieVisitContext, true);
                 }
             }
             // Full db scan
@@ -1296,7 +1296,7 @@ namespace Nethermind.Trie
             else if (TryGetRootRef(out TrieNode rootRef))
             {
                 visitor.VisitTree(default, rootHash, trieVisitContext);
-                rootRef?.Accept(visitor, default, resolver, trieVisitContext);
+                rootRef?.Accept(visitor, default, resolver, trieVisitContext, true);
             }
         }
 

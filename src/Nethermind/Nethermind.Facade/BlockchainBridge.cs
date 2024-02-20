@@ -387,7 +387,7 @@ namespace Nethermind.Facade
 
         public Address? RecoverTxSender(Transaction tx) => _ecdsa.RecoverAddress(tx);
 
-        public void RunTreeVisitor(ITreeVisitor treeVisitor, Hash256 stateRoot)
+        public void RunTreeVisitor<TContext>(ITreeVisitor<TContext> treeVisitor, Hash256 stateRoot) where TContext : struct, INodeContext<TContext>
         {
             _processingEnv.StateReader.RunTreeVisitor(treeVisitor, stateRoot);
         }

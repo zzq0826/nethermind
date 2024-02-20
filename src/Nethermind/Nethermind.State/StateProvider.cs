@@ -48,9 +48,8 @@ namespace Nethermind.State
             _tree = stateTree ?? new StateTree(trieStore, logManager);
         }
 
-        public void Accept(ITreeVisitor? visitor, Hash256? stateRoot, VisitingOptions? visitingOptions = null)
+        public void Accept<TContext>(ITreeVisitor<TContext> visitor, Hash256? stateRoot, VisitingOptions? visitingOptions = null) where TContext : struct, INodeContext<TContext>
         {
-            ArgumentNullException.ThrowIfNull(visitor);
             ArgumentNullException.ThrowIfNull(stateRoot);
 
             _tree.Accept(visitor, stateRoot, visitingOptions);

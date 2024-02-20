@@ -43,7 +43,7 @@ namespace Nethermind.Blockchain
 
         public ValueHash256 GetCodeHash(Address address) => GetAccount(address).CodeHash;
 
-        public void Accept(ITreeVisitor visitor, Hash256 stateRoot, VisitingOptions? visitingOptions)
+        public void Accept<TContext>(ITreeVisitor<TContext> visitor, Hash256 stateRoot, VisitingOptions? visitingOptions) where TContext : struct, INodeContext<TContext>
         {
             _stateReader.RunTreeVisitor(visitor, stateRoot, visitingOptions);
         }

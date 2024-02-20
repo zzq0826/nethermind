@@ -125,10 +125,15 @@ namespace Nethermind.Trie
 
         internal void Accept(ITreeVisitor visitor, ITrieNodeResolver nodeResolver, TrieVisitContext trieVisitContext)
         {
-            Accept(new ContextNotAwareTreeVisitor(visitor), default, nodeResolver, trieVisitContext);
+            Accept(new ContextNotAwareTreeVisitor(visitor), default, nodeResolver, trieVisitContext, true);
         }
 
-        internal void Accept<TNodeContext>(ITreeVisitor<TNodeContext> visitor, in TNodeContext nodeContext, ITrieNodeResolver nodeResolver, TrieVisitContext trieVisitContext)
+        internal void Accept<TNodeContext>(
+            ITreeVisitor<TNodeContext> visitor,
+            in TNodeContext nodeContext,
+            ITrieNodeResolver nodeResolver,
+            TrieVisitContext trieVisitContext,
+            bool isRoot)
             where TNodeContext : struct, INodeContext<TNodeContext>
         {
             try
@@ -141,7 +146,7 @@ namespace Nethermind.Trie
                 return;
             }
 
-            ResolveKey(nodeResolver, trieVisitContext.Level == 0);
+            ResolveKey(nodeResolver, isRoot);
 
             switch (NodeType)
             {
@@ -158,7 +163,7 @@ namespace Nethermind.Trie
                                 if (v.ShouldVisit(childContext, child.Keccak!))
                                 {
                                     context.BranchChildIndex = i;
-                                    child.Accept(v, childContext, resolver, context);
+                                    child.Accept(v, childContext, resolver, context, false);
                                 }
 
                                 if (child.IsPersisted)
@@ -203,7 +208,6 @@ namespace Nethermind.Trie
 
                         visitor.VisitBranch(nodeContext, this, trieVisitContext);
                         trieVisitContext.AddVisited();
-                        trieVisitContext.Level++;
 
                         if (trieVisitContext.MaxDegreeOfParallelism != 1 && trieVisitContext.Semaphore.CurrentCount > 1)
                         {
@@ -228,7 +232,6 @@ namespace Nethermind.Trie
                             VisitSingleThread(visitor, nodeContext, nodeResolver, trieVisitContext);
                         }
 
-                        trieVisitContext.Level--;
                         trieVisitContext.BranchChildIndex = null;
                         break;
                     }
@@ -247,10 +250,8 @@ namespace Nethermind.Trie
                         TNodeContext childContext = nodeContext.Add(Key!);
                         if (visitor.ShouldVisit(childContext, child.Keccak!))
                         {
-                            trieVisitContext.Level++;
                             trieVisitContext.BranchChildIndex = null;
-                            child.Accept(visitor, childContext, nodeResolver, trieVisitContext);
-                            trieVisitContext.Level--;
+                            child.Accept(visitor, childContext, nodeResolver, trieVisitContext, false);
                         }
 
                         break;
@@ -269,28 +270,24 @@ namespace Nethermind.Trie
                             Account account = _accountDecoder.Decode(Value.AsRlpStream());
                             if (account.HasCode && visitor.ShouldVisit(leafContext, account.CodeHash))
                             {
-                                trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
                                 visitor.VisitCode(leafContext, account.CodeHash, trieVisitContext);
-                                trieVisitContext.Level--;
                             }
 
                             if (account.HasStorage && visitor.ShouldVisit(leafContext, account.StorageRoot))
                             {
                                 trieVisitContext.IsStorage = true;
-                                trieVisitContext.Level++;
                                 trieVisitContext.BranchChildIndex = null;
 
                                 if (TryResolveStorageRoot(nodeResolver, out TrieNode? storageRoot))
                                 {
-                                    storageRoot!.Accept(visitor, leafContext, nodeResolver, trieVisitContext);
+                                    storageRoot!.Accept(visitor, leafContext, nodeResolver, trieVisitContext, true);
                                 }
                                 else
                                 {
                                     visitor.VisitMissingNode(leafContext, account.StorageRoot, trieVisitContext);
                                 }
 
-                                trieVisitContext.Level--;
                                 trieVisitContext.IsStorage = false;
                             }
                         }

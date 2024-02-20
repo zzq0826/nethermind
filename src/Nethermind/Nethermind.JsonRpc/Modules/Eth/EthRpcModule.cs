@@ -662,7 +662,7 @@ public partial class EthRpcModule : IEthRpcModule
         }
 
         AccountProofCollector accountProofCollector = new(accountAddress, storageKeys);
-        _blockchainBridge.RunTreeVisitor(accountProofCollector, header!.StateRoot!);
+        _blockchainBridge.RunTreeVisitor(new ContextNotAwareTreeVisitor(accountProofCollector), header!.StateRoot!);
         return ResultWrapper<AccountProof>.Success(accountProofCollector.BuildResult());
     }
 

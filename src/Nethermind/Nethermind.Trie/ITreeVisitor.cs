@@ -145,4 +145,19 @@ namespace Nethermind.Trie
         }
     }
 
+    public struct ConventionalContext(int level) : INodeContext<ConventionalContext>
+    {
+        public int Level { get; } = level;
+
+        public ConventionalContext Add(ReadOnlySpan<byte> nibblePath)
+        {
+            return new ConventionalContext(Level + 1);
+        }
+
+        public ConventionalContext Add(byte nibble)
+        {
+            return new ConventionalContext(Level + 1);
+        }
+    }
+
 }

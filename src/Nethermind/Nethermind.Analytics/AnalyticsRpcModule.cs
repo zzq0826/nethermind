@@ -8,6 +8,7 @@ using Nethermind.Int256;
 using Nethermind.JsonRpc;
 using Nethermind.Logging;
 using Nethermind.State;
+using Nethermind.Trie;
 
 namespace Nethermind.Analytics
 {
@@ -27,7 +28,7 @@ namespace Nethermind.Analytics
         public ResultWrapper<UInt256> analytics_verifySupply()
         {
             SupplyVerifier supplyVerifier = new SupplyVerifier(_logManager.GetClassLogger());
-            _stateReader.RunTreeVisitor(supplyVerifier, _blockTree.Head.StateRoot);
+            _stateReader.RunTreeVisitor(new ContextNotAwareTreeVisitor(supplyVerifier), _blockTree.Head.StateRoot);
             return ResultWrapper<UInt256>.Success(supplyVerifier.Balance);
         }
 

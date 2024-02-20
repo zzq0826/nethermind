@@ -59,7 +59,7 @@ namespace Nethermind.State
 
         public byte[]? GetCode(Hash256 codeHash) => codeHash == Keccak.OfAnEmptyString ? Array.Empty<byte>() : _codeDb[codeHash.Bytes];
 
-        public void RunTreeVisitor(ITreeVisitor treeVisitor, Hash256 rootHash, VisitingOptions? visitingOptions = null)
+        public void RunTreeVisitor<TContext>(ITreeVisitor<TContext> treeVisitor, Hash256 rootHash, VisitingOptions? visitingOptions = null) where TContext : struct, INodeContext<TContext>
         {
             _state.Accept(treeVisitor, rootHash, visitingOptions);
         }
