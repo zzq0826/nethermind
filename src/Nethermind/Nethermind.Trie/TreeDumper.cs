@@ -38,14 +38,14 @@ namespace Nethermind.Trie
             }
         }
 
-        private static string GetPrefix(in ConventionalContext ctx, TrieVisitContext context) => string.Concat($"{GetIndent(ctx.Level)}", context.IsStorage ? "STORAGE " : string.Empty, $"{GetChildIndex(context)}");
+        private static string GetPrefix(in ConventionalContext ctx, TrieVisitContext context) => string.Concat($"{GetIndent(ctx.Level)}", context.IsStorage ? "STORAGE " : string.Empty, $"{GetChildIndex(ctx)}");
 
         private static string GetIndent(int level) => new('+', level * 2);
-        private static string GetChildIndex(TrieVisitContext context) => context.BranchChildIndex is null ? string.Empty : $"{context.BranchChildIndex:x2} ";
+        private static string GetChildIndex(in ConventionalContext ctx) => ctx.BranchChildIndex is null ? string.Empty : $"{ctx.BranchChildIndex:x2} ";
 
         public void VisitMissingNode(in ConventionalContext ctx, Hash256 nodeHash, TrieVisitContext trieVisitContext)
         {
-            _builder.AppendLine($"{GetIndent(ctx.Level)}{GetChildIndex(trieVisitContext)}MISSING {nodeHash}");
+            _builder.AppendLine($"{GetIndent(ctx.Level)}{GetChildIndex(ctx)}MISSING {nodeHash}");
         }
 
         public void VisitBranch(in ConventionalContext ctx, TrieNode node, TrieVisitContext trieVisitContext)

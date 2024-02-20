@@ -14,7 +14,6 @@ namespace Nethermind.Trie
         private int _visitedNodes;
 
         public bool IsStorage { get; internal set; }
-        public int? BranchChildIndex { get; internal set; }
         public bool ExpectAccounts { get; init; }
         public int VisitedNodes => _visitedNodes;
 
@@ -64,12 +63,10 @@ namespace Nethermind.Trie
         public SmallTrieVisitContext(TrieVisitContext trieVisitContext)
         {
             IsStorage = trieVisitContext.IsStorage;
-            BranchChildIndex = (byte?)trieVisitContext.BranchChildIndex;
             ExpectAccounts = trieVisitContext.ExpectAccounts;
         }
 
         public byte Level { get; internal set; }
-        private byte _branchChildIndex = 255;
         private byte _flags = 0;
 
         private const byte StorageFlag = 1;
@@ -107,28 +104,11 @@ namespace Nethermind.Trie
             }
         }
 
-        public byte? BranchChildIndex
-        {
-            readonly get => _branchChildIndex == 255 ? null : _branchChildIndex;
-            internal set
-            {
-                if (value is null)
-                {
-                    _branchChildIndex = 255;
-                }
-                else
-                {
-                    _branchChildIndex = (byte)value;
-                }
-            }
-        }
-
         public readonly TrieVisitContext ToVisitContext()
         {
             return new TrieVisitContext()
             {
                 IsStorage = IsStorage,
-                BranchChildIndex = BranchChildIndex,
                 ExpectAccounts = ExpectAccounts
             };
         }

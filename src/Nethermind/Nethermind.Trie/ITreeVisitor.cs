@@ -145,18 +145,19 @@ namespace Nethermind.Trie
         }
     }
 
-    public struct ConventionalContext(int level) : INodeContext<ConventionalContext>
+    public struct ConventionalContext(int level, int? branchChildIndex) : INodeContext<ConventionalContext>
     {
         public int Level { get; } = level;
+        public int? BranchChildIndex { get; } = branchChildIndex;
 
         public ConventionalContext Add(ReadOnlySpan<byte> nibblePath)
         {
-            return new ConventionalContext(Level + 1);
+            return new ConventionalContext(Level + 1, null);
         }
 
         public ConventionalContext Add(byte nibble)
         {
-            return new ConventionalContext(Level + 1);
+            return new ConventionalContext(Level + 1, nibble);
         }
     }
 
