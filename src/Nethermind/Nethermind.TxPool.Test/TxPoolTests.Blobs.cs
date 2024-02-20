@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Core;
@@ -228,6 +229,40 @@ namespace Nethermind.TxPool.Test
 
             _txPool.SubmitTx(firstTx, TxHandlingOptions.None).Should().Be(AcceptTxResult.Accepted);
             _txPool.SubmitTx(nonceGapTx, TxHandlingOptions.None).Should().Be(isBlob ? AcceptTxResult.NonceGap : AcceptTxResult.Accepted);
+        }
+
+        [Test][Repeat(5)]
+        public async Task should_keep_blob_pool_capacity([Values(1, 2, 4, 8, 16)] int capacity, [Values(1, 2, 4, 8, 16)] int txsPerAcc)
+        {
+            void SendTxs(PrivateKey privateKey)
+            {
+                EnsureSenderBalance(privateKey.Address, UInt256.MaxValue);
+
+                for (int i = 0; i < txsPerAcc; i++)
+                {
+                    Transaction tx = Build.A.Transaction
+                        .WithShardBlobTxTypeAndFields()
+                        .WithMaxFeePerGas(1.GWei())
+                        .WithMaxPriorityFeePerGas(1.GWei())
+                        .WithNonce((UInt256)i)
+                        .SignedAndResolved(_ethereumEcdsa, privateKey).TestObject;
+
+                    _txPool.SubmitTx(tx, TxHandlingOptions.None);
+                }
+            }
+
+            _txPool = CreatePool(new TxPoolConfig() { BlobsSupport = BlobsSupportMode.StorageWithReorgs, PersistentBlobStorageSize = capacity }, GetCancunSpecProvider());
+
+            var firstTask = Task.Run(() => SendTxs(TestItem.PrivateKeyA));
+            var secondTask = Task.Run(() => SendTxs(TestItem.PrivateKeyB));
+            var thirdTask = Task.Run(() => SendTxs(TestItem.PrivateKeyC));
+            var fourthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyD));
+            var fifthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyE));
+            var sixthTask = Task.Run(() => SendTxs(TestItem.PrivateKeyF));
+
+            await Task.WhenAll(firstTask, secondTask, thirdTask, fourthTask, fifthTask, sixthTask);
+
+            _txPool.GetPendingBlobTransactionsCount().Should().Be(Math.Min(capacity, txsPerAcc * 6));
         }
 
         [Test]
