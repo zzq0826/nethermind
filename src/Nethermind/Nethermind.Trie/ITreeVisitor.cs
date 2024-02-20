@@ -52,7 +52,8 @@ namespace Nethermind.Trie
 
         void VisitExtension(in TNodeContext nodeContext, TrieNode node, TrieVisitContext trieVisitContext);
 
-        void VisitLeaf(in TNodeContext nodeContext, TrieNode node, TrieVisitContext trieVisitContext, ReadOnlySpan<byte> value);
+        void VisitLeaf(in TNodeContext nodeContext, TrieNode node, TrieVisitContext trieVisitContext,
+            ReadOnlySpan<byte> value);
 
         void VisitCode(in TNodeContext nodeContext, Hash256 codeHash, TrieVisitContext trieVisitContext);
     }
@@ -92,7 +93,8 @@ namespace Nethermind.Trie
             _wrapped.VisitExtension(node, trieVisitContext);
         }
 
-        public void VisitLeaf(in EmptyContext nodeContext, TrieNode node, TrieVisitContext trieVisitContext, ReadOnlySpan<byte> value)
+        public void VisitLeaf(in EmptyContext nodeContext, TrieNode node, TrieVisitContext trieVisitContext,
+            ReadOnlySpan<byte> value)
         {
             _wrapped.VisitLeaf(node, trieVisitContext, value);
         }
@@ -102,4 +104,45 @@ namespace Nethermind.Trie
             _wrapped.VisitCode(codeHash, trieVisitContext);
         }
     }
+
+    public interface INodeContext<out TNodeContext>
+        // The context needs to be the struct so that it's passed nicely via in and returned from the methods.
+        where TNodeContext : struct, INodeContext<TNodeContext>
+    {
+        TNodeContext Add(ReadOnlySpan<byte> nibblePath);
+
+        TNodeContext Add(byte nibble);
+    }
+
+    public readonly struct EmptyContext : INodeContext<EmptyContext>
+    {
+        public EmptyContext Add(ReadOnlySpan<byte> nibblePath) => this;
+        public EmptyContext Add(byte nibble) => this;
+    }
+
+    public struct TreePathContext : INodeContext<TreePathContext>
+    {
+        public TreePath Path = TreePath.Empty;
+
+        public TreePathContext()
+        {
+        }
+
+        public TreePathContext Add(ReadOnlySpan<byte> nibblePath)
+        {
+            return new TreePathContext()
+            {
+                Path = Path.Append(nibblePath)
+            };
+        }
+
+        public TreePathContext Add(byte nibble)
+        {
+            return new TreePathContext()
+            {
+                Path = Path.Append(nibble)
+            };
+        }
+    }
+
 }
