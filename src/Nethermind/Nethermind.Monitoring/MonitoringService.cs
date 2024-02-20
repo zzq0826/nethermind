@@ -106,11 +106,15 @@ namespace Nethermind.Monitoring
 
             if (_pyroscopeEnabled)
             {
-                Environment.SetEnvironmentVariable("PYROSCOPE_PROFILING_ENABLED", "1", EnvironmentVariableTarget.Process);
-                Environment.SetEnvironmentVariable("PYROSCOPE_APPLICATION_NAME", _nodeName, EnvironmentVariableTarget.Process);
-                Environment.SetEnvironmentVariable("PYROSCOPE_SERVER_ADDRESS", _pyroscopeServerUrl, EnvironmentVariableTarget.Process);
-                Environment.SetEnvironmentVariable("PYROSCOPE_BASIC_AUTH_USER", _pyroscopeUser, EnvironmentVariableTarget.Process);
-                Environment.SetEnvironmentVariable("PYROSCOPE_BASIC_AUTH_PASSWORD", _pyroscopePassword, EnvironmentVariableTarget.Process);
+                Environment.SetEnvironmentVariable("PYROSCOPE_PROFILING_ENABLED", "1", EnvironmentVariableTarget.User);
+                Environment.SetEnvironmentVariable("PYROSCOPE_APPLICATION_NAME", _nodeName, EnvironmentVariableTarget.User);
+                Environment.SetEnvironmentVariable("PYROSCOPE_SERVER_ADDRESS", _pyroscopeServerUrl, EnvironmentVariableTarget.User);
+                Environment.SetEnvironmentVariable("CORECLR_ENABLE_PROFILING", "1", EnvironmentVariableTarget.User);
+                Pyroscope.Profiler.Instance.SetBasicAuth(_pyroscopeUser, _pyroscopePassword);
+                Pyroscope.Profiler.Instance.SetCPUTrackingEnabled(true);
+                Pyroscope.Profiler.Instance.SetAllocationTrackingEnabled(true);
+                Pyroscope.Profiler.Instance.SetContentionTrackingEnabled(true);
+                Pyroscope.Profiler.Instance.SetExceptionTrackingEnabled(true);
             }
         }
 
