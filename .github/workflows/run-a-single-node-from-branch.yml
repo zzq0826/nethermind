@@ -129,6 +129,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       base_tag: ${{ steps.set-base-tag.outputs.base_tag }}
+      dockerfile: ${{ steps.extract_dockerfile.outputs.dockerfile }}
+      build-config: ${{ steps.extract_dockerfile.outputs.build-config }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -165,7 +167,7 @@ jobs:
         echo "ORG_NAME=${{ github.repository_owner }}" >> $GITHUB_ENV
         echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
         
-    - name: Check if master branch and default additional_options
+    - name: Check if master branch and default additional_options or Pyroscope
       id: check_conditions
       run: |
         ref="${{ inputs.nethermind_repo_ref || github.ref }}"
@@ -183,7 +185,11 @@ jobs:
         [[ "${{ steps.extract_dockerfile.outputs.build-config }}" == "release" ]]; then
           echo "skip_docker_build=true" >> $GITHUB_OUTPUT
         else
-          echo "skip_docker_build=false" >> $GITHUB_OUTPUT
+          if [[ "${{ steps.extract_dockerfile.outputs.dockerfile }}" == "Dockerfile.pyroscope" ]]; then
+            echo "skip_docker_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_docker_build=false" >> $GITHUB_OUTPUT
+          fi
         fi
 
     - name: Trigger Docker Build Action with Cleaned Ref
@@ -242,6 +248,12 @@ jobs:
         echo "ssh_keys=$(echo '${{ inputs.additional_options }}' | jq -r .ssh_keys)" >> $GITHUB_OUTPUT
         echo "allowed_ips=$(echo '${{ inputs.additional_options }}' | jq -r .allowed_ips)" >> $GITHUB_OUTPUT
 
+        if [ "${{ needs.create_docker_image.outputs.dockerfile }}" == "Dockerfile.pyroscope" ]; then
+          echo "use_pyroscope=true" >> $GITHUB_OUTPUT
+        else
+          echo "use_pyroscope=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Trigger Node creation Repo Action
       uses: benc-uk/workflow-dispatch@v1
       with:
@@ -251,12 +263,12 @@ jobs:
           token: "${{ secrets.REPOSITORY_DISPATCH_TOKEN }}"
           inputs: '{
                      "github_username": "${{ github.actor }}",
-                     "base_tag": "${{ env.BASE_TAG }}",
+                     "base_tag": "${{ env.BASE_TAG }}",                     
                      "config_file": "${{ inputs.config }}",
                      "nethermind_branch": "${{ env.CLEAN_REF }}",
                      "network": "${{ inputs.network }}",
                      "cl_client": "${{ inputs.cl_client }}",
-                     "additional_options": "{\"cl_custom_image\":\"${{ inputs.cl_custom_image }}\", \"timeout\":\"${{ steps.extract_variables.outputs.timeout }}\", \"non_validator_mode\":${{ inputs.non_validator_mode }}, \"additional_nethermind_flags\":\"${{ inputs.additional_nethermind_flags }}\", \"additional_cl_flags\":\"${{ inputs.additional_cl_flags }}\", \"ssh_keys\":\"${{ steps.extract_variables.outputs.ssh_keys }}\", \"allowed_ips\":\"${{ steps.extract_variables.outputs.allowed_ips }}\"}"
+                     "additional_options": "{\"cl_custom_image\":\"${{ inputs.cl_custom_image }}\", \"timeout\":\"${{ steps.extract_variables.outputs.timeout }}\", \"non_validator_mode\":${{ inputs.non_validator_mode }}, \"additional_nethermind_flags\":\"${{ inputs.additional_nethermind_flags }}\", \"additional_cl_flags\":\"${{ inputs.additional_cl_flags }}\", \"use_pyroscope\": \"${{ steps.extract_variables.outputs.use_pyroscope }}\", \"nethermind_branch_original\": \"${{ inputs.nethermind_repo_ref || github.ref }}\", \"ssh_keys\":\"${{ steps.extract_variables.outputs.ssh_keys }}\", \"allowed_ips\":\"${{ steps.extract_variables.outputs.allowed_ips }}\"}"
                    }'
 
     - name: Wait for creation of node

@@ -103,25 +103,6 @@ namespace Nethermind.Monitoring
             }
             await Task.Factory.StartNew(() => _metricsController.StartUpdating(), TaskCreationOptions.LongRunning);
             if (_logger.IsInfo) _logger.Info($"Started monitoring for the group: {_options.Group}, instance: {_options.Instance}");
-
-            if (_pyroscopeEnabled)
-            {
-                //hack
-                Environment.SetEnvironmentVariable("CORECLR_ENABLE_PROFILING", "1", EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("LD_PRELOAD", "/opt/pyroscope/Pyroscope.Linux.ApiWrapper.x64.so", EnvironmentVariableTarget.User); Environment.SetEnvironmentVariable("CORECLR_PROFILER_PATH", "/opt/pyroscope/Pyroscope.Profiler.Native.so", EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("CORECLR_PROFILER", "{BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}", EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("CORECLR_PROFILER_PATH", "/opt/pyroscope/Pyroscope.Profiler.Native.so", EnvironmentVariableTarget.User);
-                //endhack
-                Environment.SetEnvironmentVariable("PYROSCOPE_PROFILING_ENABLED", "1", EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("PYROSCOPE_APPLICATION_NAME", _nodeName, EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("PYROSCOPE_SERVER_ADDRESS", _pyroscopeServerUrl, EnvironmentVariableTarget.User);
-                Environment.SetEnvironmentVariable("CORECLR_ENABLE_PROFILING", "1", EnvironmentVariableTarget.User);
-                Pyroscope.Profiler.Instance.SetBasicAuth(_pyroscopeUser, _pyroscopePassword);
-                Pyroscope.Profiler.Instance.SetCPUTrackingEnabled(true);
-                Pyroscope.Profiler.Instance.SetAllocationTrackingEnabled(true);
-                Pyroscope.Profiler.Instance.SetContentionTrackingEnabled(true);
-                Pyroscope.Profiler.Instance.SetExceptionTrackingEnabled(true);
-            }
         }
 
         public void AddMetricsUpdateAction(Action callback)
