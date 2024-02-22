@@ -206,6 +206,8 @@ public class DbConfig : IDbConfig
 
     public int? PathStateStateDbBlockSize { get; set; } = 16 * 1024;
     public int? PathStateStorageDbBlockSize { get; set; } = 16 * 1024;
+    public ulong? PathStateStateDbRowCacheSize { get; set; } = (ulong)1.GB();
+    public ulong? PathStateStorageDbRowCacheSize { get; set; } = (ulong)1.GB();
 
     public uint RecycleLogFileNum { get; set; } = 0;
     public bool WriteAheadLogSync { get; set; } = false;
