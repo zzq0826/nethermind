@@ -47,7 +47,7 @@ namespace Nethermind.State
         {
             ReadOnlySpan<byte> bytes = Get(ValueKeccak.Compute(address.Bytes).BytesAsSpan, rootHash);
             Rlp.ValueDecoderContext valueDecoderContext = new Rlp.ValueDecoderContext(bytes);
-            _logger.Info($"GetStruct: {address} {bytes.ToHexString()}\n{new System.Diagnostics.StackTrace()}");
+            _logger.Info($"GetStruct: {address} {(bytes.IsEmpty ? "empty" : bytes.ToHexString())}\n{new System.Diagnostics.StackTrace()}");
             return bytes.IsEmpty ? null : _decoder.DecodeStruct(ref valueDecoderContext);
         }
 
