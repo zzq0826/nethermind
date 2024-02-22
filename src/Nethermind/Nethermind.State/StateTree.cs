@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Nethermind.Core;
 using Nethermind.Core.Buffers;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
@@ -46,6 +47,7 @@ namespace Nethermind.State
         {
             ReadOnlySpan<byte> bytes = Get(ValueKeccak.Compute(address.Bytes).BytesAsSpan, rootHash);
             Rlp.ValueDecoderContext valueDecoderContext = new Rlp.ValueDecoderContext(bytes);
+            _logger.Info($"GetStruct: {address} {bytes.ToHexString()}");
             return bytes.IsEmpty ? null : _decoder.DecodeStruct(ref valueDecoderContext);
         }
 

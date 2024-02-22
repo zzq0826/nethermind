@@ -114,6 +114,7 @@ namespace Nethermind.State
 
         public Account GetAccount(Address address)
         {
+            _logger.Info($"GetAccount: {address}");
             return GetThroughCache(address) ?? Account.TotallyEmpty;
         }
 

@@ -33,7 +33,9 @@ namespace Nethermind.State
 
         public AccountStruct? GetAccount(Hash256 stateRoot, Address address)
         {
-            return GetState(stateRoot, address);
+            AccountStruct? account = GetState(stateRoot, address);
+            _logger.Info($"GetAccount: {address} {account}");
+            return account;
         }
 
         public ReadOnlySpan<byte> GetStorage(Hash256 stateRoot, Address address, in UInt256 index)
