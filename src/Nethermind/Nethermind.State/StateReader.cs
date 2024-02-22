@@ -34,7 +34,7 @@ namespace Nethermind.State
         public AccountStruct? GetAccount(Hash256 stateRoot, Address address)
         {
             AccountStruct? account = GetState(stateRoot, address);
-            _logger.Info($"GetAccount: {address} {account}");
+            _logger.Info($"GetAccount: {address} {account}\n{new System.Diagnostics.StackTrace()}");
             return account;
         }
 
