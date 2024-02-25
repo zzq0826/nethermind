@@ -90,6 +90,28 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                     outputPacket.PacketType = input.PacketType;
                     _session.ReceiveMessage(outputPacket);
                 }
+                catch (Exception exception)
+                {
+                    //In case of SocketException we log it as debug to avoid noise
+                    string clientId = _session?.Node?.ToString(Node.Format.Console) ?? $"unknown {_session?.RemoteHost}";
+                    if (exception is SocketException)
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Error in communication with {clientId} (SocketException): {exception}");
+                    }
+                    else
+                    {
+                        if (_logger.IsDebug) _logger.Debug($"Error in communication with {clientId}: {exception}");
+                    }
+
+                    if (exception is IInternalNethermindException)
+                    {
+                        // Do nothing as we don't want to drop peer for internal issue.
+                    }
+                    else if (_session?.Node?.IsStatic != true)
+                    {
+                        _session.InitiateDisconnect(DisconnectReason.Exception, $"Exception in connection: {exception.GetType().Name} with message: {exception.Message}");
+                    }
+                }
                 finally
                 {
                     outputPacket.SafeRelease();
@@ -131,12 +153,6 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
         public void EnableSnappy()
         {
             SnappyEnabled = true;
-        }
-
-        public override void ChannelInactive(IChannelHandlerContext context)
-        {
-            _logger.Warn("ChannelInactive: " + Environment.StackTrace);
-            base.ChannelInactive(context);
         }
     }
 }

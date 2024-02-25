@@ -16,7 +16,6 @@ using Nethermind.Network.P2P.Subprotocols.Eth.V66.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V67;
 using Nethermind.Network.P2P.Subprotocols.Eth.V68.Messages;
 using Nethermind.Network.Rlpx;
-using Nethermind.Serialization.Rlp;
 using Nethermind.Stats;
 using Nethermind.Synchronization;
 using Nethermind.TxPool;
@@ -25,6 +24,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V68;
 
 public class Eth68ProtocolHandler : Eth67ProtocolHandler
 {
+    private readonly ISession session;
     private readonly IPooledTxsRequestor _pooledTxsRequestor;
 
     private readonly Action<V66.Messages.GetPooledTransactionsMessage> _sendAction;
@@ -45,6 +45,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
         ITxGossipPolicy? transactionsGossipPolicy = null)
         : base(session, serializer, nodeStatsManager, syncServer, txPool, pooledTxsRequestor, gossipPolicy, forkInfo, logManager, transactionsGossipPolicy)
     {
+        this.session = session;
         _pooledTxsRequestor = pooledTxsRequestor;
 
         // Capture Action once rather than per call
@@ -95,16 +96,20 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
                 Logger.Info($"validating announce data {tx.Hash} {size} {type}");
                 Logger.Info($"transaction size diff: {Math.Abs(size - tx.GetLength())} Type: {type} {tx.Type}");
 
+                if (new Random((int)DateTime.UtcNow.Ticks).NextSingle() < 0.1)
+                {
+                    throw new Exception($"throw exeption for: {session.Node.Address}.");
+                }
                 if (type != tx.Type)
                 {
-                    throw new RlpException($"Announced tx type mismatch.");
+                    throw new SubprotocolException($"Announced tx type mismatch.");
                 }
 
                 //Geth gives some leeway in size difference
                 //https://github.com/ethereum/go-ethereum/blob/master/eth/fetcher/tx_fetcher.go#L596
                 if (Math.Abs(size - tx.GetLength()) > 8)
                 {
-                    throw new RlpException($"Announced tx size mismatch.");
+                    throw new SubprotocolException($"Announced tx size mismatch.");
                 }
                 _announceData.Delete(tx.Hash);
             }
@@ -198,7 +203,7 @@ public class Eth68ProtocolHandler : Eth67ProtocolHandler
         }
     }
 
-    private void SendMessage(IReadOnlyList<byte> types, IReadOnlyList<int> sizes, IReadOnlyList<Hash256> hashes)
+    public void SendMessage(IReadOnlyList<byte> types, IReadOnlyList<int> sizes, IReadOnlyList<Hash256> hashes)
     {
         NewPooledTransactionHashesMessage68 message = new(types, sizes, hashes);
         Metrics.Eth68NewPooledTransactionHashesSent++;
