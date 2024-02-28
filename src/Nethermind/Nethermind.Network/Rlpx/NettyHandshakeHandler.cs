@@ -113,6 +113,8 @@ namespace Nethermind.Network.Rlpx
             string clientId = $"unknown {_session?.RemoteHost}";
             if (_session.RemoteNodeId is not null) clientId = _session?.Node?.ToString(Node.Format.Console);
 
+            _logger.Trace($"ExceptionCaught NettyHandshakeHandler");
+
             //In case of SocketException we log it as debug to avoid noise
             if (exception is SocketException)
             {
