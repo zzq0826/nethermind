@@ -43,6 +43,8 @@ public class NettyDiscoveryHandler : SimpleChannelInboundHandler<DatagramPacket>
 
     public override void ExceptionCaught(IChannelHandlerContext context, Exception exception)
     {
+        _logger.Trace($"ExceptionCaught NettyHandshakeHandler");
+
         //In case of SocketException we log it as debug to avoid noise
         if (exception is SocketException)
         {
