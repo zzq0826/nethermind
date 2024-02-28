@@ -345,7 +345,6 @@ public partial class BlockTreeTests
                         Substitute.For<ISpecProvider>(),
                         new PeerInfo(Substitute.For<ISyncPeer>()),
                         headers,
-                        false,
                         Substitute.For<IReceiptsRecovery>()
                     );
                     bool shouldSetBlocks = NotSyncedTree.FindBlock(headers[1].Hash,

@@ -287,7 +287,7 @@ namespace Nethermind.Synchronization.Blocks
                     break;
                 }
 
-                BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts, _receiptsRecovery);
+                BlockDownloadContext context = new(_specProvider, bestPeer, headers, _receiptsRecovery);
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
 

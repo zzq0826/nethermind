@@ -19,25 +19,19 @@ namespace Nethermind.Synchronization.Blocks
         private readonly Dictionary<int, int> _indexMapping;
         private readonly ISpecProvider _specProvider;
         private readonly PeerInfo _syncPeer;
-        private readonly bool _downloadReceipts;
         private readonly IReceiptsRecovery _receiptsRecovery;
+        private TxReceipt[][]? _receiptsForBlocks;
 
         public BlockDownloadContext(ISpecProvider specProvider, PeerInfo syncPeer, BlockHeader?[] headers,
-            bool downloadReceipts, IReceiptsRecovery receiptsRecovery)
+            IReceiptsRecovery receiptsRecovery)
         {
             _indexMapping = new Dictionary<int, int>();
-            _downloadReceipts = downloadReceipts;
             _receiptsRecovery = receiptsRecovery;
             _specProvider = specProvider;
             _syncPeer = syncPeer;
 
             Blocks = new Block[headers.Length - 1];
             NonEmptyBlockHashes = new List<Hash256>();
-
-            if (_downloadReceipts)
-            {
-                ReceiptsForBlocks = new TxReceipt[Blocks.Length][]; // do that only if downloading receipts
-            }
 
             int currentBodyIndex = 0;
             for (int i = 1; i < headers.Length; i++)
@@ -66,7 +60,15 @@ namespace Nethermind.Synchronization.Blocks
 
         public Block[] Blocks { get; }
 
-        public TxReceipt[]?[]? ReceiptsForBlocks { get; }
+        public TxReceipt[][]? ReceiptsForBlocks
+        {
+            get
+            {
+                if (_receiptsForBlocks == null)
+                    _receiptsForBlocks = new TxReceipt[Blocks.Length][];
+                return _receiptsForBlocks;
+            }
+        }
 
         public List<Hash256> NonEmptyBlockHashes { get; }
 
@@ -99,11 +101,6 @@ namespace Nethermind.Synchronization.Blocks
 
         public bool TrySetReceipts(int index, TxReceipt[]? receipts, out Block block)
         {
-            if (!_downloadReceipts)
-            {
-                throw new InvalidOperationException($"Unexpected call to {nameof(TrySetReceipts)} when not downloading receipts");
-            }
-
             int mappedIndex = _indexMapping[index];
             block = Blocks[_indexMapping[index]];
             receipts ??= Array.Empty<TxReceipt>();

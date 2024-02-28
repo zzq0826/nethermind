@@ -171,7 +171,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 // Alternatively we can do this in BeaconHeadersSyncFeed, but this seems easier.
                 ValidateSeals(headers!, cancellation);
 
-                BlockDownloadContext context = new(_specProvider, bestPeer, headers!, downloadReceipts, _receiptsRecovery);
+                BlockDownloadContext context = new(_specProvider, bestPeer, headers!, _receiptsRecovery);
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
 
@@ -234,6 +234,13 @@ namespace Nethermind.Merge.Plugin.Synchronization
                             if (!shouldProcess)
                             {
                                 if (_logger.IsInfo) _logger.Info($"Skipping processing during fastSyncTransition, currentBlock: {currentBlock}, bestFullState: {bestFullState}");
+                                if (!downloadReceipts)
+                                {
+                                    //We need to request receipts if we switch
+                                    if (cancellation.IsCancellationRequested)
+                                        return blocksSynced; // check before every heavy operation
+                                    await RequestReceipts(bestPeer, cancellation, context);
+                                }
                                 downloadReceipts = true;
                             }
                         }
