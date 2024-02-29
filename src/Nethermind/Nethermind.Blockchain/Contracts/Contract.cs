@@ -185,7 +185,7 @@ namespace Nethermind.Blockchain.Contracts
                     transactionProcessor.Execute(transaction, new BlockExecutionContext(header), tracer);
                 }
 
-                failure = tracer.StatusCode != StatusCode.Success;
+                failure = true; // tracer.StatusCode != StatusCode.Success;
             }
             catch (Exception e)
             {
