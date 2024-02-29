@@ -43,7 +43,7 @@ public class NettyDiscoveryHandler : SimpleChannelInboundHandler<DatagramPacket>
 
     public override void ExceptionCaught(IChannelHandlerContext context, Exception exception)
     {
-        _logger.Trace($"ExceptionCaught NettyHandshakeHandler");
+        _logger.Trace($"ExceptionCaught NettyDiscoveryHandler");
 
         //In case of SocketException we log it as debug to avoid noise
         if (exception is SocketException)
@@ -55,11 +55,11 @@ public class NettyDiscoveryHandler : SimpleChannelInboundHandler<DatagramPacket>
             if (_logger.IsError) _logger.Error("Exception when processing discovery messages", exception);
         }
 
-        context.DisconnectAsync().ContinueWith(x =>
-        {
-            if (x.IsFaulted && _logger.IsTrace)
-                _logger.Trace($"Error while disconnecting on context on {this} : {x.Exception}");
-        });
+        //context.DisconnectAsync().ContinueWith(x =>
+        //{
+        //    if (x.IsFaulted && _logger.IsTrace)
+        //        _logger.Trace($"Error while disconnecting on context on {this} : {x.Exception}");
+        //});
     }
 
     public override void ChannelReadComplete(IChannelHandlerContext context)

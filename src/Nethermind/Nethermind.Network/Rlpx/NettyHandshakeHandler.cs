@@ -131,7 +131,7 @@ namespace Nethermind.Network.Rlpx
                 }
             }
 
-            _ = context.DisconnectAsync();
+            //_ = context.DisconnectAsync();
         }
 
         protected override void ChannelRead0(IChannelHandlerContext context, IByteBuffer input)
