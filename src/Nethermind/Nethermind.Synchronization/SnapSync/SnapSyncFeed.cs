@@ -162,7 +162,11 @@ namespace Nethermind.Synchronization.SnapSync
                                     if (allLastFailures == peerLastFailures)
                                     {
                                         _logger.Trace($"SNAP - peer to be punished:{peer}");
-                                        return SyncResponseHandlingResult.LesserQuality;
+                                        _snapProvider.UpdatePivot();
+
+                                        _resultLog.Clear();
+
+                                        break;
                                     }
 
                                     if (allLastSuccess == 0 && allLastFailures > peerLastFailures)
