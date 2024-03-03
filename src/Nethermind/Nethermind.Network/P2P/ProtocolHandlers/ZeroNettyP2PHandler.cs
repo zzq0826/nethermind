@@ -142,6 +142,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             }
             else if (_session?.Node?.IsStatic != true)
             {
+                if (_logger.IsTrace) _logger.Trace($"session 0: {(_session as Session).InternalState}");
                 _session.InitiateDisconnect(DisconnectReason.Exception, $"Exception in connection: {exception.GetType().Name} with message: {exception.Message}");
             }
             else

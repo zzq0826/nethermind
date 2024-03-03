@@ -27,6 +27,7 @@ namespace Nethermind.Network.P2P
 
         public int Enqueue<T>(T message) where T : P2PMessage
         {
+            if (_logger.IsTrace) _logger.Trace($"session before sending msg disc: {_context.Channel.Active} {_context.Channel.IsWritable}");
             if (!_context.Channel.IsWritable || !_context.Channel.Active)
             {
                 return 0;

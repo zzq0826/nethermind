@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +23,7 @@ using Nethermind.Stats.Model;
 
 namespace Nethermind.Network.P2P
 {
+    [DebuggerDisplay(@"{InternalState}")]
     public class Session : ISession
     {
         private static readonly ConcurrentDictionary<string, AdaptiveCodeResolver> _resolvers = new();
@@ -71,6 +74,7 @@ namespace Nethermind.Network.P2P
             SessionId = Guid.NewGuid();
             Direction = ConnectionDirection.Out;
         }
+        public string InternalState => $"is active {_channel.Active} : is writable {_channel.IsWritable}";
 
         public bool IsClosing => State > SessionState.Initialized;
         private bool IsClosed => State > SessionState.DisconnectingProtocols;
@@ -413,6 +417,7 @@ namespace Nethermind.Network.P2P
                     {
                         if (_logger.IsTrace)
                             _logger.Trace($"{this} disconnecting {protocolHandler.Name} {disconnectReason} ({details})");
+                        if (_logger.IsTrace) _logger.Trace($"session 1: {InternalState}");
                         protocolHandler.DisconnectProtocol(disconnectReason, details);
                     }
                     catch (Exception e)
@@ -422,6 +427,7 @@ namespace Nethermind.Network.P2P
                     }
                 }
             }
+            if (_logger.IsTrace) _logger.Trace($"session 2: {InternalState}");
 
             MarkDisconnected(disconnectReason, DisconnectType.Local, details);
         }
@@ -499,14 +505,15 @@ namespace Nethermind.Network.P2P
             else
             {
                 _logger.Trace($"wait {Timeouts.Disconnection.TotalMilliseconds} milliseconds before disconnect");
-                Task delayTask = Task.Delay(3000);
-                //disconnectType == DisconnectType.Local
-                //? Task.Delay(Timeouts.Disconnection)
-                //: Task.CompletedTask;
+                Task delayTask = 
+                disconnectType == DisconnectType.Local
+                ? Task.Delay(Timeouts.Disconnection)
+                : Task.CompletedTask;
                 delayTask.ContinueWith(t =>
                 {
                     if (_logger.IsTrace)
                         _logger.Trace($"{this} disconnecting now after {Timeouts.Disconnection.TotalMilliseconds} milliseconds");
+                    if (_logger.IsTrace) _logger.Trace($"session 3 before actual disc: {InternalState}");
                     _context.DisconnectAsync().ContinueWith(x =>
                     {
                         if (x.IsFaulted && _logger.IsTrace)
