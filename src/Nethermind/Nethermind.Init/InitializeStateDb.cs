@@ -53,7 +53,14 @@ public class InitializeStateDb : IStep
         _logger = getApi.LogManager.GetClassLogger();
         ISyncConfig syncConfig = getApi.Config<ISyncConfig>();
         IPruningConfig pruningConfig = getApi.Config<IPruningConfig>();
+        IStateConfig stateConfig = getApi.Config<IStateConfig>();
         IInitConfig initConfig = getApi.Config<IInitConfig>();
+
+        if (syncConfig.SnapServingEnabled && stateConfig.KeepLastNState < 128)
+        {
+            if (_logger.IsWarn) _logger.Warn($"Snap serving enabled, but {nameof(stateConfig.KeepLastNState)} is less than 128. Setting to 128.");
+            stateConfig.KeepLastNState = 128;
+        }
 
         if (syncConfig.DownloadReceiptsInFastSync && !syncConfig.DownloadBodiesInFastSync)
         {
@@ -90,7 +97,9 @@ public class InitializeStateDb : IStep
                 persistenceStrategy = persistenceStrategy.Or(triggerPersistenceStrategy);
             }
 
-            pruningStrategy = Prune.WhenCacheReaches(pruningConfig.CacheMb.MB()) // TODO: memory hint should define this
+            pruningStrategy = Prune
+                .WhenCacheReaches(pruningConfig.CacheMb.MB())
+                .KeepingLastNState(stateConfig.KeepLastNState)
                 .TrackingPastKeys(pruningConfig.TrackedPastKeyCount);
         }
         else
