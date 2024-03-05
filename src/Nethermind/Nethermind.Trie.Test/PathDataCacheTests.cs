@@ -31,7 +31,7 @@ public class PathDataCacheTests
 
         cache.CloseContext(10, TestItem.KeccakF);
 
-        NodeData? retrieved = cache.GetNodeDataAtRoot(TestItem.KeccakF, path1);
+        NodeData? retrieved = cache.GetNodeDataAtRoot(TestItem.KeccakF, path1, Array.Empty<byte>());
 
         Assert.That(retrieved, Is.Not.Null);
         Assert.That(retrieved.RLP, Is.EqualTo(node.FullRlp.ToArray()).Using(Bytes.EqualityComparer));
@@ -51,14 +51,14 @@ public class PathDataCacheTests
         cache.AddNodeData(1, node);
         cache.AddNodeData(1, new TrieNode(NodeType.Branch, path: Nibbles.BytesToNibbleBytes(Bytes.FromHexString("0x000000000000000000000000000000000000000000000000000000000000123")), Array.Empty<byte>()));
 
-        NodeData? retrieved = cache.GetNodeData(path1, expectedKeccak);
+        NodeData? retrieved = cache.GetNodeData(path1, Array.Empty<byte>(), expectedKeccak);
 
         Assert.That(retrieved, Is.Not.Null);
         Assert.That(retrieved.RLP, Is.EqualTo(node.FullRlp.ToArray()).Using(Bytes.EqualityComparer));
 
         cache.AddNodeData(1, new(NodeType.Leaf, path1, TestItem.KeccakB));
 
-        retrieved = cache.GetNodeData(path1, TestItem.KeccakA);
+        retrieved = cache.GetNodeData(path1, Array.Empty<byte>(), TestItem.KeccakA);
         Assert.That(retrieved, Is.Null);
     }
 
@@ -81,7 +81,7 @@ public class PathDataCacheTests
         cache.AddNodeData(3, CreateResolvedLeaf(path1, 640.ToByteArray(), 60));
         cache.CloseContext(3, TestItem.KeccakF);
 
-        var retrieved = cache.GetNodeDataAtRoot(TestItem.KeccakH, path1);
+        var retrieved = cache.GetNodeDataAtRoot(TestItem.KeccakH, path1, Array.Empty<byte>());
 
         var retrievedTrieNode = retrieved.ToTrieNode(path1);
 
@@ -115,9 +115,9 @@ public class PathDataCacheTests
         cache.AddRemovedPrefix(4, prefix);
         cache.CloseContext(4, TestItem.KeccakE);
 
-        Assert.That(cache.GetNodeDataAtRoot(null, path1).RLP, Is.Null);
-        Assert.That(cache.GetNodeDataAtRoot(null, path2).RLP, Is.Null);
-        Assert.That(cache.GetNodeDataAtRoot(null, path3).ToTrieNode(path3).Value.ToArray(), Is.EqualTo(64000.ToByteArray()).Using(Bytes.EqualityComparer));
+        Assert.That(cache.GetNodeDataAtRoot(null, path1, Array.Empty<byte>()).RLP, Is.Null);
+        Assert.That(cache.GetNodeDataAtRoot(null, path2, Array.Empty<byte>()).RLP, Is.Null);
+        Assert.That(cache.GetNodeDataAtRoot(null, path3, Array.Empty<byte>()).ToTrieNode(path3).Value.ToArray(), Is.EqualTo(64000.ToByteArray()).Using(Bytes.EqualityComparer));
     }
 
     [Test()]
@@ -152,8 +152,8 @@ public class PathDataCacheTests
 
         cache.PersistUntilBlock(4, TestItem.KeccakE);
 
-        Assert.That(() => trieStore.LoadRlp(path1), Throws.TypeOf<TrieException>());
-        Assert.That(() => trieStore.LoadRlp(path2), Throws.TypeOf<TrieException>());
+        Assert.That(() => trieStore.LoadRlp(path1, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
+        Assert.That(() => trieStore.LoadRlp(path2, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
     }
 
     [Test()]
@@ -186,8 +186,8 @@ public class PathDataCacheTests
         cache.AddRemovedPrefix(4, prefix);
         cache.CloseContext(4, TestItem.KeccakE);
 
-        NodeData n1 = cache.GetNodeDataAtRoot(null, path1);
-        NodeData n2 = cache.GetNodeDataAtRoot(null, path2);
+        NodeData n1 = cache.GetNodeDataAtRoot(null, path1, Array.Empty<byte>());
+        NodeData n2 = cache.GetNodeDataAtRoot(null, path2, Array.Empty<byte>());
 
         //should get nodes with null RLP as a marker for deleted data
         //null returned from cache means a miss in data and load from DB
@@ -202,7 +202,7 @@ public class PathDataCacheTests
         cache.AddNodeData(5, CreateResolvedLeaf(path1, 64000.ToByteArray(), 60));
         cache.CloseContext(5, TestItem.KeccakD);
 
-        Assert.That(cache.GetNodeDataAtRoot(null, path1).RLP, Is.Not.Null);
+        Assert.That(cache.GetNodeDataAtRoot(null, path1, Array.Empty<byte>()).RLP, Is.Not.Null);
     }
 
     [Test()]
@@ -229,9 +229,9 @@ public class PathDataCacheTests
 
         cache.PersistUntilBlock(2, TestItem.KeccakG);
 
-        Assert.That(trieStore.LoadRlp(path1), Is.Not.Null);
-        Assert.That(trieStore.LoadRlp(path2), Is.Not.Null);
-        Assert.That(() => trieStore.LoadRlp(path3), Throws.TypeOf<TrieException>());
+        Assert.That(trieStore.LoadRlp(path1, Array.Empty<byte>()), Is.Not.Null);
+        Assert.That(trieStore.LoadRlp(path2, Array.Empty<byte>()), Is.Not.Null);
+        Assert.That(() => trieStore.LoadRlp(path3, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
     }
 
     [Test()]
@@ -256,7 +256,7 @@ public class PathDataCacheTests
 
         cache.PersistUntilBlock(2, TestItem.KeccakG);
 
-        byte[]? rlp = trieStore.LoadRlp(path1);
+        byte[]? rlp = trieStore.LoadRlp(path1, Array.Empty<byte>());
         Assert.That(rlp, Is.Not.Null);
 
         TrieNode n = new(NodeType.Unknown, rlp);
@@ -287,10 +287,10 @@ public class PathDataCacheTests
         cache.PersistUntilBlock(2, TestItem.KeccakB);
 
         //check node is not present in cache for blocks 1 & 2
-        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakA, path1), Is.Null);
-        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakB, path1), Is.Null);
+        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakA, path1, Array.Empty<byte>()), Is.Null);
+        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakB, path1, Array.Empty<byte>()), Is.Null);
         //node for block 3 should still be in cache
-        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakC, path1), Is.Not.Null);
+        Assert.That(cache.GetNodeDataAtRoot(TestItem.KeccakC, path1, Array.Empty<byte>()), Is.Not.Null);
     }
 
     private TrieNode CreateResolvedLeaf(byte[] path, byte[] value, int keyLength)

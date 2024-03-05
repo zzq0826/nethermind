@@ -49,7 +49,7 @@ public class TrieNodeBlockCache : IPathTrieNodeCache
             nodeDictionary.AddOrUpdate(trieNode.FullPath, AddFunc, UpdateFunc);
             // TODO: this causes issues when writing to db - this causes double writes
             if (trieNode.IsLeaf)
-                nodeDictionary.AddOrUpdate(trieNode.StoreNibblePathPrefix.Concat(trieNode.PathToNode).ToArray(), AddFunc, UpdateFunc);
+                nodeDictionary.AddOrUpdate(trieNode.AccountPath.Concat(trieNode.PathToNode).ToArray(), AddFunc, UpdateFunc);
         }
     }
 

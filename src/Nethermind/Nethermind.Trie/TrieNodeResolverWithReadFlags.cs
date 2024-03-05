@@ -21,9 +21,9 @@ public class TrieNodeResolverWithReadFlags : ITrieNodeResolver
 
     public TrieNodeResolverCapability Capability => _baseResolver.Capability;
 
-    public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles)
+    public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes)
     {
-        return _baseResolver.IsPersisted(hash, nodePathNibbles);
+        return _baseResolver.IsPersisted(hash, nodePathNibbles, accountPathBytes);
     }
 
     public TrieNode FindCachedOrUnknown(Hash256 hash)
@@ -61,13 +61,13 @@ public class TrieNodeResolverWithReadFlags : ITrieNodeResolver
         return _baseResolver.LoadRlp(hash, _defaultFlags);
     }
 
-    public byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash = null)
+    public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash = null)
     {
-        return _baseResolver.LoadRlp(nodePath, rootHash);
+        return _baseResolver.LoadRlp(nodePath, accountPathBytes, rootHash);
     }
 
-    public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+    public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore)
     {
-        return _baseResolver.TryLoadRlp(path, keyValueStore);
+        return _baseResolver.TryLoadRlp(path, accountPathBytes, keyValueStore);
     }
 }

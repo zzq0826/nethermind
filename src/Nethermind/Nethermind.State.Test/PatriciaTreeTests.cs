@@ -116,9 +116,9 @@ namespace Nethermind.Store.Test
                     break;
                 case TrieNodeResolverCapability.Path:
                     if (hasRoot)
-                        trieStore.LoadRlp(Array.Empty<byte>(), stateRoot).Length.Should().BeGreaterThan(0);
+                        trieStore.LoadRlp(Array.Empty<byte>(), Array.Empty<byte>(), stateRoot).Length.Should().BeGreaterThan(0);
                     else
-                        trieStore.Invoking(ts => ts.LoadRlp(Array.Empty<byte>(), stateRoot)).Should().Throw<TrieException>();
+                        trieStore.Invoking(ts => ts.LoadRlp(Array.Empty<byte>(), Array.Empty<byte>(), stateRoot)).Should().Throw<TrieException>();
                     break;
                 default:
                     break;

@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Nethermind.Core;
 using Nethermind.Core.Extensions;
 
 namespace Nethermind.Trie
@@ -190,106 +191,152 @@ namespace Nethermind.Trie
             return bytes;
         }
 
-        [SkipLocalsInit]
+        public static void NibblesToByteStorage(Span<byte> nibbles, Span<byte> targetBytes)
+        {
+            for (int i = 0; i < nibbles.Length / 2; i++)
+            {
+                targetBytes[i] = ToByte(nibbles[2 * i], nibbles[2 * i + 1]);
+            }
+
+            if (nibbles.Length % 2 == 1)
+                targetBytes[nibbles.Length / 2] = ToByte(nibbles[^1], 0);
+
+            targetBytes[^1] = (byte)nibbles.Length;
+        }
+
+        //[SkipLocalsInit]
         public static byte[] NibblesToByteStorage(Span<byte> nibbles)
         {
-            Span<byte> bytes = stackalloc byte[130];
+            Span<byte> bytes = stackalloc byte[66];
 
-            int ni = 0;
-            int bi = 0;
-            bool pushZero = false;
-            while (ni < nibbles.Length)
+            for (int i = 0; i < nibbles.Length / 2; i++)
             {
-                byte highNibble;
-                byte lowNibble;
-
-                if (pushZero)
-                {
-                    highNibble = 0;
-                    lowNibble = nibbles[ni];
-                    ni++;
-                    pushZero = lowNibble == 0;
-                }
-                else
-                {
-                    highNibble = nibbles[ni];
-                    if (ni + 1 >= nibbles.Length)
-                    {
-                        lowNibble = 0;
-                        ni++;
-                    }
-                    else if (nibbles[ni + 1] == 0)
-                    {
-                        lowNibble = 0;
-                        pushZero = true;
-                        ni += 2;
-                    }
-                    else
-                    {
-                        lowNibble = nibbles[ni + 1];
-                        ni += 2;
-                    }
-                }
-
-                bytes[bi++] = ToByte(highNibble, lowNibble);
+                bytes[i] = ToByte(nibbles[2 * i], nibbles[2 * i + 1]);
             }
-            if (pushZero)
-                bytes[bi++] = 0;
 
-            return bytes.Slice(0, bi).ToArray();
+            if (nibbles.Length % 2 == 1)
+                bytes[nibbles.Length / 2] = ToByte(nibbles[^1], 0);
+
+            if (nibbles.Length >= 66)
+            {
+                bytes[^1] = (byte)nibbles.Length;
+                return bytes.ToArray();
+            }
+            else
+            {
+                bytes[33] = (byte)nibbles.Length;
+                return bytes.Slice(0, 34).ToArray();
+            }
+           
+
+            //int ni = 0;
+            //int bi = 0;
+            //bool pushZero = false;
+            //while (ni < nibbles.Length)
+            //{
+            //    byte highNibble;
+            //    byte lowNibble;
+
+            //    if (pushZero)
+            //    {
+            //        highNibble = 0;
+            //        lowNibble = nibbles[ni];
+            //        ni++;
+            //        pushZero = lowNibble == 0;
+            //    }
+            //    else
+            //    {
+            //        highNibble = nibbles[ni];
+            //        if (ni + 1 >= nibbles.Length)
+            //        {
+            //            lowNibble = 0;
+            //            ni++;
+            //        }
+            //        else if (nibbles[ni + 1] == 0)
+            //        {
+            //            lowNibble = 0;
+            //            pushZero = true;
+            //            ni += 2;
+            //        }
+            //        else
+            //        {
+            //            lowNibble = nibbles[ni + 1];
+            //            ni += 2;
+            //        }
+            //    }
+
+            //    bytes[bi++] = ToByte(highNibble, lowNibble);
+            //}
+            //if (pushZero)
+            //    bytes[bi++] = 0;
+
+            //return bytes.Slice(0, bi).ToArray();
         }
 
         public static byte[] BytesToNibblesStorage(Span<byte> bytes)
         {
-            Span<byte> nibbles = stackalloc byte[bytes.Length * 2];
+            int length = bytes[^1];
+            Span<byte> nibbles = stackalloc byte[length];
 
-            byte[] last2Nibbles = new byte[2];
-            last2Nibbles[0] = (byte)((bytes[^1] & 240) >> 4);
-            last2Nibbles[1] = (byte)(bytes[^1] & 15);
-
-            int ni = 0;
-            int bi = 0;
-            bool skipZero = false;
-            bool lastNibbleSkipped = false;
-            while (bi < bytes.Length)
+            for (int i = 0; i < length / 2; i++)
             {
-                if (skipZero)
-                {
-                    nibbles[ni] = (byte)(bytes[bi] & 15);
-                    skipZero = nibbles[ni] == 0;
-                    ni++;
-                    bi++;
-                    continue;
-                }
-                else
-                {
-                    nibbles[ni] = (byte)((bytes[bi] & 240) >> 4);
-                    nibbles[ni + 1] = (byte)(bytes[bi] & 15);
-                }
-
-                if (nibbles[ni] == 0 && nibbles[ni + 1] == 0)
-                {
-                    ni++;
-                    lastNibbleSkipped = true;
-                }
-                else if (nibbles[ni] != 0 && nibbles[ni + 1] == 0)
-                {
-                    ni += 2;
-                    skipZero = true;
-                    lastNibbleSkipped = false;
-                }
-                else
-                {
-                    ni += 2;
-                    lastNibbleSkipped = false;
-                }
-
-                bi++;
+                nibbles[2 * i] = (byte)((bytes[i] & 0xF0) >> 4);
+                nibbles[2 * i + 1] = (byte)(bytes[i] & 0x0F);
             }
+            if (length % 2 == 1)
+                nibbles[length - 1] = (byte)((bytes[length / 2] & 0xF0) >> 4);
 
-            int nibblesCount = lastNibbleSkipped ? ni : (last2Nibbles[1] == 0 ? ni - 1 : ni);
+            return nibbles.ToArray();
 
-            return nibbles.Slice(0, nibblesCount).ToArray();
+            //Span<byte> nibbles = stackalloc byte[bytes.Length * 2];
+
+            //byte[] last2Nibbles = new byte[2];
+            //last2Nibbles[0] = (byte)((bytes[^1] & 240) >> 4);
+            //last2Nibbles[1] = (byte)(bytes[^1] & 15);
+
+            //int ni = 0;
+            //int bi = 0;
+            //bool skipZero = false;
+            //bool lastNibbleSkipped = false;
+            //while (bi < bytes.Length)
+            //{
+            //    if (skipZero)
+            //    {
+            //        nibbles[ni] = (byte)(bytes[bi] & 15);
+            //        skipZero = nibbles[ni] == 0;
+            //        ni++;
+            //        bi++;
+            //        continue;
+            //    }
+            //    else
+            //    {
+            //        nibbles[ni] = (byte)((bytes[bi] & 240) >> 4);
+            //        nibbles[ni + 1] = (byte)(bytes[bi] & 15);
+            //    }
+
+            //    if (nibbles[ni] == 0 && nibbles[ni + 1] == 0)
+            //    {
+            //        ni++;
+            //        lastNibbleSkipped = true;
+            //    }
+            //    else if (nibbles[ni] != 0 && nibbles[ni + 1] == 0)
+            //    {
+            //        ni += 2;
+            //        skipZero = true;
+            //        lastNibbleSkipped = false;
+            //    }
+            //    else
+            //    {
+            //        ni += 2;
+            //        lastNibbleSkipped = false;
+            //    }
+
+            //    bi++;
+            //}
+
+            //int nibblesCount = lastNibbleSkipped ? ni : (last2Nibbles[1] == 0 ? ni - 1 : ni);
+
+            //return nibbles.Slice(0, nibblesCount).ToArray();
         }
 
         public static void NibblesToByteStorage(Span<byte> nibbles, in Span<byte> bytes)

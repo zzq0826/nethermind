@@ -162,7 +162,7 @@ namespace Nethermind.Synchronization.SnapSync
 
             Stack<(TrieNode parent, TrieNode node, int pathIndex, List<byte> path)> proofNodesToProcess = new();
 
-            root.StoreNibblePathPrefix = tree.StoreNibblePathPrefix;
+            root.AccountPath = tree.AccountPathBytes;
             tree.RootRef = root;
             proofNodesToProcess.Push((null, root, -1, new List<byte>()));
             sortedBoundaryList.Add(root);
@@ -174,7 +174,7 @@ namespace Nethermind.Synchronization.SnapSync
                 (TrieNode parent, TrieNode node, int pathIndex, List<byte> path) = proofNodesToProcess.Pop();
 
                 node.PathToNode = path.ToArray();
-                node.StoreNibblePathPrefix = tree.StoreNibblePathPrefix;
+                node.AccountPath = tree.AccountPathBytes;
                 //Console.WriteLine($"Node {node.PathToNode.ToHexString()} hash: {node.Keccak}");
                 if (node.IsExtension)
                 {
@@ -353,14 +353,14 @@ namespace Nethermind.Synchronization.SnapSync
                     Span<byte> childPath = stackalloc byte[node.FullPath.Length + 1];
                     node.FullPath.CopyTo(childPath);
                     childPath[^1] = (byte)childIndex;
-                    return store.IsPersisted(childKeccak, childPath.ToArray());
+                    return store.IsPersisted(childKeccak, childPath.ToArray(), node.AccountPath);
                 }
                 else if (node.IsExtension)
                 {
                     Span<byte> childPath = stackalloc byte[node.FullPath.Length + node.Key.Length];
                     node.FullPath.CopyTo(childPath);
                     node.Key.CopyTo(childPath.Slice(node.FullPath.Length));
-                    return store.IsPersisted(childKeccak, childPath.ToArray());
+                    return store.IsPersisted(childKeccak, childPath.ToArray(), node.AccountPath);
                 }
                 return false;
             }

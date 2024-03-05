@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
 using System.Threading;
 using Nethermind.Core;
 using Nethermind.Core.Buffers;
@@ -39,7 +40,8 @@ namespace Nethermind.Trie
         private int _isDirty;
 
 
-        public byte[] StoreNibblePathPrefix { get; set; } = Array.Empty<byte>();
+        //public byte[] StoreNibblePathPrefix { get; set; } = Array.Empty<byte>();
+        public byte[] AccountPath { get; set; } = Array.Empty<byte>();
 
         /// <summary>
         /// Ethereum Patricia Trie specification allows for branch values,
@@ -114,21 +116,14 @@ namespace Nethermind.Trie
                 {
                     // Key + PathToNode is presumed to be 64 here. This is because of the fact the we use 32 bytes (64 nibbles)
                     // path to address leafs in merkle tree
-                    Span<byte> fullSpan = fullPath = new byte[StoreNibblePathPrefix.Length + 64];
-                    StoreNibblePathPrefix.CopyTo(fullSpan);
-                    fullSpan = fullSpan[StoreNibblePathPrefix.Length..];
+                    Span<byte> fullSpan = fullPath = new byte[64];
                     PathToNode.CopyTo(fullSpan);
                     fullSpan = fullSpan[PathToNode.Length..];
                     Key.CopyTo(fullSpan);
                     return fullPath;
                 }
 
-                if (StoreNibblePathPrefix.Length == 0) return PathToNode;
-                Span<byte> fullPathToNode = fullPath = new byte[StoreNibblePathPrefix.Length + PathToNode.Length];
-                StoreNibblePathPrefix.CopyTo(fullPathToNode);
-                fullPathToNode = fullPathToNode[StoreNibblePathPrefix.Length..];
-                PathToNode.CopyTo(fullPathToNode);
-                return fullPath;
+                return PathToNode;
             }
         }
 
@@ -315,7 +310,7 @@ namespace Nethermind.Trie
         public TrieNode(NodeType nodeType, Span<byte> path, byte[] storagePrefix)
         {
             PathToNode = path.ToArray();
-            StoreNibblePathPrefix = storagePrefix;
+            AccountPath = storagePrefix;
             NodeType = nodeType;
             if (nodeType == NodeType.Unknown)
             {
@@ -377,7 +372,7 @@ namespace Nethermind.Trie
         {
             PathToNode = path;
             Keccak = keccak;
-            StoreNibblePathPrefix = storagePrefix;
+            AccountPath = storagePrefix;
             if (nodeType == NodeType.Unknown)
             {
                 IsPersisted = true;
@@ -389,7 +384,7 @@ namespace Nethermind.Trie
 #if DEBUG
             return
                 $"[{NodeType}({FullRlp.Length}){(FullRlp.IsNotNull && FullRlp.Length < 32 ? $"{FullRlp.AsSpan().ToHexString()}" : "")}" +
-                $"|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|FP:{FullPath?.ToHexString()}|SP:{StoreNibblePathPrefix.ToHexString()}";
+                $"|{Keccak}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|FP:{FullPath?.ToHexString()}|SP:{AccountPath.ToHexString()}";
 #else
             return $"[{NodeType}({FullRlp.Length})|{Keccak?.ToShortString()}|{LastSeen}|D:{IsDirty}|S:{IsSealed}|P:{IsPersisted}|";
 #endif
@@ -447,7 +442,7 @@ namespace Nethermind.Trie
                         if (PathToNode is null)
                             ThrowMissingPath();
 
-                        fullRlp = tree.LoadRlp(FullPath);
+                        fullRlp = tree.LoadRlp(FullPath, AccountPath);
                         //if node was created as unknown, the hash may be different and needs to be recalculated - maybe should throw an exception here?
                         //diagnostic code - check keccak of loaded RLP
                         //if (Keccak is not null)
@@ -798,7 +793,7 @@ namespace Nethermind.Trie
                     case TrieNodeResolverCapability.Path:
                         Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                         GetChildPath(childIndex, childPath);
-                        child = tree.FindCachedOrUnknown(reference, childPath, StoreNibblePathPrefix);
+                        child = tree.FindCachedOrUnknown(reference, childPath, AccountPath);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -849,7 +844,7 @@ namespace Nethermind.Trie
                     case TrieNodeResolverCapability.Path:
                         Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                         GetChildPath(childIndex, childPath);
-                        child = tree.FindCachedOrUnknown(childPath, StoreNibblePathPrefix, stateRoot);
+                        child = tree.FindCachedOrUnknown(childPath, AccountPath, stateRoot);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -1001,7 +996,7 @@ namespace Nethermind.Trie
         {
             TrieNode trieNode = new TrieNode(NodeType);
             if (PathToNode is not null) trieNode.PathToNode = (byte[])PathToNode.Clone();
-            trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
+            trieNode.AccountPath = (byte[])AccountPath.Clone();
             if (Key is not null) trieNode.Key = (byte[])Key.Clone();
             trieNode._rlp = null;
             //why was this introduced? modifies cloned node and can break processing for hash PT
@@ -1032,7 +1027,7 @@ namespace Nethermind.Trie
             if (PathToNode is not null)
                 trieNode.PathToNode = (byte[])PathToNode.Clone();
 
-            trieNode.StoreNibblePathPrefix = (byte[])StoreNibblePathPrefix.Clone();
+            trieNode.AccountPath = (byte[])AccountPath.Clone();
 
             return trieNode;
         }
@@ -1315,7 +1310,7 @@ namespace Nethermind.Trie
                                         {
                                             Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                                             GetChildPath(i, childPath);
-                                            child = tree.FindCachedOrUnknown(keccak!, childPath, StoreNibblePathPrefix);
+                                            child = tree.FindCachedOrUnknown(keccak!, childPath, AccountPath);
                                             break;
                                         }
                                     default:
@@ -1343,8 +1338,7 @@ namespace Nethermind.Trie
                                     case TrieNodeResolverCapability.Path:
                                         Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                                         GetChildPath(i, childPath);
-                                        child = new(NodeType.Unknown, childPath.ToArray(), null, fullRlp.ToArray());
-                                        child.StoreNibblePathPrefix = StoreNibblePathPrefix;
+                                        child = new(NodeType.Unknown, childPath.ToArray(), AccountPath, null, fullRlp.ToArray());
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException($"tree capability cannot be {tree.Capability}");
@@ -1405,7 +1399,7 @@ namespace Nethermind.Trie
                                         {
                                             Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                                             GetChildPath(i, childPath);
-                                            child = tree.FindCachedOrUnknown(childPath, StoreNibblePathPrefix, stateRoot);
+                                            child = tree.FindCachedOrUnknown(childPath, AccountPath, stateRoot);
                                             break;
                                         }
                                     default:
@@ -1433,7 +1427,7 @@ namespace Nethermind.Trie
                                     case TrieNodeResolverCapability.Path:
                                         Span<byte> childPath = stackalloc byte[GetChildPathLength()];
                                         GetChildPath(i, childPath);
-                                        child = new(NodeType.Unknown, childPath.ToArray(), StoreNibblePathPrefix, null, fullRlp.ToArray());
+                                        child = new(NodeType.Unknown, childPath.ToArray(), AccountPath, null, fullRlp.ToArray());
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException($"tree capability cannot be {tree.Capability}");

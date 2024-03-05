@@ -28,7 +28,7 @@ namespace Nethermind.Trie.Pruning
         void Set(in ValueHash256 hash, byte[] rlp);
 
         void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None);
-        void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? keyValueStore = null, WriteFlags writeFlags = WriteFlags.None);
+        void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? keyValueStore = null, WriteFlags writeFlags = WriteFlags.None);
 
         public void ClearCache();
 

@@ -12,7 +12,7 @@ public interface IPatriciaTree
     Hash256 RootHash { get; set; }
     Hash256 ParentStateRootHash { get; set; }
     TrieNode? RootRef { get; set; }
-    byte[] StoreNibblePathPrefix { get; }
+    byte[] AccountPathBytes { get; }
     void UpdateRootHash();
     void Commit(long blockNumber, bool skipRoot = false, WriteFlags writeFlags = WriteFlags.None);
 

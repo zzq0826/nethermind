@@ -128,8 +128,8 @@ public class PathCacheTests
 
         cache.PersistUntilBlock(4);
 
-        Assert.That(() => _trieStore.LoadRlp(path1), Throws.TypeOf<TrieException>());
-        Assert.That(() => _trieStore.LoadRlp(path2), Throws.TypeOf<TrieException>());
+        Assert.That(() => _trieStore.LoadRlp(path1, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
+        Assert.That(() => _trieStore.LoadRlp(path2, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
     }
 
     [TestCaseSource(typeof(Instances))]
@@ -186,9 +186,9 @@ public class PathCacheTests
 
         cache.PersistUntilBlock(2);
 
-        Assert.That(_trieStore.LoadRlp(path1), Is.Not.Null);
-        Assert.That(_trieStore.LoadRlp(path2), Is.Not.Null);
-        Assert.That(() => _trieStore.LoadRlp(path3), Throws.TypeOf<TrieException>());
+        Assert.That(_trieStore.LoadRlp(path1, Array.Empty<byte>()), Is.Not.Null);
+        Assert.That(_trieStore.LoadRlp(path2, Array.Empty<byte>()), Is.Not.Null);
+        Assert.That(() => _trieStore.LoadRlp(path3, Array.Empty<byte>()), Throws.TypeOf<TrieException>());
     }
 
     [TestCaseSource(typeof(Instances))]
@@ -202,7 +202,7 @@ public class PathCacheTests
 
         cache.PersistUntilBlock(2);
 
-        byte[]? rlp = _trieStore.LoadRlp(path1);
+        byte[]? rlp = _trieStore.LoadRlp(path1, Array.Empty<byte>());
         Assert.That(rlp, Is.Not.Null);
 
         TrieNode n = new(NodeType.Unknown, rlp);

@@ -211,7 +211,7 @@ internal class PathDataCacheInstance
         {
             ProcessDestroyed(stateId, trieStore, batch);
 
-            List<Tuple<byte[], int, byte[]>> toPersist = new();
+            List<Tuple<byte[], int, byte[], byte[]>> toPersist = new();
             foreach (KeyValuePair<byte[], PathDataHistory> nodeVersion in _historyByPath)
             {
                 PathDataAtState? nodeData = nodeVersion.Value.GetLatestUntil(stateId.Id);
@@ -223,9 +223,17 @@ internal class PathDataCacheInstance
                     NodeData data = nodeData.Data;
 
                     int leafPathToNodeLength = -1;
+                    Span<byte> accountPath = Array.Empty<byte>();
+                    Span<byte> keyNibbles = nodeVersion.Key;
+                    if (Column == StateColumns.Storage)
+                    {
+                        accountPath = nodeVersion.Key[..32];
+                        keyNibbles = nodeVersion.Key[32..];
+                    }
+
                     if (data.RLP is null)
                     {
-                        toPersist.Insert(0, Tuple.Create(nodeVersion.Key, leafPathToNodeLength, data.RLP));
+                        toPersist.Insert(0, Tuple.Create(keyNibbles.ToArray(), leafPathToNodeLength, accountPath.ToArray(), data.RLP));
                     }
                     else
                     {
@@ -240,14 +248,14 @@ internal class PathDataCacheInstance
                             if (isLeaf)
                                 leafPathToNodeLength = 64 - key.Length;
                         }
-                        toPersist.Add(Tuple.Create(nodeVersion.Key, leafPathToNodeLength, data.RLP));
+                        toPersist.Add(Tuple.Create(keyNibbles.ToArray(), leafPathToNodeLength, accountPath.ToArray(), data.RLP));
                     }
                 }
             }
 
-            foreach (Tuple<byte[], int, byte[]>? data in toPersist)
+            foreach (Tuple<byte[], int, byte[], byte[]>? data in toPersist)
             {
-                trieStore.PersistNodeData(data.Item1, data.Item2, data.Item3, batch);
+                trieStore.PersistNodeData(data.Item1, data.Item2, data.Item3, data.Item4, batch);
             }
         }
 
@@ -491,45 +499,56 @@ internal class PathDataCacheInstance
         if (_logger.IsTrace) _logger.Trace($"Adding node {node.PathToNode.ToHexString()} / {node.FullPath.ToHexString()} with Hash256: {node.Keccak} at block {blockNuber}");
 
         NodeData nd = new(node.FullRlp.ToArray(), node.Keccak);
+        StateColumns column = node.AccountPath.Length > 0 ? StateColumns.Storage : StateColumns.State;
         if (node.IsLeaf)
         {
             Span<byte> pathToNode = node.PathToNode;
-            if (node.StoreNibblePathPrefix.Length > 0)
-                pathToNode = Bytes.Concat(node.StoreNibblePathPrefix, node.PathToNode);
+            if (node.AccountPath.Length > 0)
+                pathToNode = Bytes.Concat(node.AccountPath, node.PathToNode);
 
-            StateColumns intermediateColumn = GetColumn(pathToNode.Length);
-            _historyColumns[intermediateColumn].AddNodeData(_lastState, pathToNode, nd, false);
+            _historyColumns[column].AddNodeData(_lastState, pathToNode, nd, false);
         }
 
-        StateColumns column = GetColumn(node.FullPath.Length);
-        _historyColumns[column].AddNodeData(_lastState, node.FullPath, nd, true);
+        Span<byte> fullPath = node.FullPath;
+        if (node.AccountPath.Length > 0)
+            fullPath = Bytes.Concat(node.AccountPath, node.FullPath);
+
+        _historyColumns[column].AddNodeData(_lastState, fullPath, nd, true);
 
         _isDirty = true;
     }
 
-    public NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path)
+    public NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path, Span<byte> accountPathBytes)
     {
         rootHash ??= _lastState?.BlockStateRoot;
         StateId localState = FindState(rootHash);
         if (localState is not null)
         {
-            StateColumns column = GetColumn(path.Length);
-            NodeData? nodeData = _historyColumns[column].GetNodeDataAtRoot(localState, path);
+            StateColumns column = accountPathBytes.Length == 0 ? StateColumns.State : StateColumns.Storage;
+            Span<byte> fullPath = path;
+            if (column == StateColumns.Storage)
+                fullPath = Bytes.Concat(accountPathBytes, path);
+
+            NodeData? nodeData = _historyColumns[column].GetNodeDataAtRoot(localState, fullPath);
             if (nodeData is not null)
                 return nodeData;
         }
-        return _parentInstance?.GetNodeDataAtRoot(null, path);
+        return _parentInstance?.GetNodeDataAtRoot(null, path, accountPathBytes);
     }
 
-    public NodeData? GetNodeData(Span<byte> path, Hash256? hash)
+    public NodeData? GetNodeData(Span<byte> path, Hash256? hash, Span<byte> accountPathBytes)
     {
-        StateColumns column = GetColumn(path.Length);
-        NodeData? data = _historyColumns[column].GetNodeData(path, hash);
+        StateColumns column = accountPathBytes.Length == 0 ? StateColumns.State : StateColumns.Storage;
+        Span<byte> fullPath = path;
+        if (column == StateColumns.Storage)
+            fullPath = Bytes.Concat(accountPathBytes, path);
+
+        NodeData? data = _historyColumns[column].GetNodeData(fullPath, hash);
         if (data is not null) return data;
 
         foreach (PathDataCacheInstance branch in _branches)
         {
-            data = branch.GetNodeData(path, hash);
+            data = branch.GetNodeData(path, hash, accountPathBytes);
             if (data is not null)
                 break;
         }
@@ -680,10 +699,10 @@ internal class PathDataCacheInstance
         }
     }
 
-    private StateColumns GetColumn(int pathLength)
-    {
-        return pathLength >= 66 ? StateColumns.Storage : StateColumns.State;
-    }
+    //private StateColumns GetColumn(int pathLength)
+    //{
+    //    return pathLength >= 66 ? StateColumns.Storage : StateColumns.State;
+    //}
 
     public void LogCacheContents(int level)
     {
@@ -803,21 +822,21 @@ public class PathDataCache : IPathDataCache
         finally { _lock.ExitWriteLock(); }
     }
 
-    public NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path)
+    public NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path, Span<byte> accountPathBytes)
     {
         try
         {
             _lock.EnterReadLock();
 
             if (rootHash is not null)
-                return _main.FindCacheInstanceForStateRoot(rootHash)?.GetNodeDataAtRoot(rootHash, path);
+                return _main.FindCacheInstanceForStateRoot(rootHash)?.GetNodeDataAtRoot(rootHash, path, accountPathBytes);
 
-            return _main.GetNodeDataAtRoot(null, path);
+            return _main.GetNodeDataAtRoot(null, path, accountPathBytes);
         }
         finally { _lock.ExitReadLock(); }
     }
 
-    public NodeData? GetNodeData(Span<byte> path, Hash256? hash)
+    public NodeData? GetNodeData(Span<byte> path, Span<byte> accountPathBytes, Hash256? hash)
     {
         try
         {
@@ -825,9 +844,9 @@ public class PathDataCache : IPathDataCache
 
             NodeData? data = null;
             if (_openedInstance is not null)
-                data = _openedInstance.GetNodeData(path, hash);
+                data = _openedInstance.GetNodeData(path, hash, accountPathBytes);
 
-            return data ?? _main.GetNodeData(path, hash);
+            return data ?? _main.GetNodeData(path, hash, accountPathBytes);
         }
         finally { _lock.ExitReadLock(); }
     }

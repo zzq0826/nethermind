@@ -13,6 +13,7 @@ using Nethermind.Int256;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
+using System.IO;
 
 namespace Nethermind.State
 {
@@ -28,7 +29,7 @@ namespace Nethermind.State
         private Address? AccountAddress { get; }
         private byte[]? AccountPath { get; }
 
-        internal const byte StorageDifferentiatingByte = 128;
+        //internal const byte StorageDifferentiatingByte = 128;
 
         static StorageTree()
         {
@@ -56,10 +57,10 @@ namespace Nethermind.State
             if (trieStore.Capability == TrieNodeResolverCapability.Path)
             {
                 AccountAddress = accountAddress ?? throw new ArgumentException("this cannot be null while using path based trie store");
-                Span<byte> path = AccountPath = new byte[StoragePrefixLength];
-                Keccak.Compute(accountAddress.Bytes).Bytes.CopyTo(path);
-                AccountPath[^1] = StorageDifferentiatingByte;
-                StorageBytePathPrefix = AccountPath;
+                //Span<byte> path = AccountPath = new byte[StoragePrefixLength];
+                //Keccak.Compute(accountAddress.Bytes).Bytes.CopyTo(path);
+                //AccountPath[^1] = StorageDifferentiatingByte;
+                AccountPathBytes = Keccak.Compute(accountAddress.Bytes).Bytes.ToArray();
             }
             RootHash = rootHash;
         }
@@ -71,10 +72,10 @@ namespace Nethermind.State
             if (trieStore.Capability == TrieNodeResolverCapability.Path)
             {
                 Debug.Assert(accountPath != null, nameof(accountPath) + " != null");
-                Span<byte> path = AccountPath = new byte[StoragePrefixLength];
-                accountPath.Value.Bytes.CopyTo(path);
-                path[^1] = StorageDifferentiatingByte;
-                StorageBytePathPrefix = AccountPath;
+                //Span<byte> path = AccountPath = new byte[StoragePrefixLength];
+                //accountPath.Value.Bytes.CopyTo(path);
+                //path[^1] = StorageDifferentiatingByte;
+                AccountPathBytes = accountPath.Value.ToByteArray();
             }
             RootHash = rootHash;
         }

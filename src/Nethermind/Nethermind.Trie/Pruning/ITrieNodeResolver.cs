@@ -34,12 +34,12 @@ namespace Nethermind.Trie.Pruning
         /// <param name="hash"></param>
         /// <returns></returns>
         byte[]? TryLoadRlp(Hash256 hash, ReadFlags flags = ReadFlags.None);
-        byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash = null);
-        byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore);
+        byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash = null);
+        byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore);
 
         TrieNodeResolverCapability Capability { get; }
 
-        bool IsPersisted(Hash256 hash, byte[] nodePathNibbles);
+        bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes);
     }
 
     public enum TrieNodeResolverCapability

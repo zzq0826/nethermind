@@ -20,7 +20,7 @@ namespace Nethermind.Trie.Pruning
 
         public IReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore) => this;
 
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore)
         {
             return Array.Empty<byte>();
         }
@@ -38,7 +38,7 @@ namespace Nethermind.Trie.Pruning
 
         public TrieNode FindCachedOrUnknown(Hash256 hash, Span<byte> nodePath, Span<byte> storagePrefix)
         {
-            return new(NodeType.Unknown, nodePath, hash) { StoreNibblePathPrefix = storagePrefix.ToArray() };
+            return new(NodeType.Unknown, nodePath, hash) { AccountPath = storagePrefix.ToArray() };
         }
 
         public TrieNode FindCachedOrUnknown(Span<byte> nodePath, byte[] storagePrefix, Hash256 rootHash)
@@ -51,17 +51,17 @@ namespace Nethermind.Trie.Pruning
         public byte[] LoadRlp(Hash256 hash, ReadFlags flags = ReadFlags.None) => Array.Empty<byte>();
 
         public bool IsPersisted(in ValueHash256 keccak) => true;
-        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles) => false;
+        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes) => false;
 
         public void Dispose() { }
 
-        public byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash)
+        public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash)
         {
             return Array.Empty<byte>();
         }
 
         public void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None) { }
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
 
         public void ClearCache() { }
         public void DeleteByRange(Span<byte> startKey, Span<byte> endKey, IWriteBatch? writeBatch = null) { }

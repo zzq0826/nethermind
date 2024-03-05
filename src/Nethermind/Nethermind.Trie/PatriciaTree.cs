@@ -73,14 +73,7 @@ namespace Nethermind.Trie
         /// This prefix is calculated by using the account leaf path and adding another byte to
         /// differentiate between the path to account leaf and storage root node.
         /// </summary>
-        public byte[] StorageBytePathPrefix
-        {
-            set
-            {
-                StoreNibblePathPrefix = value.Length == 0 ? Array.Empty<byte>() : Nibbles.BytesToNibbleBytes(value);
-            }
-        }
-        public byte[] StoreNibblePathPrefix { get; private set; }
+        public byte[] AccountPathBytes { get; set; }
 
         public bool ClearedBySelfDestruct = false;
 
@@ -129,7 +122,7 @@ namespace Nethermind.Trie
             _parallelBranches = parallelBranches;
             _allowCommits = allowCommits;
             RootHash = rootHash;
-            StoreNibblePathPrefix = Array.Empty<byte>();
+            AccountPathBytes = Array.Empty<byte>();
 
             // TODO: cannot do that without knowing whether the owning account is persisted or not
             // RootRef?.MarkPersistedRecursively(_logger);
@@ -158,7 +151,7 @@ namespace Nethermind.Trie
             {
                 TrieStore.OpenContext(blockNumber, ParentStateRootHash);
                 if (ClearedBySelfDestruct)
-                    TrieStore.MarkPrefixDeleted(blockNumber, StoreNibblePathPrefix);
+                    TrieStore.MarkPrefixDeleted(blockNumber, AccountPathBytes);
                 while (_deleteNodes != null && _deleteNodes.TryDequeue(out TrieNode delNode))
                     _currentCommit.Enqueue(new NodeCommitInfo(delNode));
             }
@@ -394,7 +387,7 @@ namespace Nethermind.Trie
             }
             else if (resetObjects)
             {
-                RootRef = TrieStore.FindCachedOrUnknown(_rootHash, Array.Empty<byte>(), StoreNibblePathPrefix);
+                RootRef = TrieStore.FindCachedOrUnknown(_rootHash, Array.Empty<byte>(), AccountPathBytes);
             }
         }
 
@@ -502,10 +495,9 @@ namespace Nethermind.Trie
             }
 
             // try and get cached nodes
-            Span<byte> nibbleBytes = stackalloc byte[StoreNibblePathPrefix.Length + rawKey.Length * 2];
-            StoreNibblePathPrefix.CopyTo(nibbleBytes);
-            Nibbles.BytesToNibbleBytes(rawKey, nibbleBytes[StoreNibblePathPrefix.Length..]);
-            TrieNode? node = TrieStore.FindCachedOrUnknown(nibbleBytes[StoreNibblePathPrefix.Length..], StoreNibblePathPrefix, TrieType == TrieType.State ? (rootHash ?? ParentStateRootHash) : ParentStateRootHash);
+            Span<byte> nibbleBytes = stackalloc byte[rawKey.Length * 2];
+            Nibbles.BytesToNibbleBytes(rawKey, nibbleBytes);
+            TrieNode? node = TrieStore.FindCachedOrUnknown(nibbleBytes, AccountPathBytes, TrieType == TrieType.State ? (rootHash ?? ParentStateRootHash) : ParentStateRootHash);
 
             diagData.ParentStateRoot = TrieType == TrieType.State ? (rootHash ?? ParentStateRootHash) : ParentStateRootHash;
             diagData.FullPath = nibbleBytes.ToArray();
@@ -518,7 +510,7 @@ namespace Nethermind.Trie
             // eth_call will check this by calling HasStateForRoot - need to ensure all calls do that
             if (node.NodeType == NodeType.Unknown)
             {
-                byte[]? nodeData = TrieStore.TryLoadRlp(nibbleBytes, null);
+                byte[]? nodeData = TrieStore.TryLoadRlp(nibbleBytes, AccountPathBytes, null);
                 if (nodeData is null) return null;
 
                 diagData.LoadedFromDb = true;
@@ -532,18 +524,6 @@ namespace Nethermind.Trie
             }
 
             return node.Value.ToArray();
-        }
-
-        private Hash256? GetPersistedRoot()
-        {
-            byte[]? nodeData = TrieStore.TryLoadRlp(Array.Empty<byte>(), null);
-            if (nodeData is null)
-                return null;
-
-            TrieNode node = new(NodeType.Unknown, nodeData);
-            node.ResolveNode(TrieStore);
-            node.ResolveKey(TrieStore, true);
-            return node.Keccak;
         }
 
         [SkipLocalsInit]
@@ -642,7 +622,7 @@ namespace Nethermind.Trie
                         RootRef = Capability switch
                         {
                             TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue),
-                            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue, EmptyKeyPath, StoreNibblePathPrefix),
+                            TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(key, traverseContext.UpdateValue, EmptyKeyPath, AccountPathBytes),
                             _ => throw new ArgumentOutOfRangeException()
                         };
                     }
@@ -813,7 +793,7 @@ namespace Nethermind.Trie
                                 TrieNode extensionFromBranch = Capability switch
                                 {
                                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode),
-                                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, node.PathToNode, StoreNibblePathPrefix),
+                                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(new[] { (byte)childNodeIndex }, childNode, node.PathToNode, AccountPathBytes),
                                     _ => throw new ArgumentOutOfRangeException()
                                 };
                                 if (_logger.IsTrace)
@@ -1055,7 +1035,7 @@ namespace Nethermind.Trie
                 TrieNode leaf = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue),
-                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue, traverseContext.GetCurrentPath(currentIndex).ToArray(), StoreNibblePathPrefix),
+                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(leafPath, traverseContext.UpdateValue, traverseContext.GetCurrentPath(currentIndex).ToArray(), AccountPathBytes),
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
@@ -1149,7 +1129,7 @@ namespace Nethermind.Trie
                 TrieNode extension = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateExtension(extensionPath.ToArray()),
-                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(extensionPath.ToArray(), traverseContext.GetCurrentPath().ToArray(), StoreNibblePathPrefix),
+                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateExtension(extensionPath.ToArray(), traverseContext.GetCurrentPath().ToArray(), AccountPathBytes),
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
@@ -1159,7 +1139,7 @@ namespace Nethermind.Trie
             TrieNode branch = Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
-                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray(), StoreNibblePathPrefix),
+                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray(), AccountPathBytes),
                 _ => throw new ArgumentOutOfRangeException()
             };
             if (extensionLength == shorterPath.Length)
@@ -1179,14 +1159,14 @@ namespace Nethermind.Trie
                         if (shorterPath.Length == 64)
                         {
                             ReadOnlySpan<byte> pathToShortLeaf = shorterPath.Slice(0, extensionLength + 1);
-                            shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf.ToArray(), StoreNibblePathPrefix);
+                            shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf.ToArray(), AccountPathBytes);
                         }
                         else
                         {
                             Span<byte> pathToShortLeaf = stackalloc byte[branch.PathToNode.Length + 1];
                             branch.PathToNode.CopyTo(pathToShortLeaf);
                             pathToShortLeaf[branch.PathToNode.Length] = shorterPath[extensionLength];
-                            shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf, StoreNibblePathPrefix);
+                            shortLeaf = TrieNodeFactory.CreateLeaf(shortLeafPath.ToArray(), shorterPathValue, pathToShortLeaf, AccountPathBytes);
                         }
                         break;
                     default:
@@ -1281,7 +1261,7 @@ namespace Nethermind.Trie
             TrieNode branch = Capability switch
             {
                 TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateBranch(),
-                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray(), StoreNibblePathPrefix),
+                TrieNodeResolverCapability.Path => TrieNodeFactory.CreateBranch(traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength).ToArray(), AccountPathBytes),
                 _ => throw new ArgumentOutOfRangeException()
             };
 
@@ -1295,7 +1275,7 @@ namespace Nethermind.Trie
                 TrieNode shortLeaf = Capability switch
                 {
                     TrieNodeResolverCapability.Hash => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue),
-                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1).ToArray(), StoreNibblePathPrefix),
+                    TrieNodeResolverCapability.Path => TrieNodeFactory.CreateLeaf(path, traverseContext.UpdateValue, traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1).ToArray(), AccountPathBytes),
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 branch.SetChild(remaining[extensionLength], shortLeaf);
@@ -1325,7 +1305,7 @@ namespace Nethermind.Trie
                         Span<byte> fullPath = traverseContext.UpdatePath.Slice(0, traverseContext.CurrentIndex + extensionLength + 1).ToArray();
                         fullPath[traverseContext.CurrentIndex + extensionLength] = pathBeforeUpdate[extensionLength];
                         secondExtension
-                            = TrieNodeFactory.CreateExtension(extensionPath, originalNodeChild, fullPath, StoreNibblePathPrefix);
+                            = TrieNodeFactory.CreateExtension(extensionPath, originalNodeChild, fullPath, AccountPathBytes);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -1457,7 +1437,7 @@ namespace Nethermind.Trie
                         }
                         break;
                     case TrieNodeResolverCapability.Path:
-                        rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash, Array.Empty<byte>(), StoreNibblePathPrefix);
+                        rootRef = RootHash == rootHash ? RootRef : TrieStore.FindCachedOrUnknown(rootHash, Array.Empty<byte>(), AccountPathBytes);
                         try
                         {
 

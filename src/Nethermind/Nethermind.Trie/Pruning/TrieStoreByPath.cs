@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Nethermind.Config;
 using Nethermind.Core;
 using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
@@ -211,12 +212,12 @@ namespace Nethermind.Trie.Pruning
 
         public event EventHandler<ReorgBoundaryReached>? ReorgBoundaryReached;
 
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore)
         {
-            StateColumns column = GetProperColumn(path.Length);
+            StateColumns column = accountPathBytes.Length == 0 ? StateColumns.State : StateColumns.Storage;
             keyValueStore ??= _stateDb.GetColumnDb(column);
 
-            byte[] keyPath = Nibbles.NibblesToByteStorage(path);
+            byte[] keyPath = GenerateDbKey(accountPathBytes, path);
             byte[]? rlp = keyValueStore.Get(keyPath);
             if (rlp is null || rlp[0] != PathMarker)
                 return rlp;
@@ -230,9 +231,9 @@ namespace Nethermind.Trie.Pruning
         }
         public virtual byte[]? TryLoadRlp(Hash256 keccak, ReadFlags readFlags = ReadFlags.None) => LoadRlp(keccak, null, readFlags);
 
-        private byte[] LoadRlp(Span<byte> path, IKeyValueStore? keyValueStore, Hash256 rootHash = null)
+        private byte[] LoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore, Hash256 rootHash = null)
         {
-            byte[]? rlp = TryLoadRlp(path, keyValueStore);
+            byte[]? rlp = TryLoadRlp(path, accountPathBytes, keyValueStore);
 
             if (rlp is null)
             {
@@ -245,7 +246,7 @@ namespace Nethermind.Trie.Pruning
         }
 
         public byte[] LoadRlp(Hash256 keccak, ReadFlags flags = ReadFlags.None) => LoadRlp(keccak, null, flags);
-        public byte[] LoadRlp(Span<byte> path, Hash256 rootHash) => LoadRlp(path, null, rootHash);
+        public byte[] LoadRlp(Span<byte> path, Span<byte> accountPathBytes, Hash256 rootHash) => LoadRlp(path, accountPathBytes, null, rootHash);
 
         public bool IsPersisted(Hash256 keccak)
         {
@@ -257,9 +258,9 @@ namespace Nethermind.Trie.Pruning
             throw new InvalidOperationException("IsPersisted using Hash256 has is not supported by path based storage");
         }
 
-        public bool IsPersisted(Hash256 keccak, byte[] childPath)
+        public bool IsPersisted(Hash256 keccak, byte[] childPath, Span<byte> accountPathBytes)
         {
-            byte[]? rlp = TryLoadRlp(childPath, null);
+            byte[]? rlp = TryLoadRlp(childPath, accountPathBytes, null);
             if (rlp is null)
                 return keccak == Keccak.EmptyTreeHash;
 
@@ -288,16 +289,16 @@ namespace Nethermind.Trie.Pruning
             {
                 return new(NodeType.Unknown, path: nodePath, keccak: keccak)
                 {
-                    StoreNibblePathPrefix = storagePrefix.ToArray()
+                    AccountPath = storagePrefix.ToArray()
                 };
             }
-            Span<byte> targetPath = Bytes.Concat(storagePrefix, nodePath);
-            NodeData? nodeData = _committedNodes.GetNodeData(targetPath, keccak);
+            //Span<byte> targetPath = Bytes.Concat(storagePrefix, nodePath);
+            NodeData? nodeData = _committedNodes.GetNodeData(nodePath, storagePrefix, keccak);
             if (nodeData is null)
             {
                 TrieNode unknownNode = new(NodeType.Unknown, path: nodePath, keccak: keccak)
                 {
-                    StoreNibblePathPrefix = storagePrefix.ToArray()
+                    AccountPath = storagePrefix.ToArray()
                 };
                 return unknownNode;
             }
@@ -305,8 +306,7 @@ namespace Nethermind.Trie.Pruning
             if (nodeData.RLP is null)
                 return null;
 
-            TrieNode node = new(NodeType.Unknown, nodePath.ToArray(), nodeData.Keccak, nodeData.RLP);
-            node.StoreNibblePathPrefix = storagePrefix.ToArray();
+            TrieNode node = new(NodeType.Unknown, nodePath.ToArray(), storagePrefix.ToArray(), nodeData.Keccak, nodeData.RLP);
             node.ResolveNode(this);
             node.ResolveKey(this, nodePath.Length == 0);
             return node;
@@ -317,8 +317,8 @@ namespace Nethermind.Trie.Pruning
             if (!_useCommittedCache)
                 return new TrieNode(NodeType.Unknown, nodePath, storagePrefix);
 
-            Span<byte> targetPath = Bytes.Concat(storagePrefix, nodePath);
-            NodeData? nodeData = _committedNodes.GetNodeDataAtRoot(rootHash, targetPath);
+            //Span<byte> targetPath = Bytes.Concat(storagePrefix, nodePath);
+            NodeData? nodeData = _committedNodes.GetNodeDataAtRoot(rootHash, nodePath, storagePrefix);
 
             if (nodeData is null)
                 return new TrieNode(NodeType.Unknown, nodePath, storagePrefix);
@@ -326,8 +326,7 @@ namespace Nethermind.Trie.Pruning
             if (nodeData.RLP is null)
                 return null;
 
-            TrieNode node = new(NodeType.Unknown, nodePath.ToArray(), nodeData.Keccak, nodeData.RLP);
-            node.StoreNibblePathPrefix = storagePrefix.ToArray();
+            TrieNode node = new(NodeType.Unknown, nodePath.ToArray(), storagePrefix.ToArray(), nodeData.Keccak, nodeData.RLP);
             node.ResolveNode(this);
             node.ResolveKey(this, nodePath.Length == 0);
             return node;
@@ -425,7 +424,8 @@ namespace Nethermind.Trie.Pruning
 
         private void PersistNode(TrieNode currentNode, long blockNumber, WriteFlags writeFlags = WriteFlags.None)
         {
-            StateColumns column = GetProperColumn(currentNode.FullPath.Length);
+            //StateColumns column = GetProperColumn(currentNode.FullPath.Length);
+            StateColumns column = currentNode.AccountPath.Length == 0 ? StateColumns.State : StateColumns.Storage;
             PrepareWriteBatches();
 
             if (currentNode is null)
@@ -450,7 +450,8 @@ namespace Nethermind.Trie.Pruning
 
         public void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None)
         {
-            StateColumns column = GetProperColumn(trieNode.FullPath.Length);
+            //StateColumns column = GetProperColumn(trieNode.FullPath.Length);
+            StateColumns column = trieNode.AccountPath.Length == 0 ? StateColumns.State : StateColumns.Storage;
 
             bool shouldDispose = batch is null;
             IColumnsWriteBatch<StateColumns> masterBatch = null;
@@ -461,17 +462,19 @@ namespace Nethermind.Trie.Pruning
             }
 
             byte[] fullPath = trieNode.FullPath ?? throw new ArgumentNullException();
-            byte[] pathBytes = Nibbles.NibblesToByteStorage(fullPath);
+            //byte[] pathBytes = Nibbles.NibblesToByteStorage(fullPath);
+            byte[] pathBytes = GenerateDbKey(trieNode.AccountPath, trieNode.FullPath);
 
             if (trieNode.IsLeaf)
             {
-                Span<byte> pathToNodeNibbles = stackalloc byte[trieNode.StoreNibblePathPrefix.Length + trieNode.PathToNode!.Length];
-                trieNode.StoreNibblePathPrefix.CopyTo(pathToNodeNibbles);
-                Span<byte> pathToNodeSlice = pathToNodeNibbles.Slice(trieNode.StoreNibblePathPrefix.Length);
-                trieNode.PathToNode.CopyTo(pathToNodeSlice);
-                byte[] pathToNodeBytes = Nibbles.NibblesToByteStorage(pathToNodeNibbles);
+                //Span<byte> pathToNodeNibbles = stackalloc byte[trieNode.StoreNibblePathPrefix.Length + trieNode.PathToNode!.Length];
+                //trieNode.StoreNibblePathPrefix.CopyTo(pathToNodeNibbles);
+                //Span<byte> pathToNodeSlice = pathToNodeNibbles.Slice(trieNode.StoreNibblePathPrefix.Length);
+                //trieNode.PathToNode.CopyTo(pathToNodeSlice);
+                //byte[] pathToNodeBytes = Nibbles.NibblesToByteStorage(pathToNodeNibbles);
+                byte[] pathToNodeBytes = GenerateDbKey(trieNode.AccountPath, trieNode.PathToNode);
 
-                if (_logger.IsTrace) _logger.Trace($"Saving node {trieNode.NodeType} path to nibbles {pathToNodeNibbles.ToHexString()}, bytes: {pathToNodeBytes.ToHexString()}, full: {pathBytes.ToHexString()}");
+                if (_logger.IsTrace) _logger.Trace($"Saving node {trieNode.NodeType} path to nibbles {trieNode.PathToNode.ToHexString()}, bytes: {pathToNodeBytes.ToHexString()}, full: {pathBytes.ToHexString()}");
 
                 if (trieNode.FullRlp.IsNull)
                 {
@@ -488,7 +491,7 @@ namespace Nethermind.Trie.Pruning
                         batch.Set(pathToNodeBytes, newPath, writeFlags);
 
                         if (withDelete)
-                            RequestDeletionForLeaf(pathToNodeNibbles, trieNode.FullPath);
+                            RequestDeletionForLeaf(trieNode.PathToNode, trieNode.FullPath, trieNode.AccountPath);
                     }
                 }
             }
@@ -501,7 +504,7 @@ namespace Nethermind.Trie.Pruning
                 if (trieNode.IsBranch)
                     RequestDeletionForBranch(trieNode);
                 else if (trieNode.IsExtension)
-                    RequestDeletionForExtension(fullPath, trieNode.Key);
+                    RequestDeletionForExtension(fullPath, trieNode.Key, trieNode.AccountPath);
             }
 
             batch.Set(pathBytes, trieNode.FullRlp.ToArray(), writeFlags);
@@ -510,9 +513,10 @@ namespace Nethermind.Trie.Pruning
                 masterBatch.Dispose();
         }
 
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None)
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPath, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None)
         {
-            StateColumns column = GetProperColumn(fullPath.Length);
+            //StateColumns column = GetProperColumn(fullPath.Length);
+            StateColumns column = accountPath.Length == 0 ? StateColumns.State : StateColumns.Storage;
 
             bool shouldDispose = batch is null;
             IColumnsWriteBatch<StateColumns> masterBatch = null;
@@ -522,17 +526,15 @@ namespace Nethermind.Trie.Pruning
                 batch = masterBatch.GetColumnBatch(column);
             }
 
-            int pathToNodeIndexWithPrefix = fullPath.Length >= 66 ? pathToNodeLength + 66 : pathToNodeLength;
-
-            byte[] pathBytes = Nibbles.NibblesToByteStorage(fullPath);
-            Span<byte> pathToNodeNibbles = pathToNodeLength >= 0 ? fullPath[..pathToNodeIndexWithPrefix] : Array.Empty<byte>();
+            byte[] pathBytes = GenerateDbKey(accountPath, fullPath);
+            Span<byte> pathToNodeNibbles = pathToNodeLength > 0 ? fullPath[..pathToNodeLength] : Array.Empty<byte>();
 
             if (_logger.IsTrace)
                 _logger.Trace($"Persisting node path to nibbles {pathToNodeNibbles.ToHexString()}, full path bytes: {pathBytes.ToHexString()}, rlp: {rlpData?.ToHexString()}");
 
             if (pathToNodeLength >= 0)
             {
-                byte[] pathToNodeBytes = Nibbles.NibblesToByteStorage(pathToNodeNibbles);
+                byte[] pathToNodeBytes = GenerateDbKey(accountPath, pathToNodeNibbles);
 
                 if (rlpData is null)
                 {
@@ -645,18 +647,6 @@ namespace Nethermind.Trie.Pruning
 
         #endregion
 
-        public bool ExistsInDB(Hash256 hash, byte[] pathNibbles)
-        {
-            byte[]? rlp = TryLoadRlp(pathNibbles.AsSpan(), GetProperColumnDb(pathNibbles.Length));
-            if (rlp is not null)
-            {
-                TrieNode node = new(NodeType.Unknown, rlp);
-                node.ResolveNode(this);
-                node.ResolveKey(this, false);
-                return node.Keccak == hash;
-            }
-            return false;
-        }
         public byte[]? this[ReadOnlySpan<byte> key]
         {
             get => Get(key);
@@ -678,7 +668,8 @@ namespace Nethermind.Trie.Pruning
 
         public void DeleteByRange(Span<byte> startKey, Span<byte> endKey, IWriteBatch writeBatch = null)
         {
-            StateColumns column = GetProperColumn(startKey.Length);
+            //StateColumns column = GetProperColumn(startKey.Length);
+            StateColumns column = StateColumns.Storage;
             byte[] startDbKey = Nibbles.NibblesToByteStorage(startKey.ToArray());
             byte[] endDbKey = Nibbles.NibblesToByteStorage(endKey.ToArray());
 
@@ -716,18 +707,18 @@ namespace Nethermind.Trie.Pruning
             return (fromKey.ToArray(), toKey.IncrementNibble().ToArray());
         }
 
-        public static (byte[], byte[]) GetDeleteKeyFromNibbles(Span<byte> nibbleFrom, Span<byte> nibbleTo)
+        public static (byte[], byte[]) GetDeleteKeyFromNibbles(Span<byte> nibbleFrom, Span<byte> nibbleTo, Span<byte> accountPath)
         {
-            byte[] fromKey = Nibbles.NibblesToByteStorage(nibbleFrom);
-            byte[] toKey = Nibbles.NibblesToByteStorage(nibbleTo);
+            byte[] fromKey = GenerateDbKey(accountPath,nibbleFrom);
+            byte[] toKey = GenerateDbKey(accountPath, nibbleTo);
 
             return (fromKey, toKey);
         }
 
-        public void RequestDeletionForLeaf(Span<byte> pathToNodeNibbles, Span<byte> fullPathNibbles)
+        public void RequestDeletionForLeaf(Span<byte> pathToNodeNibbles, Span<byte> fullPathNibbles, Span<byte> accountPath)
         {
             byte[] from, to;
-            StateColumns column = fullPathNibbles.Length >= 66 ? StateColumns.Storage : StateColumns.State;
+            StateColumns column = accountPath.Length > 0 ? StateColumns.Storage : StateColumns.State;
 
             if (pathToNodeNibbles.Length == 0)
                 return;
@@ -740,7 +731,7 @@ namespace Nethermind.Trie.Pruning
 
             if (!keySlice.IsZero())
             {
-                (from, to) = GetDeleteKeyFromNibbles(fromNibblesKey, fullPathNibbles);
+                (from, to) = GetDeleteKeyFromNibbles(fromNibblesKey, fullPathNibbles, accountPath);
                 _pathStateDb?.EnqueueDeleteRange(column, from, to);
                 if (_logger.IsTrace) _logger.Trace($"Leaf deletion for {pathToNodeNibbles.ToHexString()} | {fullPathNibbles.ToHexString()} | {from.ToHexString()} - {to.ToHexString()}");
             }
@@ -750,7 +741,7 @@ namespace Nethermind.Trie.Pruning
                 Span<byte> fullPathIncremented = stackalloc byte[fullPathNibbles.Length];
                 fullPathNibbles.CopyTo(fullPathIncremented);
                 Span<byte> endNibbles = fromNibblesKey.Slice(0, pathToNodeNibbles.Length).IncrementNibble(true);
-                (from, to) = GetDeleteKeyFromNibbles(fullPathIncremented.IncrementNibble(), endNibbles);
+                (from, to) = GetDeleteKeyFromNibbles(fullPathIncremented.IncrementNibble(), endNibbles, accountPath);
                 if (_logger.IsTrace) _logger.Trace($"Leaf deletion for {pathToNodeNibbles.ToHexString()} | {fullPathNibbles.ToHexString()} | {from.ToHexString()} - {to.ToHexString()}");
                 _pathStateDb?.EnqueueDeleteRange(column, from, to);
             }
@@ -761,16 +752,17 @@ namespace Nethermind.Trie.Pruning
             void GenerateRangesAndRequest(Span<byte> childPathFrom, Span<byte> childPathTo, byte? from, byte? to)
             {
                 byte[] fromKey, toKey;
+                StateColumns column = branchNode.AccountPath.Length == 0 ? StateColumns.State : StateColumns.Storage;
 
                 childPathFrom[^1] = from.Value;
-                fromKey = Nibbles.NibblesToByteStorage(childPathFrom);
+                fromKey = GenerateDbKey(branchNode.AccountPath, childPathFrom);
 
                 if (to is not null)
                     childPathTo[^1] = to.Value;
-                toKey = Nibbles.NibblesToByteStorage(childPathTo);
+                toKey = GenerateDbKey(branchNode.AccountPath, childPathTo);
 
                 if (_logger.IsTrace) _logger.Trace($"Branch deletion for {branchNode.FullPath.ToHexString()} | {fromKey.ToHexString()} - {toKey.ToHexString()}");
-                _pathStateDb?.EnqueueDeleteRange(GetProperColumn(childPathFrom.Length), fromKey, toKey);
+                _pathStateDb?.EnqueueDeleteRange(column, fromKey, toKey);
             }
 
             Span<byte> childPathFrom = stackalloc byte[branchNode.FullPath.Length + 1];
@@ -800,8 +792,7 @@ namespace Nethermind.Trie.Pruning
                 //special case for root
                 if (branchNode.FullPath.Length == 0)
                 {
-                    int maxLen = branchNode.StoreNibblePathPrefix.Length == 0 ? 33 : 66;
-                    Span<byte> maxPath = stackalloc byte[maxLen];
+                    Span<byte> maxPath = stackalloc byte[32];
                     maxPath.Fill(0xff);
                     GenerateRangesAndRequest(childPathFrom, maxPath, rangeStart, null);
                 }
@@ -813,10 +804,10 @@ namespace Nethermind.Trie.Pruning
             }
         }
 
-        public void RequestDeletionForExtension(Span<byte> fullPathNibbles, Span<byte> key)
+        public void RequestDeletionForExtension(Span<byte> fullPathNibbles, Span<byte> key, Span<byte> accountPath)
         {
             byte[] from, to;
-            StateColumns column = fullPathNibbles.Length >= 66 ? StateColumns.Storage : StateColumns.State;
+            StateColumns column = accountPath.Length > 0 ? StateColumns.Storage : StateColumns.State;
 
             if (fullPathNibbles.Length == 0)
                 return;
@@ -830,7 +821,7 @@ namespace Nethermind.Trie.Pruning
 
             if (!key.IsZero())
             {
-                (from, to) = GetDeleteKeyFromNibbles(fromNibblesKey, fullPathAndKey);
+                (from, to) = GetDeleteKeyFromNibbles(fromNibblesKey, fullPathAndKey, accountPath);
                 if (_logger.IsTrace) _logger.Trace($"Extension deletion for {fullPathAndKey.ToHexString()} | {from.ToHexString()} - {to.ToHexString()}");
                 _pathStateDb?.EnqueueDeleteRange(column, from, to);
             }
@@ -842,7 +833,7 @@ namespace Nethermind.Trie.Pruning
 
                 Span<byte> endNibbles = fromNibblesKey[..fullPathNibbles.Length].IncrementNibble(true);
 
-                (from, to) = GetDeleteKeyFromNibbles(fullPathAndKey, endNibbles);
+                (from, to) = GetDeleteKeyFromNibbles(fullPathAndKey, endNibbles, accountPath);
                 if (_logger.IsTrace) _logger.Trace($"Extension deletion for {fullPathAndKey.ToHexString()} | {from.ToHexString()} - {to.ToHexString()}");
                 _pathStateDb?.EnqueueDeleteRange(column, from, to);
             }
@@ -887,6 +878,23 @@ namespace Nethermind.Trie.Pruning
                 foreach (StateColumns column in Enum.GetValues(typeof(StateColumns)))
                     _currentWriteBatches[column] = null;
                 _columnsBatch = null;
+            }
+        }
+
+        private static byte[] GenerateDbKey(Span<byte> accountPath, Span<byte> nodePath)
+        {
+            if (accountPath.Length == 32)
+            {
+                Span<byte> key = stackalloc byte[65];
+                accountPath.CopyTo(key);
+                Nibbles.NibblesToByteStorage(nodePath, key[32..]);
+                return key.ToArray();
+            }
+            else
+            {
+                Span<byte> key = stackalloc byte[33];
+                Nibbles.NibblesToByteStorage(nodePath, key);
+                return key.ToArray();
             }
         }
 

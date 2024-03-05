@@ -364,7 +364,7 @@ namespace Nethermind.Trie.Pruning
             return true;
         }
 
-        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles) => IsPersisted(hash);
+        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes) => IsPersisted(hash);
 
         public IReadOnlyTrieStore AsReadOnly(IKeyValueStore? keyValueStore)
         {
@@ -602,7 +602,7 @@ namespace Nethermind.Trie.Pruning
 
         private long LatestCommittedBlockNumber { get; set; }
 
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore)
         {
             throw new NotImplementedException();
         }
@@ -841,7 +841,7 @@ namespace Nethermind.Trie.Pruning
             });
         }
 
-        public byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash)
+        public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash)
         {
             throw new NotImplementedException();
         }
@@ -852,7 +852,7 @@ namespace Nethermind.Trie.Pruning
             //keyValueStore.Set(trieNode.Keccak.Bytes, trieNode.Value.ToArray(), writeFlags);
         }
 
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? keyValueStore = null, WriteFlags writeFlags = WriteFlags.None)
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? keyValueStore = null, WriteFlags writeFlags = WriteFlags.None)
         {
         }
 

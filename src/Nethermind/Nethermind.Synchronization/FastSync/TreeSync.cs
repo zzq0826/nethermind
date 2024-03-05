@@ -17,6 +17,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Db;
 using Nethermind.Db.ByPathState;
+using Nethermind.Evm.Tracing.GethStyle.JavaScript;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 using Nethermind.Synchronization.ParallelSync;
@@ -412,7 +413,7 @@ namespace Nethermind.Synchronization.FastSync
                 rootNodeKeyExists = _stateStore.Capability switch
                 {
                     TrieNodeResolverCapability.Hash => _stateDb.KeyExists(_rootNode),
-                    TrieNodeResolverCapability.Path => _stateStore.IsPersisted(_rootNode, Array.Empty<byte>()),
+                    TrieNodeResolverCapability.Path => _stateStore.IsPersisted(_rootNode, Array.Empty<byte>(), Array.Empty<byte>()),
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }
@@ -597,15 +598,15 @@ namespace Nethermind.Synchronization.FastSync
                         switch (syncItem.NodeDataType)
                         {
                             case NodeDataType.State:
-                                keyExists = _stateStore.IsPersisted(syncItem.Hash, syncItem.PathNibbles);
+                                keyExists = _stateStore.IsPersisted(syncItem.Hash, syncItem.PathNibbles, Array.Empty<byte>());
                                 break;
                             case NodeDataType.Storage:
-                                Span<byte> storagePath = new byte[66 + syncItem.PathNibbles.Length];
-                                syncItem.AccountPathNibbles.CopyTo(storagePath);
-                                storagePath[64] = 8;
-                                storagePath[65] = 0;
-                                syncItem.PathNibbles.CopyTo(storagePath.Slice(66));
-                                keyExists = _stateStore.IsPersisted(syncItem.Hash, storagePath.ToArray());
+                                //Span<byte> storagePath = new byte[66 + syncItem.PathNibbles.Length];
+                                //syncItem.AccountPathNibbles.CopyTo(storagePath);
+                                //storagePath[64] = 8;
+                                //storagePath[65] = 0;
+                                //syncItem.PathNibbles.CopyTo(storagePath.Slice(66));
+                                keyExists = _stateStore.IsPersisted(syncItem.Hash, syncItem.PathNibbles, Nibbles.ToBytes(syncItem.AccountPathNibbles));
                                 break;
                             case NodeDataType.None:
                             case NodeDataType.Code:
@@ -922,11 +923,11 @@ namespace Nethermind.Synchronization.FastSync
             // check if this is a storage node - then it needs a storage prefix
             if (currentStateSyncItem.AccountPathNibbles is not null && currentStateSyncItem.AccountPathNibbles.Length != 0)
             {
-                Span<byte> storagePrefix = new byte[66];
-                currentStateSyncItem.AccountPathNibbles.CopyTo(storagePrefix);
-                storagePrefix[64] = 8;
-                storagePrefix[65] = 0;
-                trieNode.StoreNibblePathPrefix = storagePrefix.ToArray();
+                //Span<byte> storagePrefix = new byte[66];
+                //currentStateSyncItem.AccountPathNibbles.CopyTo(storagePrefix);
+                //storagePrefix[64] = 8;
+                //storagePrefix[65] = 0;
+                trieNode.AccountPath = Nibbles.ToBytes(currentStateSyncItem.AccountPathNibbles);
             }
             trieNode.ResolveNode(NullTrieNodeResolver.Instance); // TODO: will this work now?
             // _logger.Info($"Decode Node: {trieNode}");
@@ -1183,7 +1184,7 @@ namespace Nethermind.Synchronization.FastSync
                     if (childHash is null)
                     {
                         if (_logger.IsTrace)
-                            _logger.Trace($"TreeSync - processing branch with child as RLP {pathNibbles.ToHexString()} - child {childIndex} - Prefix: {node.StoreNibblePathPrefix.ToHexString()}");
+                            _logger.Trace($"TreeSync - processing branch with child as RLP {pathNibbles.ToHexString()} - child {childIndex} - Prefix: {node.AccountPath.ToHexString()}");
                         TrieNode childNode = node.GetChild(_stateStore, childIndex);
                         childNode.ResolveNode(_stateStore);
                         _stateStore.PersistNode(childNode, withDelete: rootChanged);

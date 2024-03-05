@@ -287,9 +287,9 @@ namespace Nethermind.Trie
                                     trieVisitContext.Level++;
                                     trieVisitContext.BranchChildIndex = null;
 
-                                    using (trieVisitContext.AbsolutePathNext(new byte[] { 8, 0 }))
-                                    {
-                                        if (TryResolveStorageRoot(nodeResolver, CollectionsMarshal.AsSpan(trieVisitContext.AbsolutePathNibbles), out TrieNode? storageRoot))
+                                    //using (trieVisitContext.AbsolutePathNext(new byte[] { 8, 0 }))
+                                    //{
+                                        if (TryResolveStorageRoot(nodeResolver, Nibbles.ToBytes(trieVisitContext.AbsolutePathNibbles.ToArray()), out TrieNode? storageRoot))
                                         {
                                             //using TrieVisitContext storageTrieVisitContext = new TrieVisitContext
                                             //{
@@ -325,7 +325,7 @@ namespace Nethermind.Trie
                                         {
                                             visitor.VisitMissingNode(account.StorageRoot, trieVisitContext);
                                         }
-                                    }
+                                    //}
                                     trieVisitContext.Level--;
                                     trieVisitContext.IsStorage = false;
                                 }

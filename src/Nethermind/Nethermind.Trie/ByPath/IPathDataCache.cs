@@ -16,8 +16,8 @@ public interface IPathDataCache
     void OpenContext(long blockNumber, Hash256 parentStateRoot);
     void CloseContext(long blockNumber, Hash256 newStateRoot);
     void AddNodeData(long blockNuber, TrieNode node);
-    NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path);
-    NodeData? GetNodeData(Span<byte> path, Hash256? hash);
+    NodeData? GetNodeDataAtRoot(Hash256? rootHash, Span<byte> path, Span<byte> accountPathBytes);
+    NodeData? GetNodeData(Span<byte> path, Span<byte> accountPathBytes, Hash256? hash);
     bool PersistUntilBlock(long blockNumber, Hash256 rootHash, IColumnsWriteBatch<StateColumns>? batch = null);
     void AddRemovedPrefix(long blockNumber, ReadOnlySpan<byte> keyPrefix);
 }

@@ -37,11 +37,11 @@ namespace Nethermind.Trie.Pruning
 
         public byte[] LoadRlp(Hash256 hash, ReadFlags flags = ReadFlags.None) => _trieStore.LoadRlp(hash, _readOnlyStore, flags);
         public byte[]? TryLoadRlp(Hash256 hash, ReadFlags flags = ReadFlags.None) => _trieStore.TryLoadRlp(hash, flags);
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore) => _trieStore.TryLoadRlp(path, keyValueStore);
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore) => _trieStore.TryLoadRlp(path, accountPathBytes, keyValueStore);
 
         public bool IsPersisted(Hash256 keccak) => _trieStore.IsPersisted(keccak);
         public bool IsPersisted(in ValueHash256 keccak) => _trieStore.IsPersisted(keccak);
-        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles) => _trieStore.IsPersisted(hash, nodePathNibbles);
+        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes) => _trieStore.IsPersisted(hash, nodePathNibbles, accountPathBytes);
 
         public TrieNodeResolverCapability Capability => TrieNodeResolverCapability.Path;
 
@@ -54,8 +54,6 @@ namespace Nethermind.Trie.Pruning
 
         public void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root, WriteFlags writeFlags = WriteFlags.None) { }
 
-        public void HackPersistOnShutdown() { }
-
         public event EventHandler<ReorgBoundaryReached> ReorgBoundaryReached
         {
             add { }
@@ -63,15 +61,15 @@ namespace Nethermind.Trie.Pruning
         }
         public void Dispose() { }
 
-        public byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash)
+        public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash)
         {
-            return _trieStore.LoadRlp(nodePath, rootHash);
+            return _trieStore.LoadRlp(nodePath, accountPathBytes, rootHash);
         }
 
         public void Set(in ValueHash256 hash, byte[] rlp) { }
 
         public void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None) { }
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
 
         public void ClearCache() => _trieStore.ClearCache();
         public void DeleteByRange(Span<byte> startKey, Span<byte> endKey, IWriteBatch writeBatch = null) { }

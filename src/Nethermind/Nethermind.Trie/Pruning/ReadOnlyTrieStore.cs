@@ -38,12 +38,17 @@ namespace Nethermind.Trie.Pruning
         public byte[] LoadRlp(Hash256 hash, ReadFlags flags) => _trieStore.LoadRlp(hash, _readOnlyStore, flags);
 
         public bool IsPersisted(in ValueHash256 keccak) => _trieStore.IsPersisted(keccak);
-        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles) => _trieStore.IsPersisted(hash, nodePathNibbles);
+        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes) => _trieStore.IsPersisted(hash, nodePathNibbles, accountPathBytes);
 
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore)
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore)
         {
             throw new NotImplementedException();
         }
+        public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256 rootHash)
+        {
+            throw new NotImplementedException();
+        }
+
         public TrieNodeResolverCapability Capability => TrieNodeResolverCapability.Hash;
 
         public IReadOnlyTrieStore AsReadOnly(IKeyValueStore keyValueStore)
@@ -65,21 +70,13 @@ namespace Nethermind.Trie.Pruning
 
         public void Dispose() { }
 
-        public byte[]? LoadRlp(Span<byte> nodePath, Hash256 rootHash)
-        {
-            throw new NotImplementedException();
-        }
-
         public void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None) { }
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
 
         public void ClearCache()
         {
             _trieStore.ClearCache();
         }
-
-        public void ClearCacheAfter(Hash256 rootHash) { }
-
         public void Set(ReadOnlySpan<byte> key, byte[]? value, WriteFlags flags = WriteFlags.None) { }
         public void Set(in ValueHash256 hash, byte[] rlp)
         {

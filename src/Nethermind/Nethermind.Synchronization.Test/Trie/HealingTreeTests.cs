@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices.Marshalling;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nethermind.Core;
@@ -142,7 +143,7 @@ public class HealingTreeTests
 
         public void Dispose() { }
 
-        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles) => false;
+        public bool IsPersisted(Hash256 hash, byte[] nodePathNibbles, Span<byte> accountPathBytes) => false;
 
         public TrieNode FindCachedOrUnknown(Hash256 hash)
         {
@@ -181,7 +182,7 @@ public class HealingTreeTests
             throw new NotImplementedException();
         }
 
-        public byte[]? LoadRlp(Span<byte> nodePath, Hash256? rootHash = null) { return null; }
+        public byte[]? LoadRlp(Span<byte> nodePath, Span<byte> accountPathBytes, Hash256? rootHash = null) { return null; }
 
         public void MarkPrefixDeleted(long blockNumber, ReadOnlySpan<byte> keyPrefix) { }
 
@@ -191,8 +192,8 @@ public class HealingTreeTests
 
         public void PersistNode(TrieNode trieNode, IWriteBatch? batch = null, bool withDelete = false, WriteFlags writeFlags = WriteFlags.None) { }
 
-        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
+        public void PersistNodeData(Span<byte> fullPath, int pathToNodeLength, Span<byte> accountPathBytes, byte[]? rlpData, IWriteBatch? batch = null, WriteFlags writeFlags = WriteFlags.None) { }
 
-        public byte[]? TryLoadRlp(Span<byte> path, IKeyValueStore? keyValueStore) { return null; }
+        public byte[]? TryLoadRlp(Span<byte> path, Span<byte> accountPathBytes, IKeyValueStore? keyValueStore) { return null; }
     }
 }

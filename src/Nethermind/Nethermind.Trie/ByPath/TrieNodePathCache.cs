@@ -269,7 +269,7 @@ public class TrieNodePathCache : IPathTrieNodeCache
 
         AddNodeInternal(path, trieNode, blockNumber);
         if (trieNode.IsLeaf && trieNode.PathToNode.Length < 64)
-            AddNodeInternal(trieNode.StoreNibblePathPrefix.Concat(trieNode.PathToNode).ToArray(), trieNode, blockNumber);
+            AddNodeInternal(trieNode.AccountPath.Concat(trieNode.PathToNode).ToArray(), trieNode, blockNumber);
 
         Pruning.Metrics.CachedNodesCount = Interlocked.Increment(ref _count);
     }
