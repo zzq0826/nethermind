@@ -151,7 +151,7 @@ public partial class VerkleTree
         foreach (StemStateDiff stemStateDiff in execWitness.StateDiff)
             InsertStemBatchStateless(stemStateDiff.Stem, stemStateDiff.SuffixDiffs);
 
-        CommitTree(0);
+        // CommitTree(0);
         return true;
     }
 

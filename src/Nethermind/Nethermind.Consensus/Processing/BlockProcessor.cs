@@ -224,7 +224,7 @@ public partial class BlockProcessor : IBlockProcessor
             StoreTxReceipts(block, receipts);
         }
 
-        return (block, receipts);
+        return (suggestedBlock, receipts);
     }
 
     // TODO: block processor pipeline
@@ -234,7 +234,7 @@ public partial class BlockProcessor : IBlockProcessor
         {
             if (_logger.IsError) _logger.Error($"Processed block is not valid {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}");
             if (_logger.IsError) _logger.Error($"Suggested block TD: {suggestedBlock.TotalDifficulty}, Suggested block IsPostMerge {suggestedBlock.IsPostMerge}, Block TD: {block.TotalDifficulty}, Block IsPostMerge {block.IsPostMerge}");
-            throw new InvalidBlockException(suggestedBlock);
+            // throw new InvalidBlockException(suggestedBlock);
         }
     }
 

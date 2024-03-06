@@ -37,7 +37,7 @@ namespace Nethermind.Api
         public long? ExitOnBlockNumber { get; set; } = null;
         public int BackgroundTaskConcurrency { get; set; } = 1;
 
-        public bool StatelessProcessingEnabled { get; set; } = false;
+        public bool StatelessProcessingEnabled { get; set; } = true;
         public bool VerifyProofsInBlock { get; set; } = false;
         public bool GenerateVerkleProofsForBlock { get; set; } = false;
 

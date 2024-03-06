@@ -32,8 +32,8 @@ public class BlockHashInStateHandler : IBlockHashInStateHandler
         var blockIndex = new UInt256((ulong)blockHeader.Number - 1);
 
         StorageCell blockHashStoreCell = new(eip2935Account, blockIndex);
-        if (!stateProvider.AccountExists(eip2935Account)) stateProvider.CreateAccount(eip2935Account, 0);
-        // if (blockHeader.Number == 1) stateProvider.CreateAccount(eip2935Account, 0);
+        // if (!stateProvider.AccountExists(eip2935Account)) stateProvider.CreateAccount(eip2935Account, 0);
+        if (blockHeader.Number == 1) stateProvider.CreateAccount(eip2935Account, 0);
         stateProvider.Set(blockHashStoreCell, parentBlockHash.Bytes.WithoutLeadingZeros().ToArray());
 
 
