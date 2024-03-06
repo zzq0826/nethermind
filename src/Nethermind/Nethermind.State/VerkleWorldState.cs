@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Nethermind.Core;
@@ -349,6 +350,10 @@ public class VerkleWorldState : IWorldState
     public byte[] GetCode(ValueHash256 codeHash)
     {
         byte[]? code = codeHash == Keccak.OfAnEmptyString ? Array.Empty<byte>() : _codeDb[codeHash.Bytes];
+        if (code is null && codeHash == Keccak.Zero)
+        {
+            code = Array.Empty<byte>();
+        }
         if (code is null)
         {
             throw new InvalidOperationException($"Code {codeHash} is missing from the database.");
@@ -534,7 +539,16 @@ public class VerkleWorldState : IWorldState
 
         // TODO: is there a case where account is even null - anyways deleting a account is not supported in verkle trees
         if (account != null) _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], account.ToVerkleDict());
-        else throw new StateException.StateDeleteNotSupported();
+        else
+        {
+            var verkleDict = new LeafInSubTree[256];
+            for (int i = 0; i < 256; i++)
+            {
+                verkleDict[i] = new LeafInSubTree((byte)i, Keccak.Zero.BytesToArray());
+            }
+            _tree.InsertStemBatch(headerTreeKey.AsSpan()[..31], verkleDict);
+            return;
+        }
         if (account!.Code is not null) _tree.SetCode(address, account.Code);
     }
 
@@ -821,6 +835,10 @@ public class VerkleWorldState : IWorldState
                     }
                 case ChangeType.New:
                     {
+                        if(change.Address == new Address("0x00000000000000000000000000000000000013d5")) SetState(change.Address, null);
+                        if(change.Address == new Address("0x00000000000000000000000000000000000075d0")) SetState(change.Address, null);
+                        if(change.Address == new Address("0x0000000000000000000000000000000000002186")) SetState(change.Address, null);
+
                         // For new accounts we do not need to save empty accounts when Eip158 enabled with Verkle
                         if (change.Account != null && (!releaseSpec.IsEip158Enabled || !change.Account.IsEmpty || isGenesis || change.Address == new Address("0xfffffffffffffffffffffffffffffffffffffffe")))
                         {
@@ -848,14 +866,13 @@ public class VerkleWorldState : IWorldState
                             }
                         }
 
-                        if (!wasItCreatedNow)
+
+                        SetState(change.Address, null);
+                        if (isTracing)
                         {
-                            SetState(change.Address, null);
-                            if (isTracing)
-                            {
-                                trace[change.Address] = new ChangeTrace(null);
-                            }
+                            trace[change.Address] = new ChangeTrace(null);
                         }
+
 
                         break;
                     }

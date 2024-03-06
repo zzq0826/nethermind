@@ -593,6 +593,7 @@ namespace Nethermind.Evm.TransactionProcessing
                         // we already have the EIP6780 enabled, that only adds address to the DestroyList if it was
                         // created in the same transaction - so we can call delete on that account even in the
                         // verkle context - because it technically does not remove anything from the tree
+                        Console.WriteLine($"Address toBeDestroyed in substate.DestroyList: {toBeDestroyed}");
                         WorldState.DeleteAccount(toBeDestroyed);
 
                         if (tracer.IsTracingRefunds)

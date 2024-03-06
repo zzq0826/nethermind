@@ -603,7 +603,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
             {
                 case Instruction.BALANCE:
                     {
-                        result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
+                        // result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
                         break;
                     }
                 case Instruction.EXTCODESIZE:
@@ -627,7 +627,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
                         break;
                     }
                 case Instruction.SELFDESTRUCT:
-                    result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
+                    // result = vmState.Env.Witness.AccessAndChargeForBalance(address, ref gasAvailable);
                     break;
             }
 
@@ -1582,14 +1582,17 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
                     {
                         Metrics.BlockhashOpcode++;
 
-                        Hash256 GetBlockHashFromState(ulong blockNumber)
+                        Hash256? GetBlockHashFromState(ulong blockNumber)
                         {
                             StorageCell blockHashStoreCell = new(spec.Eip2935ContractAddress, blockNumber);
                             // TODO: find a better way to access without charging
                             long fakeGas = 1000000;
-                            vmState.Env.Witness.AccessAndChargeForStorage(storageCell.Address, storageCell.Index,
+                            vmState.Env.Witness.AccessAndChargeForStorage(blockHashStoreCell.Address, blockHashStoreCell.Index,
                                 false, ref fakeGas);
-                            return new Hash256(_worldState.Get(blockHashStoreCell));
+                            ReadOnlySpan<byte> data = _worldState.Get(blockHashStoreCell);
+                            _logger.Info($"Hash256? GetBlockHashFromState(ulong {blockNumber})  {data.ToHexString()}");
+                            if (data.Length < 32) return null;
+                            return new Hash256(data);
                         }
 
                         gasAvailable -= GasCostOf.BlockHash;
@@ -2529,9 +2532,9 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
 
         Address executingAccount = vmState.Env.ExecutingAccount;
         bool createInSameTx = vmState.CreateList.Contains(executingAccount);
-        if (!spec.SelfdestructOnlyOnSameTransaction || createInSameTx)
+        // if (!spec.SelfdestructOnlyOnSameTransaction || createInSameTx)
             vmState.DestroyList.Add(executingAccount);
-
+Console.WriteLine($"executingAccount : {executingAccount}");
         UInt256 result = _state.GetBalance(executingAccount);
         if (_txTracer.IsTracingActions) _txTracer.ReportSelfDestruct(executingAccount, result, inheritor);
         if (spec.ClearEmptyAccountWhenTouched && !result.IsZero && _state.IsDeadAccount(inheritor))
@@ -2540,6 +2543,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         }
 
         bool inheritorAccountExists = _state.AccountExists(inheritor);
+        Console.WriteLine($"inheritor : {inheritor} {inheritorAccountExists} {result}");
         if (!spec.ClearEmptyAccountWhenTouched && !inheritorAccountExists && spec.UseShanghaiDDosProtection)
         {
             if (!UpdateGas(GasCostOf.NewAccount, ref gasAvailable)) return EvmExceptionType.OutOfGas;
