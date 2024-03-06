@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Nethermind.Core;
@@ -58,6 +59,15 @@ public class VerkleWorldState : IWorldState
         _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
         _tree = verkleTree;
         _storageProvider = new VerkleStorageProvider(verkleTree, logManager);
+    }
+
+    public void InsertExecutionWitness(ExecutionWitness? executionWitness, Banderwagon root)
+    {
+        _tree.Reset();
+        if (!_tree.InsertIntoStatelessTree(executionWitness, root))
+        {
+            throw new InvalidDataException("stateless tree cannot be created: invalid proof");
+        }
     }
 
     internal VerkleWorldState(VerklePersistentStorageProvider storageProvider, VerkleStateTree verkleTree, IKeyValueStore? codeDb, ILogManager? logManager)

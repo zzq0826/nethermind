@@ -13,10 +13,11 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
-using Nethermind.Evm.Tracing;
+using Nethermind.Db;
 using Nethermind.Logging;
 using Nethermind.State;
 using Nethermind.Verkle.Curve;
+using Nethermind.Verkle.Tree.TreeStore;
 
 namespace Nethermind.Consensus.Processing;
 
@@ -24,6 +25,7 @@ public class StatelessBlockProcessor : BlockProcessor, IBlockProcessor
 {
     private readonly ILogger _logger;
     private readonly ILogManager _logManager;
+    private readonly VerkleWorldState _statelessWorldState;
 
     bool IBlockProcessor.CanProcessStatelessBlock => true;
 
@@ -52,6 +54,9 @@ public class StatelessBlockProcessor : BlockProcessor, IBlockProcessor
     {
         _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager)); ;
         _logger = _logManager.GetClassLogger<StatelessBlockProcessor>();
+        EmptyVerkleTreeStore stateStore = new();
+        VerkleStateTree? tree = new(stateStore, logManager);
+        _statelessWorldState = new VerkleWorldState(tree, new MemDb(), logManager);
     }
 
     protected override void InitBranch(Hash256 branchStateRoot, bool incrementReorgMetric = true)
@@ -67,7 +72,9 @@ public class StatelessBlockProcessor : BlockProcessor, IBlockProcessor
         {
             block.Header.MaybeParent!.TryGetTarget(out BlockHeader maybeParent);
             Banderwagon stateRoot = Banderwagon.FromBytes(maybeParent!.StateRoot!.Bytes.ToArray())!.Value;
-            worldState = new VerkleWorldState(block.ExecutionWitness!, stateRoot, _logManager);
+            _statelessWorldState.Reset();
+            _statelessWorldState.InsertExecutionWitness(block.ExecutionWitness!, stateRoot);
+            worldState = _statelessWorldState;
             blockTransactionsExecutor = _blockTransactionsExecutor.WithNewStateProvider(worldState);
         }
         else
