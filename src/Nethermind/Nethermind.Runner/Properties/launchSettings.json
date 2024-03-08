@@ -44,7 +44,7 @@
     },
     "Goerli": {
       "commandName": "Project",
-      "commandLineArgs": "-c goerli -dd .data",
+      "commandLineArgs": "-c goerli -dd .data ",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -86,9 +86,10 @@
     },
     "Holesky": {
       "commandName": "Project",
-      "commandLineArgs": "-c holesky -dd .data",
+      "commandLineArgs": "-c holesky -dd .data --JsonRpc.Timeout 100000000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "NETHERMIND_HIVE_ENABLED": "true"
       }
     },
     "Holesky (archive)": {
