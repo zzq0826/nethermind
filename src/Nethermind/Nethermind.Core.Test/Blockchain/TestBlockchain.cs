@@ -282,12 +282,12 @@ public class TestBlockchain : IDisposable
 
     public virtual ILogManager LogManager { get; set; } = LimboLogs.Instance;
 
-    protected virtual TxPool.TxPool CreateTxPool() =>
+    public virtual TxPool.TxPool CreateTxPool(ITxPoolConfig? txPoolConfig = null) =>
         new(
             EthereumEcdsa,
             new BlobTxStorage(),
             new ChainHeadInfoProvider(new FixedForkActivationChainHeadSpecProvider(SpecProvider), BlockTree, ReadOnlyState),
-            new TxPoolConfig() { BlobsSupport = BlobsSupportMode.InMemory },
+            txPoolConfig ?? new TxPoolConfig() { BlobsSupport = BlobsSupportMode.InMemory },
             new TxValidator(SpecProvider.ChainId),
             LogManager,
             TransactionComparerProvider.GetDefaultComparer());

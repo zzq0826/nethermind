@@ -29,6 +29,7 @@ using Nethermind.Specs;
 using Nethermind.Specs.Forks;
 using Nethermind.State;
 using Nethermind.State.Repositories;
+using Nethermind.TxPool;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -616,6 +617,44 @@ public partial class EngineModuleTests
         }
 
         secondBlock.Result.Data.Status.Should().Be(PayloadStatus.Valid);
+    }
+
+    [Test, Repeat(2)]
+    public async Task Cannot_exceed_blob_pool_capacity([Values(0, 1, 10, 100)] int capacity, [Values(10, 100)] int blocksToProcess)
+    {
+
+        using MergeTestBlockchain chain = await CreateBlockchain(new TestSingleReleaseSpecProvider(Cancun.Instance), LimboLogs.Instance);
+
+        TxPoolConfig txPoolConfig = new(){ BlobsSupport = BlobsSupportMode.InMemory, InMemoryBlobPoolSize = capacity };
+        chain.TxPool = chain.CreateTxPool(txPoolConfig);
+
+        IEngineRpcModule rpc = CreateEngineModule(chain);
+
+        for (int i = 0; i < blocksToProcess; i++)
+        {
+            Hash256 headBlockHash = chain.BlockTree.HeadHash;
+
+            chain.AddTransactions(BuildTransactions(chain, headBlockHash, TestItem.PrivateKeyB, TestItem.AddressF, 3, 10, out _, out _, 1));
+            chain.TxPool.GetPendingBlobTransactionsCount().Should().Be(capacity);
+
+            string? payloadId = rpc.engine_forkchoiceUpdatedV1(
+                    new ForkchoiceStateV1(headBlockHash, Keccak.Zero, headBlockHash),
+                    new PayloadAttributes { Timestamp = (ulong)DateTime.UtcNow.AddDays(3).Ticks, PrevRandao = TestItem.KeccakA, SuggestedFeeRecipient = Address.Zero })
+                .Result.Data.PayloadId!;
+
+            chain.AddTransactions(BuildTransactions(chain, headBlockHash, TestItem.PrivateKeyC, TestItem.AddressA, 3, 10, out _, out _, 1));
+            chain.TxPool.GetPendingBlobTransactionsCount().Should().Be(capacity);
+
+            ExecutionPayload getPayloadResult = (await rpc.engine_getPayloadV1(Bytes.FromHexString(payloadId))).Data!;
+            getPayloadResult.Should().NotBeNull();
+
+            chain.AddTransactions(BuildTransactions(chain, headBlockHash, TestItem.PrivateKeyA, TestItem.AddressC, 5, 10, out _, out _, 1));
+            chain.TxPool.GetPendingBlobTransactionsCount().Should().Be(capacity);
+
+            Task<ResultWrapper<PayloadStatusV1>> result1 = await rpc.engine_newPayloadV1(getPayloadResult);
+            result1.Result.Data.Status.Should().Be(PayloadStatus.Valid);
+        }
+
     }
 
     [Test]
