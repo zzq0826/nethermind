@@ -72,6 +72,27 @@ namespace Nethermind.Merge.Plugin.Test
             return Enumerable.Range(0, (int)count).Select(i => BuildTransaction((uint)i, account)).ToArray();
         }
 
+        private IEnumerable<Transaction> BuildBlobTransactions(MergeTestBlockchain chain, Hash256 parentHash, int iteration, bool replacements)
+        {
+            foreach (PrivateKey privateKey in TestItem.PrivateKeys)
+            {
+                BlockHeader parentHeader = chain.BlockTree.FindHeader(parentHash, BlockTreeLookupOptions.None)!;
+                Account account = chain.StateReader.GetAccount(parentHeader.StateRoot!, privateKey.Address)!;
+
+                int nonce = (int)account.Nonce + iteration * TestItem.PrivateKeys.Length;
+                int price = (int)Math.Pow(2, iteration);
+                yield return Build.A.Transaction
+                    .WithNonce(replacements ? account.Nonce : (UInt256)nonce)
+                    .WithTimestamp(Timestamper.UnixTime.Seconds)
+                    .WithShardBlobTxTypeAndFields()
+                    .WithMaxFeePerGas(price.GWei())
+                    .WithMaxPriorityFeePerGas(price.GWei())
+                    .WithMaxFeePerBlobGas(price.Wei())
+                    .WithSenderAddress(privateKey.Address)
+                    .SignedAndResolved(privateKey).TestObject;
+            }
+        }
+
         private ExecutionPayload CreateParentBlockRequestOnHead(IBlockTree blockTree)
         {
             Block? head = blockTree.Head;
