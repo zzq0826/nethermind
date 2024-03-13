@@ -27,7 +27,7 @@ namespace Nethermind.Db.Test
             ILogger logger = Substitute.For<ILogger>();
 
             string testDump = File.ReadAllText(@"InputFiles/CompactionStatsExample_AllData.txt");
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessCompactionStats(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessCompactionStats(testDump);
 
             Assert.That(Metrics.DbStats.Count, Is.EqualTo(11));
             Assert.That(Metrics.DbStats[("TestDb", "Level0Files")], Is.EqualTo(2));
@@ -46,10 +46,10 @@ namespace Nethermind.Db.Test
         [Test]
         public void ProcessStats_AllDataExist()
         {
-            InterfaceLogger logger = Substitute.For<InterfaceLogger>();
+            ILogger logger = Substitute.For<ILogger>();
 
             string testDump = File.ReadAllText(@"InputFiles/SampleStats.txt");
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessStatisticsString(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessStatisticsString(testDump);
 
             Assert.That(Metrics.DbStats[("TestDb", "rocksdb.prefetch.bytes")], Is.EqualTo(1));
             Assert.That(Metrics.DbStats[("TestDb", "rocksdb.prefetch.bytes.useful")], Is.EqualTo(2));
@@ -64,7 +64,7 @@ namespace Nethermind.Db.Test
             ILogger logger = Substitute.For<ILogger>();
 
             string testDump = File.ReadAllText(@"InputFiles/CompactionStatsExample_MissingLevels.txt");
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessCompactionStats(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessCompactionStats(testDump);
 
             Assert.That(Metrics.DbStats.Count, Is.EqualTo(5));
             Assert.That(Metrics.DbStats[("TestDb", "IntervalCompactionGBWrite")], Is.EqualTo(10));
@@ -80,7 +80,7 @@ namespace Nethermind.Db.Test
             ILogger logger = Substitute.For<ILogger>();
 
             string testDump = File.ReadAllText(@"InputFiles/CompactionStatsExample_MissingIntervalCompaction.txt");
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessCompactionStats(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessCompactionStats(testDump);
 
             Assert.That(Metrics.DbStats.Count, Is.EqualTo(6));
             Assert.That(Metrics.DbStats[("TestDb", "Level0Files")], Is.EqualTo(2));
@@ -99,7 +99,7 @@ namespace Nethermind.Db.Test
             ILogger logger = Substitute.For<ILogger>();
 
             string testDump = string.Empty;
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessCompactionStats(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessCompactionStats(testDump);
 
             Assert.That(Metrics.DbStats.Count, Is.EqualTo(0));
 
@@ -112,7 +112,7 @@ namespace Nethermind.Db.Test
             ILogger logger = Substitute.For<ILogger>();
 
             string testDump = null;
-            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, new(logger)).ProcessCompactionStats(testDump);
+            new DbMetricsUpdater<DbOptions>("Test", null, null, null, null, logger).ProcessCompactionStats(testDump);
 
             Assert.That(Metrics.DbStats.Count, Is.EqualTo(0));
 

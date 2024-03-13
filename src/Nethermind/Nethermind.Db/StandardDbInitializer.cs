@@ -43,7 +43,7 @@ namespace Nethermind.Db
             RegisterDb(BuildDbSettings(DbNames.BlockInfos));
             RegisterDb(BuildDbSettings(DbNames.BadBlocks));
 
-            DbSettings stateDbSettings = BuildDbSettings(DbNames.State);
+            RocksDbSettings stateDbSettings = BuildDbSettings(DbNames.State);
             RegisterCustomDb(DbNames.State, () => new FullPruningDb(
                 stateDbSettings,
                 PersistedDb
@@ -70,7 +70,7 @@ namespace Nethermind.Db
             }
         }
 
-        private static DbSettings BuildDbSettings(string dbName, bool deleteOnStart = false)
+        private static RocksDbSettings BuildDbSettings(string dbName, bool deleteOnStart = false)
         {
             return new(GetTitleDbName(dbName), dbName)
             {
