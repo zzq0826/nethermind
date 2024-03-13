@@ -55,11 +55,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 {
                     clonedHeader.BaseFeePerGas = 0;
                 }
-                bool noBlobGasFee = transactionCall.MaxFeePerBlobGas is null;
-                if (noBlobGasFee)
-                {
-                    clonedHeader.BlobGasUsed = 0;
-                }
 
                 transactionCall.EnsureDefaults(_rpcConfig.GasCap);
 
