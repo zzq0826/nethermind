@@ -75,7 +75,7 @@ namespace Nethermind.TxPool.Collections
         {
             using var lockRelease = Lock.Acquire();
 
-            EnsureCapacity();
+            VerifyCapacity();
             foreach ((AddressAsKey address, EnhancedSortedSet<Transaction> bucket) in _buckets)
             {
                 Debug.Assert(bucket.Count > 0);
@@ -133,6 +133,10 @@ namespace Nethermind.TxPool.Collections
             }
         }
 
-        protected override string ShortPoolName => "TxPool";
+        public virtual void VerifyCapacity()
+        {
+            if (_logger.IsWarn && Count > _poolCapacity)
+                _logger.Warn($"TxPool exceeds the config size {Count}/{_poolCapacity}");
+        }
     }
 }
