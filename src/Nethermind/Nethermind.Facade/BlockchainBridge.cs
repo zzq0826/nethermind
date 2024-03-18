@@ -179,7 +179,7 @@ namespace Nethermind.Facade
 
             GasEstimator gasEstimator = new(readOnlyTransactionProcessor, _processingEnv.StateProvider,
                 _specProvider, _blocksConfig);
-            long estimate = gasEstimator.Estimate(tx, header, estimateGasTracer, errorMargin, cancellationToken);
+            long estimate = gasEstimator.Estimate(tx, header, errorMargin, cancellationToken);
 
             return new CallOutput
             {

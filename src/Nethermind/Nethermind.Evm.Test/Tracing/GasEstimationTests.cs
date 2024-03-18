@@ -50,7 +50,7 @@ namespace Nethermind.Evm.Test.Tracing
                 Array.Empty<byte>()); // this would not happen but we want to ensure that precompiles are ignored
             testEnvironment.tracer.ReportActionEnd(600, Array.Empty<byte>());
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(0);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(0);
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace Nethermind.Evm.Test.Tracing
                 ExecutionType.TRANSACTION, false);
             testEnvironment.tracer.ReportActionEnd(600, Array.Empty<byte>());
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(0);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(0);
         }
 
         [Test]
@@ -107,7 +107,7 @@ namespace Nethermind.Evm.Test.Tracing
                 testEnvironment.tracer.ReportActionEnd(300, Array.Empty<byte>()); // should not happen
             }
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(14L);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(14L);
         }
 
         [Test]
@@ -137,7 +137,7 @@ namespace Nethermind.Evm.Test.Tracing
                 testEnvironment.tracer.ReportActionEnd(500, Array.Empty<byte>()); // should not happen
             }
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(24L);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(24L);
         }
 
         [Test]
@@ -161,7 +161,7 @@ namespace Nethermind.Evm.Test.Tracing
             testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 96000000);
             testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 98000000);
             testEnvironment.tracer.ReportActionError(EvmExceptionType.Revert, 99000000);
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(35146L);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(35146L);
         }
 
         [Test]
@@ -179,7 +179,7 @@ namespace Nethermind.Evm.Test.Tracing
             testEnvironment.tracer.ReportActionEnd(63, Array.Empty<byte>()); // second level
             testEnvironment.tracer.ReportActionEnd(65, Array.Empty<byte>());
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(1);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(1);
         }
 
         [Test]
@@ -228,7 +228,7 @@ namespace Nethermind.Evm.Test.Tracing
                 testEnvironment.tracer.ReportActionEnd(500, Array.Empty<byte>()); // should not happen
             }
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(18);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(18);
         }
 
         [Test]
@@ -258,7 +258,7 @@ namespace Nethermind.Evm.Test.Tracing
                 testEnvironment.tracer.ReportActionEnd(500, Array.Empty<byte>()); // should not happen
             }
 
-            testEnvironment.estimator.Estimate(tx, block.Header, testEnvironment.tracer).Should().Be(17);
+            testEnvironment.estimator.Estimate(tx, block.Header).Should().Be(17);
         }
 
         [TestCase(-1)]
@@ -278,7 +278,7 @@ namespace Nethermind.Evm.Test.Tracing
                 MainnetSpecProvider.Instance,
                 new BlocksConfig());
 
-            Assert.That(()=> sut.Estimate(tx, block.Header, tracer, errorMargin), Throws.TypeOf<ArgumentException>());
+            Assert.That(()=> sut.Estimate(tx, block.Header, errorMargin), Throws.TypeOf<ArgumentException>());
         }
 
 
@@ -302,7 +302,7 @@ namespace Nethermind.Evm.Test.Tracing
                 MainnetSpecProvider.Instance,
                 new BlocksConfig());
 
-            long result = sut.Estimate(tx, block.Header, tracer, errorMargin);
+            long result = sut.Estimate(tx, block.Header, errorMargin);
 
             Assert.That(result, Is.EqualTo(totalGas).Within(totalGas * (errorMargin / 10000d + 1)));
         }
@@ -323,7 +323,7 @@ namespace Nethermind.Evm.Test.Tracing
                 MainnetSpecProvider.Instance,
                 new BlocksConfig());
 
-            long result = sut.Estimate(tx, block.Header, tracer, GasEstimator.DefaultErrorMargin);
+            long result = sut.Estimate(tx, block.Header, GasEstimator.DefaultErrorMargin);
 
             Assert.That(result, Is.Not.EqualTo(totalGas).Within(10));
         }
@@ -333,9 +333,7 @@ namespace Nethermind.Evm.Test.Tracing
         {
             Transaction tx = Build.A.Transaction.WithGasLimit(30000).TestObject;
             Block block = Build.A.Block.WithNumber(1).WithTransactions(tx).TestObject;
-            EstimateGasTracer tracer = new();
             const int totalGas = Transaction.BaseTxGasCost * 2;
-            tracer.MarkAsSuccess(Address.Zero, totalGas, Array.Empty<byte>(), Array.Empty<LogEntry>());
             IReadOnlyStateProvider stateProvider = Substitute.For<IReadOnlyStateProvider>();
             stateProvider.GetBalance(Arg.Any<Address>()).Returns(new UInt256(1));
             GasEstimator sut = new GasEstimator(
@@ -344,7 +342,7 @@ namespace Nethermind.Evm.Test.Tracing
                 MainnetSpecProvider.Instance,
                 new BlocksConfig());
 
-            long result = sut.Estimate(tx, block.Header, tracer, 0);
+            long result = sut.Estimate(tx, block.Header, 0);
 
             Assert.That(result, Is.EqualTo(totalGas));
         }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using Nethermind.Config;
 using Nethermind.Core;
@@ -34,11 +35,11 @@ namespace Nethermind.Evm.Tracing
             _blocksConfig = blocksConfig;
         }
 
-        public long Estimate(Transaction tx, BlockHeader header, EstimateGasTracer gasTracer, CancellationToken token = new())
+        public long Estimate(Transaction tx, BlockHeader header, CancellationToken token = new())
         {
-            return Estimate(tx, header, gasTracer, DefaultErrorMargin, token);
+            return Estimate(tx, header, DefaultErrorMargin, token);
         }
-        public long Estimate(Transaction tx, BlockHeader header, EstimateGasTracer gasTracer, int errorMargin, CancellationToken token = new())
+        public long Estimate(Transaction tx, BlockHeader header, int errorMargin, CancellationToken token = new())
         {
             if (errorMargin < 0) throw new ArgumentException("Cannot be negative.", nameof(errorMargin));
             if (errorMargin >= 10000) throw new ArgumentException("Expression cannot exceed 100% in basis points.", nameof(errorMargin));
@@ -47,25 +48,29 @@ namespace Nethermind.Evm.Tracing
             tx.SenderAddress ??= Address.Zero; // If sender is not specified, use zero address.
             tx.GasLimit = Math.Min(tx.GasLimit, header.GasLimit); // Limit Gas to the header
 
+            EstimateGasTracer estimateGasTracer = new();
+            var blockExecutionContext = new BlockExecutionContext(header);
+            _transactionProcessor.CallAndRestore(tx, in blockExecutionContext, estimateGasTracer.WithCancellation(token));
+
             // Calculate and return additional gas required in case of insufficient funds.
             UInt256 senderBalance = _stateProvider.GetBalance(tx.SenderAddress);
             if (tx.Value != UInt256.Zero && tx.Value > senderBalance)
             {
-                return gasTracer.CalculateAdditionalGasRequired(tx, releaseSpec);
+                return estimateGasTracer.CalculateAdditionalGasRequired(tx, releaseSpec);
             }
-
+   
             long intrinsicGas = IntrinsicGasCalculator.Calculate(tx, releaseSpec);
 
             // Setting boundaries for binary search - determine lowest and highest gas can be used during the estimation:
-            long leftBound = (gasTracer.GasSpent != 0 && gasTracer.GasSpent >= intrinsicGas)
-                ? gasTracer.GasSpent - 1
+            long leftBound = (estimateGasTracer.GasSpent != 0 && estimateGasTracer.GasSpent >= intrinsicGas)
+                ? estimateGasTracer.GasSpent - 1
                 : intrinsicGas - 1;
             long rightBound = (tx.GasLimit != 0 && tx.GasLimit >= intrinsicGas)
                 ? tx.GasLimit
                 : header.GasLimit;
 
             // Execute binary search to find the optimal gas estimation.
-            return BinarySearchEstimate(leftBound, rightBound, tx, header, gasTracer, errorMargin, token);
+            return BinarySearchEstimate(leftBound, rightBound, tx, header, estimateGasTracer, errorMargin, token);
         }
 
         private long BinarySearchEstimate(long leftBound, long rightBound, Transaction tx, BlockHeader header, EstimateGasTracer gasTracer, int errorMargin, CancellationToken token)
