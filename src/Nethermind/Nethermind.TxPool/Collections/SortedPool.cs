@@ -311,7 +311,6 @@ namespace Nethermind.TxPool.Collections
                 if (group is not null)
                 {
                     InsertCore(key, value, group);
-                    _logger.Warn($"Capacity exceeded or failed to remove the last item from the pool, the current state is {Count}/{_capacity}. {GetInfoAboutWorstValues()}");
 
                     if (_cacheMap.Count > _capacity)
                     {
