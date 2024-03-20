@@ -223,6 +223,7 @@ namespace Nethermind.TxPool.Collections
 
                     Removed?.Invoke(this, new SortedPoolRemovedEventArgs(key, value, groupMapping, evicted));
                 }
+                else if (_logger.IsWarn) _logger.Warn($"Failed to remove value in TryRemoveNonLocked -> Remove.");
             }
 
             value = default;
@@ -310,13 +311,14 @@ namespace Nethermind.TxPool.Collections
                 if (group is not null)
                 {
                     InsertCore(key, value, group);
+                    _logger.Warn($"Capacity exceeded or failed to remove the last item from the pool, the current state is {Count}/{_capacity}. {GetInfoAboutWorstValues()}");
 
                     if (_cacheMap.Count > _capacity)
                     {
                         if (!RemoveLast(out removed) || _cacheMap.Count > _capacity)
                         {
                             if (_cacheMap.Count > _capacity && _logger.IsWarn)
-                                _logger.Warn($"Capacity exceeded or failed to remove the last item from the pool, the current state is {Count}/{_capacity}. {GetInfoAboutWorstValues}");
+                                _logger.Warn($"Capacity exceeded or failed to remove the last item from the pool, the current state is {Count}/{_capacity}. {GetInfoAboutWorstValues()}");
                             UpdateWorstValue();
                             RemoveLast(out removed);
                         }
@@ -338,12 +340,72 @@ namespace Nethermind.TxPool.Collections
         private bool RemoveLast(out TValue? removed)
         {
             TKey? key = _worstValue.GetValueOrDefault().Value;
+            TValue? value = _worstValue.GetValueOrDefault().Key;
             if (key is not null)
             {
-                return TryRemoveNonLocked(key, true, out removed, out _);
+                if (TryRemoveNonLocked(key, true, out removed, out _))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (_logger.IsWarn) _logger.Warn($"Failed to remove value in TryRemoveNonLocked. Trying workaround");
+
+                    bool foundInMap = _cacheMap.TryGetValue(key, out var valueFromMap);
+                    if (_logger.IsWarn) _logger.Warn($"FoundInMap: {foundInMap}; Value from cacheMap: {valueFromMap}");
+
+                    TGroupKey groupMapping = MapToGroup(value);
+                    if (_buckets.TryGetValue(groupMapping, out EnhancedSortedSet<TValue>? bucketSet))
+                    {
+                        TValue? last = bucketSet.Max;
+                        if (bucketSet.Remove(value!))
+                        {
+                            if (bucketSet.Count == 0)
+                            {
+                                _buckets.Remove(groupMapping);
+                                if (last is not null)
+                                {
+                                    _worstSortedValues.Remove(last);
+                                    UpdateWorstValue();
+                                }
+                            }
+                            else
+                            {
+                                UpdateSortedValues(bucketSet, last);
+                            }
+                            if (_logger.IsWarn) _logger.Warn($"Removed value from bucket without checking in cacheMap");
+
+                            _snapshot = null;
+
+                            return true;
+                        }
+                        else
+                        {
+                            if (_logger.IsWarn) _logger.Warn($"Failed to remove {value} from bucket. Removing last from worstSortedValues. Worst (last) in bucket was: {last}");
+                            if (last is not null)
+                            {
+                                _worstSortedValues.Remove(last);
+                                UpdateWorstValue();
+                                _snapshot = null;
+                                return true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (_logger.IsWarn) _logger.Warn($"Failed to load bucket {groupMapping}. Removing value from worstSortedValues");
+                        _worstSortedValues.Remove(value);
+                        UpdateWorstValue();
+                        _snapshot = null;
+                        return true;
+                    }
+
+                    return false;
+                }
             }
             else
             {
+                if (_logger.IsWarn) _logger.Warn($"Failed to remove value from bucket, not found in _worstValue.GetValueOrDefault()");
                 removed = default;
                 return false;
             }
@@ -477,12 +539,12 @@ namespace Nethermind.TxPool.Collections
                 if (RemoveLast(out TValue? removed))
                 {
                     if (_logger.IsInfo)
-                        _logger.Info($"Removed the last item {removed} from the pool, the current state is {Count}/{expectedCapacity}. {GetInfoAboutWorstValues}");
+                        _logger.Info($"Removed the last item {removed} from the pool, the current state is {Count}/{expectedCapacity}. {GetInfoAboutWorstValues()}");
                 }
                 else
                 {
                     if (_logger.IsWarn)
-                        _logger.Warn($"Failed to remove the last item from the pool, the current state is {Count}/{expectedCapacity}. {GetInfoAboutWorstValues}");
+                        _logger.Warn($"Failed to remove the last item from the pool, the current state is {Count}/{expectedCapacity}. {GetInfoAboutWorstValues()}");
                     UpdateWorstValue();
                 }
 
@@ -494,8 +556,7 @@ namespace Nethermind.TxPool.Collections
         {
             TKey? key = _worstValue.GetValueOrDefault().Value;
             var isWorstValueInPool = _cacheMap.TryGetValue(key, out TValue? value) && value != null;
-            return
-                $"Worst value {_worstValue}, items in worstSortedValues {_worstSortedValues.Count}, GetVakye: {_worstValue.GetValueOrDefault()} current max in worst values {_worstSortedValues.Max}, IsWorstValueInPool {isWorstValueInPool}";
+            return $"Number of items in worstSortedValues: {_worstSortedValues.Count}; IsWorstValueInPool: {isWorstValueInPool}; Worst value: {_worstValue}; GetValue: {_worstValue.GetValueOrDefault()}; Current max in worstSortedValues: {_worstSortedValues.Max};";
         }
 
         public void UpdatePool(Func<TGroupKey, IReadOnlySortedSet<TValue>, IEnumerable<(TValue Tx, Action<TValue>? Change)>> changingElements)
