@@ -64,12 +64,18 @@ namespace Nethermind.Consensus.Clique
 
             // Sign all the things!
             Hash256 headerHash = SnapshotManager.CalculateCliqueHeaderHash(header);
-
             Signature signature;
-            if (_signer is ClefSigner clefSigner)
-                signature = clefSigner.SignCliqueHeader(SnapshotManager.CalculateCliqueRlp(header));
+            if (_signer.CanSignHeader)
+            {
+                Hash256 original = header.Hash;
+                header.Hash = headerHash;
+                signature = _signer.Sign(header);
+                header.Hash = original;
+            }
             else
+            {
                 signature = _signer.Sign(headerHash);
+            }
 
             // Copy signature bytes (R and S)
             byte[] signatureBytes = signature.Bytes;
