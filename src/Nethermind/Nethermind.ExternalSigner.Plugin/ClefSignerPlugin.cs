@@ -20,15 +20,15 @@ public class ClefSignerPlugin : INethermindPlugin
 {
     private INethermindApi? _nethermindApi;
 
-    public string Name => throw new NotImplementedException();
+    public string Name => "Clef signer";
 
-    public string Description => throw new NotImplementedException();
+    public string Description => "Enabled signing from a remote Clef instance over Json RPC.";
 
-    public string Author => throw new NotImplementedException();
+    public string Author => "Nethermind";
 
     public ValueTask DisposeAsync()
     {
-        throw new NotImplementedException();
+        return ValueTask.CompletedTask;
     }
 
     public Task Init(INethermindApi nethermindApi)
@@ -52,9 +52,10 @@ public class ClefSignerPlugin : INethermindPlugin
         {
             if (!string.IsNullOrEmpty(miningConfig.Signer))
             {
-                ClefSigner signerAndStore =
+                JsonRpcUrl.Parse(miningConfig.Signer);
+                ClefSigner signer =
                     await SetupExternalSigner(miningConfig.Signer, _nethermindApi.Config<IKeyStoreConfig>().BlockAuthorAccount);
-                _nethermindApi.EngineSigner = signerAndStore;
+                _nethermindApi.EngineSigner = signer;
             }
         }
     }
