@@ -22,7 +22,6 @@ public class ClefSigner : ISigner, ISignerStore
     {
         this.rpcClient = rpcClient;
         Address = author;
-        CanSign = true;
         _headerDecoder = new HeaderDecoder();
     }
 
@@ -34,7 +33,7 @@ public class ClefSigner : ISigner, ISignerStore
 
     public Address Address { get; private set; }
 
-    public bool CanSign { get; }
+    public bool CanSign => true;
 
     public bool CanSignHeader => true;
 

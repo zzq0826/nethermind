@@ -7,9 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Extensions;
 using Nethermind.Crypto;
 using Nethermind.JsonRpc;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 
 [assembly: InternalsVisibleTo("Nethermind.Clique.Test")]
 
@@ -67,10 +69,11 @@ namespace Nethermind.Consensus.Clique
             Signature signature;
             if (_signer.CanSignHeader)
             {
-                Hash256 original = header.Hash;
-                header.Hash = headerHash;
-                signature = _signer.Sign(header);
-                header.Hash = original;
+                BlockHeader clone = header.Clone();
+                int extraSeal = 65;
+                clone.ExtraData = clone.ExtraData.Slice(0, clone.ExtraData.Length - extraSeal);
+                clone.Hash = headerHash;
+                signature = _signer.Sign(clone);
             }
             else
             {

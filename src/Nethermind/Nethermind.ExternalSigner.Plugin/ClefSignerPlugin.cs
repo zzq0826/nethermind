@@ -2,10 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Api;
-
-// SPDX-FileCopyrightText: 2024 Demerzel Solutions Limited
-// SPDX-License-Identifier: LGPL-3.0-only
-
 using Nethermind.Api.Extensions;
 using Nethermind.Core;
 using Nethermind.JsonRpc.Client;
@@ -13,6 +9,7 @@ using Nethermind.JsonRpc;
 using Nethermind.Network;
 using Nethermind.Consensus;
 using Nethermind.KeyStore.Config;
+using System.Configuration;
 
 namespace Nethermind.ExternalSigner.Plugin;
 
@@ -31,19 +28,10 @@ public class ClefSignerPlugin : INethermindPlugin
         return ValueTask.CompletedTask;
     }
 
-    public Task Init(INethermindApi nethermindApi)
+    public async Task Init(INethermindApi nethermindApi)
     {
         _nethermindApi = nethermindApi ?? throw new ArgumentNullException(nameof(nethermindApi));
-        return Task.CompletedTask;
-    }
 
-    public Task InitNetworkProtocol()
-    {
-        return Task.CompletedTask;
-    }
-
-    public async Task InitRpcModules()
-    {
         if (_nethermindApi == null)
             throw new InvalidOperationException("Init() must be called first.");
 
@@ -52,20 +40,35 @@ public class ClefSignerPlugin : INethermindPlugin
         {
             if (!string.IsNullOrEmpty(miningConfig.Signer))
             {
-                JsonRpcUrl.Parse(miningConfig.Signer);
+                Uri? uri;
+                if (!Uri.TryCreate(miningConfig.Signer, UriKind.Absolute, out uri))
+                {
+                    throw new ConfigurationErrorsException($"{miningConfig.Signer} must have be a valid uri.");
+                }
                 ClefSigner signer =
-                    await SetupExternalSigner(miningConfig.Signer, _nethermindApi.Config<IKeyStoreConfig>().BlockAuthorAccount);
+                    await SetupExternalSigner(uri, _nethermindApi.Config<IKeyStoreConfig>().BlockAuthorAccount);
                 _nethermindApi.EngineSigner = signer;
             }
         }
+
     }
 
-    private async Task<ClefSigner> SetupExternalSigner(string urlSigner, string blockAuthorAccount)
+    public Task InitNetworkProtocol()
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task InitRpcModules()
+    {
+        return Task.CompletedTask;
+    }
+
+    private async Task<ClefSigner> SetupExternalSigner(Uri urlSigner, string blockAuthorAccount)
     {
         try
         {
             Address? address = string.IsNullOrEmpty(blockAuthorAccount) ? null : new Address(blockAuthorAccount);
-            BasicJsonRpcClient rpcClient = new(new Uri(urlSigner), _nethermindApi!.EthereumJsonSerializer, _nethermindApi.LogManager, TimeSpan.FromSeconds(10));
+            BasicJsonRpcClient rpcClient = new(urlSigner, _nethermindApi!.EthereumJsonSerializer, _nethermindApi.LogManager, TimeSpan.FromSeconds(10));
             _nethermindApi.DisposeStack.Push(rpcClient);
             return await ClefSigner.Create(rpcClient, address);
         }
