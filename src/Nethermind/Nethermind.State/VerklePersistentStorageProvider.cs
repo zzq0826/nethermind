@@ -185,7 +185,7 @@ internal class VerklePersistentStorageProvider : PartialStorageProviderBase
     {
         Db.Metrics.StorageTreeReads++;
         Hash256? key = AccountHeader.GetTreeKeyForStorageSlot(storageCell.Address.Bytes, storageCell.Index);
-        byte[] value = (_verkleTree.Get(key) ?? Array.Empty<byte>()).ToArray();
+        byte[] value = _verkleTree.Get(key) ?? Array.Empty<byte>();
         PushToRegistryOnly(storageCell, value);
         return value;
     }
