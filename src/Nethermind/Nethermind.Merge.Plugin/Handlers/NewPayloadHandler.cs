@@ -98,8 +98,8 @@ public class NewPayloadHandler : IAsyncHandler<ExecutionPayload, PayloadStatusV1
 
         if (!HeaderValidator.ValidateHash(block!.Header))
         {
-            if (_logger.IsWarn) _logger.Warn($"InvalidBlockHash. Result of {requestStr}.");
-            return NewPayloadV1Result.Invalid(null, $"Invalid block hash {request.BlockHash}");
+            if (_logger.IsWarn) _logger.Warn($"InvalidBlockHash. Result of {requestStr}, calculated: {block.Header.CalculateHash()}.");
+            return NewPayloadV1Result.Invalid(null, $"Invalid block hash {request.BlockHash}, calculated: {block.Header.CalculateHash()}");
         }
 
         _invalidChainTracker.SetChildParent(block.Hash!, block.ParentHash!);
