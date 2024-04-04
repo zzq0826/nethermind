@@ -61,6 +61,7 @@
       }
     },
     "difficulty": "0x01",
+    "baseFeePerGas": "0x7",
     "author": "0x0000000000000000000000000000000000000000",
     "extraData": "",
     "gasLimit": "0x5D21DBA00",
