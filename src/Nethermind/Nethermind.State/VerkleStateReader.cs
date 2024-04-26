@@ -97,6 +97,11 @@ public class VerkleStateReader : IStateReader
         return _state.HasStateForStateRoot(stateRoot);
     }
 
+    public Account? GetAccountDefault(Hash256 stateRoot, Address address)
+    {
+        throw new NotImplementedException();
+    }
+
     private AccountStruct? GetState(Hash256 stateRoot, Address address)
     {
         if (stateRoot == Keccak.EmptyTreeHash || stateRoot == Hash256.Zero)
