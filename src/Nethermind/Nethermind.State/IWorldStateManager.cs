@@ -11,8 +11,10 @@ public interface IWorldStateManager
     IWorldState GlobalWorldState { get; }
     IStateReader GlobalStateReader { get; }
 
+    IReadOnlyStateProvider GlobalChainHeadProvider { get; set; }
+
     /// <summary>
-    /// Used by read only tasks that need to execute blocks.
+    /// Used by read-only tasks that need to execute blocks.
     /// </summary>
     /// <returns></returns>
     IWorldState CreateResettableWorldState();

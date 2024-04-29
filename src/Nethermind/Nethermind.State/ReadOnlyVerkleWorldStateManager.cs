@@ -36,6 +36,8 @@ public class ReadOnlyVerkleWorldStateManager : IWorldStateManager
 
     public IStateReader GlobalStateReader { get; }
 
+    public IReadOnlyStateProvider GlobalChainHeadProvider { get; set; }
+
     public IWorldState CreateResettableWorldState()
     {
         return new VerkleWorldState(_readOnlyTrieStore, _codeDb, _logManager);

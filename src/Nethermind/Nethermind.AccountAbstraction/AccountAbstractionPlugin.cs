@@ -27,12 +27,14 @@ using Nethermind.Stats.Model;
 using Nethermind.Mev;
 using Nethermind.AccountAbstraction.Bundler;
 using Nethermind.AccountAbstraction.Subscribe;
+using Nethermind.Blockchain;
 using Nethermind.Consensus.Processing;
 using Nethermind.JsonRpc.Modules.Subscribe;
 using Nethermind.Network.Config;
 using Nethermind.Consensus.Producers;
 using Nethermind.Config;
 using Nethermind.Network.Contract.P2P;
+using Nethermind.State;
 
 namespace Nethermind.AccountAbstraction;
 
@@ -100,7 +102,7 @@ public class AccountAbstractionPlugin : IConsensusWrapperPlugin
             new PaymasterThrottler(BundleMiningEnabled),
             _nethermindApi.LogFinder!,
             _nethermindApi.EngineSigner!,
-            _nethermindApi.ChainHeadStateProvider!,
+            _nethermindApi.WorldStateManager!.GlobalChainHeadProvider,
             _nethermindApi.SpecProvider!,
             _nethermindApi.Timestamper,
             UserOperationSimulator(entryPoint),
@@ -128,7 +130,7 @@ public class AccountAbstractionPlugin : IConsensusWrapperPlugin
 
         _userOperationSimulators[entryPoint] = new UserOperationSimulator(
             UserOperationTxBuilder(entryPoint),
-            getFromApi.ChainHeadStateProvider!,
+            _nethermindApi.WorldStateManager!.GlobalChainHeadProvider,
             readOnlyTxProcessingEnvFactory,
             _entryPointContractAbi,
             entryPoint,
@@ -151,7 +153,7 @@ public class AccountAbstractionPlugin : IConsensusWrapperPlugin
                     _userOperationPools,
                     _userOperationSimulators,
                     _nethermindApi.SpecProvider!,
-                    _nethermindApi.ChainHeadStateProvider!,
+                    _nethermindApi.WorldStateManager!.GlobalChainHeadProvider,
                     _nethermindApi.EngineSigner!,
                     _logger
                 );
@@ -366,7 +368,7 @@ public class AccountAbstractionPlugin : IConsensusWrapperPlugin
                 _nethermindApi.EngineSigner!,
                 _entryPointContractAddresses.ToArray());
 
-        UInt256 minerBalance = _nethermindApi.ChainHeadStateProvider!.GetBalance(_nethermindApi.EngineSigner!.Address);
+        UInt256 minerBalance =  _nethermindApi.WorldStateManager!.GlobalChainHeadProvider.GetBalance(_nethermindApi.EngineSigner!.Address);
         if (minerBalance < 1.Ether())
             if (_logger.IsWarn) _logger.Warn(
                 $"Account Abstraction Plugin: Miner ({_nethermindApi.EngineSigner!.Address}) Ether balance low - {minerBalance / 1.Ether()} Ether < 1 Ether. Increasing balance is recommended");

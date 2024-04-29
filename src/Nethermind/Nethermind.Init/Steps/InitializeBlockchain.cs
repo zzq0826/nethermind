@@ -54,7 +54,7 @@ namespace Nethermind.Init.Steps
             IBlocksConfig blocksConfig = getApi.Config<IBlocksConfig>();
             IReceiptConfig receiptConfig = getApi.Config<IReceiptConfig>();
 
-            IStateReader stateReader = setApi.StateReader!;
+            IStateReader stateReader = setApi.WorldStateManager!.GlobalStateReader;
             ITxPool txPool = _api.TxPool = CreateTxPool();
 
             ReceiptCanonicalityMonitor receiptCanonicalityMonitor = new(getApi.ReceiptStorage, _api.LogManager);
@@ -147,7 +147,7 @@ namespace Nethermind.Init.Steps
 
             return new TransactionProcessor(
                 _api.SpecProvider,
-                _api.WorldState,
+                _api.WorldStateManager!.GlobalWorldState,
                 virtualMachine,
                 _api.LogManager);
         }
@@ -176,7 +176,7 @@ namespace Nethermind.Init.Steps
         protected virtual TxPool.TxPool CreateTxPool() =>
             new(_api.EthereumEcdsa!,
                 _api.BlobTxStorage ?? NullBlobTxStorage.Instance,
-                new ChainHeadInfoProvider(_api.SpecProvider!, _api.BlockTree!, _api.StateReader!),
+                new ChainHeadInfoProvider(_api.SpecProvider!, _api.BlockTree!, _api.WorldStateManager!.GlobalStateReader),
                 _api.Config<ITxPoolConfig>(),
                 _api.TxValidator!,
                 _api.LogManager,
@@ -207,8 +207,8 @@ namespace Nethermind.Init.Steps
                     _api.SpecProvider,
                     _api.BlockValidator,
                     _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
-                    new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
-                    _api.WorldState,
+                    new BlockProcessor.BlockStatelessValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldStateManager!.GlobalWorldState),
+                    _api.WorldStateManager!.GlobalWorldState,
                     _api.ReceiptStorage,
                     _api.WitnessCollector,
                     _api.BlockTree,
@@ -220,8 +220,8 @@ namespace Nethermind.Init.Steps
                     _api.SpecProvider,
                     _api.BlockValidator,
                     _api.RewardCalculatorSource.Get(_api.TransactionProcessor!),
-                    new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldState!),
-                    _api.WorldState,
+                    new BlockProcessor.BlockValidationTransactionsExecutor(_api.TransactionProcessor, _api.WorldStateManager!.GlobalWorldState),
+                    _api.WorldStateManager!.GlobalWorldState,
                     _api.ReceiptStorage,
                     _api.WitnessCollector,
                     _api.BlockTree,

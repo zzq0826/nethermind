@@ -72,7 +72,7 @@ public class MevPlugin : IConsensusWrapperPlugin
                     getFromApi.TxValidator!,
                     getFromApi.SpecProvider!,
                     _mevConfig,
-                    getFromApi.ChainHeadStateProvider!,
+                    getFromApi.WorldStateManager!.GlobalChainHeadProvider,
                     getFromApi.LogManager,
                     getFromApi.EthereumEcdsa!);
             }
@@ -114,7 +114,7 @@ public class MevPlugin : IConsensusWrapperPlugin
             MevModuleFactory mevModuleFactory = new(rpcConfig,
                 BundlePool,
                 getFromApi.BlockTree!,
-                getFromApi.StateReader!,
+                getFromApi.WorldStateManager!.GlobalStateReader!,
                 TracerFactory,
                 getFromApi.SpecProvider!,
                 getFromApi.EngineSigner);

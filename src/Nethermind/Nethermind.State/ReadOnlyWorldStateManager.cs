@@ -39,6 +39,8 @@ public class ReadOnlyWorldStateManager : IWorldStateManager
 
     public IStateReader GlobalStateReader { get; }
 
+    public IReadOnlyStateProvider GlobalChainHeadProvider { get; set; }
+
     public IWorldState CreateResettableWorldState()
     {
         return new WorldState(_readOnlyTrieStore, _codeDb, _logManager);
