@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using Nethermind.Core.Extensions;
 using Nethermind.Int256;
 using Nethermind.Verkle.Curve;
 using Nethermind.Verkle.Fields.FrEElement;
@@ -35,8 +36,13 @@ public static class PedersenHash
         Hash(address20, treeIndex).CopyTo(output);
     }
 
-    public static byte[] ComputeHashBytes(ReadOnlySpan<byte> address20, UInt256 treeIndex) =>
-        Hash(address20, treeIndex);
+    public static byte[] ComputeHashBytes(ReadOnlySpan<byte> address20, UInt256 treeIndex)
+    {
+
+        var data = Hash(address20, treeIndex);
+        Console.WriteLine($"ComputeHashBytes {address20.ToArray().ToHexString()} {treeIndex}");
+        return data;
+    }
 
     public static byte[] Hash(ReadOnlySpan<byte> address20, UInt256 treeIndex)
     {

@@ -30,14 +30,14 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
     {
         var gas = AccessVersion(contractAddress, true) + AccessNonce(contractAddress, true);
         if (isValueTransfer) gas += AccessBalance(contractAddress, true);
-        // _logger.Info($"AccessForContractCreationInit: {contractAddress.Bytes.ToHexString()} {isValueTransfer} {gas}");
+        _logger.Info($"AccessForContractCreationInit: {contractAddress.Bytes.ToHexString()} {isValueTransfer} {gas}");
 
         return gas;    }
 
     public long AccessForContractCreated(Address contractAddress)
     {
         var gas = AccessCompleteAccount(contractAddress, true);
-        // _logger.Info($"AccessContractCreated: {contractAddress.Bytes.ToHexString()} {gas}");
+        _logger.Info($"AccessContractCreated: {contractAddress.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -70,7 +70,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
             gasCost += AccessCodeSize(destinationAddress);
 
         }
-        // _logger.Info($"AccessForTransaction: {originAddress.Bytes.ToHexString()} {destinationAddress?.Bytes.ToHexString()} {isValueTransfer} {gasCost}");
+        _logger.Info($"AccessForTransaction: {originAddress.Bytes.ToHexString()} {destinationAddress?.Bytes.ToHexString()} {isValueTransfer} {gasCost}");
         return gasCost;
     }
 
@@ -87,7 +87,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
         gas += AccessBalance(gasBeneficiary);
         gas += AccessCodeHash(gasBeneficiary);
         gas += AccessCodeSize(gasBeneficiary);
-        // _logger.Info($"AccessCompleteAccount: {address.Bytes.ToHexString()} {isWrite} {gas}");
+        _logger.Info($"AccessCompleteAccount: {gasBeneficiary.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -95,7 +95,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
     {
         var gas = AccessVersion(caller);
         gas += AccessCodeSize(caller);
-        // _logger.Info($"AccessForCodeOpCodes: {caller.Bytes.ToHexString()} {gas}");
+        _logger.Info($"AccessForCodeOpCodes: {caller.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -121,7 +121,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
     {
         if (address.IsPrecompile(Osaka.Instance)) return 0;
         var gas = AccessKey(AccountHeader.GetTreeKeyForStorageSlot(address.Bytes, key), isWrite);
-        // _logger.Info($"AccessStorage: {address.Bytes.ToHexString()} {key.ToBigEndian().ToHexString()} {isWrite} {gas}");
+        _logger.Info($"AccessStorage: {address.Bytes.ToHexString()} {key.ToBigEndian().ToHexString()} {isWrite} {gas}");
         return gas;
     }
 
@@ -144,7 +144,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
             accGas += gas;
             if (!UpdateGas(gas, ref unspentGas)) return false;
         }
-        if (_logger.IsTrace) _logger.Trace($"AccessAndChargeForCodeSlice: {accGas} {startIncluded} {endNotIncluded} {isWrite} {unspentGas}");
+        _logger.Info($"AccessAndChargeForCodeSlice: {accGas} {startIncluded} {endNotIncluded} {isWrite} {unspentGas}");
         return true;
     }
 
@@ -159,9 +159,8 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
     {
         if (address.IsPrecompile(Osaka.Instance)) return 0;
         Hash256? key = AccountHeader.GetTreeKeyForCodeChunk(address.Bytes, chunkId);
-        // _logger.Info($"AccessCodeChunkKey: {EnumerableExtensions.ToString(key)}");
         var gas = AccessKey(key, isWrite);
-        // _logger.Info($"AccessCodeChunk: {address.Bytes.ToHexString()} {chunkId} {isWrite} {gas}");
+        _logger.Info($"AccessCodeChunk: {address.Bytes.ToHexString()} {chunkId} {isWrite} {gas}");
         return gas;
     }
 
@@ -169,7 +168,7 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
     public long AccessForAbsentAccount(Address address)
     {
         var gas = AccessCompleteAccount(address);
-        // _logger.Info($"AccessForProofOfAbsence: {address.Bytes.ToHexString()} {gas}");
+        _logger.Info($"AccessForProofOfAbsence: {address.Bytes.ToHexString()} {gas}");
         return gas;
     }
 
@@ -187,12 +186,13 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
         gasCost += AccessBalance(address, isWrite);
         gasCost += AccessCodeHash(address, isWrite);
         gasCost += AccessCodeSize(address, isWrite);
-        // _logger.Info($"AccessCompleteAccount: {address.Bytes.ToHexString()} {isWrite} {gas}");
+        _logger.Info($"AccessCompleteAccount: {address.Bytes.ToHexString()} {isWrite}");
         return gasCost;
     }
 
     public long AccessForSelfDestruct(Address contract, Address inheritor, bool balanceIsZero, bool inheritorExist)
     {
+        _logger.Info($"AccessForSelfDestruct {contract} {inheritor} {balanceIsZero} {inheritorExist}");
         bool contractNotSameAsBeneficiary = contract != inheritor;
         long gas = 0;
         gas += AccessVersion(contract);
