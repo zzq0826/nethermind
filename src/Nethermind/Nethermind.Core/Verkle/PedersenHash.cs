@@ -40,7 +40,7 @@ public static class PedersenHash
     {
 
         var data = Hash(address20, treeIndex);
-        Console.WriteLine($"ComputeHashBytes {address20.ToArray().ToHexString()} {treeIndex}");
+        Console.WriteLine($"ComputeHashBytes {address20.ToArray().ToHexString()} {treeIndex} {data.ToHexString()}");
         return data;
     }
 
