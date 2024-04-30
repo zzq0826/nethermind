@@ -2975,9 +2975,10 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         }
 
 
-
-        _state.Set(in storageCell, newIsZero ? BytesZero : bytes.ToArray());
-
+        if (!newSameAsCurrent || newIsZero)
+        {
+            _state.Set(in storageCell, newIsZero ? BytesZero : bytes.ToArray());
+        }
 
         if (typeof(TTracingInstructions) == typeof(IsTracing))
         {
