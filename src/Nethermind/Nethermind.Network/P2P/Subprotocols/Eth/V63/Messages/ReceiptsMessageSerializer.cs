@@ -29,6 +29,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages
             NettyRlpStream stream = new(byteBuffer);
             stream.StartSequence(contentLength);
 
+            RlpBehaviors rlpBehaviors = RlpBehaviors.None;
+            long prevBlockNumber = -1;
             foreach (TxReceipt?[]? txReceipts in message.TxReceipts)
             {
                 if (txReceipts is null)
@@ -47,8 +49,13 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages
                         continue;
                     }
 
-                    _decoder.Encode(stream, txReceipt,
-                        _specProvider.GetReceiptSpec(txReceipt.BlockNumber).IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None);
+                    if (prevBlockNumber != txReceipt.BlockNumber)
+                    {
+                        prevBlockNumber = txReceipt.BlockNumber;
+                        rlpBehaviors = _specProvider.GetReceiptSpec(prevBlockNumber).IsEip658Enabled ?
+                            RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
+                    }
+                    _decoder.Encode(stream, txReceipt, rlpBehaviors);
                 }
 
 
@@ -103,6 +110,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages
 
         private int GetInnerLength(TxReceipt?[]? txReceipts)
         {
+            RlpBehaviors rlpBehaviors = RlpBehaviors.None;
+            long prevBlockNumber = -1;
             int contentLength = 0;
             for (int j = 0; j < txReceipts.Length; j++)
             {
@@ -113,7 +122,13 @@ namespace Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages
                 }
                 else
                 {
-                    contentLength += _decoder.GetLength(txReceipt, _specProvider.GetSpec((ForkActivation)txReceipt.BlockNumber).IsEip658Enabled ? RlpBehaviors.Eip658Receipts : RlpBehaviors.None);
+                    if (prevBlockNumber != txReceipt.BlockNumber)
+                    {
+                        prevBlockNumber = txReceipt.BlockNumber;
+                        rlpBehaviors = _specProvider.GetSpec((ForkActivation)txReceipt.BlockNumber).IsEip658Enabled ?
+                            RlpBehaviors.Eip658Receipts : RlpBehaviors.None;
+                    }
+                    contentLength += _decoder.GetLength(txReceipt, rlpBehaviors);
                 }
             }
 
