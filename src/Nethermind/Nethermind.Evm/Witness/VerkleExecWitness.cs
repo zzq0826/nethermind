@@ -2,16 +2,14 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Nethermind.Core;
-using Nethermind.Core.Collections;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Verkle;
-using Nethermind.Evm.Precompiles;
 using Nethermind.Int256;
 using Nethermind.Logging;
-using Nethermind.Specs.Forks;
 
 namespace Nethermind.Evm.Witness;
 
@@ -19,11 +17,11 @@ public class VerkleExecWitness(ILogManager logManager) : IExecutionWitness
 {
     private readonly ILogger _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
 
-    private readonly JournalSet<Hash256> _accessedLeaves = new();
-    private readonly JournalSet<byte[]> _accessedSubtrees = new(Bytes.EqualityComparer);
+    private readonly HashSet<Hash256> _accessedLeaves = new();
+    private readonly HashSet<byte[]> _accessedSubtrees = new(Bytes.EqualityComparer);
 
-    private readonly JournalSet<Hash256> _modifiedLeaves = new();
-    private readonly JournalSet<byte[]> _modifiedSubtrees = new(Bytes.EqualityComparer);
+    private readonly HashSet<Hash256> _modifiedLeaves = new();
+    private readonly HashSet<byte[]> _modifiedSubtrees = new(Bytes.EqualityComparer);
 
 
     public long AccessForContractCreationInit(Address contractAddress, bool isValueTransfer)
