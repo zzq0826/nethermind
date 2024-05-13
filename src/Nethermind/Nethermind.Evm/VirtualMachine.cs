@@ -374,44 +374,63 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
 
                 if (!callResult.ShouldRevert)
                 {
-
                     if (previousState.ExecutionType.IsAnyCreate())
                     {
+                        // this is the part of the gas that we have for execution (gas - gas/64)
                         long gasAvailableForCodeDeposit = previousState.GasAvailable; // TODO: refactor, this is to fix 61363 Ropsten
                         previousCallResult = callCodeOwner.Bytes;
                         previousCallOutputDestination = UInt256.Zero;
                         _returnDataBuffer = Array.Empty<byte>();
                         previousCallOutput = ZeroPaddedSpan.Empty;
 
-                        // TODO: find a better way to do this
-                        bool isGasAvailable;
-                        long codeDepositGasCost;
-                        if (spec.IsVerkleTreeEipEnabled)
-                        {
-                            long gasThatCanBeUsed = gasAvailableForCodeDeposit;
-                            isGasAvailable = currentState.Env.Witness.AccessAndChargeForCodeSlice(callCodeOwner,
-                                0, callResult.Output.Length, true,
-                                ref gasThatCanBeUsed);
-                            codeDepositGasCost = gasAvailableForCodeDeposit - gasThatCanBeUsed;
-                        }
-                        else
-                        {
-                            codeDepositGasCost = CodeDepositHandler.CalculateCost(callResult.Output.Length, spec);
-                            isGasAvailable = gasAvailableForCodeDeposit >= codeDepositGasCost;
-                        }
-
                         bool invalidCode = CodeDepositHandler.CodeIsInvalid(spec, callResult.Output);
+
+                        // TODO: find a better way to do this
+                        bool isGasAvailable = true;
+                        long codeDepositGasCost = 0;
+                        if (!invalidCode)
+                        {
+                            if (spec.IsVerkleTreeEipEnabled)
+                            {
+                                // this is just a hack to find how much gas is actually being used
+                                long gasThatCanBeUsed = gasAvailableForCodeDeposit;
+                                isGasAvailable = currentState.Env.Witness.AccessAndChargeForCodeSlice(callCodeOwner,
+                                    0, callResult.Output.Length, true,
+                                    ref gasThatCanBeUsed);
+                                codeDepositGasCost = gasAvailableForCodeDeposit - gasThatCanBeUsed;
+                            }
+                            else
+                            {
+                                codeDepositGasCost = CodeDepositHandler.CalculateCost(callResult.Output.Length, spec);
+                                isGasAvailable = gasAvailableForCodeDeposit >= codeDepositGasCost;
+                            }
+                        }
 
                         if (isGasAvailable && !invalidCode)
                         {
                             ReadOnlyMemory<byte> code = callResult.Output;
                             InsertCode(code, callCodeOwner, spec);
 
+                            // we don't need a check here is because currentState.GasAvailable >= gasAvailableForCodeDeposit
                             currentState.GasAvailable -= codeDepositGasCost;
 
-                            if (typeof(TTracingActions) == typeof(IsTracing))
+                            // here we are deducting this createComplete gas cost from the original cost, and not the
+                            // (gas - gas/64) that is available after execution
+                            long contractCreationCompleteGas = currentState.Env.Witness.AccessForContractCreated(callCodeOwner);
+                            if (currentState.GasAvailable >= contractCreationCompleteGas)
                             {
-                                _txTracer.ReportActionEnd(previousState.GasAvailable - codeDepositGasCost, callCodeOwner, callResult.Output);
+                                currentState.GasAvailable -= contractCreationCompleteGas;
+                                if (typeof(TTracingActions) == typeof(IsTracing))
+                                {
+                                    _txTracer.ReportActionEnd(previousState.GasAvailable - codeDepositGasCost, callCodeOwner, callResult.Output);
+                                }
+                            }
+                            else
+                            {
+                                if (typeof(TTracingActions) == typeof(IsTracing))
+                                {
+                                    _txTracer.ReportActionError(EvmExceptionType.OutOfGas);
+                                }
                             }
                         }
                         else if (spec.FailOnOutOfGasCodeDeposit || invalidCode)
@@ -2760,8 +2779,9 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         // for another tx as returned to pool.
         CodeInfo codeInfo = new(initCode);
 
-        long contractCreationCompleteGas = env.Witness.AccessForContractCreated(contractAddress);
-        if (!UpdateGas(contractCreationCompleteGas, ref callGas)) return (EvmExceptionType.OutOfGas, null);
+        // this gas cost is moved after we charge the codeDeposit cost for CREATE account
+        // long contractCreationCompleteGas = env.Witness.AccessForContractCreated(contractAddress);
+        // if (!UpdateGas(contractCreationCompleteGas, ref callGas)) return (EvmExceptionType.OutOfGas, null);
 
         ExecutionEnvironment callEnv = new
         (
