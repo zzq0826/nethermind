@@ -2589,7 +2589,11 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         bool inheritorAccountExists = _state.AccountExists(inheritor);
 
         // get the verkle witness cost and charge the account access gas if the verkle cost is zero
-        var selfDestructGas = vmState.Env.Witness.AccessForSelfDestruct(executingAccount, inheritor, contractBalance.IsZero, inheritorAccountExists);
+        long selfDestructGas = 0;
+        // TODO: if inheritor is precompile - should we really not add anything to the witness? i dont think so
+        if (!inheritor.IsPrecompile(spec))
+            selfDestructGas = vmState.Env.Witness.AccessForSelfDestruct(executingAccount, inheritor,
+                contractBalance.IsZero, inheritorAccountExists);
         if (selfDestructGas == 0)
         {
             if (!ChargeAccountAccessGas(ref gasAvailable, vmState, inheritor, spec, chargeForWarm: false,
