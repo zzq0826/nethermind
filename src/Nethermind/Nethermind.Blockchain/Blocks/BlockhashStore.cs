@@ -10,15 +10,17 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Extensions;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
+using Nethermind.Logging;
 using Nethermind.State;
 
 [assembly: InternalsVisibleTo("Nethermind.Blockchain.Test")]
 [assembly: InternalsVisibleTo("Nethermind.Merge.Plugin.Test")]
 namespace Nethermind.Blockchain.Blocks;
 
-public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider, IWorldState worldState)
+public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider, IWorldState worldState, ILogManager logManager = null)
     : IBlockhashStore
 {
+    public ILogger? Logger { get; } = logManager?.GetClassLogger();
     private static readonly byte[] EmptyBytes = [0];
 
     public void ApplyHistoryBlockHashes(BlockHeader blockHeader)
@@ -74,6 +76,8 @@ public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider
         Hash256 parentBlockHash = blockHeader.ParentHash;
         var blockIndex = new UInt256((ulong)((blockHeader.Number - 1) % Eip2935Constants.RingBufferSize));
         StorageCell blockHashStoreCell = new(eip2935Account, blockIndex);
+        if (Logger == null)
+            Logger?.Info($"{blockHashStoreCell}, {parentBlockHash}");
         worldState.Set(blockHashStoreCell, parentBlockHash!.Bytes.WithoutLeadingZeros().ToArray());
     }
 }

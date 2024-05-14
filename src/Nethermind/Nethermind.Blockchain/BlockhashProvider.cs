@@ -27,7 +27,7 @@ namespace Nethermind.Blockchain
         {
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _specProvider = specProvider;
-            _blockhashStore = new BlockhashStore(blockTree, specProvider, worldState);
+            _blockhashStore = new BlockhashStore(blockTree, specProvider, worldState, logManager!);
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
         }
 

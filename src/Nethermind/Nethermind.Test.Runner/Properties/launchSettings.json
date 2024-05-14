@@ -6,7 +6,7 @@
     },
     "Blockchain Test": {
       "commandName": "Project",
-      "commandLineArgs": "-b -i blockchainTest1.json"
+      "commandLineArgs": "-b -i C:\\Users\\marek\\Nethermind\\tests\\fixtures\\blockchain_tests\\prague\\eip7685_general_purpose_el_requests\\deposits_withdrawals\\valid_deposit_withdrawal_requests.json"
     },
     "Regex State Test": {
       "commandName": "Project",
@@ -14,7 +14,7 @@
     },
     "Regex Blockchain Test": {
       "commandName": "Project",
-      "commandLineArgs": "-b -i blockchainTest1.json -f \"GasUsedHigherThanBlockGasLimitButNotWithRefundsSuicideFirst_I([A-Za-z0-9]+)\""
+      "commandLineArgs": "-b -i C:\\Users\\marek\\Nethermind\\tests\\fixtures\\blockchain_tests\\prague\\eip7685_general_purpose_el_requests\\deposits_withdrawals\\valid_deposit_withdrawal_requests.json -f \"GasUsedHigherThanBlockGasLimitButNotWithRefundsSuicideFirst_I([A-Za-z0-9]+)\""
     }
   }
 }

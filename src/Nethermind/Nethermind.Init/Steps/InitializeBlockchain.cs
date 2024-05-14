@@ -231,7 +231,7 @@ namespace Nethermind.Init.Steps
                 worldState,
                 _api.ReceiptStorage,
                 _api.WitnessCollector,
-                new BlockhashStore(_api.BlockTree, _api.SpecProvider!, worldState),
+                new BlockhashStore(_api.BlockTree, _api.SpecProvider!, worldState, _api.LogManager),
                 _api.TransactionProcessor,
                 _api.LogManager);
         }

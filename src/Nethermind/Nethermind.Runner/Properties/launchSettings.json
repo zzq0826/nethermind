@@ -121,7 +121,7 @@
     },
     "Sepolia": {
       "commandName": "Project",
-      "commandLineArgs": "-c sepolia -dd .data",
+      "commandLineArgs": "-c sepolia --Init.BaseDbPath C:\\Users\\marek\\Nethermind\\db --JsonRpc.UnsecureDevNoRpcAuthentication true",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
