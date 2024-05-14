@@ -56,7 +56,7 @@ namespace Nethermind.Blockchain.Test.Producers
                 dbProvider.RegisteredDbs[DbNames.Code],
                 LimboLogs.Instance);
             StateReader stateReader = new(trieStore, dbProvider.GetDb<IDb>(DbNames.State), LimboLogs.Instance);
-            BlockhashProvider blockhashProvider = new(blockTree, specProvider, stateProvider, LimboLogs.Instance);
+            BlockhashProvider blockhashProvider = new(blockTree, specProvider, LimboLogs.Instance);
             VirtualMachine virtualMachine = new(
                 blockhashProvider,
                 specProvider,
@@ -74,7 +74,7 @@ namespace Nethermind.Blockchain.Test.Producers
                 stateProvider,
                 NullReceiptStorage.Instance,
                 NullWitnessCollector.Instance,
-                new BlockhashStore(blockTree, specProvider, stateProvider),
+                new BlockhashStore(blockTree, specProvider),
                 LimboLogs.Instance);
             BlockchainProcessor blockchainProcessor = new(
                 blockTree,

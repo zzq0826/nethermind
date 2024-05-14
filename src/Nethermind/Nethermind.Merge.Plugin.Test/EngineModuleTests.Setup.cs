@@ -236,7 +236,7 @@ public partial class EngineModuleTests
                 State,
                 ReceiptStorage,
                 NullWitnessCollector.Instance,
-                new BlockhashStore(BlockTree, SpecProvider, State),
+                new BlockhashStore(BlockTree, SpecProvider),
                 LogManager,
                 WithdrawalProcessor);
 

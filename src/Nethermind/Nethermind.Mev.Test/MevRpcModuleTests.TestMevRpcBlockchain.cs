@@ -202,7 +202,7 @@ namespace Nethermind.Mev.Test
                     State,
                     ReceiptStorage,
                     NullWitnessCollector.Instance,
-                    new BlockhashStore(BlockTree, SpecProvider, State),
+                    new BlockhashStore(BlockTree, SpecProvider),
                     LogManager);
 
                 _tracerFactory = new TracerFactory(

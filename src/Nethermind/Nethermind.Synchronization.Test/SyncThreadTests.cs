@@ -274,7 +274,7 @@ namespace Nethermind.Synchronization.Test
                 new TxValidator(specProvider.ChainId),
                 logManager,
                 transactionComparerProvider.GetDefaultComparer());
-            BlockhashProvider blockhashProvider = new(tree, specProvider, stateProvider, LimboLogs.Instance);
+            BlockhashProvider blockhashProvider = new(tree, specProvider, LimboLogs.Instance);
             VirtualMachine virtualMachine = new(blockhashProvider, specProvider, logManager);
 
             Always sealValidator = Always.Valid;
@@ -300,7 +300,7 @@ namespace Nethermind.Synchronization.Test
                 stateProvider,
                 receiptStorage,
                 NullWitnessCollector.Instance,
-                new BlockhashStore(tree, specProvider, stateProvider),
+                new BlockhashStore(tree, specProvider),
                 logManager);
 
             RecoverSignatures step = new(ecdsa, txPool, specProvider, logManager);
@@ -323,7 +323,7 @@ namespace Nethermind.Synchronization.Test
                 devState,
                 receiptStorage,
                 NullWitnessCollector.Instance,
-                new BlockhashStore(tree, specProvider, devState),
+                new BlockhashStore(tree, specProvider),
                 logManager);
 
             BlockchainProcessor devChainProcessor = new(tree, devBlockProcessor, step, stateReader, logManager,

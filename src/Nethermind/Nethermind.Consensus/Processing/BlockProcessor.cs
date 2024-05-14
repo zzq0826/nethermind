@@ -239,7 +239,7 @@ public partial class BlockProcessor : IBlockProcessor
         ReceiptsTracer.StartNewBlockTrace(block);
 
         _beaconBlockRootHandler.ApplyContractStateChanges(block, spec, _stateProvider);
-        _blockhashStore.ApplyHistoryBlockHashes(block.Header);
+        _blockhashStore.ApplyHistoryBlockHashes(block.Header, _stateProvider);
 
         _stateProvider.Commit(spec);
 

@@ -89,7 +89,7 @@ public class OptimismBlockProducerEnvFactory : BlockProducerEnvFactory
             readOnlyTxProcessingEnv.StateProvider,
             receiptStorage,
             NullWitnessCollector.Instance,
-            new BlockhashStore(_blockTree, specProvider, readOnlyTxProcessingEnv.StateProvider),
+            new BlockhashStore(_blockTree, specProvider),
             logManager,
             _specHelper,
             new Create2DeployerContractRewriter(_specHelper, _specProvider, _blockTree),

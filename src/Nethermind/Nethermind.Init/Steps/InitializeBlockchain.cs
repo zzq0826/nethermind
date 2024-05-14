@@ -180,7 +180,7 @@ namespace Nethermind.Init.Steps
 
             // blockchain processing
             BlockhashProvider blockhashProvider = new(
-                _api.BlockTree, _api.SpecProvider, _api.WorldState, _api.LogManager);
+                _api.BlockTree, _api.SpecProvider, _api.LogManager);
 
             return new VirtualMachine(
                 blockhashProvider,
@@ -231,7 +231,7 @@ namespace Nethermind.Init.Steps
                 worldState,
                 _api.ReceiptStorage,
                 _api.WitnessCollector,
-                new BlockhashStore(_api.BlockTree, _api.SpecProvider!, worldState),
+                new BlockhashStore(_api.BlockTree, _api.SpecProvider!),
                 _api.LogManager);
         }
 

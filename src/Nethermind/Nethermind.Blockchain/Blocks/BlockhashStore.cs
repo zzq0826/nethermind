@@ -16,12 +16,12 @@ using Nethermind.State;
 [assembly: InternalsVisibleTo("Nethermind.Merge.Plugin.Test")]
 namespace Nethermind.Blockchain.Blocks;
 
-public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider, IWorldState worldState)
+public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider)
     : IBlockhashStore
 {
     private static readonly byte[] EmptyBytes = [0];
 
-    public void ApplyHistoryBlockHashes(BlockHeader blockHeader)
+    public void ApplyHistoryBlockHashes(BlockHeader blockHeader, IWorldState worldState)
     {
         IReleaseSpec spec = specProvider.GetSpec(blockHeader);
         if (!spec.IsEip2935Enabled || blockHeader.IsGenesis || blockHeader.ParentHash is null) return;
@@ -33,12 +33,12 @@ public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider
         //      this would just be true on the fork block
         BlockHeader parentHeader = blockFinder.FindParentHeader(blockHeader, BlockTreeLookupOptions.None);
         if (parentHeader is not null && !specProvider.GetSpec(parentHeader).IsEip2935Enabled)
-            InitHistoryOnForkBlock(blockHeader, eip2935Account);
+            InitHistoryOnForkBlock(blockHeader, eip2935Account, worldState);
         else
-            AddParentBlockHashToState(blockHeader, eip2935Account);
+            AddParentBlockHashToState(blockHeader, eip2935Account, worldState);
     }
 
-    public Hash256? GetBlockHashFromState(BlockHeader currentHeader, long requiredBlockNumber)
+    public Hash256? GetBlockHashFromState(BlockHeader currentHeader, long requiredBlockNumber,  IWorldState worldState)
     {
         IReleaseSpec? spec = specProvider.GetSpec(currentHeader);
         if (requiredBlockNumber >= currentHeader.Number ||
@@ -53,13 +53,13 @@ public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider
         return data.SequenceEqual(EmptyBytes) ? null : new Hash256(data);
     }
 
-    private void InitHistoryOnForkBlock(BlockHeader currentBlock, Address eip2935Account)
+    private void InitHistoryOnForkBlock(BlockHeader currentBlock, Address eip2935Account, IWorldState worldState)
     {
         long current = currentBlock.Number;
         BlockHeader header = currentBlock;
         for (var i = 0; i < Math.Min(Eip2935Constants.RingBufferSize, current); i++)
         {
-            AddParentBlockHashToState(header, eip2935Account);
+            AddParentBlockHashToState(header, eip2935Account, worldState);
             header = blockFinder.FindParentHeader(header, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
             if (header is null)
             {
@@ -69,7 +69,7 @@ public class BlockhashStore(IBlockFinder blockFinder, ISpecProvider specProvider
         }
     }
 
-    private void AddParentBlockHashToState(BlockHeader blockHeader, Address eip2935Account)
+    private void AddParentBlockHashToState(BlockHeader blockHeader, Address eip2935Account, IWorldState worldState)
     {
         Hash256 parentBlockHash = blockHeader.ParentHash;
         var blockIndex = new UInt256((ulong)((blockHeader.Number - 1) % Eip2935Constants.RingBufferSize));

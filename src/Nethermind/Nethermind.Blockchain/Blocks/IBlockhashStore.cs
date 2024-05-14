@@ -4,11 +4,12 @@
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
+using Nethermind.State;
 
 namespace Nethermind.Blockchain.Blocks;
 
 public interface IBlockhashStore
 {
-    public void ApplyHistoryBlockHashes(BlockHeader blockHeader);
-    public Hash256? GetBlockHashFromState(BlockHeader currentBlockHeader, long requiredBlockNumber);
+    public void ApplyHistoryBlockHashes(BlockHeader blockHeader, IWorldState worldState);
+    public Hash256? GetBlockHashFromState(BlockHeader currentBlockHeader, long requiredBlockNumber, IWorldState worldState);
 }

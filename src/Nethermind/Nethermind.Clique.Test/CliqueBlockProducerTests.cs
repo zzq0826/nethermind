@@ -116,7 +116,7 @@ namespace Nethermind.Clique.Test
                     transactionComparerProvider.GetDefaultComparer());
                 _pools[privateKey] = txPool;
 
-                BlockhashProvider blockhashProvider = new(blockTree, specProvider, stateProvider, LimboLogs.Instance);
+                BlockhashProvider blockhashProvider = new(blockTree, specProvider, LimboLogs.Instance);
                 _blockTrees.Add(privateKey, blockTree);
 
                 SnapshotManager snapshotManager = new(_cliqueConfig, blocksDb, blockTree, _ethereumEcdsa, nodeLogManager);
@@ -138,7 +138,7 @@ namespace Nethermind.Clique.Test
                     stateProvider,
                     NullReceiptStorage.Instance,
                     NullWitnessCollector.Instance,
-                    new BlockhashStore(blockTree, goerliSpecProvider, stateProvider),
+                    new BlockhashStore(blockTree, goerliSpecProvider),
                     nodeLogManager);
 
                 BlockchainProcessor processor = new(blockTree, blockProcessor, new AuthorRecoveryStep(snapshotManager), stateReader, nodeLogManager, BlockchainProcessor.Options.NoReceipts);
@@ -158,7 +158,7 @@ namespace Nethermind.Clique.Test
                     minerStateProvider,
                     NullReceiptStorage.Instance,
                     NullWitnessCollector.Instance,
-                    new BlockhashStore(blockTree, goerliSpecProvider, minerStateProvider),
+                    new BlockhashStore(blockTree, goerliSpecProvider),
                     nodeLogManager);
 
                 BlockchainProcessor minerProcessor = new(blockTree, minerBlockProcessor, new AuthorRecoveryStep(snapshotManager), stateReader, nodeLogManager, BlockchainProcessor.Options.NoReceipts);

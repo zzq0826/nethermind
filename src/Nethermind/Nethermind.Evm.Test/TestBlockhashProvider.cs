@@ -16,7 +16,7 @@ namespace Nethermind.Evm.Test
             _specProvider = specProvider;
         }
 
-        public Hash256 GetBlockhash(BlockHeader currentBlock, in long number)
+        public Hash256 GetBlockhash(BlockHeader currentBlock, in long number, IWorldState worldState)
         {
             IReleaseSpec? spec = _specProvider.GetSpec(currentBlock);
             return Keccak.Compute(spec.IsBlockHashInStateAvailable
