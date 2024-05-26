@@ -17,14 +17,14 @@ using System.Numerics;
 namespace Nethermind.Trie;
 
 /// <summary>
-/// Patricia trie tree path. Can represent up to 64 nibbles in 32+4 byte.
+/// Patricia trie tree path. Can represent up to 64 nibbles in 32+1 byte.
 /// Can be used as ref struct, and mutated during trie traversal.
 /// </summary>
 [Todo("check if its worth it to change the length to byte, or if it actually make things slower.")]
 [Todo("check if its worth it to not clear byte during TruncateMut, but will need proper comparator, span copy, etc.")]
 public struct TreePath
 {
-    public const int MemorySize = 36;
+    public const int MemorySize = 33;
     public ValueHash256 Path;
 
     public static TreePath Empty => new TreePath();
@@ -38,7 +38,8 @@ public struct TreePath
         Length = length;
     }
 
-    public int Length { get; internal set; }
+    private byte _length;
+    public int Length { readonly get => _length; internal set => _length = (byte)value; }
 
     public static TreePath FromPath(ReadOnlySpan<byte> pathHash)
     {
@@ -143,9 +144,9 @@ public struct TreePath
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetLast(int nib)
+    public readonly void SetLast(int nib)
     {
-        this[Length - 1] = nib;
+        this[_length - 1] = nib;
     }
 
     public readonly int this[int index]
@@ -221,22 +222,22 @@ public struct TreePath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void TruncateOne()
     {
-        this[Length - 1] = 0;
-        Length--;
+        this[_length - 1] = 0;
+        _length--;
     }
 
     public readonly byte[] ToNibble()
     {
-        bool odd = Length % 2 == 1;
-        Span<byte> theNibbles = stackalloc byte[odd ? Length + 1 : Length];
-        Nibbles.BytesToNibbleBytes(Span[..((Length + 1) / 2)], theNibbles);
-        return (odd ? theNibbles[..Length] : theNibbles).ToArray();
+        bool odd = _length % 2 == 1;
+        Span<byte> theNibbles = stackalloc byte[odd ? _length + 1 : _length];
+        Nibbles.BytesToNibbleBytes(Span[..((_length + 1) / 2)], theNibbles);
+        return (odd ? theNibbles[.._length] : theNibbles).ToArray();
     }
 
     public readonly string ToHexString()
     {
         string fromPath = Span.ToHexString();
-        return fromPath[..Length];
+        return fromPath[.._length];
     }
 
     public readonly override string ToString()
@@ -256,7 +257,7 @@ public struct TreePath
 
     public readonly bool Equals(in TreePath other)
     {
-        return Length == other.Length && Path.Equals(in other.Path);
+        return _length == other.Length && Path.Equals(in other.Path);
     }
 
     public readonly override bool Equals(object? obj)
@@ -266,7 +267,7 @@ public struct TreePath
 
     public readonly override int GetHashCode()
     {
-        return (int)BitOperations.Crc32C((uint)Path.GetHashCode(), (uint)Length);
+        return (int)BitOperations.Crc32C((uint)Path.GetHashCode(), (uint)_length);
     }
 
     /// <summary>
@@ -292,7 +293,7 @@ public struct TreePath
 
     public readonly int CompareTo(in TreePath otherTree)
     {
-        int minLength = Math.Min(Length, otherTree.Length);
+        int minLength = Math.Min(_length, otherTree.Length);
         int commonByteLength = minLength / 2;
         int compareByByte =
             Bytes.BytesComparer.Compare(Span[..commonByteLength], otherTree.Span[..commonByteLength]);
@@ -304,12 +305,12 @@ public struct TreePath
             if (result != 0) return result;
         }
 
-        return Length.CompareTo(otherTree.Length);
+        return _length.CompareTo(otherTree._length);
     }
 
     public readonly int CompareToTruncated(in TreePath otherTree, int length)
     {
-        int minLength = Math.Min(length, otherTree.Length);
+        int minLength = Math.Min(length, otherTree._length);
         int commonByteLength = minLength / 2;
         int compareByByte =
             Bytes.BytesComparer.Compare(Span[..commonByteLength], otherTree.Span[..commonByteLength]);
@@ -321,7 +322,7 @@ public struct TreePath
             if (result != 0) return result;
         }
 
-        return length.CompareTo(otherTree.Length);
+        return length.CompareTo(otherTree._length);
     }
 
     private static ReadOnlySpan<byte> ZeroMasksData => new byte[]
