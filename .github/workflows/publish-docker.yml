@@ -56,7 +56,7 @@ jobs:
           docker buildx build --platform=linux/amd64,linux/arm64 \
             -f ${{ github.event.inputs.dockerfile || 'Dockerfile' }} \
             -t "$image_name:$tag" \
-            ${{ endsWith(github.ref, '/master-tagged-image') && github.event_name == 'push' && '-t $image_name:master-${GITHUB_SHA:0:7}' || '' }}
+            ${{ endsWith(github.ref, '/master-tagged-image') && github.event_name == 'push' && '-t $image_name:master-${GITHUB_SHA:0:7}' || '' }} \
             --build-arg BUILD_CONFIG=${{ github.event.inputs.build-config || 'release' }} \
             --build-arg BUILD_TIMESTAMP=$build_timestamp \
             --build-arg CI=$CI \
