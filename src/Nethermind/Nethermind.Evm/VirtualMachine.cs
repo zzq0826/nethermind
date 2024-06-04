@@ -127,6 +127,8 @@ public class VirtualMachine : IVirtualMachine
             [MapToG2Precompile.Address] = new(MapToG2Precompile.Instance),
 
             [PointEvaluationPrecompile.Address] = new(PointEvaluationPrecompile.Instance),
+
+            [Secp256r1Precompile.Address] = new(Secp256r1Precompile.Instance)
         }.ToFrozenDictionary();
     }
 
@@ -1015,7 +1017,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
                     {
                         gasAvailable -= GasCostOf.Exp;
 
-                        Metrics.ModExpOpcode++;
+                        Metrics.ExpOpcode++;
 
                         if (!stack.PopUInt256(out a)) goto StackUnderflow;
                         bytes = stack.PopWord256();

@@ -86,8 +86,8 @@ public class Metrics
     [Description("Number of MCOPY opcodes executed.")]
     public static long MCopyOpcode { get; set; }
 
-    [Description("Number of MODEXP precompiles executed.")]
-    public static long ModExpOpcode { get; set; }
+    [Description("Number of EXP opcodes executed.")]
+    public static long ExpOpcode { get; set; }
 
     [Description("Number of BLOCKHASH opcodes executed.")]
     public static long BlockhashOpcode { get; set; }
@@ -112,6 +112,9 @@ public class Metrics
 
     [Description("Number of SHA256 precompile calls.")]
     public static long Sha256Precompile { get; set; }
+
+    [Description("Number of Secp256r1 precompile calls.")]
+    public static long Secp256r1Precompile { get; set; }
 
     [Description("Number of Point Evaluation precompile calls.")]
     public static long PointEvaluationPrecompile { get; set; }

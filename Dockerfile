@@ -9,7 +9,6 @@ ARG CI
 ARG COMMIT_HASH
 ARG TARGETARCH
 
-COPY .git .git
 COPY src/Nethermind src/Nethermind
 RUN git submodule update --init src/Lantern.Discv5
 
