@@ -245,8 +245,22 @@ public class DiscoveryV5App : IDiscoveryApp
             }
         }
 
+        IEnr[] GetStartingNodes()
+        {
+            IEnr[] activeNodes = _discv5Protocol.GetActiveNodes.ToArray();
+            if (activeNodes.Length != 0)
+            {
+                return activeNodes;
+            }
+            return _discv5Protocol.GetAllNodes.ToArray();
+        }
+
         Random random = new();
         await _discv5Protocol!.InitAsync();
+
+        // temporary fix: give discv5 time to initialize
+        await Task.Delay(10_000);
+
         if (_logger.IsDebug) _logger.Debug($"Initially discovered {_discv5Protocol.GetActiveNodes.Count()} active peers, {_discv5Protocol.GetAllNodes.Count()} in total.");
 
         byte[] randomNodeId = new byte[32];
@@ -254,12 +268,12 @@ public class DiscoveryV5App : IDiscoveryApp
         {
             try
             {
-                await DiscoverAsync(_discv5Protocol.GetActiveNodes.ToArray(), _discv5Protocol.SelfEnr.NodeId, _appShutdownSource.Token);
+                await DiscoverAsync(GetStartingNodes(), _discv5Protocol.SelfEnr.NodeId, _appShutdownSource.Token);
 
                 for (int i = 0; i < 3; i++)
                 {
                     random.NextBytes(randomNodeId);
-                    await DiscoverAsync(_discv5Protocol.GetActiveNodes.ToArray(), randomNodeId, _appShutdownSource.Token);
+                    await DiscoverAsync(GetStartingNodes(), randomNodeId, _appShutdownSource.Token);
                 }
             }
             catch (Exception ex)
