@@ -2712,7 +2712,6 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
 
         if (!UpdateMemoryCost(vmState, ref gasAvailable, in memoryPositionOfInitCode, initCodeLength)) return (EvmExceptionType.OutOfGas, null);
 
-        _logger.Info($"CREATE opCode Checkpoint 1 {gasAvailable}");
         // TODO: copy pasted from CALL / DELEGATECALL, need to move it outside?
         if (env.CallDepth >= MaxCallDepth) // TODO: fragile ordering / potential vulnerability for different clients
         {
@@ -2721,30 +2720,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
             stack.PushZero();
             return (EvmExceptionType.None, null);
         }
-        _logger.Info($"CREATE opCode Checkpoint 2 {gasAvailable}");
         ReadOnlyMemory<byte> initCode = vmState.Memory.Load(in memoryPositionOfInitCode, initCodeLength);
-
-
-        UInt256 balance = _state.GetBalance(env.ExecutingAccount);
-        _logger.Info($"CREATE opCode Checkpoint 3 {gasAvailable} {value} {balance}");
-        if (value > balance)
-        {
-            _returnDataBuffer = Array.Empty<byte>();
-            stack.PushZero();
-            return (EvmExceptionType.None, null);
-        }
-        _logger.Info($"CREATE opCode Checkpoint 4 {gasAvailable}");
-
-        UInt256 accountNonce = _state.GetNonce(env.ExecutingAccount);
-        UInt256 maxNonce = ulong.MaxValue;
-        _logger.Info($"CREATE opCode Checkpoint 5 {gasAvailable} {accountNonce} {maxNonce}");
-        if (accountNonce >= maxNonce)
-        {
-            _returnDataBuffer = Array.Empty<byte>();
-            stack.PushZero();
-            return (EvmExceptionType.None, null);
-        }
-        _logger.Info($"CREATE opCode Checkpoint 6 {gasAvailable}");
         Address contractAddress = instruction == Instruction.CREATE
             ? ContractAddress.From(env.ExecutingAccount, _state.GetNonce(env.ExecutingAccount))
             : ContractAddress.From(env.ExecutingAccount, salt, initCode.Span);
@@ -2752,7 +2728,24 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
         var contractCreationInitCost =
             env.Witness.AccessForContractCreationInit(contractAddress, !vmState.Env.Value.IsZero);
         if (!UpdateGas(contractCreationInitCost, ref gasAvailable)) return (EvmExceptionType.OutOfGas, null);
-        _logger.Info($"CREATE opCode Checkpoint 7 {gasAvailable}");
+
+        UInt256 balance = _state.GetBalance(env.ExecutingAccount);
+        if (value > balance)
+        {
+            _returnDataBuffer = Array.Empty<byte>();
+            stack.PushZero();
+            return (EvmExceptionType.None, null);
+        }
+
+        UInt256 accountNonce = _state.GetNonce(env.ExecutingAccount);
+        UInt256 maxNonce = ulong.MaxValue;
+
+        if (accountNonce >= maxNonce)
+        {
+            _returnDataBuffer = Array.Empty<byte>();
+            stack.PushZero();
+            return (EvmExceptionType.None, null);
+        }
 
         if (typeof(TTracing) == typeof(IsTracing)) EndInstructionTrace(gasAvailable, vmState.Memory.Size);
         // todo: === below is a new call - refactor / move
