@@ -105,10 +105,7 @@ public class DiscoveryV5App : IDiscoveryApp
         _discv5Protocol.NodeAdded += (e) => NodeAddedByDiscovery(e.Record);
         _discv5Protocol.NodeRemoved += NodeRemovedByDiscovery;
 
-        if (_logger.IsDebug)
-        {
-            _discoveryReport = new DiscoveryReport(_discv5Protocol, logManager, _appShutdownSource.Token);
-        }
+        _discoveryReport = new DiscoveryReport(_discv5Protocol, logManager, _appShutdownSource.Token);
     }
 
     private void NodeAddedByDiscovery(IEnr newEntry)
