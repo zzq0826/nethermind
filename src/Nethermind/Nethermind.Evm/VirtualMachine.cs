@@ -2726,7 +2726,7 @@ internal sealed class VirtualMachine<TLogger> : IVirtualMachine where TLogger : 
             : ContractAddress.From(env.ExecutingAccount, salt, initCode.Span);
 
         var contractCreationInitCost =
-            env.Witness.AccessForContractCreationInit(contractAddress, !vmState.Env.Value.IsZero);
+            env.Witness.AccessForContractCreationInit(contractAddress, !value.IsZero);
         if (!UpdateGas(contractCreationInitCost, ref gasAvailable)) return (EvmExceptionType.OutOfGas, null);
 
         UInt256 balance = _state.GetBalance(env.ExecutingAccount);
