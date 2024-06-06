@@ -155,12 +155,10 @@ namespace Nethermind.Core.Test
         }
 
         [Test]
-        public void Is_precompiled_9_byzantium()
+        public void Is_l2_precompile()
         {
-            byte[] addressBytes = new byte[20];
-            addressBytes[19] = 9;
-            Address address = new(addressBytes);
-            Assert.False(address.IsPrecompile(Byzantium.Instance));
+            Address address = Secp256r1Precompile.Address;
+            Assert.True(address.IsPrecompile(Prague.Instance));
         }
 
         [TestCase(0, false)]
