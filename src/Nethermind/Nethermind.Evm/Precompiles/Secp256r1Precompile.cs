@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.IO;
 using System.Security.Cryptography;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
@@ -24,6 +25,7 @@ public class Secp256r1Precompile : IPrecompile<Secp256r1Precompile>
 
     public (ReadOnlyMemory<byte>, bool) Run(in ReadOnlyMemory<byte> inputData, IReleaseSpec releaseSpec)
     {
+        File.AppendAllText("/tmp/__Secp256r1Precompile.log", "+1");
         if (inputData.Length != RequiredInputLength)
             return (Array.Empty<byte>(), false);
 
